@@ -1,0 +1,60 @@
+---
+layout: post
+author: sjf0115
+title: Flink 轻松理解Watermark
+date: 2019-03-20 12:17:21
+tags:
+  - Flink
+  - Flink Stream
+
+categories: Flink
+permalink: watermarks-in-apache-flink-made-easy
+---
+
+当我们第一次使用 Flink 时，可能会对 `Watermark` 感到困惑，其实 `Watermark` 并不复杂。让我们通过一个简单的例子来说明为什么我们需要 `Watermark`，以及它是如何工作的。
+
+在下文中的例子中，我们有一个带有时间戳的事件流，这些事件并不是按顺序到达的。图中的数字表示事件发生的时间戳。第一个事件在时间 4 到达，后面跟着一个发生更早时间的事件（时间 2），以此类推：
+
+![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/watermarks-in-apache-flink-made-easy-1.png?raw=true)
+
+注意这是一个基于事件时间处理的例子，这意味着时间戳反映的是事件发生的时间，而不是事件处理的时间。基于事件时间处理的强大之处在于创建流处理程序无论是处理实时的数据还是重新处理历史的数据，都能保证结果的一致。
+
+> 关于不同概念时间（例如事件时间，处理时间或摄入时间）的更多信息可以参考[Flink1.4 事件时间与处理时间](http://smartsi.club/flink-stream-event-time-and-processing-time.html)。
+
+现在假设我们正在创建一个排序的数据流。这意味着应用程序处理流中的乱序到达的事件，并生成同样事件但按时间戳（事件时间）排序的新数据流。
+
+### 1. 理解一
+
+数据流中的第一个元素是时间 4，但是我们不能直接将它作为排序后数据流的第一个元素输出。因为数据可能是乱序到达的，可能还有一个更早发生的数据还没有到达。事实上，我们可以根据业务特点预判知道数据流应该至少还有时间 2 没有到达，到达后才输出结果。先缓存时间 4 ，等待时间 2。
+
+> 进行缓存，就必然有延迟。
+
+### 2. 理解二
+
+如果我们预判错了（没有更早的数据了），我们可能会永远等待下去。首先，我们应用程序看到的第一个事件是时间 4，然后是时间 2 。是否会有一个比时间 2 更早的数据到达呢？也许会，也许不会。我们可以一直等下去，但可能会永远等不到时间 1 。
+
+> 我们不能无限制的等待下去，我们必须果敢地输出时间 2 作为排序后新数据流的第一个结果。
+
+### 3. 理解三
+
+我们需要定义某种策略来决定什么时候不再去停止等待更早数据的到来。
+
+> 这就是 Watermark 的作用，定义了什么时候不再等待更早的数据。
+
+Flink 中基于事件时间的处理依赖于一种特殊的带时间戳的元素，我们称之为 `Watermark`，它们由数据源或是 `Watermark` 生成器插入数据流中。带有时间戳 `t` 的 `Watermark` 可以理解为所有时间戳小于等于 `t` 的事件都（在某种合理的概率上）已经到达了。
+
+我们什么时候应该停止等待，然后输出时间 2 来开启新的数据流？当时间戳大于等于 2 的 `Watermark` 到达时我们停止等待。
+
+### 4. 理解四
+
+> 我们有不同的策略来生成 Watermark。
+
+我们都知道每个事件都会在延迟一段时间后到达，而不同事件的延迟会不一样，所以会有些事件比其他事件延迟更多。一种简单的方法是假设这些延迟不会超过某个最大值延迟时间。Flink 把这种策略称之为有界无序 Watermark（bounded-out-of-orderness）。当然也有很多更复杂的方法来生成 Watermark，但是对于大多数应用来说，固定延迟的方法已经足够了。
+
+如果想要创建一个类似排序的流应用程序，可以使用 Flink 的 `ProcessFunction`。它提供了对事件时间计时器（即，基于 Watermark 到达触发的回调）的访问，还提供了管理状态的接口（缓存事件直到它们发送到下游）。
+
+欢迎关注我的公众号和博客：
+
+![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
+
+原文:[Watermarks in Apache Flink Made Easy](https://www.ververica.com/blog/watermarks-in-apache-flink-made-easy)

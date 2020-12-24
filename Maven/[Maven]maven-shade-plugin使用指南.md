@@ -1,0 +1,235 @@
+### 1. Selecting Contents for Uber JAR
+
+下面的POM代码段显示了如何控制在uber JAR中应该包含/排除哪些项目依赖关系：
+```xml
+<project>
+  ...
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <artifactSet>
+                <excludes>
+                  <exclude>classworlds:classworlds</exclude>
+                  <exclude>junit:junit</exclude>
+                  <exclude>jmock:*</exclude>
+                  <exclude>*:xml-apis</exclude>
+                  <exclude>org.apache.maven:lib:tests</exclude>
+                  <exclude>log4j:log4j:jar:</exclude>
+                </excludes>
+              </artifactSet>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  ...
+</project>
+```
+当然，也可以使用`<includes>`来指定组件的白名单。组件形式由`groupId：artifactId[[:type]:classifier]`的复合标识符表示。从插件1.3版本开始，通配符'*'和'？'可以用来做全局模式匹配。对于包含所选依赖关系的那些类的细粒度控制，可以使用组件过滤器：
+```xml
+<project>
+  ...
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <filters>
+                <filter>
+                  <artifact>junit:junit</artifact>
+                  <includes>
+                    <include>junit/framework/**</include>
+                    <include>org/junit/**</include>
+                  </includes>
+                  <excludes>
+                    <exclude>org/junit/experimental/**</exclude>
+                    <exclude>org/junit/runners/**</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  ...
+</project>
+```
+这里，类似Ant的模式用于指定依赖关系`junit：junit`中只有某些类/资源应该包含在uber JAR中。第二个过滤器演示了插件1.3版中引入的组件身份(artifact identity)通配符的使用。它从每个组件排除所有与签名相关的文件，而不管其组是什么或构件ID是什么。
+
+除了用户指定的过滤器之外，插件还可以配置为自动删除项目未使用的所有依赖关系类，从而最大限度地减少所产生的JAR：
+```xml
+<project>
+  ...
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <minimizeJar>true</minimizeJar>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  ...
+</project>
+```
+从版本1.6开始，minimizeJar将respect由过滤器中`include`标记的类。 请注意，为组件中的类显示指定include过滤器会隐式排除该组件中的其他所有非指定类:
+```xml
+<project>
+  ...
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <minimizeJar>true</minimizeJar>
+              <filters>
+                <filter>
+                   <artifact>log4j:log4j</artifact>
+                   <includes>
+                       <include>**</include>
+                   </includes>
+                </filter>
+                <filter>
+                   <artifact>commons-logging:commons-logging</artifact>
+                   <includes>
+                       <include>**</include>
+                   </includes>
+                </filter>
+              </filters>            
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  ...
+</project>
+```
+
+### 2. 重定位类 Relocating Classes
+
+如果uber JAR被重用为某个其他项目的依赖，如果直接包含所有来自uber JAR中组件的依赖可能会导致类加载冲突，这是由于在classpath上有重复类。为了解决这个问题，可以重新定位包含在阴影组件(shaded artifact)中的类，以创建其字节码的私有副本：
+```xml
+<project>
+  ...
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <relocations>
+                <relocation>
+                  <pattern>org.codehaus.plexus.util</pattern>
+                  <shadedPattern>org.shaded.plexus.util</shadedPattern>
+                  <excludes>
+                    <exclude>org.codehaus.plexus.util.xml.Xpp3Dom</exclude>
+                    <exclude>org.codehaus.plexus.util.xml.pull.*</exclude>
+                  </excludes>
+                </relocation>
+              </relocations>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  ...
+</project>
+```
+这指示插件通过移动相应的JAR文件条目并重写受影响的字节码( JAR file entries and rewritting the affected bytecode)，将org.codehaus.plexus.util包以及子包中的类从组件`org.shaded.plexus.util`中移到`org.shaded.plexus.util`包中。Xpp3Dom类和pull其他类将保留在原始包中。
+
+### 3. Attaching the Shaded Artifact
+
+默认情况下，插件将用阴影组件替换项目的主要组件。如果原始和阴影的组件都应该安装/部署到存储库中，那么可以配置插件使阴影构件附加为辅助构件：
+```xml
+<project>
+  ...
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>jackofall</shadedClassifierName> <!-- Any name that makes sense -->
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  ...
+</project>
+```
+通过附加的分类器将阴影组件与主要组件区分开来。
+
+
+
+原文:http://maven.apache.org/plugins/maven-shade-plugin/examples/includes-excludes.html
+
+http://maven.apache.org/plugins/maven-shade-plugin/examples/class-relocation.html
+
+http://maven.apache.org/plugins/maven-shade-plugin/examples/attached-artifact.html

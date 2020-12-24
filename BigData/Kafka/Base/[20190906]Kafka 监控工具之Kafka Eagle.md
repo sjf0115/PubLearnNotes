@@ -1,0 +1,20 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+原文:[Kafka Eagle Install](https://docs.kafka-eagle.org/2.env-and-install/2.installing)

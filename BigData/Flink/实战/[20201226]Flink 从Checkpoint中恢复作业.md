@@ -170,6 +170,9 @@ java.lang.RuntimeException: custom error flag, restart application
 2020-12-26 21:05:29,353 INFO  org.apache.flink.runtime.taskexecutor.TaskExecutor           [] - Close JobManager connection for job a78621726e80e5bde6f936a177f0d052.
 ```
 
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-restore-job-from-checkpoint-1.jpg?raw=true)
+
+
 欢迎关注我的公众号和博客：
 
 ![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)

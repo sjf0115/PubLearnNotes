@@ -96,7 +96,31 @@ Exception in thread "main" java.lang.IllegalStateException: No ExecutorFactory f
 从 Flink 1.11.0 版本开始，flink-streaming-java 模块不再依赖 flink-clients。如果我们的项目对 flink-clients 有依赖，需要手动添加 flink-clients 依赖项。
 > 具体参阅:[Reversed dependency from flink-streaming-java to flink-client](https://ci.apache.org/projects/flink/flink-docs-master/release-notes/flink-1.11.html#reversed-dependency-from-flink-streaming-java-to-flink-client-flink-15090)
 
+### 4. Hadoop is not in the classpath/dependencies
 
-
+【现象】在Idea中启动程序报如下错误：
+```java
+Caused by: org.apache.flink.core.fs.UnsupportedFileSystemSchemeException: Could not find a file system implementation for scheme 'hdfs'. The scheme is not directly supported by Flink and no Hadoop file system to support this scheme could be loaded. For a full list of supported file systems, please see https://ci.apache.org/projects/flink/flink-docs-stable/ops/filesystems/.
+	at org.apache.flink.core.fs.FileSystem.getUnguardedFileSystem(FileSystem.java:491)
+	at org.apache.flink.core.fs.FileSystem.get(FileSystem.java:389)
+	at org.apache.flink.core.fs.Path.getFileSystem(Path.java:292)
+	at org.apache.flink.runtime.state.filesystem.FsCheckpointStorage.<init>(FsCheckpointStorage.java:64)
+	at org.apache.flink.runtime.state.filesystem.FsStateBackend.createCheckpointStorage(FsStateBackend.java:501)
+	at org.apache.flink.runtime.checkpoint.CheckpointCoordinator.<init>(CheckpointCoordinator.java:302)
+	... 22 more
+Caused by: org.apache.flink.core.fs.UnsupportedFileSystemSchemeException: Hadoop is not in the classpath/dependencies.
+	at org.apache.flink.core.fs.UnsupportedSchemeFactory.create(UnsupportedSchemeFactory.java:58)
+	at org.apache.flink.core.fs.FileSystem.getUnguardedFileSystem(FileSystem.java:487)
+	... 27 more
+```
+【解决方案】添加如下依赖：
+```xml
+<dependency>
+    <groupId>org.apache.hadoop</groupId>
+    <artifactId>hadoop-client</artifactId>
+    <version>${hadoop.version}</version>
+    <scope>provided</scope>
+</dependency>
+```
 
 ...

@@ -153,7 +153,7 @@ java.lang.RuntimeException: custom error flag, restart application
 ...
 2020-12-26 20:48:23,000 INFO  org.apache.flink.runtime.taskmanager.Task                    [] - MySumFunction -> Sink: MyPrintFunction (1/1) (53e45aa6b16f0b82d1bde8325f0cfbaf) switched from DEPLOYING to RUNNING.
 ```
-由于我们设置了最多重启三次，所以第四次发出 ERROR 信号后，导致作业失败而不能重启：
+由于我们设置了最多重启三次，所以第四次发出 ERROR 信号后，作业彻底失败：
 ```java
 2020-12-26 21:05:29,294 WARN  org.apache.flink.runtime.taskmanager.Task                    [] - Source: MySourceFunction -> MyFlatMapFunction (1/1) (223b777dfc69013852e9ab37d3cc078e) switched from RUNNING to FAILED.
 java.lang.RuntimeException: custom error flag, restart application

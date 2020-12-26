@@ -102,6 +102,8 @@ wy:opt wy$ nc -lk 9100
 wy:~ wy$ flink run -c com.flink.example.stream.state.checkpoint.RestoreCheckpointExample  ~/study/code/data-example/flink-example/target/flink-example-1.0.jar
 ```
 
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-restore-job-from-checkpoint-2.jpg?raw=true)
+
 下表是从 nc 服务输出测试数据，从 Flink Web 页面输出结果数据的详细信息：
 
 | 序号 | 输入| 输出 | 备注 |

@@ -2,7 +2,7 @@
 layout: post
 author: smartsi
 title: Flink Savepoint机制
-date: 2020-12-27 18:13:17
+date: 2021-01-01 18:13:17
 tags:
   - Flink
 
@@ -157,13 +157,15 @@ flink run -s :savepointPath -n [:runArgs]
 
 (5) 如果在作业中添加、删除或重新排序没有状态的算子会发生什么情况？
 
-如果你给有状态的算子分配了ID，那么无状态算子不会影响 Savepoint 的恢复。如果你没有分配ID，那么在重新排序后，有状态算子自动生成的ID很可能会发生变化。这将导致你无法从以前的保存点进行恢复。
+如果你给有状态算子分配了ID，那么无状态算子不会影响 Savepoint 的恢复。如果你没有分配ID，那么在重新排序后，有状态算子自动生成的ID很可能会发生变化。这会导致你无法从以前的 Savepoint 进行恢复。所以还是建议给所有的算子分配ID。
 
 (6) 当在恢复时改变了程序的并行度会发生什么？
 
-如果在 `Flink`版本 大于`1.2.0`，保存点被触发，并且没有使用已经弃用的状态API（如 `Checkpointed`），则可以简单地从保存点恢复程序并指定新的并行度。
+如果 Savepoint 是在 Flink 大于 1.2.0 版本下被触发的，并且没有使用已经弃用的状态API（如 Checkpointed），那么是可以从 Savepoint 恢复程序并指定新的并行度。但是如果小于 1.2.0 版本 或者使用了已经弃用的状态API，那么必须先将作业和 Savepoint 迁移到大于等于 1.2.0 版本上，然后才能更改并行度。
 
-如果在 `Flink`版本 小于`1.2.0`，从被触发的保存点恢复，或者使用已经弃用的API，那么首先必须将作业和保存点迁移到 `Flink` 大于等于 `1.2.0`版本，然后才能更改并行度。请参阅升[级作业和Flink版本指南](https://ci.apache.org/projects/flink/flink-docs-release-1.4/ops/upgrading.html)。
+> 请参考[升级作业和Flink版本指南](https://ci.apache.org/projects/flink/flink-docs-release-1.12/ops/upgrading.html)。
+
+
 
 
 原文:[Savepoints](https://ci.apache.org/projects/flink/flink-docs-release-1.12/ops/state/savepoints.html)

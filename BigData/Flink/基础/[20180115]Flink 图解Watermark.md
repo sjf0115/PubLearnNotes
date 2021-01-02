@@ -1,27 +1,28 @@
 ---
 layout: post
 author: sjf0115
-title: Flink1.4 图解Watermark
+title: Flink 图解Watermark
 date: 2018-01-15 14:47:01
 tags:
   - Flink
-  - Flink Stream
 
 categories: Flink
 permalink: flink-stream-graphic-watermark
 ---
 
-如果你正在构建实时流处理应用程序，那么事件时间处理是你迟早必须使用的功能之一。因为在现实世界的大多数用例中，消息到达都是无序的，应该有一些方法，通过你建立的系统知道消息可能延迟到达，并且有相应的处理方案。在这篇博文中，我们将看到为什么我们需要事件时间处理，以及我们如何在ApacheFlink中使用它。
+如果你正在构建实时流处理应用程序，那么基于事件时间处理是你今后可能必须使用的其中一个功能。因为在现实世界的大多数用例中，消息都是无序到达的，应该有一些方法，通过你建立的系统知道消息可能延迟到达，并且有相应的处理方案。在这篇博文中，我们将看到为什么我们需要事件时间处理，以及我们如何在 Flink 中使用它。
 
-`EventTime`是事件在现实世界中发生的时间，`ProcessingTime`是Flink系统处理该事件的时间。要了解事件时间处理的重要性，我们首先要建立一个基于处理时间的系统，看看它的缺点。
+事件时间（EventTime）是事件在现实世界中发生的时间，处理时间（ProcessingTime） 是 Flink 系统处理该事件的时间。要了解事件时间处理的重要性，我们要首先建立一个基于处理时间的系统，看看它有什么样的缺点。
 
-我们创建一个大小为10秒的滑动窗口，每5秒滑动一次，在窗口结束时，系统将发送在此期间收到的消息数。 一旦了解了`EventTime`处理在滑动窗口如何工作，那么了解其在滚动窗口中如何工作也就不是难事。所以让我们开始吧。
+> 事件时间与处理时间，具体查阅[Flink 事件时间与处理时间](http://smartsi.club/flink-stream-event-time-and-processing-time.html)
+
+我们创建一个大小为10秒的滑动窗口，每5秒滑动一次，在窗口结束时，系统将发送在此期间收到的消息数。一旦了解了事件时间处理在滑动窗口是如何工作，那么了解在滚动窗口中是如何工作的也就不是难事了。
 
 ### 1. 基于处理时间的系统
 
-在这个例子中，我们期望消息具有一定格式的值，时间戳就是消息的那个值，同时时间戳是在源产生此消息的时间。由于我们正在构建基于处理时间的系统，因此以下代码忽略了时间戳部分。
+在这个例子中，我们期望消息具有一定格式：<value,timestamp>，value 就是消息的内容，timestamp 就是消息在数据源产生时的时间。由于我们正在构建的是基于处理时间的系统，因此下面代码会忽略时间戳部分。
 
-我们需要知道消息中应包含消息产生时间是很重要的。Flink或任何其他系统不是一个魔术盒，可以以某种方式自己生成这个产生时间。稍后我们将看到，事件时间处理提取此时间戳信息来处理延迟消息。
+我们需要知道的是消息中包含消息产生的时间是很重要的。Flink 或任何其他系统都不是一个魔术盒，都不能以某种方式自己生成这个时间。稍后我们将看到，事件时间处理提取此时间戳信息来处理延迟消息。
 
 ```
 val text = senv.socketTextStream("localhost", 9999)
@@ -35,7 +36,7 @@ senv.execute("ProcessingTime processing example")
 
 #### 1.1 消息无延迟到达
 
-假设源分别在第13秒产生两个类型a的消息以及在第16秒产生一个消息。(小时和分钟不重要，因为窗口大小只有10秒)。
+假设数据源分别在第13秒产生两个类型a的消息以及在第16秒产生一个消息。(小时和分钟不重要，因为窗口大小只有10秒)。
 
 ![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E5%9B%BE%E8%A7%A3%E4%BA%8B%E4%BB%B6%E6%97%B6%E9%97%B4%E4%B8%8EWatermarks-0.png?raw=true)
 
@@ -118,5 +119,8 @@ override def getCurrentWatermark(): Watermark = {
 
 实时流处理系统的重要性日益增长，延迟消息的处理是你构建任何此类系统的一部分。在这篇博文中，我们看到延迟到达的消息会影响系统的结果，以及如何使用ApacheFlink的事件时间功能来解决它们。
 
+欢迎关注我的公众号和博客：
 
-原文:http://vishnuviswanath.com/flink_eventtime.html
+![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
+
+原文:[Flink Event Time Processing and Watermarks](http://vishnuviswanath.com/flink_eventtime.html)

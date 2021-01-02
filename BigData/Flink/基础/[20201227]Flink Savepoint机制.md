@@ -165,7 +165,8 @@ flink run -s :savepointPath -n [:runArgs]
 
 > 请参考[升级作业和Flink版本指南](https://ci.apache.org/projects/flink/flink-docs-release-1.12/ops/upgrading.html)。
 
+欢迎关注我的公众号和博客：
 
-
+![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 原文:[Savepoints](https://ci.apache.org/projects/flink/flink-docs-release-1.12/ops/state/savepoints.html)

@@ -20,7 +20,7 @@ permalink: flink-stream-graphic-watermark
 
 ### 1. 基于处理时间的系统
 
-在这个例子中，我们期望消息具有一定格式：<value,timestamp>，value 就是消息的内容，timestamp 就是消息在数据源产生时的时间。由于我们正在构建的是基于处理时间的系统，因此下面代码会忽略时间戳部分。
+在这个例子中，我们期望消息具有一定格式：`value,timestamp`，value 就是消息的内容，timestamp 就是消息在数据源产生时的时间。由于我们正在构建的是基于处理时间的系统，因此下面代码会忽略时间戳部分。
 
 我们需要知道的是消息中包含消息产生的时间是很重要的。Flink 或任何其他系统都不是一个魔术盒，都不能以某种方式自己生成这个时间。稍后我们将看到，事件时间处理提取此时间戳信息来处理延迟消息。
 
@@ -36,27 +36,27 @@ senv.execute("ProcessingTime processing example")
 
 #### 1.1 消息无延迟到达
 
-假设数据源分别在第13秒产生两个类型a的消息以及在第16秒产生一个消息。(小时和分钟不重要，因为窗口大小只有10秒)。
+假设数据源分别在第13秒产生两个类型a的消息以及在第16秒产生一个。(小时和分钟不重要，因为窗口大小只有10秒)。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E5%9B%BE%E8%A7%A3%E4%BA%8B%E4%BB%B6%E6%97%B6%E9%97%B4%E4%B8%8EWatermarks-0.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-graphic-watermark-0.png?raw=true)
 
-这些消息将落入如下所示窗口中。前两个在第13秒产生的消息将落入窗口1`[5s-15s]`和窗口2`[10s-20s]`中，第三个在第16秒产生的消息将落入窗口2`[10s-20s]`和窗口3`[15s-25s]`中。每个窗口得到的最终计数分别为(a，2)，(a，3)和(a，1)。
+这些消息将落入如下所示窗口中。前两个在第13秒产生的消息将落入窗口1`[5s-15s]`和窗口2`[10s-20s]`中，第三个在第16秒产生的消息将落入窗口2`[10s-20s]`和窗口3`[15s-25s]`中。最终每个窗口得到的计数分别为(a，2)，(a，3)和(a，1)。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E5%9B%BE%E8%A7%A3%E4%BA%8B%E4%BB%B6%E6%97%B6%E9%97%B4%E4%B8%8EWatermarks-2.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-graphic-watermark-2.png?raw=true)
 
-该输出跟预期的输出是一样的。现在我们看看当一个消息延迟到达系统时会发生什么。
+上面的输出跟预期是一样的。现在我们看看当一个消息延迟到达系统时会发生什么。
 
 #### 1.2 消息延迟到达
 
-现在假设其中一条消息(在第13秒产生)可能由于网络拥塞延迟6秒(第19秒到达)。你能猜测出这个消息会落入哪个窗口？
+现在假设其中一条消息(在第13秒产生)可能由于网络问题延迟6秒(第19秒到达)。你能猜测出这个消息会落入哪个窗口？
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E5%9B%BE%E8%A7%A3%E4%BA%8B%E4%BB%B6%E6%97%B6%E9%97%B4%E4%B8%8EWatermarks-3.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-graphic-watermark-3.png?raw=true)
 
-延迟的消息落入窗口2和窗口3中，因为19在10-20和15-25之间。窗口2的计算没有任何问题(因为消息本应该落入这个窗口)，但是它影响了窗口1和窗口3的计算结果。现在我们将尝试使用基于`EventTime`处理来解决这个问题。
+延迟的消息落入窗口2和窗口3中，因为 19 在 10-20 和 15-25 之间。窗口2的计算没有任何问题(因为消息本应该落入这个窗口)，但是它影响了窗口1和窗口3的计算结果。现在我们将尝试使用基于事件时间处理来解决这个问题。
 
-### 2. 基于EventTime的系统
+### 2. 基于事件时间的系统
 
-要使用基于`EventTime`处理，我们需要一个时间戳提取器，从消息中提取事件时间信息。请记住，消息是有格式值，时间戳。 `extractTimestamp`方法获取时间戳并将其作为Long类型返回。现在忽略`getCurrentWatermark`方法，我们稍后会介绍：
+要使用基于事件时间的处理，我们需要一个时间戳提取器，从消息中提取出事件时间。请记住，消息是有格式的，<value,timestamp>。extractTimestamp 方法提取时间戳并将其作为 Long 类型返回。现在忽略 getCurrentWatermark 方法，我们稍后会介绍：
 
 ```
 class TimestampExtractor extends AssignerWithPeriodicWatermarks[String] with Serializable {
@@ -84,7 +84,7 @@ senv.execute("EventTime processing example")
 ```
 运行上述代码的结果如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E5%9B%BE%E8%A7%A3%E4%BA%8B%E4%BB%B6%E6%97%B6%E9%97%B4%E4%B8%8EWatermarks-4.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-graphic-watermark-4.png?raw=true)
 
 结果看起来更好一些，窗口2和3现在是正确的结果，但是窗口1仍然是有问题的。Flink没有将延迟的消息分配给窗口3，是因为在当前检查消息的事件时间，知道它不应该出现在窗口3中。但是为什么没有将消息分配给窗口1？原因是当延迟的信息到达系统时(第19秒)，窗口1的评估(
 evaluation)已经完成了(第15秒)。现在让我们尝试通过使用`Watermark`来解决这个问题。
@@ -104,7 +104,7 @@ override def getCurrentWatermark(): Watermark = {
 
 进行上述更改后运行代码的结果是：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E5%9B%BE%E8%A7%A3%E4%BA%8B%E4%BB%B6%E6%97%B6%E9%97%B4%E4%B8%8EWatermarks-5.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-graphic-watermark-5.png?raw=true)
 
 
 最后我们得到了正确的结果，所有窗口都按照预期输出计数，(a，2)，(a，3)和(a，1)。

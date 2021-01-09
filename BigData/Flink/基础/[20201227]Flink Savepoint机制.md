@@ -58,7 +58,7 @@ Savepoint 可以使用命令行来操作，命令行提供了触发 Savepoint、
 ```
 bin/flink savepoint :jobId [:targetDirectory]
 ```
-![](1)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-deployment-savepoints-1.jpg?raw=true)
 
 > 如果你不指定 targetDirectory，则需要配置一个默认目录，否则触发 Savepoint 失败。
 
@@ -73,7 +73,7 @@ bin/flink savepoint :jobId [:targetDirectory] -yid :yarnAppId
 ```
 bin/flink cancel -s [:targetDirectory] :jobId
 ```
-![](2)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-deployment-savepoints-2.jpg?raw=true)
 
 此外，您可以指定 targetDirectory 来存储 Savepoint，但是 JobManager 和 TaskManager 必须有访问该目录的权限。
 
@@ -83,7 +83,7 @@ bin/flink cancel -s [:targetDirectory] :jobId
 ```
 bin/flink run -s :savepointPath [:runArgs]
 ```
-![](3)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-deployment-savepoints-3.jpg?raw=true)
 
 默认情况下，恢复操作会尝试将 Savepoint 下的所有状态映射回待恢复的新程序。如果我们在新程序中删除了某个算子，这时会出现任务不能恢复的情况，此时我们可以通过 `--allowNonRestoredState` （简写-n）参数跳过无法匹配的状态，让程序正常启动起来：
 ```
@@ -97,7 +97,7 @@ bin/flink run -s :savepointPath -n [:runArgs]
 bin/flink savepoint --dispose :savepointPath
 ```
 
-![](4)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-deployment-savepoints-4.jpg?raw=true)
 
 官方文档给出如下也可以释放Savepoint：
 ```
@@ -105,7 +105,7 @@ bin/flink savepoint -d :savepointPath
 ```
 但是实际执行遇到如下问题，暂时没有找到原因：
 
-![](5)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-deployment-savepoints-5.jpg?raw=true)
 
 > 有知道的朋友可以留言
 
@@ -127,7 +127,7 @@ state.savepoints.dir: hdfs://localhost:9000/flink/savepoints
 
 触发 Savepoint 时，会在指定目录 targetDirectory 或者 state.savepoints.dir 配置参数下创建一个新的保存点目录。数据以及元数据将被存储该目录下：
 
-![](6)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-deployment-savepoints-6.jpg?raw=true)
 
 其中 b2f649 是 jobId 简写，0ac0837b40ce 是 SavepointId。具体格式如下：
 ```

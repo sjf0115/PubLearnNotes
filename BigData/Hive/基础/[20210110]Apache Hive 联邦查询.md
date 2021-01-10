@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Apache Hive 联邦查询
+title: <转>Apache Hive 联邦查询
 date: 2021-01-10 21:02:01
 tags:
   - Hive

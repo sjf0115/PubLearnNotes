@@ -1,6 +1,6 @@
 ---
 layout: post
-author: sjf0115
+author: 过往记忆
 title: <转>Apache Hive 联邦查询
 date: 2021-01-10 21:02:01
 tags:

@@ -1,7 +1,7 @@
 ---
 layout: post
 author: 周文猛
-title: [转]与 Facebook 分手后 ，PrestoSQL 再度因商标侵权被迫更名
+title: <转>与 Facebook 分手后 ，PrestoSQL 再度因商标侵权被迫更名
 date: 2021-01-04 21:22:01
 tags:
   - Presto

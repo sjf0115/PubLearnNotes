@@ -7,6 +7,7 @@ tags:
   - Airflow
 
 categories: Airflow
+permalink: how-install-and-startup-airflow
 ---
 
 ### 1. 安装

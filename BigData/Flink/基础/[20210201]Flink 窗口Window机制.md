@@ -2,7 +2,7 @@
 layout: post
 author: smartsi
 title: Flink 窗口Window机制
-date: 2021-01-31 16:40:01
+date: 2021-02-01 16:40:01
 tags:
   - Flink
 
@@ -20,26 +20,25 @@ permalink: introducing-stream-windows-in-apache-flink
 
 我们拿交通传感器的例子来说明，传感器每15秒统计通过某个位置的车辆数量。结果流看起来像如下所示：
 
-![](1)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introducing-stream-windows-in-apache-flink-1.png?raw=true)
 
 如果现在我们想知道有多少辆车经过这个位置，我们只需简单的将每15秒统计的数量相加即可。但是，传感器流的本质是连续产生数据。像这样的流永远都不会结束，更不可能计算出可以返回的最终和。换一种思路，我们可以滚动计算总和，即为每个输入事件返回一个更新的总和记录。这就会产生新的部分和流：
 
-![](2)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introducing-stream-windows-in-apache-flink-2.png?raw=true)
 
 但是，部分求和流可能不是我们想要的，因为它会不断更新计数，更重要的是，某些信息（例如随时间变化）会丢失。因此，我们需要想改一下我们的问题：每分钟通过该位置的汽车数量。这要求我们将流的元素分组为有限的集合，每个集合对应于60秒。此操作称为滚动窗口操作。
 
-![](3)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introducing-stream-windows-in-apache-flink-3.png?raw=true)
 
 滚动窗口将流离散化为不重叠的窗口。对于某些应用程序，重要的是窗口不可分离，因为应用程序可能需要平滑的聚合。例如，我们可以每30秒计算最后一分钟通过的汽车数量。这种窗口称为滑动窗口。
 
-![](4)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introducing-stream-windows-in-apache-flink-4.png?raw=true)
 
 如上所述，在数据流上定义窗口是非并行操作。这是因为流的每个元素必须由同一窗口算子处理，决定每个元素应归属到哪个窗口中。一个完整流上的 Windows 在 Flink 中称为 AllWindows。对于许多应用程序，数据流可以拆分为多个逻辑流，每个逻辑流都可以应用窗口算子。例如，考虑统计来自多个交通传感器（而不是像前面的示例中的一个传感器）的车辆计，其中每个传感器都会监控一个不同的位置。通过按传感器ID对流进行分组，我们可以并行计算每个位置的窗口流量统计。在 Flink 中，我们将这种分区的窗口简称为 Windows，因为它们是分布式流的常见情况。下图显示了在 (sensorId, count) 流上的滚动窗口。
 
-![](5)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introducing-stream-windows-in-apache-flink-5.png?raw=true)
 
 一般来说，窗口在无界流上定义了一组有限的元素。该集合可以基于时间（如我们之前的示例中所示），元素个数，元素个数和时间的组合或一些自定义逻辑将元素分配给窗口。Flink 的 DataStream API 为最常见的窗口操作提供了简洁的算子，并提供了一种通用的窗口机制，该机制允许用户自定义窗口逻辑。在下面的内容中，我们将介绍 Flink 的 Time Windows 和 Count Windows，然后再详细讨论其窗口机制。
-
 
 ## 2. Time Windows
 
@@ -101,12 +100,31 @@ DataStream<Tuple2<String, Long>> slidingCnt = vehicleCnt
 
 ## 4. 剖析Flink的窗口机制
 
+Flink 的内置 Time Windows 和 Count Windows 覆盖了各种常见的窗口用例。但是，有些应用程序还是需要实现自定义窗口逻辑，而 Flink 的内置窗口无法解决这些逻辑。为了同时也支持定制的窗口语义的应用程序，DataStream API 公开了窗口机制内部的接口。这些接口可以非常精细地控制窗口的创建和触发。
 
+下图描述了 Flink 的窗口机制，并介绍了其中涉及的组件。
 
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introducing-stream-windows-in-apache-flink-6.png?raw=true)
 
+到达窗口算子的元素将传递给 WindowAssigner。 WindowAssigner 将元素分配给一个或多个窗口，也可能会创建新窗口。窗口本身只是一系列元素的标识符，并且可以提供一些可选的元信息，例如，在使用 TimeWindow 时的开始和结束时间。请注意，可以将元素添加到多个窗口中，这也意味着可以同时存在多个窗口。
 
+每个窗口都有一个 Trigger，决定了何时触发计算或清除该窗口。当先前注册的计时器到点时，对于分配到窗口中的每个元素都会调用 Trigger。对于每个事件，Trigger 都可以决定触发，清除（清除窗口并丢弃其内容），或者触发并清除窗口。仅触发的 Trigger 会计算窗口并保持其原样，即所有元素都保留在窗口中，并在下次触发时再次计算（不删除元素）。一个窗口可以被触发多次计算，并且一直存在直到清除为止。请注意，在清除窗口之前，窗口会一值消耗内存。
 
+触发 Trigger 时，可以将窗口元素列表提供给可选的 Evictor。Evictor 遍历列表，可以决定从列表的开头删除一些元素，即删除一些首先进入窗口的元素。其它元素则提供给窗口计算函数。如果没有定义 Evictor，则 Trigger 直接将所有窗口元素交给窗口计算函数。
 
+窗口计算函数接收一个窗口的元素（可能先由 Evictor 进行过滤），并为该窗口计算一个或多个结果元素。DataStream API 可以接受不同类型的计算函数，包括预定义的聚合函数，例如，sum()，min()，max() 以及 ReduceFunction，FoldFunction 或 WindowFunction。WindowFunction 是最通用的窗口计算函数，接收窗口对象（即窗口的元数据），窗口元素列表以及窗口键（如果是 Keyed Window）作为参数。
 
+这些是构成 Flink 的窗口机制的组件。
+
+## 5. 结论
+
+对于现代流处理器来说，在连续数据流上支持各种类型的窗口是必不可少的。Apache Flink 是一种流处理器，具有非常强大的功能，其中就包括一种非常灵活的机制来构建和计算连续数据流上的窗口。Flink 为常见用例提供了内置的窗口算子，以及允许用户自定义窗口逻辑。
+
+欢迎关注我的公众号和博客：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+
+推荐订阅：
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jk.jpeg?raw=true)
 
 原文：[Introducing Stream Windows in Apache Flink](https://flink.apache.org/news/2015/12/04/Introducing-windows.html)

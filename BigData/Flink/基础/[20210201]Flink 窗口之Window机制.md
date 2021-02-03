@@ -12,7 +12,7 @@ permalink: introducing-stream-windows-in-apache-flink
 
 数据分析场景见证了批处理到流处理的演变过程。尽管批处理可以作为流处理的一种特殊情况来处理，但分析永无止境的流数据通常需要转变一种思维方式，并使用它自己的专门术语，例如，窗口、At-Least-Once 或者 Exactly-Once 处理语义。
 
-对于刚刚接触流处理的人来说，这种思维方式的转变以及新的专业术语可能会让我们感到非常困惑。但是，Apache Flink 作为一个为生产环境而生的流处理器，具有易于使用并且表达能力很强的 API 来定义高级流分析程序。 Flink 的 API 在数据流上有非常灵活的窗口定义，使其能在其他开源流处理器中脱颖而出。
+对于刚刚接触流处理的人来说，这种思维方式的转变以及新的专业术语可能会让他们感到非常困惑。但是，Apache Flink 作为一个为生产环境而生的流处理器，具有易于使用并且表达能力很强的 API 来定义高级流分析程序。 Flink 的 API 在数据流上有非常灵活的窗口定义，使其能在其他开源流处理器中脱颖而出。
 
 在这篇文章中，我们主要讨论用于流处理的窗口的概念，介绍 Flink 的内置窗口，并说明其对自定义窗口语义的支持。
 
@@ -34,7 +34,7 @@ permalink: introducing-stream-windows-in-apache-flink
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introducing-stream-windows-in-apache-flink-4.png?raw=true)
 
-如上所述，在数据流上定义窗口是非并行操作。这是因为流的每个元素必须由同一窗口算子处理，决定每个元素应归属到哪个窗口中。一个完整流上的 Windows 在 Flink 中称为 AllWindows。对于许多应用程序，数据流可以拆分为多个逻辑流，每个逻辑流都可以应用窗口算子。例如，考虑统计来自多个交通传感器（而不是像前面的示例中的一个传感器）的车辆计，其中每个传感器都会监控一个不同的位置。通过按传感器ID对流进行分组，我们可以并行计算每个位置的窗口流量统计。在 Flink 中，我们将这种分区的窗口简称为 Windows，因为它们是分布式流的常见情况。下图显示了在 (sensorId, count) 流上的滚动窗口。
+如上所述，在数据流上定义窗口是非并行操作。这是因为流的每个元素必须由同一窗口算子处理，决定每个元素应归属到哪个窗口中。一个完整流上的 Windows 在 Flink 中称为 AllWindows。对于许多应用程序，数据流可以拆分为多个逻辑流，每个逻辑流都可以应用窗口算子。例如，考虑统计来自多个交通传感器（而不是像前面的示例中的一个传感器）的车辆，其中每个传感器都会监控一个不同的位置。通过按传感器ID对流进行分组，我们可以并行计算每个位置的窗口流量统计。在 Flink 中，我们将这种分区的窗口简称为 Windows，因为它们是分布式流的常见情况。下图显示了在 (sensorId, count) 流上的滚动窗口。
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introducing-stream-windows-in-apache-flink-5.png?raw=true)
 
@@ -106,7 +106,7 @@ Flink 的内置 Time Windows 和 Count Windows 覆盖了各种常见的窗口用
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introducing-stream-windows-in-apache-flink-6.png?raw=true)
 
-到达窗口算子的元素将传递给 WindowAssigner。 WindowAssigner 将元素分配给一个或多个窗口，也可能会创建新窗口。窗口本身只是一系列元素的标识符，并且可以提供一些可选的元信息，例如，在使用 TimeWindow 时的开始和结束时间。请注意，可以将元素添加到多个窗口中，这也意味着可以同时存在多个窗口。
+到达窗口算子的元素将传递给 WindowAssigner。 WindowAssigner 将元素分配给一个或多个窗口，也可能会创建新的窗口。窗口本身只是一系列元素的标识符，并且可以提供一些可选的元信息，例如，在使用 TimeWindow 时的开始和结束时间。请注意，可以将元素添加到多个窗口中，这也意味着可以同时存在多个窗口。
 
 每个窗口都有一个 Trigger，决定了何时触发计算或清除该窗口。当先前注册的计时器到点时，对于分配到窗口中的每个元素都会调用 Trigger。对于每个事件，Trigger 都可以决定触发，清除（清除窗口并丢弃其内容），或者触发并清除窗口。仅触发的 Trigger 会计算窗口并保持其原样，即所有元素都保留在窗口中，并在下次触发时再次计算（不删除元素）。一个窗口可以被触发多次计算，并且一直存在直到清除为止。请注意，在清除窗口之前，窗口会一值消耗内存。
 

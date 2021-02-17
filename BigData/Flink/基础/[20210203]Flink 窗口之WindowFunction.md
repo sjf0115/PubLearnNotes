@@ -134,7 +134,7 @@ C,2021-02-14 12:30:01,1
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-function-2.jpg?raw=true)
 
-### 4. ProcessWindowFunction
+### 3. ProcessWindowFunction
 
 前面提到的 ReduceFunction 和 AggregateFunction 都是基于中间状态实现增量计算的窗口函数，虽然已经满足绝大数的场景，但是在某些情况下，统计更复杂的指标可能还是需要依赖于窗口中的所有的数据元素，或者需要操作窗口中的状态和窗口元数据，这时就需要使用到 ProcessWindowFunction。ProcessWindowFunction 会获得窗口内所有元素的 Iterable 以及一个可以访问时间和状态信息的 Context 对象，这使得它可以比其他窗口函数提供更大的灵活性。这是以牺牲性能和资源消耗为代价的，因为不能增量进行聚合，而是需要在内部进行缓冲，直到窗口被认为准备好进行处理为止。
 
@@ -242,13 +242,13 @@ C,2021-02-14 12:30:01
 
 需要注意的是使用 ProcessWindowFunction 进行简单聚合（如count）的效率非常低。下一节将展示如何使用 ReduceFunction 或 AggregateFunction 与 ProcessWindowFunction 组合一起使用实现增量聚合以及获取 ProcessWindowFunction 的额外元数据信息。
 
-### 5. 使用增量聚合的ProcessWindowFunction
+### 4. 使用增量聚合的ProcessWindowFunction
 
 ReduceFunction，AggregateFunction 等这些增量函数虽然在一定程度上能够提升窗口的计算性能，但是这些函数的灵活性却不及 ProcessWindowFunction，例如，对窗口状态的操作以及对窗口中元数据获取等。但是如果使用 ProcessWindowFunction 来完成一些基础的增量计算却比较浪费资源。这时可以使用 ProcessWindowFunction 与 ReduceFunction 或者 AggregateFunction 等增量函数组合使用，以充分利用两种函数各自的优势。元素到达窗口时对其使用 ReduceFunction 或者 AggregateFunction 增量函数进行增量聚合，当关闭窗口时向 ProcessWindowFunction 提供聚合结果。这样我们就可以增量的计算窗口，同时还可以访问窗口的元数据信息。
 
 > 我们也可以使用旧版的 WindowFunction 代替 ProcessWindowFunction 进行增量窗口聚合。
 
-#### 5.1 使用ReduceFunction进行增量聚合
+#### 4.1 使用ReduceFunction进行增量聚合
 
 如下代码示例展示了如何将 ReduceFunction 增量函数与 ProcessWindowFunction 组合使用以返回窗口中的不同Key的求和以及该窗口的开始时间等窗口元信息：
 ```java
@@ -339,7 +339,7 @@ C,2021-02-14 12:30:01
 ```
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-function-4.jpg?raw=true)
 
-#### 5.2 使用AggregateFunction进行增量聚合
+#### 4.2 使用AggregateFunction进行增量聚合
 
 如下代码示例展示了如何将 AggregateFunction 增量函数与 ProcessWindowFunction 组合使用以返回窗口中的不同Key的平均值以及该窗口的开始时间等窗口元信息：
 ```java
@@ -451,7 +451,7 @@ C,2021-02-14 12:30:01,1
 ```
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-function-5.jpg?raw=true)
 
-### 6. WindowFunction
+### 5. WindowFunction
 
 在某些可以使用 ProcessWindowFunction 的地方，我们也可以使用 WindowFunction。这是 ProcessWindowFunction 的旧版本，提供的上下文信息比较少，并且缺乏某些高级功能，例如，每个窗口的 Keyed 状态。WindowFunction 的结构如下所示：
 ```java

@@ -10,15 +10,15 @@ categories: Flink
 permalink: flink-stream-windows-function
 ---
 
-在之前的文章中我们已经了解 Flink 可以不同类型的窗口的 Assigner，在指定 [Windows Assigner](http://smartsi.club/flink-stream-windows-overall.html) 之后，我们需要在每个窗口上指定我们要执行的计算逻辑。这是窗口函数（Windows Function）的责任，一旦系统确定窗口准备好处理数据，窗口函数就会被调用来处理窗口中的每个元素。
+在之前的文章中我们已经了解了 Flink 的[窗口机制](http://smartsi.club/introducing-stream-windows-in-apache-flink.html)，并介绍了其中涉及的组件：WindowAssigner、WindowFunction、Trigger、Evictor。在 [Flink 窗口如何使用](http://smartsi.club/flink-stream-windows-overall.html) 中我们知道窗口可以有不同类型的 Assigner。在指定 Assigner 后，我们需要在每个窗口上指定我们要执行的计算逻辑，这是窗口函数（Windows Function）的责任。一旦系统确定窗口准备好处理数据，窗口函数就会被调用来处理窗口中的每个元素。
 
-窗口函数可以是 ReduceFunction，AggregateFunction, FoldFunction 或者 ProcessWindowFunction。前两个函数执行效率更高，因为 Flink 可以在每个元素到达窗口时增量地进行聚合。ProcessWindowFunction 可以获取一个窗口内所有元素的迭代器以及元素所在窗口的其他元信息。使用 ProcessWindowFunction 进行窗口操作不能像其他那样有效率，是因为 Flink 在调用该函数之前必须在内部缓存窗口中的所有元素。所以按照计算原理可以分为两大类：一类是增量聚合函数，对应有 ReduceFunction，AggregateFunction, FoldFunction；另一类是全量窗口函数，对应有 ProcessWindowFunction。增量聚合函数计算性能高，占有存储空间少，主要是因为基于中间状态的计算结果，窗口中只维护中间结果的状态值，不需要缓存原始数据。而全量窗口函数使用的代价相对较高，性能比较弱，主要因为算子需要对属于该窗口的元素进行缓存，只有等到床就触发的时候，才对所有的原始元素进行汇总计算。如果接入的数据量比较大或者窗口时间比较长，就可能会导致计算性能的下降。
+窗口函数可以是 ReduceFunction，AggregateFunction 或者 ProcessWindowFunction。前两个函数执行效率更高，因为 Flink 可以在每个元素到达窗口时增量地进行聚合。ProcessWindowFunction 可以获取一个窗口内所有元素的迭代器以及元素所在窗口的其他元信息。使用 ProcessWindowFunction 进行窗口操作不能像其他函数那样有效率，那是因为 Flink 在调用该函数之前必须在内部缓存窗口中的所有元素。所以按照计算原理可以分为两大类：一类是增量聚合函数，对应有 ReduceFunction，AggregateFunction；另一类是全量窗口函数，对应有 ProcessWindowFunction。增量聚合函数计算性能高，占有存储空间少，主要是因为基于中间状态的计算结果，窗口中只维护中间结果的状态值，不需要缓存原始数据。而全量窗口函数使用的代价相对较高，性能相对差一些，主要因为算子需要对属于该窗口的元素进行缓存，只有等到窗口触发的时候，才对所有的原始元素进行汇总计算。如果接入的数据量比较大或者窗口时间比较长，就可能会导致计算性能的下降。
 
 下面将会介绍每种 Windows Function 在 Flink 中如何使用。
 
 ### 1. ReduceFunction
 
-ReduceFunction 定义了对输入的两个相同类型的元素按照指定的计算逻辑进行集合，然后输出相同类型的一个结果元素。Flink 使用 ReduceFunction 增量聚合窗口的元素。如下代码所示，创建好 Window Assigner 之后通过在 reduce() 函数汇总指定 ReduceFunction 逻辑：
+ReduceFunction 定义了对输入的两个相同类型的元素按照指定的计算逻辑进行集合，然后输出相同类型的一个结果元素。Flink 使用 ReduceFunction 增量聚合窗口的元素。如下代码所示，创建好 Window Assigner 之后通过在 reduce() 函数中指定 ReduceFunction 逻辑：
 ```java
 DataStream<Tuple2<String, Integer>> wordsCount = ...;
 DataStream<Tuple2<String, Integer>> result = wordsCount
@@ -53,7 +53,7 @@ public interface AggregateFunction<IN, ACC, OUT> extends Function, Serializable 
 	ACC merge(ACC a, ACC b);
 }
 ```
-如下代码所示，实现 AggregateFunction 求取最近一分钟平均值的聚合运算：
+如下代码所示，自定义实现 AggregateFunction 函数实现分组求平均值的功能：
 ```java
 DataStream<Tuple2<String, Double>> result = stream
         // 提取时间戳与设置Watermark
@@ -138,7 +138,7 @@ C,2021-02-14 12:30:01,1
 
 前面提到的 ReduceFunction 和 AggregateFunction 都是基于中间状态实现增量计算的窗口函数，虽然已经满足绝大数的场景，但是在某些情况下，统计更复杂的指标可能还是需要依赖于窗口中的所有的数据元素，或者需要操作窗口中的状态和窗口元数据，这时就需要使用到 ProcessWindowFunction。ProcessWindowFunction 会获得窗口内所有元素的 Iterable 以及一个可以访问时间和状态信息的 Context 对象，这使得它可以比其他窗口函数提供更大的灵活性。这是以牺牲性能和资源消耗为代价的，因为不能增量进行聚合，而是需要在内部进行缓冲，直到窗口被认为准备好进行处理为止。
 
-ProcessWindowFunction 的结构如下所示，在类中 Context 抽象类中完整的定义了 Window 的元数据以及可以操作的 Window 状态数据，包括 GlobalState 和 WindowState：
+ProcessWindowFunction 的结构如下所示，在 Context 抽象类中完整的定义了 Window 的元数据以及可以操作的 Window 状态数据，包括 GlobalState 和 WindowState：
 ```java
 public abstract class ProcessWindowFunction<IN, OUT, KEY, W extends Window> extends AbstractRichFunction {
   private static final long serialVersionUID = 1L;
@@ -163,7 +163,7 @@ public abstract class ProcessWindowFunction<IN, OUT, KEY, W extends Window> exte
   }
 }
 ```
-在实现 ProcessWindowFunction 接口中，如果不操作状态数据，那么只需要实现 process() 方法即可，该方法中定义了评估窗口和具体数据输出的逻辑。如下代码所示，通过自定义实现 ProcessWindowFunction 完成基于窗口上的 Key 统计，并输出窗口结束时间等元数据信息：
+在实现 ProcessWindowFunction 接口中，如果不操作状态数据，那么只需要实现 process() 方法即可，该方法中定义了评估窗口和具体数据输出的逻辑。如下代码所示，通过自定义实现 ProcessWindowFunction 完成基于窗口上的分组统计的功能，并输出窗口结束时间等元数据信息：
 ```java
 DataStream result = stream
       // 提取时间戳与设置Watermark
@@ -244,7 +244,7 @@ C,2021-02-14 12:30:01
 
 ### 5. 使用增量聚合的ProcessWindowFunction
 
-ReduceFunction，AggregateFunction等这些增量函数虽然在一定程度上能够提升窗口的计算性能，但是这些函数的灵活性却不及 ProcessWindowFunction，例如，对窗口状态的操作以及对窗口中元数据获取等。但是如果使用 ProcessWindowFunction 来完成一些基础的增量计算却比较浪费资源。这时可以使用 ProcessWindowFunction 与 ReduceFunction 或者 AggregateFunction 等增量函数组合使用，以充分利用两种函数各自的优势。元素到达窗口时对其使用 ReduceFunction 或者 AggregateFunction 增量函数进行增量聚合，当关闭窗口时向 ProcessWindowFunction 提供聚合结果。这样我们可以增量的计算窗口，同时还可以访问窗口的元数据信息。
+ReduceFunction，AggregateFunction 等这些增量函数虽然在一定程度上能够提升窗口的计算性能，但是这些函数的灵活性却不及 ProcessWindowFunction，例如，对窗口状态的操作以及对窗口中元数据获取等。但是如果使用 ProcessWindowFunction 来完成一些基础的增量计算却比较浪费资源。这时可以使用 ProcessWindowFunction 与 ReduceFunction 或者 AggregateFunction 等增量函数组合使用，以充分利用两种函数各自的优势。元素到达窗口时对其使用 ReduceFunction 或者 AggregateFunction 增量函数进行增量聚合，当关闭窗口时向 ProcessWindowFunction 提供聚合结果。这样我们就可以增量的计算窗口，同时还可以访问窗口的元数据信息。
 
 > 我们也可以使用旧版的 WindowFunction 代替 ProcessWindowFunction 进行增量窗口聚合。
 

@@ -10,18 +10,54 @@ categories: Flink
 permalink: how-to-user-process-function-of-flink
 ---
 
+### 1. 抽象层次
+
+在学习 ProcessFunction 之前，我们先来回顾一下 Flink 的[抽象层次](http://smartsi.club/flink-programming-model.html)。Flink 为我们提供了不同级别的抽象层次来开发流处理和批处理应用程序。
+
+![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/Flink%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B-1.png?raw=true)
+
+(1) 最低级别的抽象只是提供有状态的数据流。通过`Process Function`集成到DataStream API中。它允许用户不受限制的处理来自一个或多个数据流的事件，并可以使用一致的容错状态(consistent fault tolerant state)。另外，用户可以注册事件时间和处理时间的回调函数，允许程序实现复杂的计算。
+
+(2) 在实际中，大多数应用程序不需要上述描述的低级抽象，而是使用如`DataStream API`(有界/无界流)和`DataSet API`(有界数据集)的核心API进行编程。这些核心API提供了用于数据处理的通用构建模块，如用户指定的各种转换，连接，聚集，窗口，状态等。在这些API中处理的数据类型被表示为对应编程语言中的类。
+
+低级别的`Process Function`与`DataStream API`集成在一起，使得可以对特定操作使用较低级别的抽象接口。`DataSet API`为有限数据集提供了额外的原语(primitives)，如循环/迭代。
+
+(3) `Table API`是以表为核心的声明式DSL，可以动态地改变表(当表表示流数据时)。`Table API`遵循(扩展的)关系模型：每个表都有一个schema(类似于关系数据库中的表)，对应的API提供了类似的操作(offers comparable operations)，如`select`，`project`，`join`，`group-by`，`aggregate`等。`Table API`程序声明性地定义了如何在逻辑上实现操作，而不是明确指定操作实现的具体代码。尽管`Table API`可以通过各种类型的用户自定义函数进行扩展，它比核心API表达性要差一些，但使用上更简洁(编写代码更少)。另外，`Table API`程序也会通过一个优化器，在执行之前应用优化规则。
+
+可以在表和`DataStream`/`DataSet`之间进行无缝转换，允许程序混合使用`Table API`和`DataStream`和`DataSet API`。
+
+(4) Flink提供的最高级抽象是SQL。这种抽象在语法和表现力方面与`Table API`类似，但是是通过SQL查询表达式实现程序。SQL抽象与`Table API`紧密交互，SQL查询可以在`Table API`中定义的表上执行。
+
+
 ### 1. ProcessFunction
 
-ProcessFunction 函数是低阶流处理算子，可以访问流应用程序所有（非循环）基本构建块：
+ProcessFunction 函数是 Flink 低阶流处理算子，可以允许访问流应用程序所有的基本构件：
 - 事件 (数据流元素)
 - 状态 (容错和一致性)
 - 定时器 (事件时间和处理时间)
 
-ProcessFunction 可以被认为是一种提供了对 KeyedState 和定时器访问的 FlatMapFunction。每在输入流中接收到一个事件，就会调用来此函数来处理。
+ProcessFunction 可以被认为是一种提供了对 KeyedState 和 Timer 访问的 FlatMapFunction。每在输入流中接收到一个事件，就会调用此函数来处理。对于容错的状态，ProcessFunction 可以通过 RuntimeContext 访问 KeyedState，类似于其他有状态函数访问 KeyedState。
 
-对于容错的状态，ProcessFunction 可以通过 RuntimeContext 访问 KeyedState，类似于其他有状态函数访问 KeyedState。
+Timer 可以根据处理时间或者事件时间的变化做一些对应的处理。每次调用 processElement() 都可以获得一个 Context 对象，通过该对象可以访问元素的事件时间戳以及 TimerService。TimerService 可以为尚未发生的事件时间或者处理时间实例注册回调。当 Timer 到达某个时刻时，会调用 onTimer() 方法。在调用期间，所有状态再次限定为 Timer 创建的键，允许定时器操作 KeyedState。
 
-定时器可以对处理时间和事件时间的变化做一些处理。每次调用 `processElement()` 都可以获得一个 Context 对象，通过该对象可以访问元素的事件时间戳以及 TimerService。TimerService 可以为尚未发生的事件时间/处理时间实例注册回调。当定时器到达某个时刻时，会调用 `onTimer()` 方法。在调用期间，所有状态再次限定为定时器创建的键，允许定时器操作 KeyedState。
+```java
+public abstract class ProcessFunction<I, O> extends AbstractRichFunction {
+
+	public abstract void processElement(I value, Context ctx, Collector<O> out) throws Exception;
+	public void onTimer(long timestamp, OnTimerContext ctx, Collector<O> out) throws Exception {}
+
+	public abstract class Context {
+		public abstract Long timestamp();
+		public abstract TimerService timerService();
+		public abstract <X> void output(OutputTag<X> outputTag, X value);
+	}
+
+	public abstract class OnTimerContext extends Context {
+		public abstract TimeDomain timeDomain();
+	}
+}
+
+```
 
 > 如果要访问 KeyedState 和定时器，那必须在 KeyedStream 上使用 ProcessFunction。
 

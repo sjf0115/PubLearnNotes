@@ -15,7 +15,7 @@ permalink: flink-programming-model
 
 Flink提供不同级别的抽象层次来开发流处理和批处理应用程序。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/Flink%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-1.png?raw=true)
 
 (1) 最低级别的抽象只是提供有状态的数据流。通过`Process Function`集成到DataStream API中。它允许用户不受限制的处理来自一个或多个数据流的事件，并可以使用一致的容错状态(consistent fault tolerant state)。另外，用户可以注册事件时间和处理时间的回调函数，允许程序实现复杂的计算。
 
@@ -33,16 +33,13 @@ Flink提供不同级别的抽象层次来开发流处理和批处理应用程序
 
 Flink程序的基本构建块是流和转换操作。
 
-备注:
-```
-Flink的DataSet API中使用的数据集也是内部的流 - 稍后会介绍这一点。
-```
+> 备注: Flink的DataSet API中使用的数据集也是内部的流 - 稍后会介绍这一点。
 
 从概念上讲，流是数据记录(可能是永无止境的)流，而转换是将一个或多个流作为输入，并产生一个或多个输出流。
 
 执行时，Flink程序被映射到由流和转换算子组成的流式数据流(streaming dataflows)。每个数据流从一个或多个source开始，并在一个或多个sink中结束。数据流类似于有向无环图(DAG)。尽管通过迭代构造允许特殊形式的环，但是为了简单起见，大部分我们都会这样描述。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/Flink%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B-2.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-2.png?raw=true)
 
 程序中的转换与数据流中的算子通常是一一对应的。然而，有时候，一个转换可能由多个转换算子组成。
 
@@ -52,7 +49,7 @@ Flink中的程序本质上是分布式并发执行的。在执行过程中，一
 
 算子子任务的数量是该特定算子的并发数。流的并发数总是产生它的算子的并发数。同一程序的不同算子可能具有不同的并发级别。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/Flink%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B-3.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-3.png?raw=true)
 
 在两个算子之间的流可以以一对一模式或重新分发模式传输数据:
 
@@ -68,7 +65,7 @@ Flink中的程序本质上是分布式并发执行的。在执行过程中，一
 
 窗口可以是`时间驱动的`(比如：每30秒）或者`数据驱动`的(比如：每100个元素)。窗口通常被区分为不同的类型，比如`滚动窗口`(没有重叠)，`滑动窗口`(有重叠)，以及`会话窗口`(由不活动的间隙所打断)
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/Flink%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B-4.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-4.png?raw=true)
 
 更多的窗口示例可以在这篇[博客](https://flink.apache.org/news/2015/12/04/Introducing-windows.html)中找到。更多详细信息在[窗口](https://ci.apache.org/projects/flink/flink-docs-release-1.4/dev/stream/operators/windows.html)文档。
 
@@ -82,7 +79,7 @@ Flink中的程序本质上是分布式并发执行的。在执行过程中，一
 
 (3) `处理事件`是每一个执行基于时间操作算子的本地时间。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/Flink%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B-5.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-5.png?raw=true)
 
 更多关于如何处理时间的详细信息可以查看[事件时间](https://ci.apache.org/projects/flink/flink-docs-release-1.4/dev/event_time.html)文档.
 
@@ -92,7 +89,7 @@ Flink中的程序本质上是分布式并发执行的。在执行过程中，一
 
 有状态操作的状态保存在一个可被视为嵌入式键值对存储中。状态与由有状态算子读取的流一起被严格地分区与分布(distributed)。因此，只有在应用`keyBy()`函数之后，才能访问`keyed streams`上的键/值对状态，并且仅限于与当前事件`key`相关联的值(access to the key/value state is only possible on keyed streams, after a keyBy() function, and is restricted to the values associated with the current event’s key. )。对齐流和状态的`key`(Aligning the keys of streams and state)确保了所有状态更新都是本地操作，保证一致性，而没有事务开销(guaranteeing consistency without transaction overhead)。这种对齐还使得`Flink`可以透明地重新分配状态与调整流的分区。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/Flink%E7%BC%96%E7%A8%8B%E6%A8%A1%E5%9E%8B-5.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-6.png?raw=true)
 
 ### 7. 容错性检查点
 

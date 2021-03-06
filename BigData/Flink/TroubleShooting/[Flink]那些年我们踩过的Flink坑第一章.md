@@ -123,4 +123,42 @@ Caused by: org.apache.flink.core.fs.UnsupportedFileSystemSchemeException: Hadoop
 </dependency>
 ```
 
+### 5. ctx.timestamp() is null
+
+【现象】在使用 ProcessFunction 的时候报如下错误：
+```java
+java.lang.NullPointerException: null
+	at com.flink.example.stream.function.KeyedProcessFunctionExample$MyKeyedProcessFunction.processElement(KeyedProcessFunctionExample.java:100) ~[blob_p-92c7e7e29847aa931e056c2af61ded61872e86e5-eb163730b1bcc759f3ea79f21ff92551:?]
+	at com.flink.example.stream.function.KeyedProcessFunctionExample$MyKeyedProcessFunction.processElement(KeyedProcessFunctionExample.java:59) ~[blob_p-92c7e7e29847aa931e056c2af61ded61872e86e5-eb163730b1bcc759f3ea79f21ff92551:?]
+	at org.apache.flink.streaming.api.operators.KeyedProcessOperator.processElement(KeyedProcessOperator.java:85) ~[flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.streaming.runtime.tasks.OneInputStreamTask$StreamTaskNetworkOutput.emitRecord(OneInputStreamTask.java:161) ~[flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.streaming.runtime.io.StreamTaskNetworkInput.processElement(StreamTaskNetworkInput.java:178) ~[flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.streaming.runtime.io.StreamTaskNetworkInput.emitNext(StreamTaskNetworkInput.java:153) ~[flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.streaming.runtime.io.StreamOneInputProcessor.processInput(StreamOneInputProcessor.java:67) ~[flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.streaming.runtime.tasks.StreamTask.processInput(StreamTask.java:351) ~[flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.streaming.runtime.tasks.mailbox.MailboxProcessor.runMailboxStep(MailboxProcessor.java:191) ~[flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.streaming.runtime.tasks.mailbox.MailboxProcessor.runMailboxLoop(MailboxProcessor.java:181) ~[flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.streaming.runtime.tasks.StreamTask.runMailboxLoop(StreamTask.java:566) ~[flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.streaming.runtime.tasks.StreamTask.invoke(StreamTask.java:536) ~[flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.runtime.taskmanager.Task.doRun(Task.java:721) [flink-dist_2.12-1.11.2.jar:1.11.2]
+	at org.apache.flink.runtime.taskmanager.Task.run(Task.java:546) [flink-dist_2.12-1.11.2.jar:1.11.2]
+	at java.lang.Thread.run(Thread.java:748) [?:1.8.0_161]
+```
+【解决方案】
+根据代码行数发现根本问题是 ctx.timestamp() 为 NULL，导致注册 Timer 时候抛出空指针异常。出现该问题的原因是：
+- 如果使用处理时间，ctx.timestamp() 为 null，可以使用系统时间戳 System.currentTimeMillis()。
+- 如果使用事件时间，可能是因为我们没有设置事件时间戳提取以及生成 Watermark。需要添加如下代码：
+```java
+// 如果使用事件时间必须设置Timestamp提取和Watermark生成 否则下游 ctx.timestamp() 为null
+.assignTimestampsAndWatermarks(
+        WatermarkStrategy.<Tuple2<String, Long>>forBoundedOutOfOrderness(Duration.ofSeconds(10))
+        .withTimestampAssigner(new SerializableTimestampAssigner<Tuple2<String, Long>>() {
+            @Override
+            public long extractTimestamp(Tuple2<String, Long> element, long recordTimestamp) {
+                return element.f1;
+            }
+        })
+)
+```
+
 ...

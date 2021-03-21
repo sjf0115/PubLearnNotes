@@ -2,7 +2,7 @@
 layout: post
 author: smartsi
 title: Flink 数据交换策略Partitioner
-date: 2021-03-14 13:21:01
+date: 2021-03-21 16:35:01
 tags:
   - Flink
 
@@ -417,7 +417,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 #### 7.1 作用
 
-使用 keyBy 函数指定分组 key 发送到相对应的下游实例上：
+使用 keyBy 函数指定分组 key，将具有相同 key 的元素发送到相同的下游算子实例上：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-15.png?raw=true)
 
@@ -541,7 +541,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 #### 8.1 作用
 
-自定义实现元素要发送到相对应的下游实例上。
+自定义实现元素要发送到相对应的下游算子实例上。
 
 #### 8.2 源码
 
@@ -620,7 +620,7 @@ private static class MyCustomPartitioner implements Partitioner<String> {
 
 通过 Partitioner 接口的 partition 方法，可以实现自定义的将数据输出到下游指定实例中。我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 CUSTOM 标示，表示我们使用的 CustomPartitionerWrapper：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-16.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-17.jpg?raw=true)
 
 欢迎关注我的公众号和博客：
 

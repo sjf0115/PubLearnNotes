@@ -160,5 +160,58 @@ java.lang.NullPointerException: null
         })
 )
 ```
+### 6. The parallelism of non parallel operator must be 1
+
+```java
+env.socketTextStream("localhost", 9100, "\n").setParallelism(2)
+  .forward()
+  .map(str -> str.toUpperCase()).setParallelism(3);
+```
+【现象】运行如上代码时，抛出如下异常：
+```java
+Caused by: java.lang.IllegalArgumentException: The parallelism of non parallel operator must be 1.
+	at org.apache.flink.util.Preconditions.checkArgument(Preconditions.java:139)
+	at org.apache.flink.api.common.operators.util.OperatorValidationUtils.validateParallelism(OperatorValidationUtils.java:38)
+	at org.apache.flink.streaming.api.datastream.DataStreamSource.setParallelism(DataStreamSource.java:85)
+	at com.flink.example.stream.partitioner.ForwardPartitionerExample.main(ForwardPartitionerExample.java:19)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.apache.flink.client.program.PackagedProgram.callMainMethod(PackagedProgram.java:288)
+	... 11 more
+```
+【解决方案】socketTextStream 实现的 Source 是继承的 SourceFunction。SourceFunction 是不支持通过 setParallelism() 方法设置大于1的并行度，默认的并行度为1，否则会报上面的错误。
+
+### 7. Forward partitioning does not allow change of parallelism
+
+```java
+// ForwardPartitioner
+env.socketTextStream("localhost", 9100, "\n")
+        .map(str -> str.toLowerCase()).name("LowerCaseMap").setParallelism(2)
+        .forward()
+        .map(str -> str.toUpperCase()).name("UpperCaseMap").setParallelism(3);
+```
+【现象】在运行如上代码时，抛出如下异常：
+```java
+Caused by: java.lang.UnsupportedOperationException: Forward partitioning does not allow change of parallelism. Upstream operation: LowerCaseMap-2 parallelism: 2, downstream operation: UpperCaseMap-4 parallelism: 3 You must use another partitioning strategy, such as broadcast, rebalance, shuffle or global.
+	at org.apache.flink.streaming.api.graph.StreamGraph.addEdgeInternal(StreamGraph.java:561)
+	at org.apache.flink.streaming.api.graph.StreamGraph.addEdgeInternal(StreamGraph.java:544)
+	at org.apache.flink.streaming.api.graph.StreamGraph.addEdge(StreamGraph.java:504)
+	at org.apache.flink.streaming.api.graph.StreamGraphGenerator.transformOneInputTransform(StreamGraphGenerator.java:696)
+	at org.apache.flink.streaming.api.graph.StreamGraphGenerator.transform(StreamGraphGenerator.java:250)
+	at org.apache.flink.streaming.api.graph.StreamGraphGenerator.generate(StreamGraphGenerator.java:209)
+	at org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.getStreamGraph(StreamExecutionEnvironment.java:1861)
+	at org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.getStreamGraph(StreamExecutionEnvironment.java:1846)
+	at org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.execute(StreamExecutionEnvironment.java:1697)
+	at com.flink.example.stream.partitioner.ForwardPartitionerExample.main(ForwardPartitionerExample.java:24)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.apache.flink.client.program.PackagedProgram.callMainMethod(PackagedProgram.java:288)
+	... 11 more
+```
+【解决方案】使用 ForwardPartitioner 时必须保证上下游算子的并行度保持一致，否则就需要其他的分区器，比如，BroadcastPartitioner、ShufflePartitioner 或者 RebalancePartitioner 等。
 
 ...

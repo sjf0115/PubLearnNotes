@@ -16,22 +16,22 @@ permalink: how-to-user-process-function-of-flink
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-1.png?raw=true)
 
-最低级别的抽象只是提供有状态的数据流，通过 ProcessFunction 集成到 DataStream API 中。这里的 ProcessFunction 就是我们本章将要重点介绍的内容。ProcessFunction 可以让用户轻松的处理来自一个或多个数据流的事件，并可以使用一致性容错状态。另外，用户可以注册事件时间或者处理时间的回调函数，允许程序实现复杂的计算。
+最低级别的抽象只是提供有状态的数据流，通过 ProcessFunction 集成到 DataStream API 中。这里的 ProcessFunction 就是我们本章将要重点介绍的内容。ProcessFunction 可以让用户轻松的处理来自一个或多个数据流的事件，并可以使用一致性容错状态。另外，用户可以注册事件时间或者处理时间的回调函数以实现复杂的计算。
 
-在实际中，大多数应用程序都不需要上述描述的低级抽象，而是使用 DataStream API 或者 DataSet API 的核心API进行编程。这些核心API提供了用于数据处理的通用构建模块，例如，Join，聚合，窗口，状态等。低级别的 ProcessFunction 与 DataStream API 集成在一起，使得可以对特定操作使用较低级别的抽象接口。
+在实际中，大多数应用程序都不需要上面的低级抽象，而是使用 DataStream API 或者 DataSet API 进行编程。这些核心 API 提供了用于数据处理的通用构建模块，例如，Join，聚合，窗口，状态等。低级别的 ProcessFunction 与 DataStream API 集成在一起，使得可以对特定操作使用低级别的抽象接口。
 
-再上一抽象层次是 Table API，是以表为核心的声明式DSL，可以动态地改变表(当表表示流数据时)。Table API 遵循(扩展的)关系性模型：每个表都有一个 Schema (类似于关系性数据库中的表)，对应的 API 也提供了关系性数据库类似的操作，例如，select，project，join，group-by，aggregate等。Table API 程序声明性地定义了如何在逻辑上实现操作，而不是明确指定操作实现的具体代码。尽管 Table API 可以通过各种类型的用户自定义函数进行扩展，但它比核心API表达性要差一些，使用上要更简洁一些(编写代码更少)。另外，Table API 程序也会通过优化器在执行之前进行优化。表和 DataStream/DataSet 可以进行无缝转换，也可以允许程序混合使用 Table API 和 DataStream/DataSet API。
+再上一抽象层次是 Table API，是以表为核心的声明式DSL，可以动态地改变表(当表表示流数据时)。Table API 遵循(扩展的)关系性模型：每个表都有一个 Schema (类似于关系性数据库中的表)，对应的 API 也提供了关系性数据库类似的操作，例如，select，project，join，group-by，aggregate等。Table API 声明性地定义了如何在逻辑上实现操作，而不是明确指定操作实现的具体代码。尽管 Table API 可以通过各种类型的用户自定义函数进行扩展，但它比核心API表达性要差一些，使用上要更简洁一些(编写代码更少)。另外，Table API 程序也会通过优化器在执行之前进行优化。表和 DataStream、DataSet 可以进行无缝转换，也可以允许程序混合使用 Table API 和 DataStream/DataSet API。
 
-Flink提供的最高级抽象是SQL。这种抽象在语法和表现力方面与 Table API 类似，但是是通过 SQL 查询表达式实现程序。SQL抽象与 Table API 紧密交互，SQL查询可以在 Table API 定义的表上执行。
+Flink 提供的最高级抽象是 SQL。这种抽象在语法和表现力方面与 Table API 类似，但是是通过 SQL 查询表达式实现程序。SQL抽象与 Table API 紧密交互，SQL查询可以在 Table API 定义的表上执行。
 
-### 2. ProcessFunction介绍
+### 2. ProcessFunction
 
-从上面抽象层次来看，从上往下在使用上有更高的灵活性，相应的易用性会越来越低。ProcessFunction 相比其他函数给我们提供了最大的灵活性，可以允许我们访问流应用程序所有的基本构件：
+从上面抽象层次来看，从上往下在使用上有更高的灵活性，相应的易用性也会越来越低。ProcessFunction 相比其他函数给我们提供了最大的灵活性，可以允许我们访问流应用程序所有的基本构件：
 - 事件(数据流元素)
-- 状态(容错和一致性)
+- 状态(容错和一致性，只适用于 KeyedStream)
 - Timer(定时器：事件时间和处理时间)
 
-ProcessFunction 可以被认为是一种提供了对 KeyedState 和 Timer 访问的 FlatMapFunction。每在输入流中接收到一个事件，就会调用此函数来处理。如下代码所示是 ProcessFunction 接口：
+ProcessFunction 可以被认为是一种提供了对 State 和 Timer 访问的 FlatMapFunction。每在输入流中接收到一个事件，就会调用此函数来处理。如下代码所示是 ProcessFunction 接口：
 ```java
 public abstract class ProcessFunction<I, O> extends AbstractRichFunction {
 	public abstract void processElement(I value, Context ctx, Collector<O> out) throws Exception;
@@ -48,9 +48,9 @@ public abstract class ProcessFunction<I, O> extends AbstractRichFunction {
 	}
 }
 ```
-ProcessFunction 接口比较简单，有两个方法：
-- processElement：对于每一个接入的数据元素通过该方法可以实现状态的更新以及注册基于事件时间或者处理时间的定时器（未来某一时间需要调用的 callback 回调函数）。
-- onTimer：通过该方法可以在当某一时间到来后，检查条件是否满足，并执行对应的行为，例如输出数据元素等。
+ProcessFunction 接口比较简单，主要提供了两个方法：
+- processElement：对于每一个接入的数据元素通过该方法可以实现状态的更新，也可以注册基于事件时间或者处理时间的定时器（未来某一时间需要调用的 callback 回调函数）。
+- onTimer：通过该方法可以在当某一时间到来后检查条件是否满足，并执行对应的操作，例如输出数据元素等。
 
 对于容错的状态，ProcessFunction 可以通过 RuntimeContext 访问 KeyedState，类似于其他有状态函数访问 KeyedState。Timer 可以根据处理时间或者事件时间的变化做一些对应的处理。每次调用 processElement() 都可以获得一个 Context 对象，通过该对象可以访问元素的事件时间戳以及 TimerService。TimerService 可以为尚未发生的事件时间或者处理时间实例注册回调。当 Timer 到达某个时刻时，会调用 onTimer() 方法。在调用期间，所有状态再次限定为 Timer 创建的键，允许定时器操作 KeyedState。
 
@@ -60,7 +60,7 @@ ProcessFunction 接口比较简单，有两个方法：
 stream.keyBy(...).process(new MyProcessFunction())
 ```
 
-### 4. 如何使用ProcessFunction
+### 3. 如何使用ProcessFunction
 
 在以下示例中，KeyedProcessFunction 为每个 Key 维护一个计数器，并且会把最近一分钟(事件时间)内没有更新的键/值对输出：
 - 计数，键以及最后更新的时间戳会存储在 ValueState 中，ValueState 由 key 隐含定义。
@@ -70,7 +70,6 @@ stream.keyBy(...).process(new MyProcessFunction())
 
 > 这个简单的例子可以用会话窗口实现。在这里使用 KeyedProcessFunction 只是用来说明它的基本模式。
 
-Java版本：
 ```java
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;

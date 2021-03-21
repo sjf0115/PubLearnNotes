@@ -10,6 +10,7 @@ categories: Flink
 permalink: physical-partitioning-in-apache-flink
 ---
 
+任务之间的数据交换策略决定了数据会分发到下游算子的哪个实例上，在 Flink 中有八种不同的策略，也称为分区器：
 - GlobalPartitioner
 - ForwardPartitioner
 - BroadcastPartitioner
@@ -19,7 +20,9 @@ permalink: physical-partitioning-in-apache-flink
 - KeyGroupStreamPartitioner
 - CustomPartitionerWrapper
 
-物理分区操作的作用是根据指定的分区策略将数据重新分配到不同节点的 Task 实例上执行。当使用 DataStream 提供的 API 对数据处理过程中，依赖算子本身对数据的分区控制，如果用户希望自己控制数据分区，例如当数据发生数据倾斜的时候，就需要通过定义物理分区策略对数据进行重新分布处理。Flink 中已经提供了常见的分区策略，例如，随机分区(Random Partitioning)、平衡分区(Rebalancing Partitioning)、按比例分区(Rescaling Partitioning)等。
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-18.png?raw=true)
+
+我们可以看到所有的 Partitioner 都继承了 StreamPartitioner 类。StreamPartitioner 继承自 ChannelSelector 接口。这里的 Channel 概念与 Netty 不同，只是 Flink 对于数据写入实例的简单抽象，我们可以直接认为它就是下游算子的并发实例（即物理分区）。所有 StreamPartitioner 的子类都要实现 selectChannel() 方法，用来选择发送到哪个实例。下面我们分别看看 Flink 提供的 8 种 Partitioner。
 
 ### 1. GlobalPartitioner
 
@@ -533,3 +536,93 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-16.jpg?raw=true)
 
 ### 8. CustomPartitionerWrapper
+
+#### 8.1 作用
+
+自定义实现元素要发送到相对应的下游实例上。
+
+#### 8.2 源码
+
+在 CustomPartitionerWrapper 构造器中传入我们自定义的 Partitioner 和 KeySelector 方法。通过自定义的 Partitioner 的 partition 方法选择要发送的实例：
+```java
+public class CustomPartitionerWrapper<K, T> extends StreamPartitioner<T> {
+	private static final long serialVersionUID = 1L;
+
+	Partitioner<K> partitioner;
+	KeySelector<T, K> keySelector;
+
+	public CustomPartitionerWrapper(Partitioner<K> partitioner, KeySelector<T, K> keySelector) {
+		this.partitioner = partitioner;
+		this.keySelector = keySelector;
+	}
+
+	@Override
+	public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+		K key;
+		try {
+			key = keySelector.getKey(record.getInstance().getValue());
+		} catch (Exception e) {
+			throw new RuntimeException("Could not extract key from " + record.getInstance(), e);
+		}
+
+		return partitioner.partition(key, numberOfChannels);
+	}
+
+	@Override
+	public SubtaskStateMapper getDownstreamSubtaskStateMapper() {
+		// fully rely on filtering downstream
+		// note that custom partitioners are not officially supported - the user has to force rescaling
+		// in that case, we assume that the custom partitioner is deterministic
+		return SubtaskStateMapper.FULL;
+	}
+
+	@Override
+	public StreamPartitioner<T> copy() {
+		return this;
+	}
+
+	@Override
+	public String toString() {
+		return "CUSTOM";
+	}
+}
+```
+
+#### 8.3 如何使用
+
+如下所示，调用 partitionCustom 方法指定我们自定义的 MyCustomPartitioner 即可：
+```java
+DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
+    .map(str -> str.toLowerCase()).name("LowerCaseMap").setParallelism(3)
+    .partitionCustom(new MyCustomPartitioner(), new KeySelector<String, String>() {
+        @Override
+        public String getKey(String value) throws Exception {
+            return value;
+        }
+    })
+    .map(str -> str.toUpperCase()).name("UpperCaseMap").setParallelism(3);
+
+private static class MyCustomPartitioner implements Partitioner<String> {
+    @Override
+    public int partition(String key, int numPartitions) {
+        // 全部大写分发到 0 实例
+        if (StringUtils.isAllUpperCase(key)) {
+            return 0;
+        }
+        // 其他分发到 1 实例
+        return 1;
+    }
+}
+```
+> 完成代码请查阅:[CustomPartitionerExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/partitioner/CustomPartitionerExample.java)
+
+通过 Partitioner 接口的 partition 方法，可以实现自定义的将数据输出到下游指定实例中。我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 CUSTOM 标示，表示我们使用的 CustomPartitionerWrapper：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-16.jpg?raw=true)
+
+欢迎关注我的公众号和博客：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+
+推荐订阅：
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jk.jpeg?raw=true)

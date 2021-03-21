@@ -28,7 +28,7 @@ permalink: physical-partitioning-in-apache-flink
 
 #### 1.1 作用
 
-GlobalPartitioner 分区器会将上游所有元素都发送到下游的第一个算子实例上(SubTask Id = 0)，下图所示。
+GlobalPartitioner 分区器会将上游所有元素都发送到下游的第一个算子实例上(SubTask Id = 0)：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-1.png?raw=true)
 
@@ -87,9 +87,11 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 #### 2.1 作用
 
-仅将元素转发到本地运行的下游算子。
+仅将元素转发到本地运行的下游算子第一个实例：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-5.png?raw=true)
+
+与 GlobalPartitioner 实现相同，但它只会将数据输出到本地运行的下游算子的第一个实例，而非全局。
 
 #### 2.2 源码
 
@@ -238,7 +240,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 #### 4.1 作用
 
-上游算子实例随机选择一个下游算子实例进行发送：
+上游算子实例每次都随机选择一个下游算子实例进行发送：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-9.png?raw=true)
 
@@ -293,7 +295,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 #### 5.1 作用
 
-RebalancePartitioner 会先利用随机数生成函数 ThreadLocalRandom.current().nextInt 随机选择一个第一个要发送的下游算子实例。然后用轮询（round-robin）的方式从该实例开始循环输出。该方式能保证下游的负载均衡，所以常用来处理有倾斜的数据流：
+RebalancePartitioner 会先利用 ThreadLocalRandom.current().nextInt 随机数函数生成一个随机数，以选择第一个要发送的下游算子实例。然后以轮询（round-robin）的方式从该实例开始循环输出。该方式能保证下游的负载均衡，所以常用来处理有倾斜的数据流：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-11.png?raw=true)
 

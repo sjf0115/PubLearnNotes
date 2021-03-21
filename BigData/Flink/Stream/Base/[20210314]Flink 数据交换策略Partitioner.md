@@ -130,7 +130,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 FORWARD 标示，表示我们使用的 ForwardPartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-6.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-6.jpg?raw=true)
 
 > 在代码中特意使用了 disableChaining() 方法，目的是不让 LowerCaseMap 和 UpperCaseMap 算子 Chain 一起，更好的观察两个算子之间的分区方式。
 
@@ -229,7 +229,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 BROADCAST 标示，表示我们使用的 BroadcastPartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-8.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-8.jpg?raw=true)
 
 ### 4. ShufflePartitioner
 
@@ -284,7 +284,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 SHUFFLE 标示，表示我们使用的 ShufflePartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-10.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-10.jpg?raw=true)
 
 ### 5. RebalancePartitioner
 
@@ -345,7 +345,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 REBALANCE 标示，表示我们使用的 RebalancePartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-12.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-12.jpg?raw=true)
 
 ### 6. RescalePartitioner
 
@@ -406,7 +406,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 RESCALE 标示，表示我们使用的 RescalePartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-14.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-14.jpg?raw=true)
 
 ### 7. KeyGroupStreamPartitioner
 
@@ -530,6 +530,6 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 HASH 标示，表示我们使用的 KeyGroupStreamPartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-16.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-16.jpg?raw=true)
 
 ### 8. CustomPartitionerWrapper

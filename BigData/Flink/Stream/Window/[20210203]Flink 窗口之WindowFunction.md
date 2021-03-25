@@ -36,7 +36,7 @@ DataStream<Tuple2<String, Integer>> result = wordsCount
 ```
 上述示例获得窗口中的所有元素元组的第二个字段之和。
 
-> 完成代码请查阅:[ReduceFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/ReduceFunctionExample.java)
+> 完整代码请查阅:[ReduceFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/ReduceFunctionExample.java)
 
 ### 2. AggregateFunction
 
@@ -112,7 +112,7 @@ private static class AverageAggregateFunction implements AggregateFunction<Tuple
 }
 ```
 
-> 完成代码请查阅:[AggregateFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/AggregateFunctionExample.java)
+> 完整代码请查阅:[AggregateFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/AggregateFunctionExample.java)
 
 通过如下输入数据，我们可以观察输出的具体窗口信息以及Watermark：
 ```
@@ -220,7 +220,7 @@ private static class MyProcessWindowFunction extends ProcessWindowFunction<Tuple
     }
 }
 ```
-> 完成代码请查阅:[ProcessWindowFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/ProcessWindowFunctionExample.java)
+> 完整代码请查阅:[ProcessWindowFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/ProcessWindowFunctionExample.java)
 
 通过如下输入数据，我们可以观察输出的具体窗口信息以及Watermark：
 ```
@@ -319,7 +319,7 @@ private static class MyProcessWindowFunction extends ProcessWindowFunction<Tuple
     }
 }
 ```
-> 完成代码请查阅:[ReduceProcessWindowFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/ReduceProcessWindowFunctionExample.java)
+> 完整代码请查阅:[ReduceProcessWindowFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/ReduceProcessWindowFunctionExample.java)
 
 通过如下输入数据，我们可以观察输出的具体窗口信息以及Watermark：
 ```
@@ -431,7 +431,7 @@ private static class MyProcessWindowFunction extends ProcessWindowFunction<Tuple
     }
 }
 ```
-> 完成代码请查阅:[AggregateProcessWindowFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/AggregateProcessWindowFunctionExample.java)
+> 完整代码请查阅:[AggregateProcessWindowFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/AggregateProcessWindowFunctionExample.java)
 
 通过如下输入数据，我们可以观察输出的具体窗口信息以及Watermark：
 ```
@@ -510,7 +510,7 @@ private static class MyWindowFunction implements WindowFunction<Tuple3<String, L
     }
 }
 ```
-> 完成代码请查阅:[WindowFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/WindowFunctionExample.java)
+> 完整代码请查阅:[WindowFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/WindowFunctionExample.java)
 
 通过如下输入数据，我们可以观察输出的具体窗口信息以及Watermark：
 ```

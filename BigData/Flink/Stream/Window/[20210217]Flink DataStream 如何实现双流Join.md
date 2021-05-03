@@ -253,7 +253,13 @@ stream.coGroup(otherStream)
 
 #### 2.1 InnerJoin
 
+下面我们看一下如何使用 CoGroup 实现内连接：
+
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-7.png?raw=true)
+
+如上图所示，我们定义了一个大小为 2 秒的滚动窗口。InnerJoin 只有在两个流对应窗口中都存在元素时，才会输出。
+
+> 我们以滚动窗口为例来实现 InnerJoin
 
 ```java
 // Join流
@@ -323,7 +329,13 @@ Join 效果如下所示：
 
 #### 2.2 LeftJoin
 
+下面我们看一下如何使用 CoGroup 实现左连接：
+
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-9.png?raw=true)
+
+如上图所示，我们定义了一个大小为 2 秒的滚动窗口。LeftJoin 只要绿色流窗口中有元素时，就会输出。即使在橘色流对应窗口中没有相对应的元素。
+
+> 我们以滚动窗口为例来实现 LeftJoin
 
 ```java
 // Join流
@@ -378,7 +390,13 @@ private static class LeftJoinFunction implements CoGroupFunction<Tuple3<String, 
 
 #### 2.3 RightJoin
 
+下面我们看一下如何使用 CoGroup 实现左连接：
+
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-11.png?raw=true)
+
+如上图所示，我们定义了一个大小为 2 秒的滚动窗口。LeftJoin 只要橘色流窗口中有元素时，就会输出。即使在绿色流对应窗口中没有相对应的元素。
+
+> 我们以滚动窗口为例来实现 RightJoin
 
 ```java
 // Join流

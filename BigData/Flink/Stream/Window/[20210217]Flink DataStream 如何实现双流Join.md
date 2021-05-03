@@ -15,7 +15,7 @@ permalink: two-stream-join-with-datastream-in-flink
 - coGroup
 - intervalJoin
 
-下面我们分别详细看一下这三个算子是如何实现双流 Join 的。
+下面我们分别详细看一下这3个算子是如何实现双流 Join 的。
 
 ### 1. Join
 
@@ -31,7 +31,7 @@ stream.join(otherStream)
     .window(<WindowAssigner>)
     .apply(<JoinFunction>)
 ```
-> Join 语义类似与离线Hive的InnnerJoin(内连接)，这意味着如果一个流中的元素没有与另一流中要连接的元素相对应的元素，则不会输出该元素。
+> Join 语义类似与离线 Hive 的 InnnerJoin (内连接)，这意味着如果一个流中的元素在另一个流中没有相对应的元素，则不会输出该元素。
 
 下面我们看一下 Join 算子在不同类型窗口上的具体表现。
 
@@ -39,7 +39,7 @@ stream.join(otherStream)
 
 当在滚动窗口上进行 Join 时，所有有相同 Key 并且位于同一滚动窗口中的两条流的元素两两组合进行关联，并最终传递到 JoinFunction 或 FlatJoinFunction 进行处理。
 
-![](1)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-1.png?raw=true)
 
 如上图所示，我们定义了一个大小为 2 秒的滚动窗口，最终产生 [0,1]，[2,3]，... 这种形式的数据。上图显示了每个窗口中橘色流和绿色流的所有元素成对组合。需要注意的是，在滚动窗口 [6,7] 中，由于绿色流中不存在要与橘色流中元素 6、7 相关联的元素，因此该窗口不会输出任何内容。
 
@@ -139,13 +139,13 @@ key,9,2021-03-26 12:09:09
 ```
 Join 效果如下所示：
 
-![](2)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-2.png?raw=true)
 
 #### 1.2 滑动窗口Join
 
 当在滑动窗口上进行 Join 时，所有有相同 Key 并且位于同一滑动窗口中的两条流的元素两两组合进行关联，并最终传递到 JoinFunction 或 FlatJoinFunction 进行处理。
 
-![](3)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-3.png?raw=true)
 
 如上图所示，我们定义了一个窗口大小为 2 秒、滑动步长为 1 秒的滑动窗口。需要注意的是，一个元素可能会落在不同的窗口中，因此会在不同窗口中发生关联，例如，绿色流中的0元素。当滑动窗口中一个流的元素在另一个流中没有相对应的元素，则不会输出该元素。
 
@@ -183,14 +183,13 @@ key,9,2021-03-26 12:09:09
 ```
 Join 效果如下所示：
 
-![](4)
-
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-4.png?raw=true)
 
 #### 1.3 会话窗口Join
 
 当在会话窗口上进行 Join 时，所有有相同 Key 并且位于同一会话窗口中的两条流的元素两两组合进行关联，并最终传递到 JoinFunction 或 FlatJoinFunction 进行处理。
 
-![](5)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-5.png?raw=true)
 
 如上图所示，我们定义了一个会话窗口，其中每个会话之间的间隔至少为1秒。上图中一共有三个会话，在前两个会话中，两个流中的元素两两组合传递给 JoinFunction。在第三个会话中，绿色流中没有元素，因此元素 8 和 9 不会发生Join。
 
@@ -230,7 +229,7 @@ key,11,2021-03-26 12:09:11
 ```
 Join 效果如下所示：
 
-![](6)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-6.png?raw=true)
 
 ### 2. CoGroup
 
@@ -251,7 +250,7 @@ stream.coGroup(otherStream)
 
 #### 2.1 InnerJoin
 
-![](7)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-7.png?raw=true)
 
 ```java
 // Join流
@@ -295,7 +294,7 @@ private static class InnerJoinFunction implements CoGroupFunction<Tuple3<String,
 
 如上代码所示，我们实现了 CoGroupFunction 接口，重写 coGroup 方法。一个流中有相同 Key 并且位于同一窗口的元素都会保存在同一个迭代器(Iterable)，本示例中绿色流为 greenIterable，橘色流为 orangeIterable，如果要实现 InnerJoin ，只需要两个迭代器中的元素两两组合即可。
 
-![](8)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-8.png?raw=true)
 
 #### 2.2 LeftJoin
 
@@ -409,7 +408,7 @@ b.timestamp ∈ [a.timestamp + lowerBound, a.timestamp + upperBound]
 ```
 a.timestamp + lowerBound <= b.timestamp <= a.timestamp + upperBound
 ```
-![]()
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-9.png?raw=true)
 
 > 其中a和b分别是上图中绿色流和橘色流中的元素，并且有相同的 key。只需要保证 lowerBound 永远小于等于 upperBound 即可，均可以为正数或者负数。
 
@@ -526,3 +525,5 @@ c,6,2021-03-22 13:14:04
 c,7,2021-03-22 13:14:04
 c,4,2021-03-22 13:39:03
 ```
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-10.png?raw=true)

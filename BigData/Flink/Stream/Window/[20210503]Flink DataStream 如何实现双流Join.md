@@ -2,7 +2,7 @@
 layout: post
 author: smartsi
 title: Flink DataStream 如何实现双流Join
-date: 2021-02-06 22:38:17
+date: 2021-05-03 12:38:17
 tags:
   - Flink
 
@@ -390,7 +390,7 @@ private static class LeftJoinFunction implements CoGroupFunction<Tuple3<String, 
 
 #### 2.3 RightJoin
 
-下面我们看一下如何使用 CoGroup 实现左连接：
+下面我们看一下如何使用 CoGroup 实现右连接：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-11.png?raw=true)
 

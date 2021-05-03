@@ -115,7 +115,7 @@ DataStream<String> result = orangeStream.join(greenStream)
     });
 ```
 
-> 完整代码请查阅:[ReduceFunctionExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/ReduceFunctionExample.java)
+> 完整代码请查阅:[TumblingWindowJoinExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/join/TumblingWindowJoinExample.java)
 
 如上代码所示为绿色流和橘色流指定 BoundedOutOfOrdernessWatermarks Watermark 策略，设置100毫秒的最大可容忍的延迟时间，同时也会为流分配事件时间戳。假设输入流为 <Key, Value, EventTime> 格式，两条流输入元素如下所示：
 ```
@@ -165,6 +165,8 @@ DataStream<String> result = orangeStream.join(greenStream)
           }
       });
 ```
+> 完整代码请查阅:[SlidingWindowJoinExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/join/SlidingWindowJoinExample.java)
+
 假设输入流为 <Key, Value, EventTime> 格式，两条流输入元素如下所示：
 ```
 绿色流：
@@ -209,6 +211,7 @@ DataStream<String> result = orangeStream.join(greenStream)
             }
         });
 ```
+> 完整代码请查阅:[SessionWindowJoinExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/join/SessionWindowJoinExample.java)
 
 假设输入流为 <Key, Value, EventTime> 格式，两条流输入元素如下所示：
 ```
@@ -233,12 +236,12 @@ Join 效果如下所示：
 
 ### 2. CoGroup
 
-CoGroup 算子是将两条数据流按照 Key 进行分组，然后将相同 Key 的数据进行处理。要实现 CoGroup 功能需要为两个输入流分别指定 KeySelector 以及 WindowAssigner 。它的调用方式类似于 Join 算子，但是 CoGroupFunction 比 JoinFunction 更加灵活，可以按照用户指定的逻辑匹配左流或者右流的数据，基于此我们可以实现内连接(InnerJoin)、左连接(LeftJoin)以及右连接(RightJoin)。
+CoGroup 算子是将两条数据流按照 Key 进行分组，然后将相同 Key 的数据进行处理。要实现 CoGroup 功能需要为两个输入流分别指定 KeySelector 和 WindowAssigner。它的调用方式类似于 Join 算子，但是 CoGroupFunction 比 JoinFunction 更加灵活，可以按照用户指定的逻辑匹配左流或者右流的数据，基于此我们可以实现内连接(InnerJoin)、左连接(LeftJoin)以及右连接(RightJoin)。
 
-> 目前，这些分组是在内存中保存的，因此需要确保保存的数据量不能太大。否则，JVM 可能会崩溃。
+> 目前，这些分组中的数据是在内存中保存的，因此需要确保保存的数据量不能太大，否则，JVM 可能会崩溃。
 
 CoGroup 通用用法如下：
-```
+```java
 stream.coGroup(otherStream)
 		.where(<KeySelector>)
 		.equalTo(<KeySelector>)
@@ -292,11 +295,35 @@ private static class InnerJoinFunction implements CoGroupFunction<Tuple3<String,
 
 > 完整代码请查阅:[CoGroupJoinExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/join/CoGroupJoinExample.java)
 
-如上代码所示，我们实现了 CoGroupFunction 接口，重写 coGroup 方法。一个流中有相同 Key 并且位于同一窗口的元素都会保存在同一个迭代器(Iterable)，本示例中绿色流为 greenIterable，橘色流为 orangeIterable，如果要实现 InnerJoin ，只需要两个迭代器中的元素两两组合即可。
+如上代码所示，我们实现了 CoGroupFunction 接口，重写 coGroup 方法。一个流中有相同 Key 并且位于同一窗口的元素都会保存在同一个迭代器(Iterable)，本示例中绿色流为 greenIterable，橘色流为 orangeIterable，如果要实现 InnerJoin ，只需要两个迭代器中的元素两两组合即可。两条流输入元素如下所示：
+```
+绿色流：
+key,0,2021-03-26 12:09:00
+key,1,2021-03-26 12:09:01
+key,2,2021-03-26 12:09:02
+key,4,2021-03-26 12:09:04
+key,5,2021-03-26 12:09:05
+key,8,2021-03-26 12:09:08
+key,9,2021-03-26 12:09:09
+key,11,2021-03-26 12:09:11
+
+橘色流：
+key,0,2021-03-26 12:09:00
+key,1,2021-03-26 12:09:01
+key,2,2021-03-26 12:09:02
+key,3,2021-03-26 12:09:03
+key,4,2021-03-26 12:09:04
+key,6,2021-03-26 12:09:06
+key,7,2021-03-26 12:09:07
+key,11,2021-03-26 12:09:11
+```
+Join 效果如下所示：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-8.png?raw=true)
 
 #### 2.2 LeftJoin
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-9.png?raw=true)
 
 ```java
 // Join流
@@ -345,9 +372,13 @@ private static class LeftJoinFunction implements CoGroupFunction<Tuple3<String, 
 ```
 > 完整代码请查阅:[CoGroupJoinExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/join/CoGroupJoinExample.java)
 
-如上代码所示，我们实现了 CoGroupFunction 接口，重写 coGroup 方法。一个流中有相同 Key 并且位于同一窗口的元素都会保存在同一个迭代器(Iterable)，本示例中绿色流为 greenIterable，橘色流为 orangeIterable，如果要实现 LeftJoin ，需要保证 orangeIterable 中没有元素，greenIterable 中的元素也能输出。因此我们定义了一个 noElements 变量来判断 orangeIterable 是否有元素，如果 orangeIterable 中没有元素，单独输出 greenIterable 中的元素即可。
+如上代码所示，我们实现了 CoGroupFunction 接口，重写 coGroup 方法。一个流中有相同 Key 并且位于同一窗口的元素都会保存在同一个迭代器(Iterable)，本示例中绿色流为 greenIterable，橘色流为 orangeIterable，如果要实现 LeftJoin ，需要保证 orangeIterable 中没有元素，greenIterable 中的元素也能输出。因此我们定义了一个 noElements 变量来判断 orangeIterable 是否有元素，如果 orangeIterable 中没有元素，单独输出 greenIterable 中的元素即可。Join 效果如下所示：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-10.png?raw=true)
 
 #### 2.3 RightJoin
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-11.png?raw=true)
 
 ```java
 // Join流
@@ -396,11 +427,13 @@ private static class RightJoinFunction implements CoGroupFunction<Tuple3<String,
 ```
 > 完整代码请查阅:[CoGroupJoinExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/join/CoGroupJoinExample.java)
 
-如上代码所示，我们实现了 CoGroupFunction 接口，重写 coGroup 方法。一个流中有相同 Key 并且位于同一窗口的元素都会保存在同一个迭代器(Iterable)，本示例中绿色流为 greenIterable，橘色流为 orangeIterable，如果要实现 RightJoin，实现原理跟 LeftJoin 一样，需要保证 greenIterable 中没有元素，orangeIterable 中的元素也能输出。因此我们定义了一个 noElements 变量来判断 greenIterable 是否有元素，如果 greenIterable 中没有元素，单独输出 orangeIterable 中的元素即可。
+如上代码所示，我们实现了 CoGroupFunction 接口，重写 coGroup 方法。一个流中有相同 Key 并且位于同一窗口的元素都会保存在同一个迭代器(Iterable)，本示例中绿色流为 greenIterable，橘色流为 orangeIterable，如果要实现 RightJoin，实现原理跟 LeftJoin 一样，需要保证 greenIterable 中没有元素，orangeIterable 中的元素也能输出。因此我们定义了一个 noElements 变量来判断 greenIterable 是否有元素，如果 greenIterable 中没有元素，单独输出 orangeIterable 中的元素即可。Join 效果如下所示：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-12.png?raw=true)
 
 ### 3. Interval Join
 
-Flink 中基于 DataStream 的 Join，只能实现在同一个窗口的两个数据流进行 Join，但是在实际中常常会存在数据乱序或者延时的情况，导致两个流的数据进度不一致，就会出现数据跨窗口的情况，那么数据就无法在同一个窗口内 Join。Flink 基于 KeyedStream 提供的 Interval Join 机制可以对两个 keyedStream 进行 Join, 按照相同的 key 在一个相对数据时间的时间段内进行 Join。按照指定字段以及右流相对左流偏移的时间区间进行关联，即：
+Flink 中基于 DataStream 的 Join，只能实现在同一个窗口的两个数据流进行 Join，但是在实际中常常会存在数据乱序或者延时的情况，导致两个流的数据进度不一致，就会出现数据跨窗口的情况，那么数据就无法在同一个窗口内 Join。Flink 基于 KeyedStream 提供的 Interval Join 机制可以对两个 keyedStream 进行 Join, 按照相同的 key 在一个相对数据时间的时间段内进行 Join。按照指定字段以及右流相对左流偏移的时间区间进行关联：
 ```
 b.timestamp ∈ [a.timestamp + lowerBound, a.timestamp + upperBound]
 ```
@@ -408,7 +441,7 @@ b.timestamp ∈ [a.timestamp + lowerBound, a.timestamp + upperBound]
 ```
 a.timestamp + lowerBound <= b.timestamp <= a.timestamp + upperBound
 ```
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-9.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-13.png?raw=true)
 
 > 其中a和b分别是上图中绿色流和橘色流中的元素，并且有相同的 key。只需要保证 lowerBound 永远小于等于 upperBound 即可，均可以为正数或者负数。
 
@@ -506,24 +539,35 @@ DataStream result = orangeStream
 ```
 需要注意的是 Interval Join 当前仅支持事件时间，所以需要为流指定事件时间戳。
 
+> 完整代码请查阅:[IntervalJoinExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/join/IntervalJoinExample.java)
+
+两条流输入元素如下所示：
 ```
 绿色流：
-c,0,2021-03-22 12:09:01
-c,1,2021-03-22 12:09:01
-c,3,2021-03-22 12:21:02
-c,4,2021-03-22 12:45:03
-c,4,2021-03-22 13:39:03
+c,0,2021-03-23 12:09:00
+c,1,2021-03-23 12:09:01
+c,6,2021-03-23 12:09:06
+c,7,2021-03-23 12:09:07
 
 橘色流：
-c,0,2021-03-22 12:09:01
-c,1,2021-03-22 12:09:01
-c,2,2021-03-22 12:21:02
-c,3,2021-03-22 12:21:02
-c,4,2021-03-22 12:45:03
-c,5,2021-03-22 12:45:03
-c,6,2021-03-22 13:14:04
-c,7,2021-03-22 13:14:04
-c,4,2021-03-22 13:39:03
+c,0,2021-03-23 12:09:00
+c,2,2021-03-23 12:09:02
+c,3,2021-03-23 12:09:03
+c,4,2021-03-23 12:09:04
+c,5,2021-03-23 12:09:05
+c,7,2021-03-23 12:09:07
 ```
+Join 效果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-10.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-14.png?raw=true)
+
+欢迎关注我的公众号和博客：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+
+推荐订阅：
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jk.jpeg?raw=true)
+
+参考:
+- [Joining](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/stream/operators/joining.html)
+- Flink核心技术与实战

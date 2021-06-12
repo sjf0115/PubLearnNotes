@@ -39,7 +39,7 @@ permalink: how-to-use-flink-in-zeppelin
 | flink.tm.memory	| 1024 | TaskManager 的总共内存大小(mb) |
 | flink.tm.slot |	1	| 每个 TaskManager 的 slot 个数 |
 | flink.yarn.appName	| Zeppelin Flink Session	| Yarn app 名称 |
-| flink.yarn.queue	| yarn app 默认队列名称 |
+| flink.yarn.queue	| default | yarn app 默认队列名称 |
 
 > 在不同执行模式下使用的配置参数是不一样的
 

@@ -94,19 +94,19 @@ Zeppelin 自带的 demo 程序中默认使用的 %flink。如果使用 SQL 来�
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/how-to-use-flink-in-zeppelin-4.png?raw=true)
 
-在这种模式会在本地启动一个 MiniCluster（本地新生成一个集群，会以线程的方式跑在 Flink Interpreter 进程中），不会直接使用我们已经创建的 Flink 集群。
+在这种模式会在本地启动一个 MiniCluster（本地新生成一个集群，会以线程的方式跑在 Flink Interpreter 进程中），不会直接使用我们已经创建的 Flink 集群：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/how-to-use-flink-in-zeppelin-5.png?raw=true)
 
-> 停止 Flink Interpreter 会同样销毁 Flink Cluster。
+> 停止 Flink Interpreter 会销毁 Flink Cluster。
 
-这种情况是由于 MiniCluster 的 JobManager 需要使用 8081 端口作为 Rest API 的端口，如果这个端口被其他进程占用，那么就会碰到如下错误。
+在这种情况下，MiniCluster 的 JobManager 需要使用 8081 端口作为 Rest API 的端口，如果这个端口被其他进程占用，那么就会碰到如下错误：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/how-to-use-flink-in-zeppelin-6.png?raw=true)
 
 一种比较大的可能性是你正好在本地启动了 Flink 的 Standalone cluster。因为 Standalone 模式下的 JobManager 默认也是使用 8081 端口。所以如果是碰到这种错误，那么检查下你是否在本地起了一个 Flink Standalone 集群，或者有没有其他程序使用了8081端口。
 
-> 我一般会修改 Standalone cluster 的默认端口号。
+> 一般情况下会修改 rest.port 的默认端口号。
 
 ### 4.2 Remote 模式
 

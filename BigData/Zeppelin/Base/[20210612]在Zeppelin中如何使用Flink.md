@@ -15,8 +15,6 @@ permalink: how-to-use-flink-in-zeppelin
 
 ## 1. 简介
 
-下载适用于 scala 2.11 的 Flink 1.10 版本
-
 当前 Zeppelin 稳定版本为 0.9.0 版本，重构了 Flink Interpreter 以支持最新版本的 Flink。目前仅支持 Flink 1.10+ 版本，不支持旧版本的 Flink。此外也仅支持 scala-2.11，还不支持 scala-2.12。在此 Flink 我们选择适用于 scala-2.11 的 1.12.4 版本。
 
 > 0.9.0 版本不支持 Flink 1.13 版本

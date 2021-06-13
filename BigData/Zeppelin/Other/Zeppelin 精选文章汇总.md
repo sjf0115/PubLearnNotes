@@ -4,5 +4,5 @@
 - [ ] [Apache Zeppelin：可能是开源届最好的Flink开发平台](https://mp.weixin.qq.com/s/s1lFNW8xwi-ph5TsMnCKKA)
 - [ ] [Flink SQL 1.11 on Zeppelin集成指南](https://mp.weixin.qq.com/s/T0crI-M9o8ZzOUsRUeXNQw)
 - [ ] [Zeppelin整合Flink采坑实录](https://mp.weixin.qq.com/s/pRqtraHMOCDzqiopwcYBrA)
-- [ ] []()
+- [ ] [Flink on zeppelin第三弹UDF的使用](https://mp.weixin.qq.com/s/-23AXqPN_0W93gGyF6kjQQ)
 - [ ] []()

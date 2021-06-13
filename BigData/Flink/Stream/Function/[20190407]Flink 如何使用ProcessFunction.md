@@ -26,10 +26,18 @@ Flink 提供的最高级抽象是 SQL。这种抽象在语法和表现力方面�
 
 ### 2. ProcessFunction
 
-从上面抽象层次来看，从上往下在使用上有更高的灵活性，相应的易用性也会越来越低。ProcessFunction 相比其他函数给我们提供了最大的灵活性，可以允许我们访问流应用程序所有的基本构件：
-- 事件(数据流元素)
-- 状态(容错和一致性，只适用于 KeyedStream)
+从上面抽象层次来看，从上往下在使用上有更高的灵活性，相应的易用性也会越来越低。ProcessFunction 相比其他函数给我们提供了最大的灵活性，可以允许我们访问流应用程序所有的基本构建块：
+- Event(事件：数据流元素)
+- State(状态：用于容错和一致性，只适用于 KeyedStream)
 - Timer(定时器：事件时间和处理时间)
+
+a,2021-06-13 20:23:08
+a,2021-06-13 20:23:11
+b,2021-06-13 20:23:23
+c,2021-06-13 20:23:34
+a,2021-06-13 20:23:45
+b,2021-06-13 20:23:59
+
 
 ProcessFunction 可以被认为是一种提供了对 State 和 Timer 访问的 FlatMapFunction。每在输入流中接收到一个事件，就会调用此函数来处理。如下代码所示是 ProcessFunction 接口：
 ```java
@@ -48,9 +56,36 @@ public abstract class ProcessFunction<I, O> extends AbstractRichFunction {
 	}
 }
 ```
+
+```java
+public abstract class KeyedProcessFunction<K, I, O> extends AbstractRichFunction {
+
+	private static final long serialVersionUID = 1L;
+	public abstract void processElement(I value, Context ctx, Collector<O> out) throws Exception;
+	public void onTimer(long timestamp, OnTimerContext ctx, Collector<O> out) throws Exception {}
+	public abstract class Context {
+		public abstract Long timestamp();
+		public abstract TimerService timerService();
+		public abstract <X> void output(OutputTag<X> outputTag, X value);
+		public abstract K getCurrentKey();
+	}
+
+	public abstract class OnTimerContext extends Context {
+		public abstract TimeDomain timeDomain();
+		@Override
+		public abstract K getCurrentKey();
+	}
+}
+```
+
+
 ProcessFunction 接口比较简单，主要提供了两个方法：
 - processElement：对于每一个接入的数据元素通过该方法可以实现状态的更新，也可以注册基于事件时间或者处理时间的定时器（未来某一时间需要调用的 callback 回调函数）。
 - onTimer：通过该方法可以在当某一时间到来后检查条件是否满足，并执行对应的操作，例如输出数据元素等。
+
+Context 可以获取元素的时间戳，也可以获取 TimeService 来查询当前时间或者注册定时器。
+
+
 
 对于容错的状态，ProcessFunction 可以通过 RuntimeContext 访问 KeyedState，类似于其他有状态函数访问 KeyedState。Timer 可以根据处理时间或者事件时间的变化做一些对应的处理。每次调用 processElement() 都可以获得一个 Context 对象，通过该对象可以访问元素的事件时间戳以及 TimerService。TimerService 可以为尚未发生的事件时间或者处理时间实例注册回调。当 Timer 到达某个时刻时，会调用 onTimer() 方法。在调用期间，所有状态再次限定为 Timer 创建的键，允许定时器操作 KeyedState。
 

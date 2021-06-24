@@ -1,15 +1,18 @@
 ---
 layout: post
-author: sjf0115
-title: Flink Side Outputs
-date: 2019-03-06 20:30:17
+author: smartsi
+title: Flink 旁路输出 SideOutputs
+date: 2021-06-20 11:30:17
 tags:
   - Flink
-  - Flink 基础
 
 categories: Flink
 permalink: flink-stream-side-outputs
 ---
+
+通常我们在处理数据的时候，有时候想对不同情况的数据进行不同的处理，那么就需要把数据流进行分流。
+
+
 
 DataStream 操作除了生成主数据流之外，还可以额外生成任意数量的侧输出结果流。结果流中的数据类型不必与主数据流中的数据类型相匹配，并且不同侧输出流的类型也可以不同。当我们想要分割数据流时，此操作非常有用，否则我们只能复制数据流，然后从每个流中过滤掉我们不希望的数据。
 
@@ -18,10 +21,7 @@ Java:
 // this needs to be an anonymous inner class, so that we can analyze the type
 OutputTag<String> outputTag = new OutputTag<String>("side-output") {};
 ```
-Scala:
-```scala
-val outputTag = OutputTag[String]("side-output")
-```
+
 注意 OutputTag 类型是根据侧输出流包含元素的类型定义的。
 
 可以通过以下函数将数据发送到侧输出：
@@ -76,15 +76,23 @@ SingleOutputStreamOperator<Integer> mainDataStream = ...;
 
 DataStream<String> sideOutputStream = mainDataStream.getSideOutput(outputTag);
 ```
-Scala:
-```scala
-val outputTag = OutputTag[String]("side-output")
 
-val mainDataStream = ...
-
-val sideOutputStream: DataStream[String] = mainDataStream.getSideOutput(outputTag)
+```
+MainStream > 1
+OddSideOutputStream > 1
+MainStream > 2
+EvenSideOutputStream > 2
+MainStream > 3
+OddSideOutputStream > 3
+MainStream > 4
+EvenSideOutputStream > 4
+MainStream > 5
+OddSideOutputStream > 5
+MainStream > 6
+EvenSideOutputStream > 6
 ```
 
-> Flink版本：1.7
+
+
 
 > 原文：[Side Outputs](https://ci.apache.org/projects/flink/flink-docs-stable/dev/stream/side_output.html)

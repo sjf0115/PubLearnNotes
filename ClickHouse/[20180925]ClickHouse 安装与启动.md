@@ -11,7 +11,7 @@ permalink: how-install-and-startup-clickhouse
 ---
 
 > CentOS  8.3 64位
-
+> ClickHouse  21.6.5.37
 
 ### 1. 系统要求
 

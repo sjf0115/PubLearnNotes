@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Flink窗口如何使用
+title: Flink 窗口分配器 WindowAssigner
 date: 2018-02-28 17:17:17
 tags:
   - Flink

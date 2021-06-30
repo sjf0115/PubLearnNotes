@@ -11,6 +11,7 @@ permalink: how-install-and-startup-clickhouse
 ---
 
 > CentOS  8.3 64位
+
 > ClickHouse  21.6.5.37
 
 ### 1. 系统要求
@@ -65,12 +66,6 @@ clickhouse-client
 
 我们还可以从[这里](https://repo.clickhouse.tech/deb/stable/main/)手动下载和安装软件包。
 
-Packages：
-- clickhouse-common-static — 安装 ClickHouse 编译的二进制文件。
-clickhouse-server — 为 clickhouse-server 创建符号链接并安装默认服务器配置。
-clickhouse-client — 为 clickhouse-client 和其他与客户端相关的工具创建符号链接。 并安装客户端配置文件。
-clickhouse-common-static-dbg — 安装带有调试信息的 ClickHouse 编译的二进制文件。
-
 #### 2.3 使用Tgz包
 
 对于无法安装 deb 或 rpm 软件包的所有 Linux 发行版，建议使用官方预编译的 tgz 包。可以使用 curl 或 wget 从[存储仓库](https://repo.clickhouse.tech/tgz/)下载所需的版本。最新版本示例：
@@ -97,7 +92,7 @@ sudo clickhouse-client-$LATEST_VERSION/install/doinst.sh
 
 ### 3. 启动
 
-有两种方式，一种使用 service 方式启动，一种使用 systemctl 方式启动。如下使用 service 方式将服务器以守护进程方式启动：
+有两种方式可以启动 ClickHouse，一种使用 service 方式启动，一种使用 systemctl 方式启动。如下使用 service 方式以守护进程方式启动：
 ```
 sudo service clickhouse-server start
 ```
@@ -113,7 +108,9 @@ sudo systemctl start clickhouse-server
 
 > 可以使用 sudo systemctl stop clickhouse-server 命令停止服务。
 
-通过上图我们可以看出在 /var/log/clickhouse-server/ 目录下查看日志。我们还可以从控制台手动启动服务器：
+通过上图我们可以看出在 /var/log/clickhouse-server/ 目录下查看日志。
+
+此外，我们还可以从控制台手动启动服务器：
 ```
 sudo -u clickhouse  clickhouse-server --config-file=/etc/clickhouse-server/config.xml
 ```

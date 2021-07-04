@@ -104,7 +104,7 @@ DataStream<Pattern> patternsStream = patternsSource
 KeyedStream<Action, String> actionsByUser = actionsStream.keyBy(new KeySelector<Action, String>() {
       @Override
       public String getKey(Action action) throws Exception {
-          return action.getUid();
+          return action.uid;
       }
   });
 ```
@@ -121,8 +121,8 @@ BroadcastStream broadcastStream = patternsStream.broadcast(stateDescriptor);
 以 MapStateDescriptor 为参数，调用模式流上的 Broadcast 转换操作，得到一个  BroadcastStream 对象 broadcastStream。
 ```java
 DataStream<Tuple2<Long, Pattern>> matches = actionsByUser
- .connect(bcedPatterns)
- .process(new PatternEvaluator());
+ .connect(broadcastStream)
+ .process(new PatternEvaluatorProcessFunction());
 ```
 在我们获得 actionsByUser 行为流和 broadcastStream 广播流之后，使用 connect() 函数连接两个流并在连接的流上应用 PatternEvaluatorProcessFunction。PatternEvaluatorProcessFunction 是一个实现 KeyedBroadcastProcessFunction 接口的自定义函数。它调用了我们之前讨论过的模式匹配逻辑，并发出模式匹配的记录，其中包含用户 ID 和匹配的模式：
 ```java

@@ -10,6 +10,8 @@ categories: Flink
 permalink: a-practical-guide-to-broadcast-state-in-apache-flink
 ---
 
+> Flink 版本 1.13.0
+
 Flink 从 1.5.0 版本开始引入了一种新的状态，称为广播状态。在这篇文章中，我们会解释什么是广播状态以及展示一个示例来说明如何使用广播状态。
 
 ### 1. 什么是广播状态？
@@ -125,7 +127,7 @@ DataStream<Tuple2<Long, Pattern>> matches = actionsByUser
 在我们获得 actionsByUser 行为流和 broadcastStream 广播流之后，使用 connect() 函数连接两个流并在连接的流上应用 PatternEvaluatorProcessFunction。PatternEvaluatorProcessFunction 是一个实现 KeyedBroadcastProcessFunction 接口的自定义函数。它调用了我们之前讨论过的模式匹配逻辑，并发出模式匹配的记录，其中包含用户 ID 和匹配的模式：
 ```java
 public static class PatternEvaluatorProcessFunction
-            extends KeyedBroadcastProcessFunction<String, Action, Pattern, Tuple2<String, Pattern>> {
+        extends KeyedBroadcastProcessFunction<String, Action, Pattern, Tuple2<String, Pattern>> {
 
     // 前一个行为
     private ValueState<String> prevActionState;
@@ -138,14 +140,13 @@ public static class PatternEvaluatorProcessFunction
         prevActionState = getRuntimeContext().getState(
                 new ValueStateDescriptor<>("lastAction", Types.STRING)
         );
-        patternDesc = new MapStateDescriptor<>("patterns", Types.VOID, Types.POJO(Pattern.class));
+        patternDesc = new MapStateDescriptor<>("patternsState", Types.VOID, Types.POJO(Pattern.class));
     }
 
     @Override
     public void processElement(Action action, ReadOnlyContext ctx, Collector<Tuple2<String, Pattern>> out) throws Exception {
-        String uid = action.getUid();
-        String lastAction = action.getAction();
-        LOG.info("[Action] uid: {}, action: {}", uid, lastAction);
+        String uid = action.uid;
+        String lastAction = action.action;
 
         // 从广播状态中获取模式
         Pattern pattern = ctx.getBroadcastState(this.patternDesc)
@@ -155,16 +156,16 @@ public static class PatternEvaluatorProcessFunction
         // 获取当前用户的前一个行为
         String prevAction = prevActionState.value();
         if (pattern != null && prevAction != null) {
-            String firstAction = pattern.getFirstAction();
-            String secondAction = pattern.getSecondAction();
+            String firstAction = pattern.firstAction;
+            String secondAction = pattern.secondAction;
             // 模式是否匹配
             boolean isMatch = false;
             if (firstAction.equals(prevAction) && secondAction.equals(lastAction)) {
                 isMatch = true;
                 out.collect(new Tuple2<>(ctx.getCurrentKey(), pattern));
             }
-            LOG.info("[Evaluation] Action: [{}->{}], Pattern: [{}->{}], IsMatch: {}",
-                    prevAction, lastAction, firstAction, secondAction, isMatch
+            LOG.info("[Evaluation] uid: {}, Action: [{}->{}], Pattern: [{}->{}], IsMatch: {}",
+                    uid, prevAction, lastAction, firstAction, secondAction, isMatch
             );
         }
         // 用最新行为更新状态
@@ -176,9 +177,6 @@ public static class PatternEvaluatorProcessFunction
         // 如果有新模式则更新广播状态
         BroadcastState<Void, Pattern> broadcastState = ctx.getBroadcastState(patternDesc);
         broadcastState.put(null, pattern);
-        LOG.info("[Pattern] firstAction: {}, secondAction: {}",
-                pattern.getFirstAction(), pattern.getSecondAction()
-        );
     }
 }
 ```

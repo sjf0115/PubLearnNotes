@@ -1,8 +1,8 @@
 ---
 layout: post
 author: sjf0115
-title: 使用Broadcast State模式的4个注意事项
-date: 2019-04-26 19:45:21
+title: Flink 使用 Broadcast State 的4个注意事项
+date: 2021-07-04 19:45:21
 tags:
   - Flink
 
@@ -24,12 +24,12 @@ permalink: broadcast-state-pattern-flink-considerations
 
 广播状态是 Flink 中支持的第三种类型的 Operator State。广播状态使得 Flink 用户能够以容错、可扩展地将来自广播的低吞吐的事件流数据存储下来。来自另一条数据流的事件可以流经同一算子的各个并发实例，并与广播状态中的数据一起处理。有关其他类型的状态以及如何使用它们的更多信息，可以查阅 Flink 文档。
 
-广播状态与其他 Operator State 之间有三个主要区别。与其余类型的 Operator State 相反，广播状态：
+广播状态与其他 Operator State 之间有三个主要区别。不同于其余类型的 Operator State，广播状态：
 - Map 的格式
 - 有一条广播的输入流
 - 算子可以有多个不同名字的广播状态
 
-您可以查看我们之前的博文[Flink广播状态实战指南](https://www.ververica.com/blog/a-practical-guide-to-broadcast-state-in-apache-flink)。
+广播状态怎么使用可以查看博文[Flink 广播状态实战指南](http://smartsi.club/a-practical-guide-to-broadcast-state-in-apache-flink.html)。
 
 ### 3. 重要注意事项
 
@@ -37,26 +37,22 @@ permalink: broadcast-state-pattern-flink-considerations
 
 #### 3.1 使用广播状态算子任务间不会相互通信
 
-这也是为什么 (Keyed)-BroadcastProcessFunction 只有广播端可以修改广播状态内容的原因。用户必须保证所有算子并发任务上以相同的方式为每个流入的事件元素修改广播状态内容（一致性）。或者说，如果不同的并发任务拥有不同的广播状态内容，将导致结果不一致。
+这也是为什么 (Keyed)-BroadcastProcessFunction 只有广播端可以修改广播状态内容的原因。用户必须保证对于到达的每个元素，算子所有并发任务必须以相同的方式修改广播状态内容（保证一致性）。或者说，如果不同的并发任务拥有不同的广播状态内容，将导致不一致结果。
 
-#### 3.2 广播状态中事件顺序因任务而异
+#### 3.2 广播状态中事件顺序在不同任务上不尽相同
 
-尽管广播流元素保证所有元素（最终）可以到达下游所有任务，但是元素到达每个任务顺序可能会不同。因此，对传入元素的状态更新不能依赖于输入事件的顺序。
+尽管广播流元素保证所有元素（最终）可以到达下游所有任务，但是元素到达每个任务的顺序可能会不同。因此，对广播状态的修改不能依赖于输入数据的顺序。
 
 #### 3.3 所有算子任务都会快照下广播状态
 
-在 checkpoint 时，所有任务都会快照他们的广播状态，而不仅仅是其中一个，即使所有任务在广播状态中存储相同元素。这是一个有目的的设计，是为了避免在恢复期间从单个文件读取而造成热点。然而，这有一个通过因子 p (=并发度)增加快照状态大小的权衡（随着并发度的增加，快照的大小也会随之增加）。Flink 保证了在恢复/扩展时不会出现重复数据和丢失数据。在以相同或更小并行度恢复时，每个任务会读取其对应的检查点状态。在扩大并发度恢复时，每个任务优先读取自己的状态，剩下的任务（p_new-p_old）以循环方式读取前面任务检查点的状态。
+在 checkpoint 时，所有任务都会快照他们的广播状态，并不仅仅是其中的一个，即使所有任务在广播状态中存储的元素是一样的。这样做的目的是为了避免在恢复期间从单个文件读取而造成热点。但是，我们还会通过权衡因子 p (=并发度)对增加的快照状态大小进行权衡（随着并发度的增加，快照的大小也会随之增加）。Flink 保证了在恢复/扩展时不会出现重复数据和丢失数据。在以相同或更小并行度恢复时，每个任务会读取其对应的检查点状态。在扩大并发度恢复时，每个任务优先读取自己的状态，剩下的任务（p_new-p_old）以循环方式读取先前任务检查点的状态。
 
 #### 3.4 RocksDB状态后端目前还不支持广播状态
 
 广播状态在运行时保存在内存中。因为当前(博文发表事件为2018.9)，RocksDB 状态后端还不适用于 Operator State。Flink 用户应该相应地为其应用程序配置足够的内存。
 
-英译对照:
-- 算子: operator
-- 广播状态: Broadcast State
-
 欢迎关注我的公众号和博客：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文:[Broadcast State Pattern in Apache Flink: 4 important considerations](https://www.ververica.com/blog/broadcast-state-pattern-flink-considerations)

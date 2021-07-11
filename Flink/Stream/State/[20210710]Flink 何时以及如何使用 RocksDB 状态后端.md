@@ -51,7 +51,7 @@ $ ps -T -p 32513 | grep -i rocksdb
 - 希望使用增量检查点，以减少检查点时间；
 - 希望有更可预测的延迟，而不受JVM垃圾回收的影响。
 
-否则，如果应用程序状态比较小或者需要非常低的延迟，则应考虑 FsStateBackend。根据经验，RocksDBStateBackend 要比基于堆的状态后端慢几倍，因为它将键/值对存储为序列化字节。这意味着任何状态访问（读/写）都需要通过一个跨越 JNI 边界的反/序列化过程，这比直接使用堆上的状态代价更高。但好处是，对于相同数量的状态，与相应的堆状态相比，具有较低的内存占用。
+如果应用程序状态比较小或者需要非常低的延迟，则应考虑 FsStateBackend。根据经验，RocksDBStateBackend 要比基于堆的状态后端慢几倍，因为它将键/值对存储为序列化字节。这意味着任何状态访问（读/写）都需要通过一个跨越 JNI 边界的反/序列化过程，这比直接使用堆上的状态代价更高。但好处是，对于相同数量的状态，与相应的堆状态相比，具有较低的内存占用。
 
 ### 5. 如何使用 RocksDBStateBackend
 
@@ -81,7 +81,7 @@ env.setStateBackend(new RocksDBStateBackend("hdfs:///fink-checkpoints", true));
 
 如前所述，RocksDBStateBackend 中的运行中状态会溢出到磁盘上的文件。这些文件位于 Flink 配置的 state.backend.rocksdb.localdir 指定目录下。因为磁盘性能直接影响到 RocksDB 的性能，所以建议将该目录放在本地磁盘上。不鼓励将其配置到基于远程网络的位置，如 NFS 或 HDFS，因为写入远程磁盘通常较慢。高可用性也不是运行中状态的要求。如果需要高磁盘吞吐量，则首选本地 SSD 磁盘。
 
-状态快照被持久化到远程持久化存储上。在状态快照期间，TaskManager 会对运行中状态生成快照并将其远程存储。将状态快照传输到远程存储完全由 TaskManager 本身处理，状态后端不参与。因此，state.checkpoints.dir 或者您在代码中为特定作业设置的参数可以是不同的位置，例如本地 HDFS 集群或基于云的对象存储，例如 Amazon S3、Azure Blob Storage、Google Cloud Storage、Alibaba OSS等。
+状态快照被持久化到远程持久化存储上。在生成状态快照期间，TaskManager 会对运行中状态生成快照并将其远程存储。将状态快照传输到远程存储完全由 TaskManager 本身处理，状态后端不参与。因此，state.checkpoints.dir 或者您在代码中为特定作业设置的参数可以是不同的位置，例如本地 HDFS 集群或基于云的对象存储，例如 Amazon S3、Azure Blob Storage、Google Cloud Storage、Alibaba OSS等。
 
 #### 6.2 RocksDB 故障排查
 

@@ -24,7 +24,7 @@ permalink: manage-rocksdb-memory-size-apache-flink
 
 下面的图表将进一步阐明 RocksDB 的基本读写操作：
 
-![](![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/manage-rocksdb-memory-size-apache-flink-1.png?raw=true))
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/manage-rocksdb-memory-size-apache-flink-1.png?raw=true)
 
 RocksDB 的 WRITE 操作将把数据存储到当前活跃的 MemTable 中。当 MemTable 写满时，它将成为 READ ONLY MemTable，并被一个新的空的 MemTable 替换。READ ONLY MemTable 被后台线程周期性地刷新到磁盘上，生成按键排序的只读文件，这便是所谓的 SSTables。这些 SSTable 是不可变的，通过后台的多路归并实现进一步的整合。如前所述，对于 RocksDB，每个注册状态都对应一个列族，这意味着每个状态都包含一组 MemTables 和 SSTables。
 

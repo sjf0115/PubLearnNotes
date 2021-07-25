@@ -50,7 +50,7 @@ RocksDB 的后台压缩线程会将 sstable 进行合并以删除可能的重复
 
 ### 4. Example
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/an-intro-to-incremental-checkpointing-1.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/an-intro-to-incremental-checkpointing-1.png?raw=true)
 
 以一个算子的子任务为例，它有一个 Keyed State，最多保留 2 个 Checkpoint。上图从左到右分别记录每次 Checkpoint 时本地的 RocksDB 状态文件、引用的持久化存储上的文件以及当前 Checkpoint 完成后文件的引用计数情况。
 

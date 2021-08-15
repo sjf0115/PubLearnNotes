@@ -96,30 +96,30 @@ CREATE TABLE kafka_meta_source_table (
 
 ### 4. Connector 参数
 
-| 参数选项 | 是否必填项 | 默认值：无 | 数据类型 | 说明 |
+| 参数选项 | 是否必填项 | 默认值 | 数据类型 | 说明 |
 | :------------- | :------------- | :------------- | :------------- | :------------- |
-| connector | 必填 | 无 | String | 指定使用 Connector，对于 Kafka 使用 'kafka' |
-| topic | 对于 Sink 必填	| 无 | String | 当表用作 Source 时读取数据的 topic 名。也支持用分号间隔的 topic 列表，如 'topic-1;topic-2'。注意，对 Source 表而言，'topic' 和 'topic-pattern' 两个选项只能使用其中一个；当表被用作 Sink 时数据写入的 topic 名。注意 Sink 表不支持分号间隔的 topic 列表 |
+| connector | 必填 | 无 | String | 指定使用的 Connector 名称，对于 Kafka 为 'kafka' |
+| topic | Sink 必填	| 无 | String | 当用作 Source 时为读取数据的 topic 名。也支持用分号间隔的 topic 列表，如 'topic-1;topic-2'。注意，对 Source 表而言，'topic' 和 'topic-pattern' 两个选项只能使用其中一个；当被用作 Sink 时为数据写入的 topic 名。注意 Sink 不支持分号间隔的 topic 列表 |
 | topic-pattern | 可选 | 无 | String | 匹配读取 topic 名称的正则表达式。在作业开始运行时，所有匹配该正则表达式的 topic 都将被 Kafka consumer 订阅。注意，对 source 表而言，'topic' 和 'topic-pattern' 两个选项只能使用其中一个 |
 | properties.bootstrap.servers | 必填 | 无 | String | 逗号分隔的 Kafka Broker 列表 |
 | properties.group.id | Source 必填 | 无 | String | Kafka Source 的消费组id |
 | properties.* | 可选	| 无 |	String | 可以设置和传递的任意 Kafka 配置项。后缀名必须与 Kafka 文档中的相匹配。Flink 会删除 "properties." 前缀并将变换后的配置键和值传入底层的 Kafka 客户端。例如，你可以通过 'properties.allow.auto.create.topics' = 'false' 来禁用 topic 的自动创建。但是某些配置项不支持进行配置，因为 Flink 会覆盖这些配置，例如 'key.deserializer' 和 'value.deserializer'。|
 | format | 必填 |	无	| String | 序列化或反序列化 Kafka 消息 Value 部分的 Format。注意：该配置项和 'value.format' 二者必需其一。|
 | key.format | 可选	| 无 |	String | 序列化和反序列化 Kafka 消息 Key 部分的 Format。注意：该配置项与 'key.fields' 配置项必须成对出现。否则 Kafka 记录将使用空值作为键。|
-| key.fields | 可选	| [] | List<String>	| Kafka 消息 Key 字段列表。默认情况下该列表为空，即消息 Key 没有定义。列表格式为 'field1;field2'。|
+| key.fields | 可选	| [] | `List<String>`	| Kafka 消息 Key 字段列表。默认情况下该列表为空，即消息 Key 没有定义。列表格式为 'field1;field2'。|
 | value.format | 必填 |	无 |	String | 序列化和反序列化 Kafka 消息 Value 部分的 Format。注意：该配置项和 'format' 二者必需其一。|
 | value.fields-include | 可选	| ALL |	枚举类型：ALL, EXCEPT_KEY | 指定在解析 Kafka 消息 Value 部分时是否包含消息 Key 字段的策略。默认值为 'ALL' 表示所有字段都包含在消息 Value 中。EXCEPT_KEY 表示消息消息 Key 不包含在消息 Value 中。|
 | scan.startup.mode | 可选 | group-offsets | String |	Kafka Consumer 的启动模式。有效值为：'earliest-offset'，'latest-offset'，'group-offsets'，'timestamp' 和 'specific-offsets'。|
 | scan.startup.specific-offsets | 可选 | 无 | String | 在使用 'specific-offsets' 启动模式时为每个 partition 指定 offset，例如 'partition:0,offset:42;partition:1,offset:300'。|
 | scan.startup.timestamp-millis | 可选 | 无 | Long | 在使用 'timestamp' 启动模式时指定启动的时间戳（单位毫秒）。|
 | scan.topic-partition-discovery.interval | 可选 | 无 | Duration	| Consumer 周期自动发现动态创建的 Kafka topic 和 partition 的时间间隔。|
-| sink.partitioner | 可选 | 'default'	| String | Flink partition 到 Kafka partition 的映射关系。default：使用 Kafka 默认的分区器对消息进行分区。fixed：每个 Flink partition 对应最多一个 Kafka partition。round-robin：Flink partition 按轮循（round-robin）的模式对应到 Kafka partition。只有当未指定消息 Key 时生效。|
+| sink.partitioner | 可选 | default | String | Flink partition 到 Kafka partition 的映射关系。default：使用 Kafka 默认的分区器对消息进行分区。fixed：每个 Flink partition 对应最多一个 Kafka partition。round-robin：Flink partition 按轮循（round-robin）的模式对应到 Kafka partition。只有当未指定消息 Key 时生效。|
 | sink.semantic | 可选 | at-least-once | String	| 定义 Kafka Sink 的语义。有效值为 'at-least-once'，'exactly-once' 和 'none'。|
 | sink.parallelism | 可选	| 无 | Integer |	定义 Kafka Sink 算子的并行度。默认情况下，并行度由框架定义为与上游串联的算子相同。|
 
 ### 5. Key 与 Value Format
 
-Kafka 消息 Key 和 Value 部分都可以使用指定[Format](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/connectors/table/formats/overview/)来序列化或反序列化。Key Format 用来序列化和反序列化 Kafka 消息的 Key 部分，Value Format 用来序列化和反序列化 Kafka 消息的 Value 部分。
+Kafka 消息 Key 和 Value 部分都可以使用指定的 [Format](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/connectors/table/formats/overview/) 来序列化或反序列化。Key Format 用来序列化和反序列化 Kafka 消息的 Key 部分，Value Format 用来序列化和反序列化 Kafka 消息的 Value 部分。
 
 #### 5.1 只有 Value Format
 
@@ -202,7 +202,7 @@ Kafka Value 数据格式如下：
 ```
 在解析上述 Kafka 消息时，使用 'EXCEPT_KEY' 或者 'ALL' 均可以。
 
-##### 5.1.3 重名的 Format 字段
+#### 5.1.3 重名字段
 
 如果 Key Format 和 Value Format 中包含了相同名称的字段，那么 Connnector 无法根据 Schema 信息将这些列区分为 Key 字段和 Value 字段。'key.fields-prefix' 配置项可以在表结构中为 Key 字段指定一个唯一名称，并在配置 Key Format 的时候保留原名。如下示例展示了在 Key 和 Value Format 中同时包含 version 字段的情况：
 ```sql
@@ -232,11 +232,9 @@ CREATE TABLE kafka_same_name_source_table (
 
 > 完整示例代码请查阅： [kafka-connector-same-name](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/sql/connector/kafka/kafka-connector-same-name.sql)
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-kafka-connector-3.png?raw=true)
-
 ### 6. 特性
 
-#### 6.2 Topic 和 Partition 自动发现
+#### 6.1 Topic 和 Partition 自动发现
 
 topic 和 topic-pattern 配置项决定了 Source 消费的 topic 或 topic 的匹配规则。topic 配置项可接受使用分号间隔的 topic 列表，例如 topic-1;topic-2。topic-pattern 配置项使用正则表达式来发现可以匹配的 topic。例如 topic-pattern 设置为 test-topic-[0-9]，那么在作业启动时，与这个正则表达式相匹配的 topic（以 test-topic- 开头，以一位数字结尾）都会被消费者订阅。
 
@@ -244,7 +242,7 @@ topic 和 topic-pattern 配置项决定了 Source 消费的 topic 或 topic 的�
 
 > 注意 topic 列表和 topic 匹配规则只适用于 source。对于 sink 端，Flink 目前只支持单一 topic。
 
-#### 6.3 起始消费位点
+#### 6.2 起始消费位点
 
 scan.startup.mode 配置项决定了 Kafka 消费者的启动模式。具体值如下所示：
 - group-offsets：从指定的消费组提交到 Zookeeper 或者 Kafka Broker 的偏移量开始消费。
@@ -257,18 +255,18 @@ scan.startup.mode 配置项决定了 Kafka 消费者的启动模式。具体值�
 
 如果使用了 timestamp，必须也要配置另外一个配置项 scan.startup.timestamp-millis，来指定一个从格林尼治标准时间 1970 年 1 月 1 日 00:00:00.000 开始计算的毫秒单位时间戳作为起始时间。如果使用了 specific-offsets，必须也要配置另外一个配置项 scan.startup.specific-offsets，来为每个 partition 指定起始偏移量，例如，选项值 partition:0,offset:42;partition:1,offset:300 表示 partition 0 从偏移量 42 开始，partition 1 从偏移量 300 开始。
 
-#### 6.4 Sink 分区
+#### 6.3 Sink 分区
 
 配置项 sink.partitioner 指定了从 Flink 分区到 Kafka 分区的映射关系。默认情况下，Flink 使用 Kafka 默认分区器来对消息进行分区。默认分区器对没有消息 Key 的消息使用[粘性分区策略](https://www.confluent.io/blog/apache-kafka-producer-improvements-sticky-partitioner/)（sticky partition strategy） 进行分区，对含有消息 Key 的消息使用 murmur2 哈希算法计算分区。为了控制消息到分区的路由，也可以提供一个自定义的 Sink 分区器。'fixed' 分区器会将相同 Flink 分区中的消息写入同一个 Kafka 分区，从而减少网络连接的开销。
 
-#### 6.5 一致性保证
+#### 6.4 一致性保证
 
 默认情况下，如果在启用 Checkpoint 模式下执行查询，Kafka Sink 会按照 At-Least-Once 语义保证将数据写入到 Kafka Topic 中。当 Flink Checkpoint 启用时，kafka Sink 可以提 Exactly-Once 语义保证。除了启用 Flink Checkpoint，还可以通过选择不同的 sink.semantic 选项来选择三种不同的运行模式：
 - None：不保证任何语义。输出的记录可能重复或者丢失。
 - At-Least-Once (默认设置)：保证不会有记录丢失，但可能会重复。
 - Exactly-Once：使用 Kafka 事务提供 Exactly-Once 语义。当使用事务向 Kafka 写入数据时，不要忘记设置所需的隔离级别（read_committed 或者 read_uncommitted，后者是默认值）。
 
-#### 6.6 数据类型映射
+#### 6.5 数据类型映射
 
 Kafka 将消息 Key 和值存储为字节，因此 Kafka 没有 Schema 以及数据类型。Kafka 消息按照配置 Format 进行反序列化和序列化，例如 csv、json、avro。因此，数据类型映射由特定 Format 决定。
 

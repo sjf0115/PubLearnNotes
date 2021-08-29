@@ -12,13 +12,13 @@ permalink: flink-stream-windows-trigger
 
 ### 1. 简介
 
-Trigger(窗口触发器)决定了窗口（由 WindowAssigner 产生）什么时候调用[窗口处理函数](http://smartsi.club/flink-stream-windows-function.html)。可以根据指定的时间或数据元素条件来决定什么时候触发，比如，可以根据到达的元素个数或者具体获取到的元素值等等。触发器可以访问时间属性以及计时器，并且可以处理状态。因此，它们与处理函数一样强大。例如，我们可以实现特定的触发逻辑来触发，比如窗口接收到一定数量的元素时就会触发，或者当具有特定值的元素到达窗口时，再或者检测到到达窗口中的元素满足一定模式时触发，例如最近5秒内有两个相同类型的事件。
+Trigger(窗口触发器)决定了窗口（由 WindowAssigner 产生）什么时候调用[窗口处理函数](http://smartsi.club/flink-stream-windows-function.html)。可以根据指定的时间或数据元素条件来决定什么时候触发，比如，可以根据到达的元素个数或者具体获取到的元素值等等。Trigger 可以访问时间属性以及计时器，并且可以处理状态。因此，它们与处理函数一样强大。例如，我们可以实现特定的触发逻辑来触发，比如窗口接收到一定数量的元素时就会触发，或者当具有特定值的元素到达窗口时，再或者检测到到达窗口中的元素满足一定模式时触发，例如最近5秒内有两个相同类型的事件。
 
-Trigger 接口有 6 个方法，允许触发器对不同的事件做出反应：
+Trigger 接口有 6 个方法，可以允许 Trigger 对不同的事件做出反应：
 - onElement：每个元素到达窗口时都会调用该方法，来决定是否触发窗口计算并输出窗口结果。
 - onProcessingTime：当使用 TriggerContext 注册的处理时间 Timer 触发时会调用该方法。
 - onEventTime：当使用 TriggerContext 注册的事件时间 Timer 触发时会调用该方法。
-- canMerge：如果触发器支持对触发器状态进行 Merge 并因此可以与 MergingWindowAssigner 一起使用，则返回 true。如果返回 true，必须实现 onMerge 方法。
+- canMerge：如果 Trigger 支持对 Trigger 状态进行 Merge 并因此可以与 MergingWindowAssigner 一起使用，则返回 true。如果返回 true，必须实现 onMerge 方法。
 - onMerge：当 WindowAssigner 将多个窗口合并为一个窗口时会调用该方法，同时会进行状态的合并。
 - clear：执行窗口以及状态数据的清除。
 
@@ -55,22 +55,22 @@ public abstract class Trigger<T, W extends Window> implements Serializable {
 - ContinuousProcessTimeTrigger：根据间隔时间周期性触发窗口或者当前 ProcessTime 大于窗口结束时间戳会触发窗口计算。
 - CountTrigger：根据接入数据量是否超过设定的阈值来决定是否触发窗口计算。
 - DeltaTrigger：根据接入数据量计算出来的 Delta 指标是否超过设定的阈值来决定是否触发窗口计算。
-- PurgingTrigger：可以将任意触发器作为参数转为为 Purge 类型触发器，计算完成后数据将被清除。
-- ProcessingTimeoutTrigger：可以将任意触发器作为参数转为为 ProcessingTimeout 类型触发器。在第一个元素到达后设置一个超时处理时间。还可以通过指定 resetTimerOnNewRecord 为每个到达的元素重新更新计时器，也可以指定是否应通过 shouldClearOnTimeout 在超时时清理窗口所有数据。
+- PurgingTrigger：可以将任意 Trigger 作为参数转为为 Purge 类型大的 Trigger，计算完成后数据将被清除。
+- ProcessingTimeoutTrigger：可以将任意 Trigger 作为参数转为为 ProcessingTimeout 类型的 Trigger。在第一个元素到达后设置一个超时处理时间。还可以通过指定 resetTimerOnNewRecord 为每个到达的元素重新更新计时器，也可以指定是否应通过 shouldClearOnTimeout 在超时时清理窗口所有数据。
 
 > ProcessingTimeoutTrigger 于 1.12.0 版本引入。
 
 #### 2.2 WindowAssigners 的默认触发器
 
-每种类型的 WindowAssigner 都有不同的默认触发器，如下所示：
+每种类型的 WindowAssigner 都有不同的默认 Trigger，如下所示：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-trigger-2.png?raw=true)
 
-所有基于事件时间的 WindowAssigner 都有一个 EventTimeTrigger 作为默认触发器。一旦 Watermark 大于窗口的结束时间戳，这个触发器就会触发。所有基于处理时间的 WindowAssigner 都有一个 ProcessingTimeTrigger 作为默认触发器。一旦当前处理时间大于窗口结束时间戳，这个触发器就会触发。除此之外，GlobalWindow 的默认触发器是从不触发的 NeverTrigger。因此，在使用 GlobalWindow 时，我们必须定义自定义触发器。
+所有基于事件时间的 WindowAssigner 都有一个 EventTimeTrigger 作为默认 Trigger。一旦 Watermark 大于窗口的结束时间戳，这个 Trigger 就会触发。所有基于处理时间的 WindowAssigner 都有一个 ProcessingTimeTrigger 作为默认 Trigger。一旦当前处理时间大于窗口结束时间戳，这个 Trigger 就会触发。除此之外，GlobalWindow 的默认 Trigger 是从不触发的 NeverTrigger。因此，在使用 GlobalWindow 时，我们必须自定义 Trigger。
 
 ### 3. 自定义触发器
 
-如果默认触发器不符合我们的需要，用户也可以继承并实现 Trigger 抽象类来实现自定义触发器。假设我们有如下场景：当每个文章点击用户达到 N 个用户时，计算每个文章的的总点击次数以及平均点击次数。比如如下输入流：
+如果默认 Trigger 不符合我们的需要，用户也可以继承并实现 Trigger 抽象类来实现自定义 Trigger。假设我们有如下场景：当每个文章点击用户达到 N 个用户时，计算每个文章的的总点击次数以及平均点击次数。比如如下输入流：
 ```
 c10,ua,1
 c11,ua,2
@@ -86,7 +86,7 @@ c12,uc,4
 
 第一条记录表示用户 ua 对文章 c10 点击了 1 次。等到达第 5 条记录时，文章 c10 被 ua、ub、uc 三个用户点击。此时，该文章总共被点击了 5(1 + 1 + 3) 次。
 
-因为默认 Trigger 不符合我们的需要(要么根据处理时间、事件时间来触发，要么根据到达的元素个数来触发，没有默认触发器能实现根据到达的用户个数触发的)，所以我们需要实现如下自定义 Trigger：
+因为默认 Trigger 不符合我们的需要(要么根据处理时间、事件时间来触发，要么根据到达的元素个数来触发，没有默认 Trigger 能实现根据到达的用户个数触发的)，所以我们需要实现如下自定义 Trigger：
 ```java
 private static class CustomCountTrigger <W extends Window> extends Trigger<Object, W> {
     private Logger LOG = LoggerFactory.getLogger(CustomWindowTriggerExample.class);
@@ -146,9 +146,9 @@ private static class CustomCountTrigger <W extends Window> extends Trigger<Objec
     }
 }
 ```
-自定义触发器的核心逻辑都在 onElement 方法中。每次元素到达窗口时都要判断元素对应的用户是否在状态中，如果不在状态中，则更新状态。更新状态之后判断状态中的用户个数，如果达到指定的阈值则触发窗口计算，否则什么都不做。
+自定义 Trigger 的核心逻辑都在 onElement 方法中。每次元素到达窗口时都要判断元素对应的用户是否在状态中，如果不在状态中，则更新状态。更新状态之后判断状态中的用户个数，如果达到指定的阈值则触发窗口计算，否则什么都不做。
 
-通过调用 trigger 方法来指定我们的自定义触发器：
+通过调用 trigger 方法来指定我们的自定义 Trigger：
 ```java
 DataStream<String> result = stream
     // 根据contentId分组

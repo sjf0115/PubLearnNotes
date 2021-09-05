@@ -277,7 +277,7 @@ private long getMaxTimestamp(Iterable<TimestampedValue<Object>> elements) {
 ```
 首先获取当前窗口中最大的时间戳，减去用户指定时间间隔 windowSize，得到一个 evictCutoff，然后遍历窗口全部元素，删除时间戳小于等于 evictCutoff 的元素。
 
-##### 2.3.2 如是使用
+##### 2.3.2 如何使用
 
 如下代码所示，在触发窗口函数计算之前只保留最近10s内的元素：
 ```java

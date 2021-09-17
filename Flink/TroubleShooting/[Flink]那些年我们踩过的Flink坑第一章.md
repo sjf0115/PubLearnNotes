@@ -214,4 +214,35 @@ Caused by: java.lang.UnsupportedOperationException: Forward partitioning does no
 ```
 【解决方案】使用 ForwardPartitioner 时必须保证上下游算子的并行度保持一致，否则就需要其他的分区器，比如，BroadcastPartitioner、ShufflePartitioner 或者 RebalancePartitioner 等。
 
+### 8. cannot assign instance of org.apache.commons.collections.map.LinkedMap
+
+【现象】在使用 Flink 消费 Kafka 时，抛出如下异常：
+```java
+Caused by: java.lang.ClassCastException: cannot assign instance of org.apache.commons.collections.map.LinkedMap to field org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase.pendingOffsetsToCommit of type org.apache.commons.collections.map.LinkedMap in instance of org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer
+	at java.io.ObjectStreamClass$FieldReflector.setObjFieldValues(ObjectStreamClass.java:2233)
+	at java.io.ObjectStreamClass.setObjFieldValues(ObjectStreamClass.java:1405)
+	at java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2284)
+	at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2202)
+	at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2060)
+	at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1567)
+	at java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2278)
+	at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2202)
+	at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2060)
+	at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1567)
+	at java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2278)
+	at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2202)
+	at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2060)
+	at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1567)
+	at java.io.ObjectInputStream.readObject(ObjectInputStream.java:427)
+	at org.apache.flink.util.InstantiationUtil.deserializeObject(InstantiationUtil.java:615)
+	at org.apache.flink.util.InstantiationUtil.deserializeObject(InstantiationUtil.java:600)
+	at org.apache.flink.util.InstantiationUtil.deserializeObject(InstantiationUtil.java:587)
+	at org.apache.flink.util.InstantiationUtil.readObjectFromConfig(InstantiationUtil.java:541)
+	at org.apache.flink.streaming.api.graph.StreamConfig.getStreamOperatorFactory(StreamConfig.java:322)
+	... 5 more
+```
+【解决方案】常见的原因是 Kafka 库与 Flink 的反向类加载方法不兼容。可以通过在 conf/flink-conf.yaml 中添加以下配置并重新启动 Flink 来解决此问题：
+```
+classloader.resolve-order: parent-first
+```
 ...

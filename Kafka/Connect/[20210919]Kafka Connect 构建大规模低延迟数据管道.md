@@ -69,6 +69,7 @@ Offset 管理是流数据集成的关键，由于数据流没有预期的结束�
 Kafka Connect 在 Source 和 Sink 系统之间支持两种不同级别的投递语义保证：At-Least-Once(至少一次), At-Most-Once(至多一次)，并在将来的版本中支持 Exactly-Once。由 Connector 的实现来提供投递语义保证。例如，任何允许幂等写入以及提供存储 Offset 和数据能力的 Sink 都可以提供 Exactly-Once 语义。另一方面，还不支持 Exactly-Once 语义写入 Kafka，因此，写入 Kafka 的 Source Connect 仅支持 At-Least-Once(至少一次), At-Most-Once(至多一次) 语义保证。
 
 Kafka Connect 与流程部署和资源管理无关，它不负责启动、停止或重新启动进程。换句话说，Kafka Connect 会自动检测故障并重新平衡剩余进程的工作。Kafka Connect 并没有强加特定的资源管理框架或一组操作工具；它可以和 Pupper、Chef、Mesos、Kubernetes 或者 YARN 搭配使用。
+
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Kafka/announcing-kafka-connect-building-large-scale-low-latency-data-pipelines-6.png?raw=true)
 
 欢迎关注我的公众号和博客：

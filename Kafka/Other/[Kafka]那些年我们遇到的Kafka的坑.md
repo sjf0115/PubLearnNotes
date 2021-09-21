@@ -27,9 +27,19 @@ Yikes! KeeperErrorCode = Unimplemented for /kafka-manager/mutex Try again.
 ```
 解决方案：主要是ZooKeeper版本太低导致，需要升级到3.5+版本。具体请参考[748](https://github.com/yahoo/CMAK/issues/748)
 
+### 3. bootstrap.server is not a recognized option
 
-
-
+```
+kafka-console-consumer.sh --bootstrap.server=localhost:9092 --topic=file-connector-example-topic --from-beginning
+```
+在执行上述命令时抛出如下异常：
+```
+bootstrap.server is not a recognized option
+```
+主要原因是：在 2.5.0 版本之前只支持 --broker-list；在 2.5.0 版本之后支持 --bootstrap-server。使用如下命令重新执行：
+```
+kafka-console-consumer.sh --broker-list=localhost:9092 --topic=file-connector-example-topic --from-beginning
+```
 
 
 

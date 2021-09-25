@@ -34,14 +34,15 @@ CREATE TABLE IF NOT EXISTS `stu`(
 
 incrementing 模式基于表上严格递增的列来检测是否是新行。如果添加了具有新 ID 的新行，该行会被导入到 Kafka 中。需要使用 incrementing.column.name 参数指定严格递增列。如下所示使用 id 字段作为自增列：
 ```json
-curl -X POST http://localhost:9083/connectors \
+curl -X POST http://localhost:8083/connectors \
 -H "Content-Type: application/json" -d '{
     "name": "jdbc_source_connector_mysql_increment",
     "config": {
             "connector.class": "io.confluent.connect.jdbc.JdbcSourceConnector",
             "connection.url": "jdbc:mysql://localhost:3306/kafka_connect_sample",
             "connection.user": "root",
-             "topic.prefix": "connect-mysql-increment-",
+            "connection.password": "root",
+            "topic.prefix": "connect-mysql-increment-",
             "mode":"incrementing",
             "incrementing.column.name":"id",
             "catalog.pattern" : "kafka_connect_sample",
@@ -94,7 +95,7 @@ CREATE TABLE IF NOT EXISTS `stu_timestamp`(
 
 timestamp 模式基于表上时间戳列来检测是否是新行或者修改的行。该列最好是随着每次写入而更新，并且值是单调递增的。需要使用 timestamp.column.name 参数指定时间戳列。如下所示使用 gmt_modified 字段作为时间戳列：
 ```json
-curl -X POST http://localhost:9083/connectors \
+curl -X POST http://localhost:8083/connectors \
 -H "Content-Type: application/json" -d '{
     "name": "jdbc_source_connector_mysql_timestamp",
     "config": {
@@ -110,9 +111,10 @@ curl -X POST http://localhost:9083/connectors \
         }
     }'
 ```
-需要注意的是时间戳列不能设置为可 NULL，否则抛出如下异常：
+需要注意的是时间戳列在数据表中不能设置为可 NULL，否则抛出如下异常：
 ```java
-org.apache.kafka.connect.errors.ConnectException: Cannot make incremental queries using timestamp columns [gmt_modified] on `kafka_connect_sample`.`stu_timestamp` because all of these columns nullable.
+org.apache.kafka.connect.errors.ConnectException: Cannot make incremental queries using timestamp columns
+[gmt_modified] on `kafka_connect_sample`.`stu_timestamp` because all of these columns nullable.
 	at io.confluent.connect.jdbc.source.JdbcSourceTask.validateNonNullable(JdbcSourceTask.java:497)
 	at io.confluent.connect.jdbc.source.JdbcSourceTask.start(JdbcSourceTask.java:168)
 	at org.apache.kafka.connect.runtime.WorkerSourceTask.execute(WorkerSourceTask.java:208)
@@ -169,7 +171,7 @@ CREATE TABLE IF NOT EXISTS `stu_timestamp_inc`(
 
 如上所述，仅使用 incrementing 或 timestamp 模式都存在缺陷。将 timestamp 和 incrementing 一起使用，可以充分利用 incrementing 模式不丢失数据的优点以及 timestamp 模式捕获更新操作变更的优点。需要使用 incrementing.column.name 参数指定严格递增列、使用 timestamp.column.name 参数指定时间戳列。如下所示使用 id 字段作为自增列、gmt_modified 字段作为时间戳列的示例：
 ```json
-curl -X POST http://localhost:9083/connectors \
+curl -X POST http://localhost:8083/connectors \
 -H "Content-Type: application/json" -d '{
     "name": "jdbc_source_connector_mysql_timestamp_inc",
     "config": {

@@ -1,11 +1,18 @@
+---
+layout: post
+author: smartsi
+title: Kafka Connect JDBC Source MySQL 全量同步
+date: 2021-09-26 11:56:00
+tags:
+  - Kafka
 
-从数据库获取数据到 Apache Kafka 无疑是 Kafka Connect 最流行的用例。Kafka Connect 提供了将数据导入和导出 Kafka 的可扩展且可靠的方式。由于只用到了 Connector 的特定 Plugin 以及一些配置（无需编写代码），因此这是一个比较简单的数据集成方案。
+categories: Kafka
+permalink: mysql-bulk-with-kafka-connect-jdbc-source
+---
+
+从数据库获取数据到 Apache Kafka 无疑是 Kafka Connect 最流行的用例。Kafka Connect 提供了将数据导入和导出 Kafka 的可扩展且可靠的方式。由于只用到了 Connector 的特定 Plugin 以及一些配置（无需编写代码），因此这是一个比较简单的数据集成方案。下面我们会介绍如何使用 Kafka Connect 将 MySQL 中的数据流式导入到 Kafka Topic。
 
 > 如果想了解 Kafka Connect 是什么以及做什么的，可以阅读 [Kafka Connect 构建大规模低延迟的数据管道](http://smartsi.club/announcing-kafka-connect-building-large-scale-low-latency-data-pipelines.html) 博文；如果想了解 Kafka Connect 是如何使用的，可以阅读 [Kafka Connect 如何构建实时数据管道](http://smartsi.club/how-to-build-a-pipeline-with-kafka-connect.html) 博文。
-
-
-
-
 
 ### 1. 安装 Connect 插件
 
@@ -38,7 +45,7 @@ plugin.path=/opt/share/kafka/plugins
 
 因为 Connector 需要与数据库进行通信，所以还需要 JDBC 驱动程序。JDBC Connector 插件也没有内置 MySQL 驱动程序，需要我们单独下载驱动程序。MySQL 为许多平台提供了 [JDBC 驱动程序](https://downloads.mysql.com/archives/c-j/)。
 
-![](1)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Kafka/mysql-bulk-with-kafka-connect-jdbc-source-1.png?raw=true)
 
 选择 Platform Independent 选项，然后下载压缩的 TAR 文件。该文件包含 JAR 文件和源代码。将此 tar.gz 文件的内容解压到一个临时目录。将 jar 文件（例如，mysql-connector-java-8.0.17.jar），并且仅将此 JAR 文件复制到与 kafka-connect-jdbc jar 文件相同的文件夹下：
 ```
@@ -186,7 +193,7 @@ connect-mysql-bulk-test_table
 
 请注意 onnect-mysql-bulk- 前缀。表内容的完整副本默认每 5 秒发生一次：
 
-![](2)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Kafka/mysql-bulk-with-kafka-connect-jdbc-source-2.png?raw=true)
 
 我们可以通过将 poll.interval.ms 设置为每 10s 一次：
 ```json
@@ -272,6 +279,9 @@ connect-mysql-whitelist-student
 "table.whitelist" : "kafka_connect_sample.student, test.test_db",
 ```
 
+欢迎关注我的公众号和博客：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 相关推荐：
 - [Kafka Connect 构建大规模低延迟的数据管道](http://smartsi.club/announcing-kafka-connect-building-large-scale-low-latency-data-pipelines.html)

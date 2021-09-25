@@ -160,7 +160,7 @@ INSERT INTO course VALUES (1, '语文'),
 
 现在我们已经正确安装了 Connect JDBC 插件、驱动程序并成功运行了 Connect，我们可以配置 Kafka Connect 以从数据库中获取数据。如下是最少的配置：
 ```json
-curl -X POST http://localhost:9083/connectors \
+curl -X POST http://localhost:8083/connectors \
 -H "Content-Type: application/json" -d '{
     "name": "jdbc_source_connector_mysql_bulk",
     "config": {
@@ -213,7 +213,7 @@ curl -X POST http://localhost:8083/connectors \
 ```
 上述配置获取了所有有权限的表，这可能不是我们想要的。也许我们只想包含来自特定模式的表，通过 catalog.pattern 配置从指定的数据库获取表：
 ```json
-curl -X POST http://localhost:9083/connectors \
+curl -X POST http://localhost:8083/connectors \
 -H "Content-Type: application/json" -d '{
     "name": "jdbc_source_connector_mysql_catalog",
     "config": {
@@ -238,7 +238,7 @@ connect-mysql-catalog-student
 
 还可以使用 table.whitelist（白名单）或 table.blacklist（黑名单）配置来控制获取的表。如下所示只把 student 表导入到 Kafka：
 ```json
-curl -X POST http://localhost:9083/connectors \
+curl -X POST http://localhost:8083/connectors \
 -H "Content-Type: application/json" -d '{
     "name": "jdbc_source_connector_mysql_whitelist",
     "config": {

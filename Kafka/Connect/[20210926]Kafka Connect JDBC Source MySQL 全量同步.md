@@ -178,7 +178,7 @@ mode 参数指定了工作模式，在这我们使用 bulk 批量模式来同步
 - connection.url：JDBC 连接 URL。
 - connection.user：JDBC 连接账号。
 - connection.password：JDBC 连接密码。
-- topic.prefix：为每个表创建一个 kafka Topic。Topic 以 topic.prefix + <table_name> 的格式命名。
+- topic.prefix：为每个表创建一个 kafka Topic。Topic 以 topic.prefix + table_name 的格式命名。
 
 > 当我们在分布式模式下运行时，我们需要使用 REST API 以及 JOSN 配置来创建 Connector。
 

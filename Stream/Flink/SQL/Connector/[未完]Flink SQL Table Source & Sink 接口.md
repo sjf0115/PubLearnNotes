@@ -8,12 +8,11 @@ tags:
   - Flink SQL
 
 categories: Flink
-permalink: flink-sql-kafka-connector
+permalink: flink-sql-table-source-sink
 ---
 
 > Flink 版本：1.10
 
-TableSource 接口提供了对存储在外部系统（数据库、KV存储、消息队列）或文件中数据的访问。TableSource 在 TableEnvironment 中注册 后，就可以被 Table API 或 SQL 查询访问；TableSink 接口将 Table 发送到外部存储系统，例如数据库、KV存储、消息队列以及文件系统（采用不同的编码，例如 CSV、Parquet 或 ORC）中。
 
 TableFactory 接口允许将与外部系统的连接声明与实际实现分开。Table Factory 根据标准化、基于字符串的属性创建 TableSource 或者 TableSink 的配置实例。可以使用 Descriptor 以编程方式或通过 SQL 客户端的 YAML 配置文件生成属性。
 
@@ -165,14 +164,15 @@ table 被转换为编码为 Java Tuple2 的累加和回撤消息流。第一个�
 
 定义一个外部 TableSink 以输出带有 INSERT、UPDATE 以及 DELETE 变更的流表。接口如下所示：
 ```java
-UpsertStreamTableSink<T> implements TableSink<Tuple2<Boolean, T>> {
+public interface UpsertStreamTableSink<T> extends StreamTableSink<Tuple2<Boolean, T>> {
   public void setKeyFields(String[] keys);
   public void setIsAppendOnly(boolean isAppendOnly);
   public TypeInformation<T> getRecordType();
   public void emitDataStream(DataStream<Tuple2<Boolean, T>> dataStream);
 }
 ```
-table 必须是唯一键字段（原子或复合）或仅支持追加。如果 table 没有唯一键并且不是仅支持追加，那么会抛出 TableException。table 的唯一键由 UpsertStreamTableSink#setKeyFields() 方法配置。
+table 必须是唯一键字段（原子或复合）或仅支持追加。如果 table 没有唯一键并且不是仅支持追加，那么会抛出 TableException。table 的唯一键由 UpsertStreamTableSink#setKeyFields() 方法配置。setIsAppendOnly 指定要写入的表是否仅支持追加。
+
 
 table 被转换为编码为 Java Tuple2 的 UPSERT 和 DELETE 消息流。第一个字段表示消息类型的布尔值（true 表示 UPSERT，false 表示 DELETE）。第二个字段保存请求的类型 T 的记录。如果该 table 仅支持追加，那么所有消息都将具有 true 的标志并且只支持插入。
 

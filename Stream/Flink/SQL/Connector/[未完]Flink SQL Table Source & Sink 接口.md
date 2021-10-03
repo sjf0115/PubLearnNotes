@@ -119,7 +119,7 @@ LookupableTableSource 接口添加了对以查找方式通过键列访问的表�
 
 ## 2. 定义一个 TableSink
 
-TableSink 指定了如何将 Table 输出到外部系统或文件。该接口是通用的，因此可以支持不同的存储位置和格式。批处理表和流表有不同的表 Connector。通用接口如下所示：
+TableSink 指定了如何将 Table 输出到外部系统或文件。该接口是一个通用接口，可以支持不同的存储位置和格式。批处理表和流表有不同的表 Connector。通用接口如下所示：
 ```java
 TableSink<T> {
   public TypeInformation<T> getOutputType();

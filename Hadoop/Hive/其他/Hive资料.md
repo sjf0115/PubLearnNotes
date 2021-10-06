@@ -1,2 +1,0 @@
-- [ ] [Apache Hive 联邦查询（Query Federation）](https://www.iteblog.com/archives/2524.html)
-- [ ] [Hive Metastore Federation 在滴滴的实践](https://www.infoq.cn/article/omojfm0tmidpshhtte8m)

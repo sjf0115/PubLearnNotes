@@ -178,16 +178,17 @@ table 被转换为编码为 Java Tuple2 的 UPSERT 和 DELETE 消息流。第一
 
 ## 3. 定义 TableFactory
 
-TableFactory 根据基于字符串的属性创建不同的表相关实例。调用所有可用的工厂以匹配给定的属性集和相应的工厂类。TableFactory 利用 Java 的服务提供者接口 (SPI) 进行发现。这意味着每个依赖项和 JAR 文件都应该在 META_INF/services 资源目录中包含一个 org.apache.flink.table.factories.TableFactory 文件，文件中列出了可以提供的所有可用 TableFactory。每个 TableFactory 都需要实现以下接口：
+TableFactory 主要作用是将事先定义好的 TableSource 和 TableSink 实现类封装成不同的 Factory，然后通过字符串参数进行配置，这样在 Table API 或 SQL 查询中就可以使用配置参数来引用定义好的数据源。TableFactory 使用 Java 的 SPI 机制为 TableFactory 来寻找接口实现类，因此需要保证在 META-INF/services/ 资源目录中包含一个 org.apache.flink.table.factories.TableFactory 文件，文件中列出了可以提供的所有可用 TableFactory 列表。每个 TableFactory 都需要实现以下接口：
 ```java
-package org.apache.flink.table.factories;
-interface TableFactory {
+@PublicEvolving
+public interface TableFactory {
   Map<String, String> requiredContext();
   List<String> supportedProperties();
 }
 ```
-- requiredContext()：指定已实现此工厂的上下文。框架保证仅匹配哪些满足指定的属性和值集的 Factory。常见的属性有 connector.type、format.type 以及 update-mode。诸如 connector.property-version 和 format.property-version 之类的属性键是为将来的向后兼容保留的。
-- supportedProperties()：Factory 可以处理的属性键列表。此方法用来做验证。如果传递了无法处理的属性，就会引发异常。该列表不能包含上下文指定的键。
+TableFactory 接口定义中包含 requiredContext 和 supportedProperties 两个方法：
+- requiredContext：定义了当前 TableFactory 中的 Context 上下文，同时通过 Key-Value 的方式来标记 TableFactory，例如，connector.type=redis。Flink 配置的参数需要和 Context 具有相同的 Key-Value 参数才能够匹配到 TableSource，否则不会匹配相应的 TableFactory 实现类。常见的参数有 connector.type、format.type 以及 update-mode。诸如 connector.property-version 和 format.property-version 之类的参数是为将来的向后兼容保留的。
+- supportedProperties：定义了当前 TableFactory 中需要使用到的参数，如果 Flink 配置的参数不属于当前的 TableFactory，便会抛出异常。需要注意的是，Context 参数中的 Key 不能和 supportedProperties 参数名称相同。
 
 为了创建一个特定的实例，一个工厂类可以实现一个或多个在 org.apache.flink.table.factories 中提供的接口：
 - BatchTableSourceFactory：创建批处理 TableSource。

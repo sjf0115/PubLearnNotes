@@ -47,7 +47,7 @@ env.fromElements(1, 2, 3)
 ```
 为什么采用匿名内部类就没有问题？因为匿名内部类会编译成相关的类字节码存储在 class 文件中，而 Lambda 表达式只是 Java 的语法糖并不会存在相关的类字节码，Lambda 表达式是在运行时调用 invokedynamic 指令，亦即在第一次执行其逻辑时才会确定。因此 Lambda 表达式比起匿名内部类，会丢失更多的类型信息。
 
-### 1.2 自定义类方式
+#### 1.2 自定义类方式
 
 使用自定义类来代替实现 'org.apache.flink.api.common.functions.MapFunction' 接口：
 ```java
@@ -62,7 +62,7 @@ env.fromElements(1, 2, 3)
   .map(new MyMapFunction())
   .print();
 ```
-### 1.3 returns方式
+#### 1.3 returns方式
 
 使用 returns 语句显示的指明类型信息：
 ```java

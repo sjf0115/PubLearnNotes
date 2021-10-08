@@ -1,8 +1,18 @@
+---
+layout: post
+author: smartsi
+title: Flink DataStream 类型系统
+date: 2021-10-07 16:35:01
+tags:
+  - Flink
 
+categories: Flink
+permalink: physical-partitioning-in-apache-flink
+---
 
 ## 1. 数据类型支持
 
-Flink 支持非常完善的数据类型，数据类型的描述信息都是由 TypeInformation 定义，比较常用的 TypeInformation 有 BasicTypeInfo、TupleTypeInfo、CaseClassTypeInfo、PojoTypeInfo 类等。TypeInformation 主要作用是为了在 Flink 系统内有效地对数据结构类型进行管理，能够在分布式计算过程中对数据的类型进行管理和推断。同时基于对数据的类型信息管理，Flink 内部对数据存储也进行了相应的性能优化。Flink 能够支持任意的 Java 或 Scala 的数据类型，不用像 Hadoop 中的 org.apache.hadoop.io.Writable 而实现特定的序列化和反序列化接口，从而让用户能够更加容易使用已有的数据结构类型。另外使用 TypeInformation 管理数据类型信息，能够在数据处理之前将数据类型推断出来，而不是真正在触发计算后才识别出，这样能够及时有效地避免用户在使用 Flink 编写应用的过程中的数据类型问题。
+Flink 在其内部构建了一套自己的类型系统，Flink 现阶段支持的类型分类如下图所示，从图中可以看到 Flink 类型可以分为基础类型（Basic）、数组（Arrays）、复合类型（Composite）、辅助类型（Auxiliary）、泛型和其它类型（Generic）。Flink 支持任意的 Java 或是 Scala 类型。不需要像 Hadoop 一样去实现一个特定的接口（org.apache.hadoop.io.Writable），Flink 能够自动识别数据类型。
 
 ### 1.1 原生数据类型
 
@@ -99,9 +109,39 @@ Value 数据类型实现了 org.apache.flink.types.Value，其中包括 read() �
 
 ## 2. TypeInformation
 
+在 Flink 中每一个具体的类型都对应了一个具体的 TypeInformation 实现类。例如，BasicTypeInformation 中的 IntegerTypeInformation 对应了 Integer 数据类型。数据类型的描述信息都是由 TypeInformation 定义，比较常用的 TypeInformation 有 BasicTypeInfo、TupleTypeInfo、CaseClassTypeInfo、PojoTypeInfo 类等，如下图所示：
+
+![](2)
+
+TypeInformation 主要作用是为了在 Flink 系统内有效地对数据结构类型进行管理，能够在分布式计算过程中对数据的类型进行管理和推断。同时基于对数据的类型信息管理，Flink 内部对数据存储也进行了相应的性能优化。Flink 能够支持任意的 Java 或 Scala 的数据类型，不用像 Hadoop 中的 org.apache.hadoop.io.Writable 而实现特定的序列化和反序列化接口，从而让用户能够更加容易使用已有的数据结构类型。另外使用 TypeInformation 管理数据类型信息，能够在数据处理之前将数据类型推断出来，而不是真正在触发计算后才识别出，这样能够及时有效地避免用户在使用 Flink 编写应用的过程中的数据类型问题。
+
+要为类型创建 TypeInformation 对象，需要使用特定于语言的方法。因为 Java 会[擦除泛型类型信息]()，所以需要将类型传入 TypeInformation 构造函数。对于非泛型类型，可以传入类型的 Class 对象：
+```java
+TypeInformation<String> info = TypeInformation.of(String.class);
+```
+对于泛型类型，你需要通过 TypeHint 来捕获泛型类型信息：
+```java
+// 方法1
+TypeInformation<Tuple2<String, Double>> info = TypeInformation.of(new TypeHint<Tuple2<String, Double>>(){});
+// 方法2
+TypeHint<Tuple2<String, Double>> hint = new TypeHint<Tuple2<String, Double>>() {};
+TypeInformation<Tuple2<String, Double>> info2 = hint.getTypeInfo();
+```
+在内部，这会创建 TypeHint 的匿名子类，捕获泛型信息并会将其保留到运行时。
+
+而在 Scala 中，Flink 使用在编译时运行的宏捕获所有泛型类型信息：
+```scala
+// important: this import is needed to access the 'createTypeInformation' macro function
+import org.apache.flink.streaming.api.scala._
+val stringInfo: TypeInformation[String] = createTypeInformation[String]
+val tupleInfo: TypeInformation[(String, Double)] = createTypeInformation[(String, Double)]
+```
+
+## 3. 类型信息获取
+
 通常情况下 Flink 都能正常进行数据类型推断，并选择合适的 serializers 以及 comparators。但在某些情况下却无法直接做到，例如，定义函数时如果使用到了泛型，JVM 就会出现类型擦除的问题，使得 Flink 并不能很容易地获取到数据集中的数据类型信息。同时在 Scala API 和 Java API 中，Flink 分别使用了不同的方式重构了数据类型信息。
 
-### 2.1 Scala API 类型信息
+### 3.1 Scala API 类型信息
 
 Scala API 通过使用 Manifest 和类标签，在编译器运行时获取类型信息，即使是在函数定义中使用了泛型，也不会像 Java API 出现类型擦除的问题，这使得 Scala API 具有非常精密的类型管理机制。同时在 Flink 中使用到 Scala Macros 框架，在编译代码的过程中推断函数输入参数和返回值的类型信息，同时在 Flink 中注册成 TypeInformation 以支持上层计算算子使用。
 
@@ -110,9 +150,40 @@ Scala API 通过使用 Manifest 和类标签，在编译器运行时获取类型
 import org.apache.flink.api.scala._
 ```
 
-### 2.2 Java API 类型信息
+### 3.2 Java API 类型信息
 
-由于 Java 的泛型会出现类型擦除问题，Flink 通过 Java 反射机制尽可能重构类型信息，例如，使用函数签名以及子类的信息等。同时类型推断在当输出类型依赖于输入参数类型时相对比较容易做到，但是如果函数的输出类型不依赖于输入参数的类型信息，这个时候就需要借助于类型提示（Ctype Himts）来告诉系统函数中传入的参数类型信息和输出参数信息。如下代码所示，通过在 returns 方法中传入 TypeHint<Integer> 实例指定输出参数类型，帮助 Flink 系统对输出类型进行数据类型参数的推断和收集。
+由于 Java 的泛型会出现类型擦除问题，Flink 通过 Java 反射机制尽可能重构类型信息，例如，使用函数签名以及子类的信息等。对于函数的返回类型取决于输入类型的情况时，会包含一些简单的类型推断：
+```java
+public class AppendOne<T> implements MapFunction<T, Tuple2<T, Long>> {
+    public Tuple2<T, Long> map(T value) {
+        return new Tuple2<T, Long>(value, 1L);
+    }
+}
+```
+存在 Flink 无法重构所有泛型类型信息的情况。在这种情况下，用户必须通过类型提示（Type Hints）提供帮助。
+
+但是如果函数的输出类型不依赖于输入参数的类型信息，这个时候就需要借助于类型提示来告诉系统函数中传入的参数类型信息和输出参数信息。
+
+(1) Java API 中的 Type Hints
+
+在 Flink 无法重建擦除的泛型类型信息的情况下，Java API 提供了类型提示。类型提示告诉系统函数产生的数据流或数据集的类型：
+```java
+DataStream<SomeType> result = stream
+    .map(new MyGenericNonInferrableFunction<Long, SomeType>())
+      .returns(SomeType.class);
+```
+returns 语句指定生成的类型，在本例中通过类。 提示通过以下方式支持类型定义
+
+类，用于非参数化类型（无泛型）
+返回形式的 TypeHints(new TypeHint<Tuple2<Integer, SomeType>>(){})。 TypeHint 类可以捕获泛型类型信息并为运行时保留它（通过匿名子类）。
+
+
+
+
+
+
+
+如下代码所示，通过在 returns 方法中传入 TypeHint 实例指定输出参数类型，帮助 Flink 系统对输出类型进行数据类型参数的推断和收集。
 ```java
 // stream Tuple3<String, Long, Long>
 DataStream<Tuple2<String, Long>> result = stream
@@ -159,7 +230,7 @@ public SingleOutputStreamOperator<T> returns(TypeInformation<T> typeInfo) {
 
 
 
-### 3. 自定义 TypeInformation
+### 2.2 自定义 TypeInformation
 
 除了使用已有的 TypeInformation 所定义的数据格式类型之外，用户也可以自定义实现 TypeInformation，来满足的不同的数据类型定义需求。Flink 提供了可插拔的 Type Information Factory 让用户将自定义的 TypeInformation 注册到 Flink 类型系统中。如下代码所示只需要通过实现 org.apache.flink.api.common.typeinfo.TypeInfoFactory 接口，返回相应的类型信息。
 
@@ -167,6 +238,22 @@ public SingleOutputStreamOperator<T> returns(TypeInformation<T> typeInfo) {
 
 
 然后定义 CustomTypeInfoFactory 类继承于 TypeInfoFactory，参数类型指定 CustomTuple。最后重写 createTypeInfo 方法，创建的 CustomTupleTypeInfo 就是 CustomTuple 数据类型 TypeInformation。
+
+### 2.3 序列化器
+
+除了对类型地描述之外，TypeInformation 还提供了序列化的支撑。在 Flink 中每一个具体的类型都对应了一个具体的 TypeInformation 实现类，每一个 TypeInformation 都会为对应的具体数据类型提供一个专属的序列化器。TypeInformation 会提供一个 createSerialize() 方法，通过这个方法就可以得到该类型进行数据序列化操作与反序列化操作的序列化器 TypeSerializer：
+```java  
+public TypeSerializer<T> createSerializer(ExecutionConfig executionConfig) {
+    return this.serializer;
+}
+```
+
+对于大多数数据类型 Flink 可以自动生成对应的序列化器，能非常高效地对数据集进行序列化和反序列化，比如，BasicTypeInfo、WritableTypeIno 等，但针对 GenericTypeInfo 类型，Flink 会使用 Kyro 进行序列化和反序列化。其中，Tuple、Pojo 和 CaseClass 类型是复合类型，它们可能嵌套一个或者多个数据类型。在这种情况下，它们的序列化器同样是复合的。它们会将内嵌类型的序列化委托给对应类型的序列化器。
+
+
+除了对类型地描述之外，TypeInformation 还提供了序列化的支撑。在 TypeInformation 中有一个方法：createSerializer：
+
+用来创建序列化器，序列化器中定义了一系列的方法。可以通过 serialize 和 deserialize 方法将指定类型进行序列化。Flink 中也提供了非常丰富的序列化器。
 
 ## 3. TypeExtractror
 

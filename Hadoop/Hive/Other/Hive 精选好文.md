@@ -2,3 +2,8 @@
 - [ ] [Hive Metastore Federation 在滴滴的实践](https://www.infoq.cn/article/omojfm0tmidpshhtte8m)
 - [ ] [Hive Metastore – It Didn’t Age Well](https://lakefs.io/hive-metastore-it-didnt-age-well/)
 - [ ] [Hive Metastore – Why It’s Still Here and What Can Replace It?](https://lakefs.io/hive-metastore-why-its-still-here-and-what-can-replace-it/)
+- [ ] [Hive on Spark](https://cwiki.apache.org/confluence/display/Hive/Hive+on+Spark)
+- [ ] [【技术难点】hive on spark 调优](https://mp.weixin.qq.com/s/GMk-KPCaKSe8Mj3BrFxs7A)
+- [ ] [Intel李锐：Hive on Spark解析](https://mp.weixin.qq.com/s/sPMLkbLKG_KQo_DRoPcjvg)
+- [ ] [Hive on Spark: Getting Started](https://cwiki.apache.org/confluence/display/Hive/Hive+on+Spark%3A+Getting+Started)
+- [ ] []()

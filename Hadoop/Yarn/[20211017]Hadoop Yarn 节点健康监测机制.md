@@ -24,7 +24,7 @@ YARN 提供了一种判断 NodeManager 是否健康的机制：检测磁盘损�
 
 > ${hadoop.tmp.dir} 通过 hadoop.tmp.dir 参数在 core-site.xml 中配置、${yarn.log.dir} 是 Java 属性，在 yarn-env.sh 中配置。
 
-这些目录的可用性直接决定着 NodeManager 的可用性。因此，NodeManager 作为节点的代理和管理者，应该负责检测这两类目录列表的可用性，并及时将不可用目录剔除掉。NodeManager 判断一个目录（磁盘）好坏的方法是：如果一个目录具有读、写和执行权限，并且有满足要求的可用磁盘空间，则认为它是正常的，否则将被加入坏磁盘列表。LocalDirsHandlerService 服务中专门有一个定时任务周期性检测这些目录的好坏，一旦发现正常磁盘的比例低于阈值，该节点就被标记处于不健康状态，此后 ResourceManager 不再为它分配新任务。
+这些目录的可用性直接决定着 NodeManager 的可用性。因此，NodeManager 作为节点的代理和管理者，应该负责检测这两类目录列表的可用性，并及时将不可用目录剔除掉。NodeManager 判断一个目录所在磁盘好坏的方法是：如果一个目录具有读、写和执行权限，并且有满足要求的可用磁盘空间，则认为它是正常的，否则将被加入坏磁盘列表。LocalDirsHandlerService 服务中专门有一个定时任务周期性检测这些磁盘的好坏，一旦发现正常磁盘的比例低于阈值，该节点就被标记处于不健康状态，此后 ResourceManager 不再为它分配新任务。
 
 具体通过如下配置参数来监测磁盘损坏情况：
 - yarn.nodemanager.disk-health-checker.enable：如果为 true 表示启用磁盘健康监测，否则禁用监测。
@@ -35,9 +35,18 @@ YARN 提供了一种判断 NodeManager 是否健康的机制：检测磁盘损�
 
 例如，通过如下信息可以了解到磁盘的最大使用率超过了 90%，从而导致节点处于不健康状态：
 
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadooop-yarn-nodemanager-health-checker-2.png?raw=true)
+
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadooop-yarn-nodemanager-health-checker-1.png?raw=true)
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadooop-yarn-nodemanager-health-checker-2.png?raw=true)
+使用 df -h 查看磁盘使用情况，发现磁盘确实已经超过可 90%，可以在 yarn-site.xml 文件中配置如下参数：
+```
+<property>
+  <name>yarn.nodemanager.disk-health-checker.max-disk-utilization-per-disk-percentage</name>
+  <value>98.5</value>
+</property>
+```
+> 如果从根据上解决问题，还是要删除磁盘上的文件，确保磁盘空间的使用率低于 90%。
 
 ## 2. 健康监测脚本
 

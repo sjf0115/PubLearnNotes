@@ -24,7 +24,7 @@ YARN 提供了一种判断 NodeManager 是否健康的机制：检测磁盘损�
 
 > ${hadoop.tmp.dir} 通过 hadoop.tmp.dir 参数在 core-site.xml 中配置、${yarn.log.dir} 是 Java 属性，在 yarn-env.sh 中配置。
 
-这些目录的可用性直接决定着 NodeManager 的可用性。因此，NodeManager 作为节点的代理和管理者，应该负责检测这两类目录列表的可用性，并及时将不可用目录剔除掉。NodeManager 判断一个目录（磁盘）好坏的方法是：如果一个目录具有读、写和执行权限，并且有满足要求的可用磁盘空间，则认为它是正常的，否则将被加入坏磁盘列表。LocalDirsHandlerService 服务中专门有一个定时任务周期性检测这些目录的好坏，一旦发现正常磁盘的比例低于阈值，该节点就被标记处于不健康状态，此后 ResourceManager 不再为它分配新任务。默认情况下，每 2 分钟检查一次，用户也可以显示配置来改变检查间隔时间。
+这些目录的可用性直接决定着 NodeManager 的可用性。因此，NodeManager 作为节点的代理和管理者，应该负责检测这两类目录列表的可用性，并及时将不可用目录剔除掉。NodeManager 判断一个目录（磁盘）好坏的方法是：如果一个目录具有读、写和执行权限，并且有满足要求的可用磁盘空间，则认为它是正常的，否则将被加入坏磁盘列表。LocalDirsHandlerService 服务中专门有一个定时任务周期性检测这些目录的好坏，一旦发现正常磁盘的比例低于阈值，该节点就被标记处于不健康状态，此后 ResourceManager 不再为它分配新任务。
 
 具体通过如下配置参数来监测磁盘损坏情况：
 - yarn.nodemanager.disk-health-checker.enable：如果为 true 表示启用磁盘健康监测，否则禁用监测。
@@ -32,6 +32,12 @@ YARN 提供了一种判断 NodeManager 是否健康的机制：检测磁盘损�
 - yarn.nodemanager.disk-health-checker.min-healthy-disks：健康磁盘最小比例。当健康磁盘比例低于该值时，NodeManager 不会再接收和启动新的任务。默认值为 0.25。
 - yarn.nodemanager.disk-health-checker.max-disk-utilization-per-disk-percentage：磁盘的最大使用率。当一块磁盘的使用率超过该值时，就会标记该磁盘处于不健康状态，不再使用该磁盘。默认为 90，即可以使用磁盘 90% 的空间。
 - yarn.nodemanager.disk-health-checker.min-free-space-per-disk-mb：磁盘的最少剩余空间。当某块磁盘剩余空间低于该值时，就会标记该磁盘处于不健康状态，不再使用该磁盘。默认值为 0，即可以使用整块磁盘。
+
+例如，通过如下信息可以了解到磁盘的最大使用率超过了 90%，从而导致节点处于不健康状态：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadooop-yarn-nodemanager-health-checker-1.png?raw=true)
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadooop-yarn-nodemanager-health-checker-2.png?raw=true)
 
 ## 2. 健康监测脚本
 

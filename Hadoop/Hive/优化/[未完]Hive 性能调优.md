@@ -4,8 +4,7 @@ author: sjf0115
 title: Hive 性能调优
 date: 2018-04-12 20:16:01
 tags:
-  - Hive
-  - Hive 优化
+  - Hives's
 
 categories: Hive
 permalink: hive-performance-tuning

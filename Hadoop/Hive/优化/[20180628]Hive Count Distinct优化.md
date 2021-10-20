@@ -5,7 +5,6 @@ title: Hive Count Distinct优化
 date: 2018-06-28 20:16:01
 tags:
   - Hive
-  - Hive 优化
 
 categories: Hive
 permalink: hive-tuning-count-distinct

@@ -39,7 +39,7 @@ MetaStore 分为三种部署模式：内嵌模式、本地模式以及远程模�
 
 默认情况下，MetaStore 服务和 Hive 服务运行在同一个 JVM 中，包含一个内嵌的以本地磁盘作为存储的 Derby 数据库实例。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/hive-metastore-service-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-metastore-service-1.png?raw=true)
 
 使用内嵌的 MetaStore 是 Hive 入门最简单的方法。但是，每次只有一个内嵌的 Derby 数据库可以访问某个磁盘上的数据库文件，这就意味着一次只能为每个 MetaStore 打开一个 Hive 会话。如果试着启动第二个会话，在它试图连接 MetaStore 时，会得到错误信息。因此它并不是一个实际的解决方案，并不适合在生产环境使用，但对于单元测试来说效果很好。
 
@@ -70,7 +70,7 @@ MetaStore 分为三种部署模式：内嵌模式、本地模式以及远程模�
 
 如果要支持多会话（以及多租户），需要使用一个独立的数据库。这种配置方式成为本地配置，因为 MetaStore 服务仍然和 Hive 服务运行在同一个进程中，但连接的却是另一个进程中运行的数据库，在同一台机器上或者远程机器上。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/hive-metastore-service-2.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-metastore-service-2.png?raw=true)
 
 对于独立的 MetaStore，MySQL 是一种很受欢迎的选择。本实例我们 MySQL 为例，具体看看如何配置：
 ```xml
@@ -120,7 +120,7 @@ MetaStore 分为三种部署模式：内嵌模式、本地模式以及远程模�
 
 在远程模式下，MetaStore 服务和 Hive 服务运行在不同进程中。CLI、HiveServer2、HCatalog 以及其他进程使用 Thrift API（使用 hive.metastore.uris 属性配置）与 MetaStore 服务通信。MetaStore 服务通过 JDBC 与 MetaStore 数据库进行通信（使用 javax.jdo.option.ConnectionURL 属性配置）:
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/hive-metastore-service-3.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-metastore-service-3.png?raw=true)
 
 在这种情况下，我们还可以单独部署一台 MetaStore 服务器，以提供更高可用性。这也可以有更好的可管理性/安全性，因为数据库层可以完全防火墙关闭。客户端不再需要与每个 Hiver 用户共享数据库凭据即可访问元存储数据库。
 

@@ -298,7 +298,7 @@ STAGE PLANS:
 
 ### 3. EXPLAIN CBO
 
-在 EXPLAIN 语句中使用 CBO 可以查看 Calcite 优化器生成的查询计划信息。可以选择包含有关使用 Calcite 默认成本模型和用于连接重新排序的成本模型的查询计划成本的信息。 从 Hive 4.0.0 版本开始提供支持，具体查阅 [HIVE-17503](https://issues.apache.org/jira/browse/HIVE-17503) 和 [HIVE-21184](https://issues.apache.org/jira/browse/HIVE-21184)。
+在 EXPLAIN 语句中使用 CBO 可以查看 Calcite 优化器生成的查询计划信息。可以选择包含有关使用 Calcite 默认成本模型和用于连接重新排序的成本模型的查询计划成本的信息。从 Hive 4.0.0 版本开始提供支持，具体查阅 [HIVE-17503](https://issues.apache.org/jira/browse/HIVE-17503) 和 [HIVE-21184](https://issues.apache.org/jira/browse/HIVE-21184)。
 
 ```sql
 EXPLAIN CBO

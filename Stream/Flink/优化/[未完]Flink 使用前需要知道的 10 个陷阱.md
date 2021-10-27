@@ -22,7 +22,4 @@ permalink: ten-flink-gotchas-we-wish-we-had-known
 
 从上面可以知道算子的每个子任务中没有收到相同数量的 Key Groups，这些密钥组代表了可能的密钥总数的一部分。 如果给定的操作员收到 1 个 Key Group 而另一个收到 2 个，则第二个子任务很可能有两倍的工作要做。 查看 Flink 的代码，我们可以找到这个函数：
 
-
-
-
 原文:[Ten Flink Gotchas we wish we had known](https://engineering.contentsquare.com/2021/ten-flink-gotchas/)

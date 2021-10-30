@@ -1,17 +1,19 @@
 ---
 layout: post
 author: sjf0115
-title: Flink如何现实新的流处理应用第一部分:事件时间与无序处理
+title: Flink 如何现实新的流处理应用第一部分:事件时间与无序处理
 date: 2019-04-11 15:35:17
 tags:
   - Flink
-  - Flink Stream
 
 categories: Flink
 permalink: how-apache-flink-enables-new-streaming-applications-part-1
 ---
 
-流数据处理正在蓬勃发展，因为它可以提供最新新数据的更好洞察，以及从数据提取到分析的简化流程。现实世界中的数据生成一直是一个持续的过程(例如，Web服务器日志，移动应用程序中的用户活动，数据库事务或传感器读取数据)。正如其他人所指出的，到目前为止，大部分数据基础架构都是建立在这样的基本假设之上:`数据是有限和静态的`。
+流数据处理正在蓬勃发展，因为可以提供更实时的数据以更好的洞察，同时数据提取到分析的流程更加简化。现实世界中数据生成是一个连续不断的过程(例如，Web服务器日志，移动应用程序中的用户活跃，数据库事务或者传感器读取的数据)。正如其他人所指出的，到目前为止，大部分数据架构都是建立在数据是有限的、静态的这样的基本假设。
+
+流数据处理正在蓬勃发展，因为它承诺从更新的数据中获得更好的洞察力，以及从数据摄取到分析的彻底简化的管道。 现实世界中的数据生产一直是一个连续的过程（例如，Web 服务器日志、移动应用程序中的用户活动、数据库事务或传感器读数）。 正如其他人所指出的那样，到目前为止，大多数数据基础架构堆栈都是基于数据是有限和静态的基本假设构建的。
+
 
 为了弥补连续数据生产和旧"批处理"系统局限性之间的这一根本差距，公司已经引入了复杂而脆弱(fragile)的端到端管道。现在流处理技术通过对数据进行建模和处理，从而减少了对复杂解决方案的需求，这些数据是以真实世界的事件形式出现的。
 
@@ -85,4 +87,4 @@ permalink: how-apache-flink-enables-new-streaming-applications-part-1
 
 ![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/%E5%85%AC%E4%BC%97%E5%8F%B7.jpg?raw=true)
 
-原文:https://data-artisans.com/blog/how-apache-flink-enables-new-streaming-applications-part-1
+原文:[How Apache Flink™ Enables New Streaming Applications, Part 1](https://www.ververica.com/blog/how-apache-flink-enables-new-streaming-applications-part-1)

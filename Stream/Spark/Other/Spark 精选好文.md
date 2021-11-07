@@ -1,0 +1,4 @@
+- [ ] [每个 Spark 工程师都应该知道的五种 Join 策略](https://mp.weixin.qq.com/s/HusOqNA-45lpf5GduLz-pA)
+- [ ] [Apache Spark 中支持的七种 Join 类型简介](https://mp.weixin.qq.com/s/YUdy6LvHPRoCsjUhF1NR-g)
+- [ ] [Spark SQL 中 Broadcast Join 一定比 Shuffle Join 快？那你就错了](https://mp.weixin.qq.com/s/5OBHLjRjOykuuaCqEthD4g)
+- [ ] [八种解决 Spark 数据倾斜的方法](https://mp.weixin.qq.com/s/piW10KGJVgaSB_i72OVntA)

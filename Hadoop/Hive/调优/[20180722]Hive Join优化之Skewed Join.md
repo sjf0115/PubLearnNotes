@@ -5,7 +5,6 @@ title: Hive Skewed Join
 date: 2018-07-22 20:30:01
 tags:
   - Hive
-  - Hive 优化
 
 categories: Hive
 permalink: hive-optimization-how-to-use-skewed-join

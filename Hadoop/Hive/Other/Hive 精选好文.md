@@ -12,3 +12,10 @@
 - [ ] [基于antlr4实现HQL的解析格式化](http://ganjiacheng.cn/article/2020/article_12_%E5%9F%BA%E4%BA%8Eantlr4%E5%AE%9E%E7%8E%B0HQL%E7%9A%84%E8%A7%A3%E6%9E%90-%E6%A0%BC%E5%BC%8F%E5%8C%96/)
 - [ ] [Hive MetaStore的结构](https://www.jianshu.com/p/420ddb3bde7f)
 - [ ] [Skew Join Optimization in Hive](https://medium.com/expedia-group-tech/skew-join-optimization-in-hive-b66a1f4cc6ba)
+- [ ] [Skew Join Optimization in Hive
+](https://letsexplorehadoop.blogspot.com/2016/06/skew-join-optimization-in-hive.html?m=1)
+- [ ] [Difference between hive.mapjoin.smalltable.filesize and hive.auto.convert.join.noconditionaltask.size](http://www.openkb.info/2016/01/difference-between-hivemapjoinsmalltabl.html)
+- [ ] [Join Type: Bucket Join](https://weidongzhou.wordpress.com/2017/06/09/join-type-bucket-join/)
+- [ ] [Join Type in Hive: Map Join](https://weidongzhou.wordpress.com/2017/06/07/join-type-in-hive-map-join/)
+- [ ] [Join Type in Hive: Skewed Join](https://weidongzhou.wordpress.com/2017/06/08/join-type-in-hive-skewed-join/)
+- [ ] [Hive join optimizations](https://www.slideshare.net/SzehonHo/hive-join-optimizations-mr-and-spark-53265877)

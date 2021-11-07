@@ -16,7 +16,36 @@ Common Join 的优点是可以适用于任何大小的表。但由于 Shuffle �
 
 ## 2. Map Join
 
+Common Join 的一个主要问题是 Shuffle 代价太高会导致数据倾斜问题。当其中一个 Join 表足够小可以放进内存时就可以使用 Map Join，因此它速度快但受表大小的限制。
 
+![](2)
+
+Map Join 的第一步是在原始 Map Reduce 任务之前创建一个 Map Reduce 本地任务。这个任务从 HDFS 读取小表的数据并将其保存到内存中的哈希表中，然后保存到哈希表文件中。接下来，当原始的 Join Map Reduce 任务开始时，会将哈希表文件上传到 Hadoop 分布式缓存中，该缓存会将这些文件发送到每个 Mapper 的本地磁盘上。因此，所有 Mapper 都可以将此持久化的哈希表文件加载回内存，然后在 Map 阶段进行 Join。
+
+在 0.11 版之前，可以通过优化器提示调用 Map Join：
+```sql
+SELECT
+  /*+ MAPJOIN(b) */
+  count(*)
+FROM a
+JOIN b
+ON a.uid = b.uid;
+```
+从 Hive 0.7.0 版本开始，可以使用 hive.auto.convert.join 配置自动转换为 Map Join，不再需要优化器提示：
+```sql
+SET hive.auto.convert.join=true;
+SELECT
+  count(*)
+FROM a
+JOIN b
+ON a.uid = b.uid;
+```
+hive.auto.convert.join 的默认值在 Hive 0.7.0 版本中为 false，需要手动修改配置。在 Hive 0.11.0 版本中默认值已经更改为 true([HIVE-3297](https://issues.apache.org/jira/browse/HIVE-3297))。需要注意的是在 Hive 0.11.0 到 0.13.1 ，hive-default.xml.template 错误地将其默认值设置为 false。
+
+在 Join 过程中，通过参数 hive.mapjoin.smalltable.filesize 来确定哪个表是小表，默认情况下为 25MB。当 Join 中涉及三个或更多表时，Hive 会生成三个或更多的 Map Join，并假设所有表的大小都较小。 为了进一步加快连接速度，如果 n-1 表的大小小于 10MB（这是默认值），您可以将三个或更多地图侧连接合并为一个地图侧连接。 为此，您需要将 hive.auto.convert.join.noconditionaltask 参数设置为 true 并指定参数 hive.auto.convert.join.noconditionaltask.size。
+
+
+如何识别 Map Join：使用 EXPLAIN 命令时，在 Map Operator Tree 下方会看到 Map Join Operator。
 
 ## 3. Bucket map join
 

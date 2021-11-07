@@ -11,3 +11,4 @@
 - [ ] [基于antlr4实现hiveSQL的解析表血缘和字段血缘](http://ganjiacheng.cn/article/2020/article_14_%E5%9F%BA%E4%BA%8Eantlr4%E5%AE%9E%E7%8E%B0HQL%E7%9A%84%E8%A7%A3%E6%9E%90-%E8%A1%A8%E8%A1%80%E7%BC%98%E5%92%8C%E5%AD%97%E6%AE%B5%E8%A1%80%E7%BC%98/)
 - [ ] [基于antlr4实现HQL的解析格式化](http://ganjiacheng.cn/article/2020/article_12_%E5%9F%BA%E4%BA%8Eantlr4%E5%AE%9E%E7%8E%B0HQL%E7%9A%84%E8%A7%A3%E6%9E%90-%E6%A0%BC%E5%BC%8F%E5%8C%96/)
 - [ ] [Hive MetaStore的结构](https://www.jianshu.com/p/420ddb3bde7f)
+- [ ] [Skew Join Optimization in Hive](https://medium.com/expedia-group-tech/skew-join-optimization-in-hive-b66a1f4cc6ba)

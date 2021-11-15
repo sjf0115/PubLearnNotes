@@ -19,3 +19,4 @@
 - [ ] [Join Type in Hive: Map Join](https://weidongzhou.wordpress.com/2017/06/07/join-type-in-hive-map-join/)
 - [ ] [Join Type in Hive: Skewed Join](https://weidongzhou.wordpress.com/2017/06/08/join-type-in-hive-skewed-join/)
 - [ ] [Hive join optimizations](https://www.slideshare.net/SzehonHo/hive-join-optimizations-mr-and-spark-53265877)
+- [ ] [Hive千亿级数据倾斜解决方案](https://mp.weixin.qq.com/s/BlCJBZwFzr9_VU4vj3TUIg)

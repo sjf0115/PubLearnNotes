@@ -37,5 +37,64 @@ set hive.skewjoin.key=100000;
 
 如何识别 是否使用了 Skewed Join？使用 EXPLAIN 命令时，你将会在 Join Operator 和 Reduce Operator Tree 下面看到 `handleSkewJoin：true`。
 
+有几种方法可以优化 HIVE 中的 Skew join 问题。 以下是一些：
 
-参考：https://weidongzhou.wordpress.com/2017/06/08/join-type-in-hive-skewed-join/
+### 单独的查询
+
+我们可以将查询拆分为多个查询并单独运行以避免数据倾斜。考虑到我们的示例表，我们需要编写 2 个查询来避免 skew join：
+
+执行不包括 SKEWED 值的查询，如下所示：
+```sql
+SELECT *
+FROM FACT AS a
+LEFT JOIN DIMENSION b
+ON a.code_id = b.code_id
+WHERE a.code_id <> 250;
+```
+仅使用 SKEWED 值执行查询，如下所示：
+```sql
+SELECT *
+FROM FACT AS a
+LEFT JOIN DIMENSION b
+ON a.code_id = b.code_id
+WHERE a.code_id = 250 AND b.code_id = 250;
+```
+
+优势：
+- 对查询最一点简单的更改就可以避免 JOIN 时的数据倾斜。
+- 当查询很简单时很有帮助。
+
+劣势：
+- 我们需要编写两次相同的查询。
+- 如果原始查询很复杂，那么编写 2 个单独的查询也会比较困难。
+- 如果我们想修改查询时，需要在 2 个不同的地方进行修改。
+
+### 使用 Hive 配置
+
+我们可以使用 Hive 配置开启 Skew Join 优化，如下所示：
+```sql
+SET hive.optimize.skewjoin=true;
+SET hive.skewjoin.key=500000;
+SET hive.skewjoin.mapjoin.map.tasks=10000;
+SET hive.skewjoin.mapjoin.min.split=33554432;
+```
+
+下面我们详细看一下配置项：
+- hive.optimize.skewjoin：是否开启 Skew JOIN 优化，默认值为 false。在运行时，检测倾斜较大的 Key。不会处理这些 Key，而是将它们临时存储在 HDFS 目录中。在后续的 MapReduce 作业中，再处理这些倾斜的 Key。
+- hive.skewjoin.key：判断我们 JOIN 中是否有倾斜 Key。如果相同 Key 的行超过了指定阈值，那么我们认为该 Key 是一个 Skew JOIN Key。默认值为 100000。
+- hive.skewjoin.mapjoin.map.tasks：用来处理倾斜 Key 的 Map JOIN 作业的 Map 任务数，默认值为 10000。与 hive.skewjoin.mapjoin.min.split 参数配合使用。
+- hive.skewjoin.mapjoin.min.split：用来处理倾斜 Key 的 Map JOIN 的最小数据切分大小，以字节为单位，默认为 33554432(32M)。与 hive.skewjoin.mapjoin.map.tasks 参数配合使用。
+- hive.optimize.skewjoin.compiletime：
+
+hive.optimize.skewjoin.compiletime 和 hive.optimize.skewjoin 区别为前者为编译时参数，后者为运行时参数。前者在生成执行计划时根据元数据生成 skewjoin，此参数要求倾斜值一定；后者为运行过程中根据数据条数进行skewjoin优化。
+
+
+
+> 上述参数在 Hive 0.6.0 版本中引入。
+
+
+
+
+参考：
+- https://weidongzhou.wordpress.com/2017/06/08/join-type-in-hive-skewed-join/
+- https://medium.com/expedia-group-tech/skew-join-optimization-in-hive-b66a1f4cc6ba

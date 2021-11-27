@@ -14,7 +14,7 @@ permalink: hive-base-sort-order-distribute-cluster
 
 ### 1. Order By
 
-在 Hive 中，ORDER BY 保证数据的全局有序，为此将所有的数据发送到一个 Reducer 中。因为只有一个 Reducer ，所以当输入规模较大时，需要较长的计算时间。
+在 Hive 中，ORDER BY 实现了全局排序，为此将所有的数据发送到一个 Reducer 中。因为只有一个 Reducer ，所以当输入规模较大时，需要较长的计算时间。
 
 Hive 中的 ORDER BY 语法与 SQL 中 ORDER BY 的语法相似，按照某一项或者几项排序输出，可以指定是升序或者是降序排序。ORDER BY 子句有一些限制。在严格模式下（即，`hive.mapred.mode = strict`），ORDER BY 子句后面必须跟一个 LIMIT 子句。如果将 `hive.mapred.mode` 设置为 `nonstrict`，可以不用 LIMIT 子句。原因是为了实现所有数据的全局有序，只能使用一个 reducer 来对最终输出进行排序。如果输出中的行数太大，单个 Reducer 可能需要很长时间才能完成。
 

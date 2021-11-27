@@ -22,7 +22,7 @@ Bucket 目录中的数据被拆分为不同的 Part 文件。每个 Bucket 下�
 
 > 在 STREAMING 模式下使用 FileSink 时需要启用检查点。Part 文件只能在成功的检查点上完成。如果检查点被禁用，Part 文件将永远处于进行中或挂起状态，下游系统无法安全读取。
 
-## 1. File Formats
+## 1. 文件格式
 
 FileSink 支持按行(Row-Encoded)和批量(Bulk-Encoded)编码格式。这两个变体带有各自的构建器，可以使用以下静态方法创建：
 - 行编码 Sink：FileSink.forRowFormat(basePath, rowEncoder)
@@ -32,7 +32,7 @@ FileSink 支持按行(Row-Encoded)和批量(Bulk-Encoded)编码格式。这两�
 
 ### 1.1 行编码格式
 
-行编码格式需要指定一个编码器，用于将单行数据序列化到正在进行中 Part 文件的 OutputStream。除了 Bucket 分配器之外，RowFormatBuilder 还允许用户指定：
+行编码格式需要指定一个编码器，用于将单行数据序列化到 In-progress 状态的 Part 文件的 OutputStream。除了 Bucket 分配器之外，RowFormatBuilder 还允许用户指定：
 - 自定义 RollingPolicy ：覆盖 DefaultRollingPolicy 的滚动策略
 - bucketCheckInterval : 默认 1 min，基于滚动策略的检查时间毫秒间隔
 
@@ -58,8 +58,8 @@ final FileSink<String> sink = FileSink
 input.sinkTo(sink);
 ```
 上面示例创建了一个简单的 Sink，将记录分配给默认的一小时的 Bucket。此外还指定了一个滚动策略，该策略在以下 3 个条件中的任何一个条件下滚动生成 Part 文件：
-- 包含至少 15 分钟的数据
-- 最近 5 分钟没有收到新记录
+- 包含至少 15 分钟的数据（Part 文件最大打开持续时长）
+- 最近 5 分钟没有收到新记录（不活跃的时间间隔）
 - 文件大小已达到 1 GB（写入最后一条记录后）
 
 ### 1.2 批量编码格式
@@ -76,7 +76,7 @@ Flink 内置了四个 BulkWriter 工厂：
 #### 1.2.1 Parquet 格式
 
 Flink 包含内置的便捷方法，为 Avro 数据创建 Parquet 编写器工厂。为了写入其他 Parquet 兼容的数据格式，用户需要使用 ParquetBuilder 接口的自定义实现来创建 ParquetWriterFactory。如果要使用 Parquet 批量编码器，需要添加以下依赖项：
-```
+```xml
 <dependency>
     <groupId>org.apache.flink</groupId>
     <artifactId>flink-parquet_2.11</artifactId>
@@ -163,49 +163,87 @@ stream.sinkTo(FileSink.forBulkFormat(
 
 例如，如果输入元素是 Person 类型，它看起来像：
 
+#### 1.2.4 Hadoop SequenceFile 格式
 
+如果要使用 SequenceFile 批量编码器，我们需要添加以下依赖项：
+```xml
+<dependency>
+    <groupId>org.apache.flink</groupId>
+    <artifactId>flink-sequence-file</artifactId>
+    <version>1.14.0</version>
+</dependency>
+```
+可以像这样创建一个简单的 SequenceFile 编写器：
+```java
+import org.apache.flink.connector.file.sink.FileSink;
+import org.apache.flink.configuration.GlobalConfiguration;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.Text;
 
-## 2. 分配 Bucket
+DataStream<Tuple2<LongWritable, Text>> input = ...;
+Configuration hadoopConf = HadoopUtils.getHadoopConfiguration(GlobalConfiguration.loadConfiguration());
+final FileSink<Tuple2<LongWritable, Text>> sink = FileSink
+  .forBulkFormat(
+    outputBasePath,
+    new SequenceFileWriterFactory<>(hadoopConf, LongWritable.class, Text.class))
+	.build();
 
-Bucket 逻辑定义了如何将数据组织到基本输出目录内的子目录中。
+input.sinkTo(sink);
+```
+> SequenceFileWriterFactory 还可以支持其他的构造函数参数来指定压缩设置。
 
-行编码和批量编码都使用 DateTimeBucketAssigner 作为默认分配器。默认情况下，DateTimeBucketAssigner 根据系统默认时区使用以下格式创建每小时桶：yyyy-MM-dd--HH。日期格式（即 Bucket 大小）和时区都可以手动配置。我们可以通过在格式构建器上调用 `.withBucketAssigner(assigner)` 来指定自定义 BucketAssigner。
+## 2. BucketAssigner
 
-Flink 带有两个内置的 BucketAssigners：
+Bucket 逻辑定义了如何将数据组织到基本输出目录内的子目录中。行编码和批量编码都使用 DateTimeBucketAssigner 作为默认分配器。默认情况下，DateTimeBucketAssigner 根据系统默认时区使用以下格式创建每小时 Bucket：yyyy-MM-dd--HH。日期格式（即 Bucket 大小）和时区都可以手动配置。我们可以通过在格式构建器上调用 `.withBucketAssigner(assigner)` 来指定自定义 BucketAssigner。Flink 带有两个内置的 BucketAssigners：
 - DateTimeBucketAssigner ：基于默认时间的分配器
 - BasePathBucketAssigner ：将所有 Part 文件存储在基本路径中的分配器（单个全局 Bucket）
 
+```java
+public static <IN> DefaultRowFormatBuilder<IN> forRowFormat(
+        final Path basePath, final Encoder<IN> encoder) {
+    return new DefaultRowFormatBuilder<>(basePath, encoder, new DateTimeBucketAssigner<>());
+}
+
+public static <IN> DefaultBulkFormatBuilder<IN> forBulkFormat(
+        final Path basePath, final BulkWriter.Factory<IN> bulkWriterFactory) {
+    return new DefaultBulkFormatBuilder<>(
+            basePath, bulkWriterFactory, new DateTimeBucketAssigner<>());
+}
+```
+
 ## 3. 滚动策略
 
-RollingPolicy 定义了何时关闭进行中的 Part 文件并转移至待处理状态，最终变为完成状态。处于已完成状态的 Part 文件是可供查看的文件。 在 STREAMING 模式下，滚动策略与检查点间隔（待处理文件在下一个检查点完成）共同控制 Part 文件多久之后可以让下游使用以及这些文件的大小和数量。在 BATCH 模式下，Part 文件在作业结束时可见，但滚动策略可以控制它们的最大大小。Flink 有两个内置的 RollingPolicies：
+RollingPolicy 定义了何时关闭 In-progress 状态 Part 文件并转移至 Pending 状态，最终变为 Finished 状态。只有处于 Finished 状态的 Part 文件才可以查看。在 STREAMING 模式下，滚动策略与检查点间隔（待处理文件在下一个检查点完成）共同控制 Part 文件多久之后可以让下游使用以及这些文件的大小和数量。在 BATCH 模式下，Part 文件在作业结束时可见，但滚动策略可以控制它们的最大大小。Flink 有两个内置的 RollingPolicies：
 - DefaultRollingPolicy
 - OnCheckpointRollingPolicy
 
 ## 4. Part 生命周期
 
-为了在下游系统中使用 FileSink 的输出，我们需要了解产生的输出文件的命名和生命周期。Part 文件可以处于以下三种状态之一：
+为了在下游系统中使用 FileSink 的输出，我们需要了解输出文件的命名和生命周期。Part 文件有三种状态：
 - In-progress：正在写入的 Part 文件
-- Pending ：In-progress 关闭，正在等待提交的文件
-- Finished：在成功的检查点 (STREAMING) 或输入结束 (BATCH) 待处理文件转换为 Finished
+- Pending ：In-progress 状态结束(根据滚动策略)，等待提交的文件
+- Finished：在检查点成功 (STREAMING) 或输入结束 (BATCH) Pending 状态文件转换为 Finished 状态
 
-只有处于 Finished 的文件才能被下游系统读取，因为这些文件保证以后不会被修改。每个写入器子任务在任何给定时间对于每个活跃 Bucket 都只有一个 In-progress 的 Part 文件，但可以有多个 Pending 和 Finished 文件。
+只有处于 Finished 状态的文件才能被下游系统读取，因为这些文件保证后续不被修改。对于每个 Bucket 下每个写入器子任务在任何给定时间下 都只有一个 In-progress 状态的 Part 文件，但可以有多个 Pending 和 Finished 状态文件。
 
 ### 4.1 Part 文件示例
 
-为了更好地理解这些文件的生命周期，我们看一个带有 2 个 Sink 子任务的简单示例：
+为了更好地理解这些文件的生命周期，我们看一个有 2 个 Sink 子任务的简单示例：
 ```
 └── 2019-08-25--12
     ├── part-4005733d-a830-4323-8291-8866de98b582-0.inprogress.bd053eb0-5ecf-4c85-8433-9eff486ac334
     └── part-81fc4980-a6af-41c8-9937-9939408a734b-0.inprogress.ea65a428-a1d0-4a0b-bbc5-7a436a75e575
 ```
-当 Part 文件 part-81fc4980-a6af-41c8-9937-9939408a734b-0 滚动时（假设它变得太大），变为 Pending 状态但还未重命名。然后  Sink 打开一个新的 Part 文件：part-81fc4980-a6af-41c8-9937-9939408a734b-1：
+当 Part 文件 part-81fc4980-a6af-41c8-9937-9939408a734b-0 滚动时（假设它变得太大），变为 Pending 状态但还未重命名。然后  Sink 创建一个新的 Part 文件：part-81fc4980-a6af-41c8-9937-9939408a734b-1：
 ```
 └── 2019-08-25--12
     ├── part-4005733d-a830-4323-8291-8866de98b582-0.inprogress.bd053eb0-5ecf-4c85-8433-9eff486ac334
     ├── part-81fc4980-a6af-41c8-9937-9939408a734b-0.inprogress.ea65a428-a1d0-4a0b-bbc5-7a436a75e575
     └── part-81fc4980-a6af-41c8-9937-9939408a734b-1.inprogress.bc279efe-b16f-47d8-b828-00ef6e2fbd11
 ```
-随着 part-81fc4980-a6af-41c8-9937-9939408a734b-0 Pending 完成，在下一个成功的检查点之后，变为 Finished 状态：
+随着 part-81fc4980-a6af-41c8-9937-9939408a734b-0 的 Pending 状态结束，在下一个成功检查点之后，变为 Finished 状态：
 ```
 └── 2019-08-25--12
     ├── part-4005733d-a830-4323-8291-8866de98b582-0.inprogress.bd053eb0-5ecf-4c85-8433-9eff486ac334
@@ -225,7 +263,7 @@ RollingPolicy 定义了何时关闭进行中的 Part 文件并转移至待处理
 
 ### 4.2 Part 文件配置
 
-Finished 文件只能通过重命名才能与 In-progress 文件区分开来。默认情况下，文件命名策略如下：
+Finished 状态文件可以文件名称与 In-progress 状态文件区分开。默认情况下，文件命名策略如下：
 - In-progress/Pending：`part-<uid>-<partFileIndex>.inprogress.uid`
 - Finished：`part-<uid>-<partFileIndex>`
 

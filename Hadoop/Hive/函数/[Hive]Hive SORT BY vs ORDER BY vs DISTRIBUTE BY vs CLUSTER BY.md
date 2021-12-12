@@ -19,7 +19,7 @@ permalink: hive-base-sort-order-distribute-cluster
 Hive 中的 ORDER BY 语法与 SQL 中 ORDER BY 的语法相似，按照某一项或者几项排序输出，可以指定是升序或者是降序排序。ORDER BY 子句有一些限制。在严格模式下（即，`hive.mapred.mode = strict`），ORDER BY 子句后面必须跟一个 LIMIT 子句。如果将 `hive.mapred.mode` 设置为 `nonstrict`，可以不用 LIMIT 子句。原因是为了实现所有数据的全局有序，只能使用一个 reducer 来对最终输出进行排序。如果输出中的行数太大，单个 Reducer 可能需要很长时间才能完成。
 
 如果在严格模式不指定 LIMIT 子句，会报如下错误：
-```
+```sql
 hive> set hive.mapred.mode=strict;
 hive> select * from adv_push_click order by click_time;
 FAILED: SemanticException 1:47 order by-s without limit are disabled for safety reasons. If you know what you are doing, please make sure that hive.strict.checks.large.query is set to false and that hive.mapred.mode is not set to 'strict' to enable them.. Error encountered near token 'click_time'
@@ -43,17 +43,13 @@ SORT BY 语法与 SQL 中 ORDER BY 的语法类似。
 
 Hive 根据 SORT BY 中的列对行进行排序，然后发送到 Reducer 中 排序顺序将取决于列类型。如果该列是数字类型的，则排序顺序也是数字顺序。如果该列是字符串类型，那么排序顺序是字典顺序。
 
-#### 2.1 Sort By 与 Order By 的区别
-
-ORDER BY 和 SORT BY 之间的区别在于，前者保证输出的全局有序，而后者仅保证每个 Reducer 输出的有序，不保证全局有序。如果有多个 Reducer，SORT BY 输出的最终结果可能只是部分有序。
-
-> 可能会混淆在单独列上的 SORT BY 和 CLUSTER BY 之间的区别。不同之处在于，CLUSTER BY 按字段进行分区，如果在多个 Reducer 随机分配数据(加载)使用 SORT BY。
-
 每个 Reducer 的输出将根据用户指定的列进行排序。如下显示：
+```sql
+SELECT key, value
+FROM src
+SORT BY key ASC, value DESC
 ```
-SELECT key, value FROM src SORT BY key ASC, value DESC
-```
-查询有2个 Reducer，每个的输出为：
+查询有 2 个 Reducer，每个的输出为：
 ```
 # First Reducer
 0   5
@@ -67,6 +63,12 @@ SELECT key, value FROM src SORT BY key ASC, value DESC
 2   5
 ```
 正如我们看到的那样，每个 Reducer 的输出是有序的，但是全局并没有序，因为每个 Reducer 都有一个输出。
+
+#### 2.1 Sort By 与 Order By 的区别
+
+ORDER BY 和 SORT BY 之间的区别在于，前者保证输出的全局有序，而后者仅能保证每个 Reducer 输出的有序，不保证全局有序。如果有多个 Reducer，SORT BY 输出最终结果可能只是部分有序。
+
+> 可能会混淆在单独列上的 SORT BY 和 CLUSTER BY 之间的区别。不同之处在于，CLUSTER BY 按字段进行分区，如果在多个 Reducer 随机分配数据(加载)使用 SORT BY。
 
 #### 2.2 设置排序方式
 

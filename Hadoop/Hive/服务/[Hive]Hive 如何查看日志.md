@@ -66,9 +66,9 @@ Audit logs are logged from the Hive metastore server for every metastore API inv
 An audit log has the function and some of the relevant function arguments logged in the metastore log file. It is logged at the INFO level of log4j, so you need to make sure that the logging at the INFO level is enabled (see HIVE-3505). The name of the log entry is "HiveMetaStore.audit".
 
  Audit logs were added in Hive 0.7 for secure client connections (HIVE-1948) and in Hive 0.10 for non-secure connections (HIVE-3277; also see HIVE-2797).
- 
+
  Perf Logger
- 
+
 In order to obtain the performance metrics via the PerfLogger, you need to set DEBUG level logging for the PerfLogger class (HIVE-12675). This can be achieved by setting the following in the log4j properties file.
 log4j.logger.org.apache.hadoop.hive.ql.log.PerfLogger=DEBUG
 

@@ -183,8 +183,6 @@ CLUSTER BY step;
 
 从上面可以看到相同运动步数 step 的数据分发到同一个 Reducer 内，并按照其升序排序。
 
-> 使用 DISTRIBUTE BY ... SORT BY 语句或其简化版的 CLUSTER BY 语句会剥夺 SORT BY 的并行性，然而这样可以实现输出文件的数据是全局排序的。
-
 欢迎关注我的公众号和博客：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)

@@ -119,7 +119,7 @@ DISTRIBUTE BY dt;
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-order-distribute-cluster-by-4.png?raw=true)
 
-从上面输出中可以看到整体输出是无序的，无法判断相同日期的数据是否分发到同一个 Reducer 内，为此我们将数据输出到文件中：
+从上面输出中我们无法判断相同日期的数据是否分发到同一个 Reducer 内，为此我们将数据输出到文件中：
 ```sql
 SET mapreduce.job.reduces = 3;
 INSERT OVERWRITE DIRECTORY '/user/hadoop/temp/study/tmp_sport_user_step_1d_distribute_by'

@@ -52,6 +52,7 @@ SELECT uid, step
 FROM tmp_sport_user_step_1d
 ORDER BY step DESC;
 ```
+运行结果如下所示：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-order-distribute-cluster-by-1.png?raw=true)
 
@@ -60,7 +61,9 @@ ORDER BY 子句有一些限制：
 ```
 hive> set hive.mapred.mode=strict;
 hive> select * from adv_push_click order by click_time;
-FAILED: SemanticException 1:47 order by-s without limit are disabled for safety reasons. If you know what you are doing, please make sure that hive.strict.checks.large.query is set to false and that hive.mapred.mode is not set to 'strict' to enable them.. Error encountered near token 'click_time'
+FAILED: SemanticException 1:47 order by-s without limit are disabled for safety reasons.
+If you know what you are doing, please make sure that hive.strict.checks.large.query is set to false
+and that hive.mapred.mode is not set to 'strict' to enable them.. Error encountered near token 'click_time'
 ```
 > hive.mapred.mode 在 Hive 0.3.0 版本加入，默认值如下:
 - Hive 0.x: nonstrict
@@ -73,12 +76,13 @@ FAILED: SemanticException 1:47 order by-s without limit are disabled for safety 
 
 ### 2. Sort By
 
-如果输出中的行数太多，单个 Reducer 可能需要很长时间才能完成。Hive 增加了一个可供选择的方式，也就是 Sort By，其只会在每个 Reducer 中对数据进行排序，也就是执行一个局部排序。这可以保证每个 Reducer 的输出数据都是有序的（但并非全局有序）。这样可以提高后面进行的全局排序的效率。
+如果输出中的行数太多，单个 Reducer 可能需要很长时间才能完成。Hive 增加了一个可供选择的方式，也就是 SORT BY，只会在每个 Reducer 中对数据进行排序，也就是执行一个局部排序。这可以保证每个 Reducer 的输出数据是有序的（但全局并不有序）。这样可以提高后面进行的全局排序的效率。
 
 SORT BY 语法与 ORDER BY 语法类似，区别仅仅是，一个关键字是 ORDER，另一个关键字是 SORT。用户可以指定任意字段进行排序，并可以在字段后面加上 ASC 关键字（默认的），表示按升序排序，或加 DESC 关键字，表示按降序排序：
 ```sql
 SET mapreduce.job.reduces = 3;
-SELECT uid, step FROM tmp_sport_user_step_1d
+SELECT uid, step
+FROM tmp_sport_user_step_1d
 SORT BY step;
 ```
 > 排序顺序将取决于列类型，如果该列是数字类型的，则排序顺序也是数字顺序；如果该列是字符串类型，那么排序顺序是字典顺序。
@@ -107,7 +111,8 @@ SORT BY step;
 Distribute By 可以控制 Map 端如何分发数据给 Reduce 端，类似于 MapReduce 中分区 partationer 对数据进行分区。Hive 会根据 Distribute By 后面的列，将数据分发给对应的 Reducer。默认情况下，MapReduce 计算框架会依据 Map 输入的键计算相应的哈希值，然后按照得到的哈希值将键-值对均匀分发到多个 Reducer 中去。如下所示，我们设置了三个 Reducer，根据日期 dt 进行 DISTRIBUTE BY：
 ```sql
 SET mapreduce.job.reduces = 3;
-SELECT dt, uid, step FROM tmp_sport_user_step_1d
+SELECT dt, uid, step
+FROM tmp_sport_user_step_1d
 DISTRIBUTE BY dt;
 ```
 运行结果如下所示：
@@ -119,7 +124,8 @@ DISTRIBUTE BY dt;
 SET mapreduce.job.reduces = 3;
 INSERT OVERWRITE DIRECTORY '/user/hadoop/temp/study/tmp_sport_user_step_1d_distribute_by'
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-SELECT dt, uid, step FROM tmp_sport_user_step_1d
+SELECT dt, uid, step
+FROM tmp_sport_user_step_1d
 DISTRIBUTE BY dt;
 ```
 
@@ -128,7 +134,8 @@ DISTRIBUTE BY dt;
 从上面可以看到相同日期的数据分发到同一个 Reducer 内。那我们如何实现相同日期内的数据按照运动步数 step 降序排序呢？如下所示根据日期 dt 进行 DISTRIBUTE BY，运动步数 step 进行 SORT BY：
 ```sql
 SET mapreduce.job.reduces = 3;
-SELECT dt, uid, step FROM tmp_sport_user_step_1d
+SELECT dt, uid, step
+FROM tmp_sport_user_step_1d
 DISTRIBUTE BY dt SORT BY step DESC;
 ```
 运行结果如下所示：
@@ -140,7 +147,8 @@ DISTRIBUTE BY dt SORT BY step DESC;
 SET mapreduce.job.reduces = 3;
 INSERT OVERWRITE DIRECTORY '/user/hadoop/temp/study/tmp_sport_user_step_1d_distribute_by_sort_by'
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-SELECT dt, uid, step FROM tmp_sport_user_step_1d
+SELECT dt, uid, step
+FROM tmp_sport_user_step_1d
 DISTRIBUTE BY dt SORT BY step DESC;
 ```
 
@@ -153,7 +161,8 @@ DISTRIBUTE BY dt SORT BY step DESC;
 在前面的例子中，dt 列被用在了 DISTRIBUTE BY 语句中，而 step 列位于 SORT BY 语句中。如果这 2 个语句中涉及到的列完全相同，而且采用的是升序排序方式（也就是默认的排序方式），那么在这种情况下，CLUSTER BY 就等价于前面的 2 个语句，相当于是前面 2 个句子的一个简写方式。如下所示，我们只对 step 字段使用 CLUSTER BY 语句：
 ```sql
 SET mapreduce.job.reduces = 3;
-SELECT dt, uid, step FROM tmp_sport_user_step_1d
+SELECT dt, uid, step
+FROM tmp_sport_user_step_1d
 CLUSTER BY step;
 ```
 运行结果如下所示：
@@ -165,7 +174,8 @@ CLUSTER BY step;
 SET mapreduce.job.reduces = 3;
 INSERT OVERWRITE DIRECTORY '/user/hadoop/temp/study/tmp_sport_user_step_1d_cluster_by'
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
-SELECT dt, uid, step FROM tmp_sport_user_step_1d
+SELECT dt, uid, step
+FROM tmp_sport_user_step_1d
 CLUSTER BY step;
 ```
 

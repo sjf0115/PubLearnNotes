@@ -12,7 +12,7 @@ permalink: hive-sort-order-distribute-cluster-by
 
 在这篇文章中，我们主要来了解一下 SORT BY，ORDER BY，DISTRIBUTE BY 和 CLUSTER BY 在 Hive 中的表现。
 
-首先准备测试一下数据：
+首先准备一下测试数据：
 ```sql
 CREATE TABLE IF NOT EXISTS tmp_sport_user_step_1d(
   dt STRING COMMENT 'dt',
@@ -68,18 +68,14 @@ FAILED: SemanticException 1:47 order by-s without limit are disabled for safety 
 - Hive 2.x: strict (HIVE-12413)
 
 请注意，列是按名称指定的，而不是按位置编号指定的。在 Hive 0.11.0 以及更高版本中，实现如下配置时，可以按位置指定列：
-- 对于 Hive 0.11.0 到 2.1.x，将 `hive.groupby.orderby.position.alias` 设置为 `true`（默认值为false）。
-- 对于 Hive 2.2.0 以及更高版本，`hive.orderby.position.alias` 默认为 `true`。
-
-默认的排序顺序是升序（ASC）。
-
-在 Hive 2.1.0 以及更高版本中，支持在 ORDER BY 子句中指定每个列的 NULL 排序顺序。`ASC` 的默认 NULL 排序顺序为 `NULLS FIRST`，`DESC` 的默认 NULL 排序顺序为 `NULLS LAST`。
+- 对于 Hive 0.11.0 到 2.1.x，将 hive.groupby.orderby.position.alias 设置为 true（默认值为false）。
+- 对于 Hive 2.2.0 以及更高版本，hive.orderby.position.alias 默认为 true。
 
 ### 2. Sort By
 
 如果输出中的行数太多，单个 Reducer 可能需要很长时间才能完成。Hive 增加了一个可供选择的方式，也就是 Sort By，其只会在每个 Reducer 中对数据进行排序，也就是执行一个局部排序。这可以保证每个 Reducer 的输出数据都是有序的（但并非全局有序）。这样可以提高后面进行的全局排序的效率。
 
-Sort By 语法与 Order By 语法类似，区别仅仅是，一个关键字是 ORDER，另一个关键字是 SORT。用户可以指定任意期望进行排序的字段，并可以在字段后面加上 ASC 关键字（默认的），表示按升序排序，或加 DESC 关键字，表示按降序排序：
+SORT BY 语法与 ORDER BY 语法类似，区别仅仅是，一个关键字是 ORDER，另一个关键字是 SORT。用户可以指定任意字段进行排序，并可以在字段后面加上 ASC 关键字（默认的），表示按升序排序，或加 DESC 关键字，表示按降序排序：
 ```sql
 SET mapreduce.job.reduces = 3;
 SELECT uid, step FROM tmp_sport_user_step_1d
@@ -87,7 +83,7 @@ SORT BY step;
 ```
 > 排序顺序将取决于列类型，如果该列是数字类型的，则排序顺序也是数字顺序；如果该列是字符串类型，那么排序顺序是字典顺序。
 
-如上所示，我们设置了三个 Reducer，根据运动步数 step 进行 Sort By（如果只有 1 个 Reducer，作用与 Order By 一样实现全局排序）。运行结果如下所示：
+如上所示，我们设置了三个 Reducer，根据运动步数 step 进行 SORT BY（如果只有 1 个 Reducer，作用与 ORDER BY 一样实现全局排序）。运行结果如下所示：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-order-distribute-cluster-by-2.png?raw=true)
 
@@ -108,7 +104,7 @@ SORT BY step;
 
 ### 3. Distribute By
 
-Distribute By 可以控制在 Map 端如何分发数据给 Reduce 端的。类似于 MapReduce 中分区 partationer 对数据进行分区。Hive 会根据 Distribute By 后面的列，将数据分发给对应的 Reducer。默认情况下，MapReduce 计算框架会依据 Map 输入的键计算相应的哈希值，然后按照得到的哈希值将键-值对均匀分发到多个 Reducer 中去。如下所示，我们设置了三个 Reducer，根据日期 dt 进行 DISTRIBUTE BY：
+Distribute By 可以控制 Map 端如何分发数据给 Reduce 端，类似于 MapReduce 中分区 partationer 对数据进行分区。Hive 会根据 Distribute By 后面的列，将数据分发给对应的 Reducer。默认情况下，MapReduce 计算框架会依据 Map 输入的键计算相应的哈希值，然后按照得到的哈希值将键-值对均匀分发到多个 Reducer 中去。如下所示，我们设置了三个 Reducer，根据日期 dt 进行 DISTRIBUTE BY：
 ```sql
 SET mapreduce.job.reduces = 3;
 SELECT dt, uid, step FROM tmp_sport_user_step_1d
@@ -129,7 +125,7 @@ DISTRIBUTE BY dt;
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-order-distribute-cluster-by-5.png?raw=true)
 
-从上面可以看到相同日期的数据分发到同一个 Reducer 内。那我们如何实现相同日期内的数据按照运动步数 step 降序排序呢？如下所示根据日期 dt 进行 DISTRIBUTE BY，根据运动步数 step 进行 SORT BY：
+从上面可以看到相同日期的数据分发到同一个 Reducer 内。那我们如何实现相同日期内的数据按照运动步数 step 降序排序呢？如下所示根据日期 dt 进行 DISTRIBUTE BY，运动步数 step 进行 SORT BY：
 ```sql
 SET mapreduce.job.reduces = 3;
 SELECT dt, uid, step FROM tmp_sport_user_step_1d

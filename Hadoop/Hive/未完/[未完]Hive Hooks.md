@@ -81,3 +81,11 @@ Hive 对查询语句进行语义分析的时候调用。使用时需要集成抽
 
 
 ...
+
+
+- [基于hook机制实现数据血缘系统](https://mp.weixin.qq.com/s/LG2ZWZkV3sFA8sYPcAtEfA)
+- https://mp.weixin.qq.com/s/65iKzNfG-x5R13vZ2hI71Q
+- https://mp.weixin.qq.com/s/2DadPHe27yrCcnCc2S8oqw
+- https://mp.weixin.qq.com/s/ufeZC32bdgdcMo-0WQK7-Q
+- https://mp.weixin.qq.com/s/LGK3YPZCe6oPTf48QaAIqA
+- https://mp.weixin.qq.com/s/dWdy9hp6SQzcSSeUE5ZSzA

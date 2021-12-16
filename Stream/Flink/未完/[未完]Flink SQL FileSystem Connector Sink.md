@@ -1,18 +1,18 @@
 ---
 layout: post
 author: smartsi
-title: Flink SQL FileSystem Connector
+title: Flink SQL FileSystem Connector Sink
 date: 2021-08-08 15:47:21
 tags:
   - Flink
 
 categories: Flink
-permalink: flink-sql-filesystem-connector
+permalink: flink-sql-filesystem-connector-sink
 ---
 
 > Flink 版本：1.14
 
-FileSystem Connector 提供了对 Flink 支持的文件系统中分区文件的访问，允许从本地或者分布式文件系统进行读写操作。FileSystem Connector 已经包含在 Flink 中，不需要引入其他的依赖。Flink FileSystem 表可以定义如下样例所示:
+Flink FileSystem Connector 提供了对 Flink 支持的文件系统中分区文件的访问，允许从本地或者分布式文件系统进行读写操作。FileSystem Connector 已经包含在 Flink 中，不需要引入其他的依赖。Flink FileSystem 表可以定义如下样例所示:
 ```sql
 CREATE TABLE MyUserTable (
   column_name1 INT,
@@ -57,10 +57,6 @@ FileSystem Connector 支持多种格式:
 - Orc：[Apache Orc](http://orc.apache.org/)。与 Hive 兼容。
 - Debezium-JSON: [Debezium-JSON](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/connectors/table/formats/debezium/)。
 - Canal-JSON: [Canal-JSON](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/connectors/table/formats/canal/)。
-
-## 4. Source
-
-FileSystem Connector 可以将单个文件或整个目录读入一个表。当使用目录作为源路径时，目录内文件读取没有严格的顺序。
 
 ## 5. Streaming Sink
 
@@ -214,4 +210,4 @@ FROM kafka_table;
 SELECT * FROM fs_table WHERE dt='2020-05-20' and `hour`='12';
 ```
 
-原文：[FileSystem SQL Connector](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/connectors/table/filesystem/)
+原文：[FileSystem SQL Connector](https://ci.apache.org/projects/flink/flink-docs-release-1.14/docs/connectors/table/filesystem/)

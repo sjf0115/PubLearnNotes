@@ -17,11 +17,11 @@ Kafka Connect 是一种模块化组件，提供了一种非常强大的集成方
 - Converters（转换器）：处理数据的序列化和反序列化；
 - Transforms（变换器）：可选的运行时消息操作。
 
-人们对 Kafka Connect 最常见的误解与数据的序列化有关。Kafka Connect 使用 Converters 处理数据序列化。接下来让我们看看它们是如何工作的，并说明如何解决一些常见问题。
+人们对 Kafka Connect 最常见的误解与数据的序列化有关。Kafka Connect 使用 Converters 处理数据序列化。接下来让我们看看它们是如何工作的，并说明一些常见问题是如何解决的。
 
 ## 1. Kafka 消息都是字节
 
-Kafka 消息被组织保存在 Topic 中，每条消息就是一个键值对，这些对 Kafka 已经足够了。当它们存储在 Kafka 中时，键和值都只是字节。这样 Kafka 就可以适用于各种不同场景，但这也意味着开发人员需要决定如何序列化数据。
+Kafka 消息被组织保存在 Topic 中，每条消息就是一个键值对。当它们存储在 Kafka 中时，键和值都只是字节。这样 Kafka 就可以适用于各种不同场景，但这也意味着开发人员需要决定如何序列化数据。
 
 在配置 Kafka Connect 时，其中最重要的一件事就是配置序列化格式。我们需要确保从 Topic 读取数据时使用的序列化格式与写入 Topic 的序列化格式相同，否则就会出现错误。
 
@@ -45,7 +45,7 @@ Kafka 消息被组织保存在 Topic 中，每条消息就是一个键值对，�
 
 ### 1.2 如果目标系统使用 JSON，Kafka Topic 也必须使用 JSON 吗？
 
-完全不需要这样。从数据源读取数据或将数据写入外部数据存储的格式不需要与 Kafka 消息的序列化格式一样。Kafka Connect 中的 Connector 负责从源数据存储（例如，数据库）获取数据，并以数据内部表示将数据传给 Converter。然后，Converter 将这些源数据对象序列化到 Topic 上。
+完全不需要这样。从数据源读取数据或将数据写入外部数据存储的格式不需要与 Kafka 消息的序列化格式一样。Kafka Connect 中的 Connector 负责从源数据存储（例如，数据库）获取数据，并以内部表示将数据传给 Converter。然后，Converter 将这些源数据对象序列化到 Topic 上。
 
 在使用 Kafka Connect 作为 Sink 时刚好相反，Converter 将来自 Topic 的数据反序列化为内部表示，然后传给 Connector 并使用针对于目标存储的适当方法将数据写入目标数据存储。也就是说，当你将数据写入 HDFS 时，Topic 中的数据可以是 Avro 格式，Sink 的 Connector 只需要使用 HDFS 支持的格式即可（不用必须是 Avro 格式）。
 
@@ -232,7 +232,9 @@ CONNECT_VALUE_CONVERTER: io.confluent.connect.avro.AvroConverter
 CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: 'http://schema-registry:8081'
 ```
 (2) Confluent CLI：使用配置文件 etc/schema-registry/connect-avro-distributed.properties；
+
 (3) systemd（deb/rpm）：使用配置文件 /etc/kafka/connect-distributed.properties；
+
 (4) 其他：在启动 Kafka Connect 时指定 Worker 的配置文件，例如：
 ```
 $ cd confluent-5.5.0
@@ -426,14 +428,11 @@ Kafka Connect 是一个非常简单但功能强大的工具，可以用来与 Ka
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
-参考：
-- [Kafka Connect JDBC Source Connector](https://turkogluc.com/kafka-connect-jdbc-source-connector/)
+原文：
+- [Kafka Connect Deep Dive – Converters and Serialization Explained](https://www.confluent.io/blog/kafka-connect-deep-dive-converters-serialization-explained/)
 
 相关推荐：
 - [Kafka Connect 构建大规模低延迟的数据管道](http://smartsi.club/announcing-kafka-connect-building-large-scale-low-latency-data-pipelines.html)
 - [Kafka Connect 如何构建实时数据管道](http://smartsi.club/how-to-build-a-pipeline-with-kafka-connect.html)
 - [Kafka Connect JDBC Source MySQL 全量同步](http://smartsi.club/mysql-bulk-with-kafka-connect-jdbc-source.html)
 - [Kafka Connect JDBC Source MySQL 增量同步](http://smartsi.club/mysql-inc-with-kafka-connect-jdbc-source.html)
-
-原文：
-- [Kafka Connect Deep Dive – Converters and Serialization Explained](https://www.confluent.io/blog/kafka-connect-deep-dive-converters-serialization-explained/)

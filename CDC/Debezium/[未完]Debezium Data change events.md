@@ -1,11 +1,20 @@
+---
+layout: post
+author: wy
+title: Debezium MySQL Connector 之数据变更事件
+date: 2021-08-12 08:40:21
+tags:
+  - Debezium
 
+categories: Debezium
+permalink: debezium-mysql-connector-data-change-events
+---
 
+Debezium MySQL Connector 会为 INSERT、UPDATE 以及 DELETE 行级操作生成一个数据变更事件(Data Change Events)。每个数据变更事件都会包含一个 Key 和一个 Value，具体结构取决于所要变更的表。
 
-Debezium MySQL Connector 会为 INSERT、UPDATE 以及 DELETE 行级操作生成一个数据变更事件(Data Change Events)。每个数据变更事件都会包含一个键和一个值。键和值的结构取决于变更的表。
+Debezium 和 Kafka Connect 都是为连续事件消息流设计的。然而，随着时间的推移这些事件的结构也可能会发生变化，这无疑给消费者处理事件增加了难度。为了解决这个问题，每个事件都包含一个 schema，或者可以使用 schema 注册表，包含了一个 schema ID，消费者可以使用它从注册表中获取 schema。这样我们就可以单独的处理每个事件了。
 
-Debezium 和 Kafka Connect 是为连续事件消息流设计的。然而，随着时间的推移这些事件的结构可能也会发生变化，这无疑增加了消费者处理事件的难度。为了解决这个问题，每个事件都包含内容的 schema，或者可以使用 schema 注册表，包含了一个 schema ID，消费者可以使用它从注册表中获取 schema。这样我们就可以单独的处理每个事件了。
-
-下面的 JSON 展示了变更事件的基本的四个部分。但是，您在应用程序中选择使用的 Kafka Connect 转换器的配置方式决定了变更事件中这四个部分的表示形式。schema 段仅在配置转换器时才会出现在变更事件中。同样，仅当配置转换器以生成变更事件时，事件 key 和事件 payload 才会出现在变更事件中。如果您使用 JSON 转换器并将其配置为生成所有四个基本变更事件部分，则变更事件具有以下结构：
+下面的 JSON 展示了变更事件的四个基本组成部分。需要注意的是，我们在应用程序中如何配置 Kafka Connect Converter 决定了变更事件中这四个部分的表示形式。仅当配置 Converter 产生 Schema 时，才会出现在变更事件中。同样，仅当配置 Converter 产生事件 Key 和事件 Payload 时，才会出现在变更事件中。如果我们使用 JSON Converter 并配置生成变更事件所有四个基本部分时，变更事件具有如下结构：
 
 ![](1)
 

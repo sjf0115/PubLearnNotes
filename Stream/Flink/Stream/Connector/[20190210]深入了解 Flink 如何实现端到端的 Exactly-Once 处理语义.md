@@ -58,17 +58,13 @@ Source 存储 Kafka 的偏移量，完成此操作后将检查点 Barrier 传递
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/end-to-end-exactly-once-processing-apache-flink-apache-kafka-3.png?raw=true)
 
-但是，当一个进程具有外部状态（External state）时，状态处理会有所不同。外部状态通常以写入外部系统（如Kafka）的形式出现。在这种情况下，为了提供 Exactly-Once 语义保证，外部系统必须支持事务，这样才能和两阶段提交协议集成。
-
-我们示例中的数据接收器具有外部状态，因为它正在向 Kafka 写入数据。在这种情况下，在预提交阶段，除了将其状态写入状态后端之外，数据接收器还必须预先提交其外部事务。
+但是，当一个进程具有外部状态（External state）时，状态处理会有所不同。外部状态通常以写入外部系统（比如，Kafka）的形式出现。在这种情况下，为了提供 Exactly-Once 语义保证，外部系统必须支持事务，这样才能和两阶段提交协议集成。在我们示例中，Sink 具有外部状态，因为它正在向 Kafka 写入数据。在这种情况下，在预提交阶段，除了将其状态写入状态后端之外，Sink 还必须预先提交其外部事务。
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/end-to-end-exactly-once-processing-apache-flink-apache-kafka-4.png?raw=true)
 
 当检查点 Barrier 通过所有算子并且触发的快照回调成功完成时，预提交阶段结束。所有触发的状态快照都被视为该检查点的一部分。检查点是整个应用程序状态的快照，包括预先提交的外部状态。如果发生故障，我们可以回滚到上次成功完成快照的时间点。
 
-下一步是通知所有算子检查点已成功完成。这是两阶段提交协议的提交阶段，JobManager 为应用程序中的每个算子发出检查点完成的回调。
-
-数据源和窗口算子没有外部状态，因此在提交阶段，这些算子不用执行任何操作。但是，数据接收器有外部状态，因此此时应该提交外部事务：
+下一步是通知所有算子检查点已成功完成。这是两阶段提交协议的提交阶段，JobManager 为应用程序中的每个算子发出检查点完成的回调。Source 和窗口算子没有外部状态，因此在提交阶段，这些算子不用执行任何操作。但是，Sink 有外部状态，因此此时需要提交外部事务：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/end-to-end-exactly-once-processing-apache-flink-apache-kafka-5.png?raw=true)
 
@@ -79,9 +75,9 @@ Source 存储 Kafka 的偏移量，完成此操作后将检查点 Barrier 传递
 
 因此，我们要确定所有算子都同意检查点的最终结果：所有算子都同意数据提交或中止提交并回滚。
 
-### 3. 在Flink中实现两阶段提交算子
+### 3. 在 Flink 中实现两阶段提交算子
 
-实现完整的[两阶段提交协议](http://smartsi.club/two-phase-commit-of-distributed-transaction.html)可能有点复杂，这就是 Flink 为什么将两阶段提交协议的通用逻辑提取到 TwoPhaseCommitSinkFunction 抽象类中。
+实现完整的[两阶段提交协议](http://smartsi.club/two-phase-commit-of-distributed-transaction.html)可能有点复杂，这就是 Flink 为什么将两阶段提交协议的通用逻辑提取到 TwoPhaseCommitSinkFunction 抽象类中的原因。
 
 下面我们讨论一下如何在一个简单的基于文件的示例上实现 TwoPhaseCommitSinkFunction。我们只需实现四个函数就能为文件接收器提供 Exactly-Once 语义：
 - beginTransaction：在开启事务之前，我们在目标文件系统的临时目录中创建一个临时文件。后面我们在处理数据时将数据写入此文件。

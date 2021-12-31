@@ -16,7 +16,7 @@ Kafka Connect API 还提供了一个简单的接口来操作从 Source 流经 Si
 
 Connector 分为 Source Connector 和 Sink Connector，可以从 Kafka 的上游系统拉取数据，也可以将数据推送到 Kafka 下游系统。可以对 Connector 进行配置，充分利用任意一侧的 Transforms。Source Connector 在写入 Kafka Topic 之前通过 Transforms 传递记录，Sink Connector 在写入 Sink 之前通过 Transforms 传递记录。
 
-![](1)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Kafka/kafka-connect-deep-dive-single-message-transforms-1.png?raw=true)
 
 Transforms 的一些常见使用场景如下所示：
 - 重命名字段
@@ -52,7 +52,7 @@ Kafka 内置了许多 Transforms，但是开发自定义的 Transforms 也非常
 
 有时需要执行多个 Transform。Kafka Connect 支持在配置中定义多个 Transform 并链接在一起。消息按照在 transforms 属性中定义的顺序一次执行对应的 Transform。
 
-![](2)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Kafka/kafka-connect-deep-dive-single-message-transforms-2.png?raw=true)
 
 ### 2.1 Transform 链示例
 

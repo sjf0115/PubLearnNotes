@@ -12,9 +12,9 @@ permalink: kafka-connect-deep-dive-single-message-transforms
 
 Kafka Connect 是 Apache Kafka 的一部分，提供了数据存储和 Kafka 之间的流式集成。对于数据开发工程师来说，只需要配置 JSON 文件就可以使用。Kafka 为一些常见数据存储的提供了 Connector，比如，JDBC、Elasticsearch、IBM MQ、S3 和 BigQuery 等等。对于开发人员来说，Kafka Connect 提供了丰富的 API，还可以开发其他的 Connector。除此之外，还提供了用于配置和管理 Connector 的 REST API。
 
-Kafka Connect API 还提供了一个简单的接口来操作从 Source 流经 Sink 的数据记录。这个 API 也被称为 Single Message Transforms(SMT)，顾名思义，当消息通过 Kafka Connect Connector 时，SMT 会对数据管道中的每一条消息进行操作。
+Kafka Connect API 还提供了一个简单的接口来操作从 Source 流经 Sink 的数据记录。这个 API 也被称为 Single Message Transforms(SMT)，顾名思义，当消息通过 Kafka Connect Connector 时，SMT 会对数据管道中的每一条消息进行操作。 SMT 是在 Apache Kafka 0.10.2 中添加的，具体查阅 [KIP-66](https://cwiki.apache.org/confluence/display/KAFKA/KIP-66%3A+Single+Message+Transforms+for+Kafka+Connect)。使用 SMT，你可以修改通过 Kafka Connect 管道的数据，而不需要额外的流处理器。你可以修改字段、修改 Topic 名称、有条件地删除消息等，SMT 是一个完美的解决方案。如果你遇到了聚合、流 Join 等问题，那么 SMT 可能不是最好的选择，你可以考虑一下 Kafka Streams 或 KsqlDB。
 
-Connector 分为 Source Connector 和 Sink Connector，可以从 Kafka 的上游系统拉取数据，也可以将数据推送到 Kafka 下游系统。可以对 Connector 进行配置，充分利用任意一侧的 Transforms。Source Connector 在写入 Kafka Topic 之前通过 Transforms 传递记录，Sink Connector 在写入 Sink 之前通过 Transforms 传递记录。
+Connector 分为 Source Connector 和 Sink Connector，可以从 Kafka 的上游系统拉取数据，也可以将数据推送到 Kafka 下游系统。可以对 Connector 进行配置，对任意一侧使用 Transforms。Source Connector 在写入 Kafka Topic 之前可以通过 Transforms 修改记录，Sink Connector 在写入 Sink 之前可以通过 Transforms 修改记录。
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Kafka/kafka-connect-deep-dive-single-message-transforms-1.png?raw=true)
 

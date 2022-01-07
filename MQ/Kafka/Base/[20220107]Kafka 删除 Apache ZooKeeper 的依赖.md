@@ -42,7 +42,7 @@ Kafka 的一些管理工具（作为 Kafka 发行版本中一部分）仍然允�
 
 在 KIP-500 提出的方法中，Kafka 控制器将元数据存储在 Kafka 分区，而不是存储在 ZooKeeper 中。但是，因为控制器依赖于这个分区，所以分区本身不能再依赖控制器来进行领导者选举这种事情。取而代之的方法是管理这个分区的节点必须实现自我管理的 Raft 仲裁。
 
-在 [KIP-595：元数据仲裁的 Raft 协议](https://cwiki.apache.org/confluence/x/Li7cC) [2]中讲述了如何将 Raft 协议适配到 Kafka 中，使其真正与 Kafka 融合来更好的工作。这涉及将 Raft [论文](https://raft.github.io/raft.pdf)中描述的基于推送的模型更改为基于拉取的模型，这与传统的 Kafka 复制是一致的。其他节点将连接到这些节点，而不是将数据推送到其他节点。同样，我们保持与 Kafka 一致的术语 epochs 而不是使用原始 Raft 论文中的 terms 等等。
+在 [KIP-595：元数据仲裁的 Raft 协议](https://cwiki.apache.org/confluence/x/Li7cC) [2]中讲述了如何将 Raft 协议适配到 Kafka 中，使其真正与 Kafka 融合来更好的工作。这涉及将 Raft [论文](https://raft.github.io/raft.pdf) [3]中描述的基于推送的模型更改为基于拉取的模型，这与传统的 Kafka 复制是一致的。其他节点将连接到这些节点，而不是将数据推送到其他节点。同样，我们保持与 Kafka 一致的术语 epochs 而不是使用原始 Raft 论文中的 terms 等等。
 
 最初的实现侧重于支持元数据分区。不支持将常规分区转换为 Raft 所需的全部操作。但是，这是我们将来可能会谈到的话题。
 

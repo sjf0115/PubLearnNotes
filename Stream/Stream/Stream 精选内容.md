@@ -3,3 +3,8 @@
 - [ ] [用SQL统一所有：一种有效的、语法惯用的流和表管理方法](https://developer.aliyun.com/article/708924)
 - [ ] [Streaming SQL基础](https://cloud.tencent.com/developer/article/1424919)
 - [ ] [The Log: What every software engineer should know about real-time data's unifying abstraction](http://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying)
+- [x] [Questioning the Lambda Architecture](https://www.oreilly.com/radar/questioning-the-lambda-architecture/)
+- [ ] [流处理技术谬见大消除](http://www.infoq.com/cn/news/2016/12/error-stream-proce-eliminate)
+- [ ] [Streaming 101: The world beyond batch](https://www.oreilly.com/ideas/the-world-beyond-batch-streaming-101)
+- [ ] [The world beyond batch: Streaming 101](https://yq.aliyun.com/articles/73252?t=t1)
+- [ ] [Streaming 102: The world beyond batch](https://www.oreilly.com/ideas/the-world-beyond-batch-streaming-102)

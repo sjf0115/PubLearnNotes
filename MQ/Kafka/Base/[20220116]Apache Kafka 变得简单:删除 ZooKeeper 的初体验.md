@@ -34,7 +34,7 @@ KRaft 协议的事件驱动特性意味着，与基于 ZooKeeper 的控制器不
 
 Kafka 集群可以支持的分区数量由两个属性决定：每个节点的分区数上限和整个集群的分区数上限。到目前为止，集群分区数上限一直是元数据管理的主要瓶颈。之前的 Kafka 改进提案 (KIP) 已经改进了每个节点的上限，但 Kafka 的可扩展性主要通过添加节点以获得更多容量来实现。这就是为什么集群上限变得如此重要的原因，因为它定义了整个系统可扩展性的上限。
 
-新的仲裁控制器设计可以为每个集群处理更多的分区。为了评估这一点，我们运行了与 2018 年评估的类似测试，以评估 Kafka 的分区上限。这些测试测量了停机和恢复所花费的时间，对于旧控制器来说是 O(#partitions) 时间复杂度。正是这个时间复杂度为 Kafka 在单个集群中可以支持的分区数量设置了上限。
+新的仲裁控制器设计可以为每个集群处理更多的分区。为了评估这一点，我们运行了与 2018 年评估的类似测试，以评估 [Kafka 的分区上限](https://www.confluent.io/blog/apache-kafka-supports-200k-partitions-per-cluster/)[1]。这些测试测量了停机和恢复所花费的时间，对于旧控制器来说是 O(#partitions) 时间复杂度。正是这个时间复杂度为 Kafka 在单个集群中可以支持的分区数量设置了上限。
 
 正如 Jun Rao 在上面引用的博文中解释的那样，之前的实现可以实现 200K 个分区，限制因素是在 ZooKeeper 和 Kafka 控制器之间移动大量元数据所花费的时间。使用新的仲裁控制器，这两个角色都由同一个组件提供服务。事件驱动的方法意味着控制器故障转移现在几乎是即时的。以下是在我们实验室执行有 200 万个分区（之前上限的 10 倍）的集群的测试数据：
 
@@ -56,6 +56,6 @@ Kafka 通常被认为是重量级组件，管理 ZooKeeper（第二个独立的�
 
 当然，如果您想扩展以支持更高的吞吐量并添加复制以实现容错，您只需要添加新的 broker 进程。如您所知，这是基于 KRaft 的仲裁控制器的早期版本。请不要将其用于关键工作中。
 
-[1]:
+[1]: https://www.confluent.io/blog/apache-kafka-supports-200k-partitions-per-cluster/
 
 原文:[Apache Kafka Made Simple: A First Glimpse of a Kafka Without ZooKeeper](https://www.confluent.io/blog/kafka-without-zookeeper-a-sneak-peek/)

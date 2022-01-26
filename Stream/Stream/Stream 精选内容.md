@@ -6,6 +6,5 @@
 - [ ] [How to beat the CAP theorem](http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html)
 - [x] [Questioning the Lambda Architecture](https://www.oreilly.com/radar/questioning-the-lambda-architecture/)
 - [ ] [流处理技术谬见大消除](http://www.infoq.com/cn/news/2016/12/error-stream-proce-eliminate)
-- [ ] [Streaming 101: The world beyond batch](https://www.oreilly.com/ideas/the-world-beyond-batch-streaming-101)
-- [ ] [The world beyond batch: Streaming 101](https://yq.aliyun.com/articles/73252?t=t1)
+- [x] [Streaming 101: The world beyond batch](https://www.oreilly.com/ideas/the-world-beyond-batch-streaming-101)
 - [ ] [Streaming 102: The world beyond batch](https://www.oreilly.com/ideas/the-world-beyond-batch-streaming-102)

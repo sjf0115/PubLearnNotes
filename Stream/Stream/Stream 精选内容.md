@@ -1,5 +1,9 @@
 
 - [ ] [现代流式计算的基石：Google DataFlow](https://mp.weixin.qq.com/s/1Y_6p1u4AK-IQVqDLYkP4Q)
+- [ ] [Stream Processing Myths Debunked](https://www.ververica.com/blog/stream-processing-myths-debunked)
+- [ ] [流处理技术谬见大消除](https://www.infoq.cn/news/2016/12/error-stream-proce-eliminate/)
+- [ ] [Hadoop, Storm, Samza, Spark, and Flink: Big Data Frameworks Compared](https://www.digitalocean.com/community/tutorials/hadoop-storm-samza-spark-and-flink-big-data-frameworks-compared)
+- [ ] [大数据框架对比：Hadoop、Storm、Samza、Spark 和 Flink](https://www.infoq.cn/news/hadoop-storm-samza-spark-flink?utm_source=related_read_bottom&utm_medium=article)
 - [ ] [用SQL统一所有：一种有效的、语法惯用的流和表管理方法](https://developer.aliyun.com/article/708924)
 - [ ] [Streaming SQL基础](https://cloud.tencent.com/developer/article/1424919)
 - [ ] [The Log: What every software engineer should know about real-time data's unifying abstraction](http://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying)

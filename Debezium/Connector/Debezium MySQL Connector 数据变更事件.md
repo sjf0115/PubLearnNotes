@@ -1,8 +1,8 @@
 ---
 layout: post
 author: wy
-title: Debezium MySQL Connector 之数据变更事件
-date: 2021-08-12 08:40:21
+title: Debezium MySQL Connector 数据变更事件
+date: 2022-02-01 15:40:21
 tags:
   - Debezium
 
@@ -14,7 +14,7 @@ Debezium MySQL Connector 会为 INSERT、UPDATE 以及 DELETE 行级操作生成
 
 Debezium 和 Kafka Connect 都是为连续事件消息流设计的。然而，随着时间的推移这些事件的结构也可能会发生变化，这无疑给消费者处理事件增加了难度。为了解决这个问题，每个事件都包含一个 schema，或者可以使用 schema 注册表，包含了一个 schema ID，消费者可以使用它从注册表中获取 schema。这样我们就可以单独的处理每个事件了。
 
-下面的 JSON 展示了变更事件的四个基本组成部分。需要注意的是，我们在应用程序中如何配置 Kafka Connect Converter 决定了变更事件中这四个部分的表示形式。仅当配置 Converter 产生 Schema 时，才会出现在变更事件中。同样，仅当配置 Converter 产生事件 Key 和事件 Payload 时，才会出现在变更事件中。如果我们使用 JSON Converter 并配置生成变更事件所有四个基本部分时，变更事件具有如下结构：
+下面的 JSON 展示了变更事件的四个基本组成部分。需要注意的是，应用程序中 Kafka Connect Converter 的配置决定了变更事件中这四个部分的表示样式。当配置 Converter 产生 Schema 时，Schema 才会出现在变更事件中。同样，当配置 Converter 产生事件 Key 和事件 Payload 时，Key 和 Payload 才会出现在变更事件中。如果我们使用 JSON Converter 并配置生成变更事件所有四个基本部分时，变更事件具有如下结构：
 
 ![](1)
 
@@ -46,15 +46,30 @@ schema 下的 optional 字段指示事件 key 是否必须在 payload 字段中�
 
 ### 2. 变更事件的 Value
 
-变更事件中的 Value 比 Key 要复杂一些。与 key 一样，Value 也有一个 schema 和 payload。创建、更新或删除数据的操作的更改事件都具有带有信封结构的值负载。
+变更事件中的 Value 内容要比 Key 的复杂一些。与 key 一样，Value 也包含一个 schema 和 payload。创建、更新或删除数据的操作的更改事件都具有带有信封结构的值负载。
 
 假设有如下 customers 表，跟变更事件中的 Key 中的示例表一样：
-
+```sql
+CREATE TABLE customers (
+  id INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(255) NOT NULL,
+  last_name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE KEY
+) AUTO_INCREMENT=1001;
+```
 
 值的架构，它描述了值的有效负载的结构。 更改事件的值模式在连接器为特定表生成的每个更改事件中都是相同的。
 
+### 3. Create 事件
 
 
 
+### 4. Update 事件
 
-原文:[Data change events](https://debezium.io/documentation/reference/1.6/connectors/mysql.html#mysql-events)
+## 5. 主键更新
+
+## 6. Delete 事件
+
+## 7. Tombstone 事件
+
+原文:[Data change events](https://debezium.io/documentation/reference/1.8/connectors/mysql.html#mysql-events)

@@ -44,11 +44,11 @@ where ds = '${current_date}' and (hh <'${hour}' or (hh ='${hour}' and mm <= ' ${
 
 ## 3. 公共接口
 
-窗口 TVF 的想法来自于 SIGMOD 2019 上发布的 [One SQL To Rule Them All](https://arxiv.org/abs/1905.12133)。利用了新引入的 Polymorphic Table Functions（简称 PTF），这是 2016 标准 SQL 的一部分。'One SQL' 论文说明了两个窗口 TVF：滚动窗口和跳跃窗口。在 Flink SQL 中，我们还想为累积聚合添加一个新的类型窗口，这是 NRT 中很常见一个的场景。这需要 Calcite 的解析器支持。幸运的是，Calcite 1.25.0 版本已经支持滚动窗口和跳跃窗口 TVF。我们只需要基于它进行扩展以支持更多的窗口：累积窗口。
+窗口 TVF 的想法来自于 SIGMOD 2019 上发布的 [One SQL To Rule Them All](https://github.com/sjf0115/PaperNotes/blob/main/One%20SQL%20to%20Rule%20Them%20All.pdf)[1]。利用了新引入的 Polymorphic Table Functions（简称 PTF），这是 2016 标准 SQL 的一部分。'One SQL' 论文对两个窗口 TVF 进行说明：滚动窗口和跳跃窗口。在 Flink SQL 中，我们还想为累积聚合添加一个新的类型窗口，这是 NRT 中很常见一个的场景。这需要 Calcite 的解析器支持。幸运的是，Calcite 1.25.0 版本已经支持滚动窗口和跳跃窗口 TVF。我们只需要基于它进行扩展以支持更多的窗口：累积窗口。
 
 ### 3.1 窗口 TVF
 
-我们计划提出 4 种窗口 TVF：滚动窗口、跳跃窗口、累积窗口以及会话窗口。窗口 TVF 的返回值是一个包含所有数据列以及 window_start、window_end、window_time 另外 3 列的表，window_time 用来以指示分配的窗口。window_time 字段是 window TVF 结束后记录的时间属性，总是等于 'window_end - 1'。
+我们计划提出 4 种窗口 TVF：滚动窗口、跳跃窗口、累积窗口以及会话窗口。窗口 TVF 返回值是一个包含所有数据列以及 window_start、window_end、window_time 另外 3 列的表，window_time 用来以指示分配的窗口。window_time 字段是 window TVF 的一个时间属性，总是等于 'window_end - 1'。
 
 #### 3.1.1 滚动窗口
 
@@ -126,7 +126,7 @@ GROUP BY window_start, window_end, ...
 ```
 将来，如果窗口 TVF 是 TUMBLE 或 HOP，我们还可以简化 GROUP BY 子句，仅包含开始或结束列即可。
 
-#### 3.2.2 窗口JOIN
+#### 3.2.2 窗口 JOIN
 
 窗口 JOIN 要求 JOIN ON 条件中包含窗口开始时间和窗口结束时间与输入表的相等。窗口 JOIN 的语义与 DataStream 窗口 JOIN 的语义相同：
 ```sql
@@ -256,5 +256,7 @@ FROM TABLE(
 - 重新分配 Watermark？
 - 重新分区数据，类似于 Hive DISTRIBUTED BY 语法的功能。
 
+
+[1] https://github.com/sjf0115/PaperNotes/blob/main/One%20SQL%20to%20Rule%20Them%20All.pdf
 
 原文:[FLIP-145: Support SQL windowing table-valued function](https://cwiki.apache.org/confluence/display/FLINK/FLIP-145%3A+Support+SQL+windowing+table-valued+function#FLIP145:SupportSQLwindowingtablevaluedfunction-Motivation)

@@ -1,6 +1,6 @@
 
 - [ ] [Apache BookKeeper 4.13.0发布](https://mp.weixin.qq.com/s/1p49X1qo7oaIJWwT_bhpgA)
-- [ ] [Apache BookKeeper 简介](https://mp.weixin.qq.com/s/JE1GMyGAfgJzNk_6l26s2Q)
+- [x] [Introduction to Apache BookKeeper](https://www.splunk.com/en_us/blog/it/introduction-to-apache-bookkeeper.html)
 - [ ] [为什么选择 Apache BookKeeper - Part 1](https://mp.weixin.qq.com/s/nEZ_ktMpMuE2rK4mn98fDA)
 - [ ] [为什么选择 Apache BookKeeper — Part 2](https://mp.weixin.qq.com/s/XUeybB0FeF8Mdh6zBUqR_w)
 - [ ] [深入解析Apache BookKeeper 系列：第一篇 — 架构原理](https://mp.weixin.qq.com/s/QCQogubrm-dsT0_a3PoPCw)

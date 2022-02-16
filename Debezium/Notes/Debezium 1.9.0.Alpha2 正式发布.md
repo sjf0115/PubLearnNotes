@@ -10,7 +10,7 @@ categories: Debezium
 permalink: debezium-1-9-alpha2-released
 ---
 
-我很高兴宣布 Debezium 1.9 系列的第二个版本，1.9.0.Alpha2 正式发布。此版本包含了对 Oracle 21c 的支持、围绕 Redis for Debezium Server 的改进、配置 kafka.query.timeout.ms 参数以及围绕 DDL 解析器、构建基础架构等的许多 Bug 修复。整体来说，在此版本修复了 [51](https://issues.redhat.com/issues/?jql=project%20%3D%20DBZ%20AND%20fixVersion%20%3D%201.9.0.Alpha2%20ORDER%20BY%20issuetype%20DESC)[1] 个问题。让我们一起看看其中的一些亮点。
+我很高兴宣布 Debezium 1.9 系列的第二个版本，1.9.0.Alpha2 正式发布。此版本包含了对 Oracle 21c 的支持、围绕 Redis for Debezium Server 的改进、配置 kafka.query.timeout.ms 参数以及围绕 DDL 解析器、构建基础架构等的许多 Bug 修复。整体来说，在此版本修复了 [51](https://issues.redhat.com/issues/?jql=project%20%3D%20DBZ%20AND%20fixVersion%20%3D%201.9.0.Alpha2%20ORDER%20BY%20issuetype%20DESC) 个问题。让我们一起看看其中的一些亮点。
 
 ## 1. 支持 Oracle 21c
 
@@ -36,27 +36,15 @@ Redis 允许使用 maxmemory 配置参数指定最大内存上限；但是，如
 ## 4. 其他修复
 
 如下是一些值得注意的 Bug 修复和升级：
-- Oracle Logminer：在进行中事务切换'快照→流'会丢失数据库变更 [DBZ-4367](https://issues.redhat.com/browse/DBZ-4367)[2]
-- DDL 解析问题：ALTER TABLE … MODIFY PARTITION … [DBZ-4649](https://issues.redhat.com/browse/DBZ-4649)[3]
-- OracleSchemaMigrationIT 使用 Xstream 适配器出现失败 [DBZ-4703](https://issues.redhat.com/browse/DBZ-4703)[4]
-- 将 UI 从 webpack-dev-server v3 版本迁移到 v4 [DBZ-4642](https://issues.redhat.com/browse/DBZ-4642)[5]
-- 将 postgres 驱动程序升级到 42.3.2 版本 [DBZ-4658](https://issues.redhat.com/browse/DBZ-4658)[6]
-- Quarkus 升级到 2.7.0.Final [DBZ-4677](https://issues.redhat.com/browse/DBZ-4677)[7]
-- 指示 XStream 不支持 ROWID [DBZ-4702](https://issues.redhat.com/browse/DBZ-4702)[8]
-- 增量快照不支持列区分大小写 [DBZ-4584](https://issues.redhat.com/browse/DBZ-4584)[9]
-- 构建触发器问题 [DBZ-4672](https://issues.redhat.com/browse/DBZ-4672)[10]
-- 无法使用嵌套的对象数组扩展 JSON payload [DBZ-4704](https://issues.redhat.com/browse/DBZ-4704)[11]
-
-[1]: https://issues.redhat.com/issues/?jql=project%20%3D%20DBZ%20AND%20fixVersion%20%3D%201.9.0.Alpha2%20ORDER%20BY%20issuetype%20DESC
-[2]: https://issues.redhat.com/browse/DBZ-4367
-[3]: https://issues.redhat.com/browse/DBZ-4649
-[4]: https://issues.redhat.com/browse/DBZ-4703
-[5]: https://issues.redhat.com/browse/DBZ-4642
-[6]: https://issues.redhat.com/browse/DBZ-4658
-[7]: https://issues.redhat.com/browse/DBZ-4677
-[8]: https://issues.redhat.com/browse/DBZ-4702
-[9]: https://issues.redhat.com/browse/DBZ-4584
-[10]: https://issues.redhat.com/browse/DBZ-4672
-[11]: https://issues.redhat.com/browse/DBZ-4704
+- Oracle Logminer：在进行中事务切换'快照→流'会丢失数据库变更 [DBZ-4367](https://issues.redhat.com/browse/DBZ-4367)
+- DDL 解析问题：ALTER TABLE … MODIFY PARTITION … [DBZ-4649](https://issues.redhat.com/browse/DBZ-4649)
+- OracleSchemaMigrationIT 使用 Xstream 适配器出现失败 [DBZ-4703](https://issues.redhat.com/browse/DBZ-4703)
+- 将 UI 从 webpack-dev-server v3 版本迁移到 v4 [DBZ-4642](https://issues.redhat.com/browse/DBZ-4642)
+- 将 postgres 驱动程序升级到 42.3.2 版本 [DBZ-4658](https://issues.redhat.com/browse/DBZ-4658)
+- Quarkus 升级到 2.7.0.Final [DBZ-4677](https://issues.redhat.com/browse/DBZ-4677)
+- 指示 XStream 不支持 ROWID [DBZ-4702](https://issues.redhat.com/browse/DBZ-4702)
+- 增量快照不支持列区分大小写 [DBZ-4584](https://issues.redhat.com/browse/DBZ-4584)
+- 构建触发器问题 [DBZ-4672](https://issues.redhat.com/browse/DBZ-4672)
+- 无法使用嵌套的对象数组扩展 JSON payload [DBZ-4704](https://issues.redhat.com/browse/DBZ-4704)
 
 原文:[Debezium 1.9.0.Alpha2 Released](https://debezium.io/blog/2022/02/09/debezium-1-9-alpha2-released/)

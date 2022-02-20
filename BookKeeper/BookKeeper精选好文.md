@@ -2,6 +2,7 @@
 - [ ] [Apache BookKeeper 4.13.0发布](https://mp.weixin.qq.com/s/1p49X1qo7oaIJWwT_bhpgA)
 - [x] [Introduction to Apache BookKeeper](https://www.splunk.com/en_us/blog/it/introduction-to-apache-bookkeeper.html)
 - [ ] [为什么选择 Apache BookKeeper - Part 1](https://mp.weixin.qq.com/s/nEZ_ktMpMuE2rK4mn98fDA)
+- [ ] [Why Apache BookKeeper? Part 1: consistency, durability, availability](https://medium.com/streamnative/why-apache-bookkeeper-part-1-consistency-durability-availability-ac697a3cf7a1)
 - [ ] [为什么选择 Apache BookKeeper — Part 2](https://mp.weixin.qq.com/s/XUeybB0FeF8Mdh6zBUqR_w)
 - [ ] [深入解析Apache BookKeeper 系列：第一篇 — 架构原理](https://mp.weixin.qq.com/s/QCQogubrm-dsT0_a3PoPCw)
 - [ ] [Apache BookKeeper 很复杂吗？你细品](https://mp.weixin.qq.com/s/B-n06GTD7fl4v27QB9XuFg)

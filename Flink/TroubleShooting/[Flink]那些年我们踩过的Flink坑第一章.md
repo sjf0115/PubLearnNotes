@@ -65,7 +65,7 @@ Caused by: org.apache.flink.core.fs.UnsupportedFileSystemSchemeException: Hadoop
 ```
 export HADOOP_CLASSPATH=`hadoop classpath`
 ```
-> 修改 /etc/profile 配置文件，使用 source 命令并刷新
+> 修改 /etc/profile 配置文件，使用 source 命令并刷新，然后重启 Flink 集群
 
 ### 3. No ExecutorFactory found to execute the application
 

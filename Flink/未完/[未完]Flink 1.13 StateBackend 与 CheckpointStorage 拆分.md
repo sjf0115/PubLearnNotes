@@ -12,9 +12,7 @@ permalink: disentangle-statebackends-from-checkpointing
 
 ## 1. 目标
 
-Apache Flink 的持久化对许多用户来说都是一个谜。用户最常见反复提问的问题就是不理解 State、StateBackend 以及快照之间的关系。通过学习可以解答我们的一些困惑，但是这个问题如此常见，我们认为 Flink 的用户 API 应该更好地与不同的组件进行通信。
-
-在过去几年中，我们经常会听到如下误解：
+Apache Flink 的持久化对许多用户来说都是一个谜。用户最常见反复提问的问题就是不理解 State、StateBackend 以及快照之间的关系。通过学习可以解答我们的一些困惑，但是这个问题如此常见，我们认为 Flink 的用户 API 应该设计的更友好一些。在过去几年中，我们经常会听到如下误解：
 - 我们使用 RocksDB 是因为我们不需要容错。
 - 我们不使用 RocksDB 是因为我们不想管理外部数据库。
 - RocksDB 可以直接读写 S3 或者 HDFS（相对于本地磁盘）
@@ -27,7 +25,7 @@ Apache Flink 的持久化对许多用户来说都是一个谜。用户最常见�
 
 在 Flink 1.13 版本之前，StateBackend 有两个功能：
 - 提供状态的访问、查询；
-- 如果开启了 Checkpoint，会周期向远程持久化存储上传数据和返回元数据给 Job Manager。
+- 如果开启了 Checkpoint，会周期性的向远程持久化存储上传数据和返回元数据给 JobManager。
 
 以上两个功能是混在一起的，即把状态存储(如何在 TM 上本地存储和访问状态)和 Checkpoint 持久化(Checkpoint 如何持久化状态)笼统的混在一起，导致初学者对此感觉很混乱，很难理解，如下图所示。
 
@@ -39,7 +37,7 @@ Flink 提供了三个开箱即用的 StateBackend：MemoryStateBackend、FsState
 
 光从命名上来看，StateBackend 就已经比较混乱了，有的是基于 写出的 Checkpoint 位置来命名，有的却是基于在本地存储状态数据的位置来命名。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/disentangle-statebackends-from-checkpointing-2.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/disentangle-statebackends-from-checkpointing-3.png?raw=true)
 
 ### 2.2 实现
 
@@ -105,11 +103,11 @@ env.setStateBackend(rocksDB);
 - StateBackend 的概念变窄，只描述状态访问和存储，定义状态在 TM 本地存储的位置和方式。
 - CheckpointStorage 描述了 Checkpoint 行为，定义 Checkpoint 的存储位置和方式以进行故障恢复。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/disentangle-statebackends-from-checkpointing-3.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/disentangle-statebackends-from-checkpointing-2.png?raw=true)
 
 ### 3.1 功能拆分：CheckpointStorage
 
-我们删除 StateBackend 接口中 Checkpoint 存储相关的方法，并将它们放入一个新接口 CheckpointStorage 中。Flink 运行时当前会包含一个名为 CheckpointStorage 的内部接口：
+我们删除 StateBackend 接口中 Checkpoint 存储相关的方法，并将它们放入一个新接口 CheckpointStorage 中，如下图所示。Flink 运行时当前会包含一个名为 CheckpointStorage 的内部接口：
 ```java
 public interface CheckpointStorage extends java.io.Serializable {
   CompletedCheckpointStorageLocation resolveCheckpoint(String externalPointer);
@@ -117,6 +115,8 @@ public interface CheckpointStorage extends java.io.Serializable {
 }
 ```
 Flink 会提供两个默认实现：JobManagerCheckpointStorage 和 FileSystemCheckpointStorage。JobManagerCheckpointStorage 和 FileSystemCheckpointStorage 会保持与 MemoryStateBackend 和 FsStateBackend 中实现的相同功能。这意味着 JobManagerCheckpointStorage 是基于现有的 MemoryBackendCheckpointStorageAccess 实现，而 FileSystemCheckpointStorage 是基于现有的 FsCheckpointStorageAccess 实现。
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/disentangle-statebackends-from-checkpointing-4.png?raw=true)
 
 ### 3.2 重新命名：新 StateBackend API
 
@@ -145,7 +145,7 @@ env.getCheckpointConfig().setCheckpointStorage("s3://checkpoints");
 
 三个现有的状态后端：MemoryStateBackend、FsStateBackend 和 RocksDBStateBackend 在 1.13 版本中被弃用以支持新类。下面我会指导如何以兼容的方式迁移到新的 API 上。因为使用相同的内部数据结构，我们能够轻松迁移到新 API。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/disentangle-statebackends-from-checkpointing-4.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/disentangle-statebackends-from-checkpointing-5.png?raw=true)
 
 ### 4.1 MemoryStateBackend
 

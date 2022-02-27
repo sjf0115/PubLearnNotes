@@ -10,7 +10,7 @@ categories: Flink
 permalink: state-ttl-for-apache-flink-how-to-limit-the-lifetime-of-state
 ---
 
-> Flink 1.14 版本
+> Flink 1.13 版本
 
 在某些场景下 Flink 用户状态一直在无限增长，一些用例需要能够自动清理旧的状态。例如，作业中定义了超长的时间窗口，或者在动态表上应用了无限范围的 GROUP BY 语句。此外，目前开发人员需要自己完成 TTL 的临时实现，例如使用可能不节省存储空间的计时器服务。还有一个比较重要的点是一些法律法规也要求必须在有限时间内访问数据。
 
@@ -111,6 +111,12 @@ StateTtlConfig ttlConfig = StateTtlConfig
 ```
 为了对后台的一些特殊清理进行更细粒度的控制，您可以按如下所述单独配置。目前，堆状态后端依赖增量清理，RocksDB 后端使用压缩过滤器进行后台清理。
 
+在 Flink 1.6.0 版本中，当生成 Checkpoint 或者 Savepoint 全量快照时会自动删除过期状态。需要注意的是：
+- 过期状态删除不适用于增量 Checkpoint，必须明确启用全量快照才能删除过期状态。
+- 全量快照的大小会减小，但本地状态存储大小保持不变。只有当用户从快照重新加载其状态到本地时，才会清除用户的本地状态。
+
+由于上述这些限制，为了改善用户体验，Flink 1.8.0 引入了两种逐步触发状态清理的策略，分别是针对 Heap StateBackend 的 INCREMENTAL_CLEANUP（对应 IncrementalCleanupStrategy 实现）以及针对 RocksDB StateBackend 的 ROCKSDB_COMPACTION_FILTER（对应 RocksdbCompactFilterCleanupStrategy 实现）。
+
 ### 3.1 全量快照清理策略
 
 我们可以在生成全量快照(Snapshot/Checkpoint)时清理过期状态，这可以大大减小快照存储，但是本地状态中过期数据不会被清理。唯有当作业重启并从上一个快照恢复后，本地状态才会实际减小，因此可能仍然不能解决内存压力的问题。如果要使用该过期请策略，请参考如下所示代码：
@@ -127,7 +133,7 @@ StateTtlConfig ttlConfig = StateTtlConfig
 
 > 对于现有作业，可以随时在 StateTtlConfig 中启用或停用该清理策略，例如从保存点重新启动后。
 
-全量快照清理策略对应的实现是 EmptyCleanupStrategy：
+全量快照清理策略(FULL_STATE_SCAN_SNAPSHOT)对应的实现是 EmptyCleanupStrategy：
 ```java
 static final CleanupStrategy EMPTY_STRATEGY = new EmptyCleanupStrategy();
 public Builder cleanupFullSnapshot() {
@@ -142,18 +148,7 @@ static class EmptyCleanupStrategy implements CleanupStrategy {
 
 ### 3.2 增量清理策略
 
-在 Flink 1.6.0 版本中，当生成 Checkpoint 或者 Savepoint 全量快照时会自动删除过期状态。需要注意的是：
-- 过期状态删除不适用于增量 Checkpoint，必须明确启用全量快照才能删除过期状态。
-- 全量快照的大小会减小，但本地状态存储大小保持不变。只有当用户从快照重新加载其状态到本地时，才会清除用户的本地状态。
-
-由于上述这些限制，为了改善用户体验，Flink 1.8.0 引入了两种逐步触发状态清理的策略，分别是针对 Heap StateBackend 的 INCREMENTAL_CLEANUP（对应 IncrementalCleanupStrategy 实现）以及针对 RocksDB StateBackend 的 ROCKSDB_COMPACTION_FILTER（对应 RocksdbCompactFilterCleanupStrategy 实现）。
-
-#### 3.2.1 INCREMENTAL_CLEANUP
-
-我们先看一下针对 Heap StateBackend 的 INCREMENTAL_CLEANUP。如果使用此清理策略，那么存储后端会为所有状态条目维护一个惰性全局迭代器。每次触发增量清理时，迭代器都会前进。检查遍历的状态条目并清除过期的条目。
-
-
-如果要使用该过期请策略，请参考如下所示代码：
+我们先看一下针对 Heap StateBackend 的 INCREMENTAL_CLEANUP。存储后端会为所有状态条目维护一个惰性全局迭代器。每次触发增量清理时，迭代器都会向前迭代删除已遍历的过期数据。如果要使用该过期请策略，请参考如下所示代码：
 ```java
 import org.apache.flink.api.common.state.StateTtlConfig;
 StateTtlConfig ttlConfig = StateTtlConfig
@@ -161,8 +156,9 @@ StateTtlConfig ttlConfig = StateTtlConfig
     .cleanupIncrementally(5, false)
     .build();
 ```
-该策略有两个参数：第一个参数是每次触发清理时检查的状态条目数，总是在状态访问时触发。第二个参数定义了在每次处理记录时是否额外触发清理。堆状态后端的默认后台清理每次触发检查 5 个条目，处理记录时不会额外进行过期数据清理。
+该策略有两个参数：第一个参数表示每次触发清理时需要检查的状态条目数，总是在状态访问时触发。第二个参数定义了在每次处理记录时是否额外触发清理。堆状态后端的默认后台清理每次触发检查 5 个条目，处理记录时不会额外进行过期数据清理。
 
+增量清理策略(INCREMENTAL_CLEANUP)对应的实现是 IncrementalCleanupStrategy：
 ```java
 public Builder cleanupIncrementally(@Nonnegative int cleanupSize, boolean runCleanupForEveryRecord) {
     strategies.put(
@@ -171,16 +167,28 @@ public Builder cleanupIncrementally(@Nonnegative int cleanupSize, boolean runCle
     );
     return this;
 }
+
+public static class IncrementalCleanupStrategy implements CleanupStrategies.CleanupStrategy {
+    static final IncrementalCleanupStrategy DEFAULT_INCREMENTAL_CLEANUP_STRATEGY =
+            new IncrementalCleanupStrategy(5, false);
+    private final int cleanupSize;
+    private final boolean runCleanupForEveryRecord;
+    private IncrementalCleanupStrategy(int cleanupSize, boolean runCleanupForEveryRecord) {
+        this.cleanupSize = cleanupSize;
+        this.runCleanupForEveryRecord = runCleanupForEveryRecord;
+    }
+    ...
+}
 ```
 
-注意：
+需要注意的是：
 - 如果该状态没有被访问或者没有记录需要处理，那么过期状态会一直存在。
 - 增量清理所花费的时间会增加记录处理延迟。
-- 目前仅堆状态后端实现了增量清理。为 RocksDB 设置增量清理不会有任何效果。
+- 目前仅堆状态后端实现了增量清理。为 RocksDB 状态后端设置增量清理不会有任何效果。
 - 如果堆状态后端与同步快照一起使用，全局迭代器在迭代时保留所有 Key 的副本，因为它的特定实现不支持并发修改。启用此功能将增加内存消耗。异步快照没有这个问题。
-- 对于现有作业，可以随时在 StateTtlConfig 中激活或停用此清理策略。
+- 对于现有作业，可以随时在 StateTtlConfig 中启用或者停用此清理策略。
 
-#### 3.3 RocksDB 压缩时清理
+### 3.3 RocksDB 压缩清理策略
 
 如果使用 RocksDB 状态后端，则会调用 Flink 特定的压缩过滤器进行后台清理。RocksDB 定期运行异步压缩以合并状态更新并减少存储。Flink 压缩过滤器使用 TTL 检查状态条目的过期时间戳并排除过期值。这个特性可以在 StateTtlConfig 中配置：
 ```java
@@ -205,7 +213,6 @@ public Builder cleanupInRocksdbCompactFilter(long queryTimeAfterNumEntries) {
     return this;
 }
 ```
-
 
 注意：
 - 在压缩期间调用 TTL 过滤器会降低压缩的速度。TTL 过滤器必须解析上次访问的时间戳，并检查正在压缩 Key 的每个存储状态条目的到期时间。在集合状态类型（列表或映射）的情况下，还会为每个存储的元素调用检查。

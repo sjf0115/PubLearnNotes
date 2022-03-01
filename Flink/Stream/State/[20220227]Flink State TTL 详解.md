@@ -49,7 +49,7 @@ stateDescriptor.enableTimeToLive(ttlConfig);
 
 ### 2.1 过期时间
 
-newBuilder 方法的参数是必需的，表示状态的过期时间，是一个 org.apache.flink.api.common.time.Time 对象。一旦设置了 TTL，那么如果上次访问的时间戳 + TTL 超过了当前时间，则表明状态过期了（这是一个简化的说法，严谨的定义请参考 org.apache.flink.runtime.state.ttl.TtlUtils 类中关于 expired 的实现） 。
+newBuilder 方法的参数是必需的，表示状态的过期时间，是一个 org.apache.flink.api.common.time.Time 对象。可以简单的认为一旦设置了 TTL，那么如果上次访问的时间戳 + TTL 超过了当前时间，那么表明状态过期了（实际上更复杂一些）。
 
 ### 2.2 时间处理语义
 

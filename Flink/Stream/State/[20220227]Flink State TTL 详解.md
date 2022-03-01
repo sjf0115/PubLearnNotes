@@ -108,7 +108,7 @@ setStateVisibility(StateTtlConfig.StateVisibility.NeverReturnExpired)
 ## 3. 过期清理策略
 
 从 Flink 1.6.0 版本开始，当生成 Checkpoint 或者 Savepoint 全量快照时会自动删除过期状态。但是，过期状态删除不适用于增量 Checkpoint，必须明确启用全量快照才能删除过期状态。全量快照的大小会减小，但本地状态存储大小并不会减少。只有当用户从快照重新加载其状态到本地时，才会清除用户的本地状态。由于上述这些限制，为了改善用户体验，Flink 1.8.0 引入了两种逐步触发状态清理的策略，分别是针对 Heap StateBackend 的增量清理策略以及针对 RocksDB StateBackend 的压缩清理策略。到目前为止，一共有三种过期清理策略：
-- 全量快照清理策略()
+- 全量快照清理策略
 - 增量清理策略
 - RocksDB 压缩清理策略
 

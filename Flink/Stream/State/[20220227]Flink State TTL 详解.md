@@ -7,7 +7,7 @@ tags:
   - Flink
 
 categories: Flink
-permalink: state-ttl-for-apache-flink-how-to-limit-the-lifetime-of-state
+permalink: state-ttl-for-apache-flink
 ---
 
 > Flink 1.13 版本
@@ -38,6 +38,12 @@ stateDescriptor.enableTimeToLive(ttlConfig);
 ```
 
 可以看到，要使用 State TTL 功能，首先要定义一个 StateTtlConfig 对象。StateTtlConfig 对象可以通过构造器模式来创建，典型地用法是传入一个 Time 对象作为 TTL 时间，然后可以设置时间处理语义(TtlTimeCharacteristic)、更新类型(UpdateType)以及状态可见性(StateVisibility)。当创建完 StateTtlConfig 对象，可以在状态描述符中启用 State TTL 功能。
+
+> [完整代码](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/state/state/StateTTLExample.java)
+
+如下所示设置1分钟的过期时间：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/state-ttl-for-apache-flink-1.png?raw=true)
 
 ## 2. 参数说明
 
@@ -101,25 +107,14 @@ setStateVisibility(StateTtlConfig.StateVisibility.NeverReturnExpired)
 
 ## 3. 过期清理策略
 
-默认情况下，过期状态值会在读取时显式删除，例如 ValueState#value，如果配置的状态后端支持，也可以在后台定期回收。也可以在 StateTtlConfig 中禁用后台清理：
-```java
-import org.apache.flink.api.common.state.StateTtlConfig;
-StateTtlConfig ttlConfig = StateTtlConfig
-    .newBuilder(Time.seconds(1))
-    .disableCleanupInBackground()
-    .build();
-```
-为了对后台的一些特殊清理进行更细粒度的控制，您可以按如下所述单独配置。目前，堆状态后端依赖增量清理，RocksDB 后端使用压缩过滤器进行后台清理。
-
-在 Flink 1.6.0 版本中，当生成 Checkpoint 或者 Savepoint 全量快照时会自动删除过期状态。需要注意的是：
-- 过期状态删除不适用于增量 Checkpoint，必须明确启用全量快照才能删除过期状态。
-- 全量快照的大小会减小，但本地状态存储大小保持不变。只有当用户从快照重新加载其状态到本地时，才会清除用户的本地状态。
-
-由于上述这些限制，为了改善用户体验，Flink 1.8.0 引入了两种逐步触发状态清理的策略，分别是针对 Heap StateBackend 的 INCREMENTAL_CLEANUP（对应 IncrementalCleanupStrategy 实现）以及针对 RocksDB StateBackend 的 ROCKSDB_COMPACTION_FILTER（对应 RocksdbCompactFilterCleanupStrategy 实现）。
+从 Flink 1.6.0 版本开始，当生成 Checkpoint 或者 Savepoint 全量快照时会自动删除过期状态。但是，过期状态删除不适用于增量 Checkpoint，必须明确启用全量快照才能删除过期状态。全量快照的大小会减小，但本地状态存储大小并不会减少。只有当用户从快照重新加载其状态到本地时，才会清除用户的本地状态。由于上述这些限制，为了改善用户体验，Flink 1.8.0 引入了两种逐步触发状态清理的策略，分别是针对 Heap StateBackend 的增量清理策略以及针对 RocksDB StateBackend 的压缩清理策略。到目前为止，一共有三种过期清理策略：
+- 全量快照清理策略()
+- 增量清理策略
+- RocksDB 压缩清理策略
 
 ### 3.1 全量快照清理策略
 
-我们可以在生成全量快照(Snapshot/Checkpoint)时清理过期状态，这可以大大减小快照存储，但是本地状态中过期数据不会被清理。唯有当作业重启并从上一个快照恢复后，本地状态才会实际减小，因此可能仍然不能解决内存压力的问题。如果要使用该过期请策略，请参考如下所示代码：
+我们先看一下全量快照清理策略，这种策略可以在生成全量快照(Snapshot/Checkpoint)时清理过期状态，这样可以大大减小快照存储，但需要注意的是本地状态中过期数据并不会被清理。唯有当作业重启并从上一个快照恢复后，本地状态才会实际减小。如果要在 DataStream 中使用该过期请策略，请参考如下所示代码：
 ```java
 import org.apache.flink.api.common.state.StateTtlConfig;
 import org.apache.flink.api.common.time.Time;
@@ -130,8 +125,6 @@ StateTtlConfig ttlConfig = StateTtlConfig
     .build();
 ```
 这种过期清理策略对开启了增量检查点的 RocksDB 状态后端无效。
-
-> 对于现有作业，可以随时在 StateTtlConfig 中启用或停用该清理策略，例如从保存点重新启动后。
 
 全量快照清理策略(FULL_STATE_SCAN_SNAPSHOT)对应的实现是 EmptyCleanupStrategy：
 ```java
@@ -148,7 +141,7 @@ static class EmptyCleanupStrategy implements CleanupStrategy {
 
 ### 3.2 增量清理策略
 
-我们先看一下针对 Heap StateBackend 的 INCREMENTAL_CLEANUP。存储后端会为所有状态条目维护一个惰性全局迭代器。每次触发增量清理时，迭代器都会向前迭代删除已遍历的过期数据。如果要使用该过期请策略，请参考如下所示代码：
+我们再来看一下针对 Heap StateBackend 的增量清理策略。这种策略下存储后端会为所有状态条目维护一个惰性全局迭代器。每次触发增量清理时，迭代器都会向前迭代删除已遍历的过期数据。如果要在 DataStream 中使用该过期请策略，请参考如下所示代码：
 ```java
 import org.apache.flink.api.common.state.StateTtlConfig;
 StateTtlConfig ttlConfig = StateTtlConfig
@@ -190,7 +183,7 @@ public static class IncrementalCleanupStrategy implements CleanupStrategies.Clea
 
 ### 3.3 RocksDB 压缩清理策略
 
-如果使用 RocksDB 状态后端，则会调用 Flink 特定的压缩过滤器进行后台清理。RocksDB 定期运行异步压缩以合并状态更新并减少存储。Flink 压缩过滤器使用 TTL 检查状态条目的过期时间戳并排除过期值。这个特性可以在 StateTtlConfig 中配置：
+我们最后再来看一下 RocksDB 压缩清理策略。如果使用 RocksDB StateBackend，则会调用 Flink 指定的压缩过滤器进行后台清理。RocksDB 周期性运行异步压缩来合并状态更新并减少存储。Flink 压缩过滤器使用 TTL 检查状态条目的过期时间戳并删除过期状态值。如果要在 DataStream 中使用该过期请策略，请参考如下所示代码：
 ```java
 import org.apache.flink.api.common.state.StateTtlConfig;
 
@@ -199,11 +192,9 @@ StateTtlConfig ttlConfig = StateTtlConfig
     .cleanupInRocksdbCompactFilter(1000)
     .build();
 ```
-RocksDB 压缩过滤器会在每次处理一定数量的状态条目后从 Flink 查询当前时间戳，用于检查过期时间。您可以更改并将自定义值传递给 StateTtlConfig.newBuilder(...).cleanupInRocksdbCompactFilter(long queryTimeAfterNumEntries) 方法。更频繁地更新时间戳可以提高清理速度，但会降低压缩性能，因为它使用来自本机代码的 JNI 调用。RocksDB 状态后端的默认后台清理每处理 1000 个条目就查询当前时间戳。我们也可以通过激活 FlinkCompactionFilter 的调试级别来从 RocksDB 过滤器的本机代码激活调试日志：
-```
-log4j.logger.org.rocksdb.FlinkCompactionFilter=DEBUG
-```
+RocksDB 压缩过滤器在每次处理一定状态条目后，查询当前的时间戳并检查是否过期。频繁地更新时间戳可以提高清理速度，但同样也会降低压缩性能。RocksDB 状态后端的默认每处理 1000 个条目就查询当前时间戳。
 
+RocksDB 压缩清理策略(ROCKSDB_COMPACTION_FILTER)对应的实现是 RocksdbCompactFilterCleanupStrategy：
 ```java
 public Builder cleanupInRocksdbCompactFilter(long queryTimeAfterNumEntries) {
     strategies.put(
@@ -212,22 +203,68 @@ public Builder cleanupInRocksdbCompactFilter(long queryTimeAfterNumEntries) {
     );
     return this;
 }
+
+public static class RocksdbCompactFilterCleanupStrategy implements CleanupStrategies.CleanupStrategy {
+    private static final long serialVersionUID = 3109278796506988980L;
+
+    static final RocksdbCompactFilterCleanupStrategy DEFAULT_ROCKSDB_COMPACT_FILTER_CLEANUP_STRATEGY =
+                    new RocksdbCompactFilterCleanupStrategy(1000L);
+
+    private final long queryTimeAfterNumEntries;
+    private RocksdbCompactFilterCleanupStrategy(long queryTimeAfterNumEntries) {
+        this.queryTimeAfterNumEntries = queryTimeAfterNumEntries;
+    }
+    ...
+}
 ```
 
-注意：
-- 在压缩期间调用 TTL 过滤器会降低压缩的速度。TTL 过滤器必须解析上次访问的时间戳，并检查正在压缩 Key 的每个存储状态条目的到期时间。在集合状态类型（列表或映射）的情况下，还会为每个存储的元素调用检查。
-- 如果此功能与具有非固定字节长度的元素的列表状态一起使用，则本机 TTL 过滤器必须在每个状态条目上通过 JNI 额外调用元素的 Flink java 类型序列化器，其中至少第一个元素已过期才能确定下一个未过期元素的偏移量。
-- 对于现有作业，可以随时在 StateTtlConfig 中激活或停用此清理策略。
+> 在压缩期间调用 TTL 过滤器会降低压缩速度。TTL 过滤器必须解析上次访问的时间戳，并检查正在压缩 Key 的每个存储状态条目的到期时间。在集合状态类型（List或 Map）的情况下，还会为每个存储的元素调用检查。
 
 ## 4. 注意事项
 
-当从状态中恢复时，如果之前没有开启 TTL 功能，现在尝试启用 TTL 时，会导致兼容性失败以及 StateMigrationException。
+当从状态中恢复时，之前设置的 TTL 过期时间不会丢失，还会继续生效。如下所示为登录用户设置5分钟的过期时间：
 
-状态后端将上次修改的时间戳与值一起存储，这意味着启用此功能会增加状态存储。堆状态后端存储一个额外的 Java 对象，其中包含对用户状态对象的引用和内存中的原始 long 值。 RocksDB 状态后端为每个存储值、列表条目或映射条目添加 8 个字节。
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/state-ttl-for-apache-flink-2.png?raw=true)
 
-TTL 配置不是检查点或保存点的一部分，而是 Flink 处理当前运行作业的一种方式。
+在状态过期之前取消作业并触发 Savepoint，如下所示：
+```
+flink cancel -s hdfs://localhost:9000/flink/savepoints/ 3b37dece248dafc7330b854c38bf526d
+```
+然后再从 Savepoint 中恢复作业：
+```
+flink run -s hdfs://localhost:9000/flink/savepoints/savepoint-c82ee3-e7ca58626e3b -c com.flink.example.stream.state.state.StateTTLExample flink-example-1.0.jar
+```
+如果用户在首次登录后5分钟内再次登录，用户的上一次登录时间保持不变，超过5分钟则重新记录首次登录时间：
 
-仅当用户值序列化器可以处理 NULL 值时，具有 TTL 的 Map 状态才支持 NULL 值。如果序列化器不支持 NULL 值，则可以使用 NullableSerializer 进行封装，但需要以序列化形式增加一个字节的代价。
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/state-ttl-for-apache-flink-3.png?raw=true)
 
-PyFlink DataStream API 仍然不支持状态 TTL。
-。。。
+当从 Checkpoint/Savepoint 恢复时，TTL 的状态（是否开启）必须和之前保持一致，否则会遇到如下兼容性问题：
+```java
+2022-03-01 22:34:33
+java.lang.RuntimeException: Error while getting state
+	at org.apache.flink.runtime.state.DefaultKeyedStateStore.getState(DefaultKeyedStateStore.java:62)
+	at org.apache.flink.streaming.api.operators.StreamingRuntimeContext.getState(StreamingRuntimeContext.java:203)
+	at com.flink.example.stream.state.state.StateTTLExample$1.open(StateTTLExample.java:82)
+	at org.apache.flink.api.common.functions.util.FunctionUtils.openFunction(FunctionUtils.java:34)
+	at org.apache.flink.streaming.api.operators.AbstractUdfStreamOperator.open(AbstractUdfStreamOperator.java:102)
+	at org.apache.flink.streaming.runtime.tasks.OperatorChain.initializeStateAndOpenOperators(OperatorChain.java:437)
+	at org.apache.flink.streaming.runtime.tasks.StreamTask.restoreGates(StreamTask.java:574)
+	at org.apache.flink.streaming.runtime.tasks.StreamTaskActionExecutor$1.call(StreamTaskActionExecutor.java:55)
+	at org.apache.flink.streaming.runtime.tasks.StreamTask.restore(StreamTask.java:554)
+	at org.apache.flink.runtime.taskmanager.Task.doRun(Task.java:756)
+	at org.apache.flink.runtime.taskmanager.Task.run(Task.java:563)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: org.apache.flink.util.StateMigrationException: For heap backends, the .new state serializer (org.apache.flink.runtime.state.ttl.TtlStateFactory$TtlSerializer@724383d2) must not be incompatible with the old state serializer (org.apache.flink.api.common.typeutils.base.LongSerializer@13921758).
+  	at org.apache.flink.runtime.state.heap.HeapKeyedStateBackend.tryRegisterStateTable(HeapKeyedStateBackend.java:214)
+  	at org.apache.flink.runtime.state.heap.HeapKeyedStateBackend.createInternalState(HeapKeyedStateBackend.java:279)
+  	at org.apache.flink.runtime.state.ttl.TtlStateFactory.createTtlStateContext(TtlStateFactory.java:211)
+  	at org.apache.flink.runtime.state.ttl.TtlStateFactory.createValueState(TtlStateFactory.java:146)
+  	at org.apache.flink.runtime.state.ttl.TtlStateFactory.createState(TtlStateFactory.java:133)
+  	at org.apache.flink.runtime.state.ttl.TtlStateFactory.createStateAndWrapWithTtlIfEnabled(TtlStateFactory.java:70)
+  	at org.apache.flink.runtime.state.AbstractKeyedStateBackend.getOrCreateKeyedState(AbstractKeyedStateBackend.java:301)
+  	at org.apache.flink.runtime.state.AbstractKeyedStateBackend.getPartitionedState(AbstractKeyedStateBackend.java:352)
+  	at org.apache.flink.runtime.state.DefaultKeyedStateStore.getPartitionedState(DefaultKeyedStateStore.java:115)
+  	at org.apache.flink.runtime.state.DefaultKeyedStateStore.getState(DefaultKeyedStateStore.java:60)
+  	... 11 more
+```
+建议使用状态的时候最好就先加上 StateTtlConfig，如果不需要过期清理，可以先设置为 StateTtlConfig.disableCleanupInBackground()，如果后续需要过期清理，再配置过期时间以及清理策略。

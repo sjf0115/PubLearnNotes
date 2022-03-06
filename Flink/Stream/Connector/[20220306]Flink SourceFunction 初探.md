@@ -14,7 +14,7 @@ permalink: flink-source-function
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-source-function-1.png?raw=true)
 
-SourceFunction 接口继承了 Function 接口，并在内部定义了数据读取使用的 run() 方法、取消运行的 cancel() 方法以及 SourceContext 内部接口：
+SourceFunction 是 Flink 中所有流数据 Source 的基本接口。SourceFunction 接口继承了 Function 接口，并在内部定义了数据读取使用的 run() 方法、取消运行的 cancel() 方法以及 SourceContext 内部接口：
 ```java
 public interface SourceFunction<T> extends Function, Serializable {
     void run(SourceContext<T> ctx) throws Exception;
@@ -30,13 +30,28 @@ public interface SourceFunction<T> extends Function, Serializable {
     }
 }
 ```
+当 Source 输出元素时，可以在 run 方法中调用 SourceContext 接口的 collect 或者 collectWithTimestamp 方法输出元素。run 方法需要尽可能的一直运行，因此大多数 Source 在 run 方法中都有一个 while 循环。Source 也必须具有响应 cancel 方法调用中断 while 循环的能力。比较通用的模式是添加 volatile 布尔类型变量 isRunning 来表示是否在运行中。在 cancel 方法中设置为 false，并在循环条件中检查该变量是否为 true：
+```java
+private volatile boolean isRunning = true;
+@Override
+public void run(SourceContext<T> ctx) throws Exception {
+    while (isRunning && otherCondition == true) {
+        ctx.collect(xxx);
+    }
+}
+
+@Override
+public void cancel() {
+    isRunning = false;
+}
+```
 
 在默认情况下，SourceFunction 不支持并行读取数据，因此 SourceFunction 被 ParallelSourceFunction 接口继承，以支持对外部数据源中数据的并行读取操作：
 ```java
 public interface ParallelSourceFunction<OUT> extends SourceFunction<OUT> {
 }
 ```
-比较典型的 ParallelSourceFunction 实例就是 FlinkKafkaConsumer。
+ParallelSourceFunction 是并行 Source 的基本接口。在运行时，Runtime 会执行与 Source 配置的并行度一样多的此函数的并行实例。该接口是一个空接口，仅仅作为一个标记，告诉系统这个 Source 可以并行执行。
 
 在 SourceFunction 的基础上扩展了 RichSourceFunction 和 RichParallelSourceFunction 抽象实现类：
 ```java
@@ -50,13 +65,14 @@ public abstract class RichParallelSourceFunction<OUT> extends AbstractRichFuncti
     private static final long serialVersionUID = 1L;
 }
 ```
-这使得 SourceFunction 可以在数据接入的过程中获取 RuntimeContext 信息，从而实现更加复杂的操作，例如使用 OperatorState 保存 Kafka 中数据消费的偏移量，从而实现端到端当且仅被处理一次的语义保障。
+
+RichParallelSourceFunction 是用于实现并行 Source 的基类。Runtime 会执行与 Source 配置的并行度一样多的此函数的并行实例。Source 还可以通过 AbstractRichFunction.getRuntimeContext() 访问上下文信息，例如通过 getRuntimeContext().getNumberOfParallelSubtasks() 获取并行实例的数量，通过 getRuntimeContext().getIndexOfThisSubtask() 获取当前实例是哪个并行实例。此外还提供了额外的生命周期方法（AbstractRichFunction.open() 和 AbstractRichFunction.close()）。有了这些信息，从而实现更加复杂的操作，例如使用 OperatorState 保存 Kafka 中数据消费的偏移量，从而实现端到端当且仅被处理一次的语义保障。
 
 > 需要注意的是，由于未来社区会基于 DataStream API 实现流批一体，因此 SourceFunction 后期的变化会比较大，要及时关注 Flink 社区的最新动向，并及时跟进相关的设计和实现。
 
 ## 2. SourceContext
 
-Flink 将 Source 的运行机制跟发送元素进行了分离。具体如何发送元素，取决于另外一个独立的内部接口 SourceContext。SourceFunction 以内部接口的方式定义了该上下文接口对象：
+Flink 将 Source 的运行机制跟发送元素进行了分离。具体如何发送元素，取决于独立内部接口 SourceContext。SourceFunction 以内部接口的方式定义了该上下文接口对象：
 ```java
 public interface SourceFunction<T> extends Function, Serializable {
     ...
@@ -70,9 +86,9 @@ public interface SourceFunction<T> extends Function, Serializable {
     }
 }
 ```
-具体的实现抛给实现 SourceFunction 接口的实现类。SourceContext 定义了数据接入过程用到的上下文信息，包含如下方法：
+SourceContext 定义了数据接入过程用到的上下文信息，包含如下方法：
 - collect()：用于收集从外部数据源读取的数据并下发到下游算子中。
-- collectWithTimestamp()：支持直接收集数据元素以及EventTime时间戳。
+- collectWithTimestamp()：用于支持收集数据元素以及 EventTime 时间戳。
 - emitWatermark()：用于在 SourceFunction 中生成 Watermark 并发送到下游算子进行处理。
 - getCheckpointLock()：用于获取检查点锁（Checkpoint Lock），例如使用 KafkaConsumer 读取数据时，可以使用检查点锁，确保记录发出的原子性和偏移状态更新。
 
@@ -80,12 +96,12 @@ SourceContext 主要有两种类型的实现子类，分别为 NonTimestampConte
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-source-function-2.png?raw=true)
 
-WatermarkContext 支持事件时间抽取和生成 Watermark，最终用于处理乱序事件。其中 AutomaticWatermarkContext 和 ManualWatermarkContext 都继承自 WatermarkContext 抽象类，分别对应接入时间和事件时间。由此也可以看出，接入时间对应的 Timestamp 和 Watermark 都是通过 Source 算子自动生成的。事件时间的实现则相对复杂，需要用户自定义 SourceContext.emitWatermark() 方法来实现；NonTimestampContext 不支持基于事件时间的操作，仅实现了从外部数据源中读取数据并处理的逻辑，对应了处理时间。
+WatermarkContext 支持事件时间抽取和生成 Watermark，最终用于处理乱序事件。基于 WatermarkContext 抽象类扩展实现了 AutomaticWatermarkContext 和 ManualWatermarkContext，分别对应接入时间和事件时间。由此也可以看出，接入时间对应的 Timestamp 和 Watermark 都是通过 Source 算子自动生成的。事件时间的实现则相对复杂，需要用户自定义 SourceContext.emitWatermark() 方法来实现；NonTimestampContext 不支持基于事件时间的操作，仅实现了从外部数据源中读取数据并处理的逻辑，对应了处理时间。
 
-不同的 SourceContext 实现对应了不同的时间处理语义。根据设定不同的 TimeCharacteristic，就会创建不同类型的 SourceContext：
-- TimeCharacteristic.EventTime 时间语义创建 ManualWatermarkContext
-- TimeCharacteristic.IngestionTime 时间语义创建 AutomaticWatermarkContext
-- TimeCharacteristic.ProcessingTime 时间语义创建 NonTimestampContext
+不同的 SourceContext 实现对应了不同的时间处理语义。根据 TimeCharacteristic 配置的不同，则会创建对应不同类型的 SourceContext：
+- TimeCharacteristic.EventTime 时间语义对应创建 ManualWatermarkContext
+- TimeCharacteristic.IngestionTime 时间语义对应创建 AutomaticWatermarkContext
+- TimeCharacteristic.ProcessingTime 时间语义对应创建 NonTimestampContext
 
 ```java
 final SourceFunction.SourceContext<OUT> ctx;
@@ -122,13 +138,13 @@ switch (timeCharacteristic) {
 
 ## 3. 常见实现类
 
-SourceFunction 接口的实现类主要通过 run() 方法完成与外部数据源的交互，以实现外部数据的读取，并将读取到的数据通过 SourceContext 提供的 collect() 方法发送给 DataStream 后续的算子进行处理。
+SourceFunction 接口的实现类主要通过 run() 方法完成与外部数据源的交互，以实现外部数据的读取，并将读取到的数据通过 SourceContext 提供的 collect() 方法发送给 DataStream 后续的算子进行处理。SourceFunction 常见实现类如下图所示：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-source-function-3.png?raw=true)
 
 ### 3.1 SourceFunction 常见实现类
 
-SourceFunction 的实现类不支持并行读取数据，常见的实现有 SocketTextStreamFunction、FromElementsFunction、FromIteratorFunction 等。
+SourceFunction 是最顶层的 Source 方法，只是实现了 Source 的基本功能，即不支持并行读取数据，也不支持访问 RuntimeContext 获取其他信息。常见的实现有 SocketTextStreamFunction、FromElementsFunction、FromIteratorFunction 等。
 
 SocketTextStreamFunction 是从套接字读取字符串的 Source 函数，根据给定的 hostname 和 port，以 socket 的方式进行通信并读取字符串。该 Source 将从套接字流中读取字节并将它们单独转换为字符。当接收到 delimiter 指定的分隔符时，就会输出当前字符串：
 ```java
@@ -221,7 +237,7 @@ env.execute("FileMonitoringExample");
 ```
 MessageAcknowledgingSourceBase 针对数据源是消息队列的场景并提供了基于 ID 的应答机制，而 MultipleIdsMessageAcknowledgingSourceBase 是在 MessageAcknowledgingSourceBase 的基础上针对 ID 应答机制进行了更为细分的处理，支持两种 ID 应答模型：session id 和 unique message id。
 
-### 3.3 RichParallelSourceFunction
+### 3.3 RichParallelSourceFunction  常见实现类
 
 RichParallelSourceFunction 实现了 ParallelSourceFunction 接口，从而可以支持对外部数据源中数据的并行读取。常见的实现有 DataGeneratorSource、 InputFormatSourceFunction、FromSplittableIteratorFunction、StatefulSequenceSource 等。
 

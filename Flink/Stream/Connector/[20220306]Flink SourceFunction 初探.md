@@ -144,7 +144,7 @@ SourceFunction 接口的实现类主要通过 run() 方法完成与外部数据�
 
 ### 3.1 SourceFunction 常见实现类
 
-SourceFunction 是最顶层的 Source 方法，只是实现了 Source 的基本功能，即不支持并行读取数据，也不支持访问 RuntimeContext 获取其他信息。常见的实现有 SocketTextStreamFunction、FromElementsFunction、FromIteratorFunction 等。
+SourceFunction 是最顶层的 Source 方法，只是实现了 Source 的基本功能，既不支持并行读取数据，也不支持访问 RuntimeContext 获取其他信息。常见的实现有 SocketTextStreamFunction、FromElementsFunction、FromIteratorFunction 等。
 
 SocketTextStreamFunction 是从套接字读取字符串的 Source 函数，根据给定的 hostname 和 port，以 socket 的方式进行通信并读取字符串。该 Source 将从套接字流中读取字节并将它们单独转换为字符。当接收到 delimiter 指定的分隔符时，就会输出当前字符串：
 ```java

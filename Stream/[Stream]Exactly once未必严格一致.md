@@ -102,6 +102,5 @@ Map (Event event) {
 
 希望本文可以帮助大家意识到`exactly-once`这个术语极具误导性。提供`exactly-once`的处理语义实际上意味着在对流处理引擎所管理的算子的状态进行不同更新只会影响一次。`exactly-once`完全无法保证事件的处理（例如执行各类用户定义的逻辑）只需要进行一次。因此这里我们更愿意使用有效一次这个术语来描述这种保证，因为没必要确保处理工作只进行一次，只要保证由 SPE 管理的状态的最终结果只影响一次就够了。分布式快照和消息去重，这两种主流机制就是为了实现严格/有效一次的处理语义。在消息处理和状态更新方面，这两种机制均可提供相同的语义保证，但在性能方面可能有所差异。本文并不是为了探讨哪种机制更胜一筹，因为每种机制都各有利弊。
 
-原文:https://streaml.io/blog/exactly-once/
-
-译文:https://mp.weixin.qq.com/s/QjKQcFnbMxBBxFgIQ_f5lw
+原文: https://streaml.io/blog/exactly-once/
+译文: https://mp.weixin.qq.com/s/QjKQcFnbMxBBxFgIQ_f5lw

@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Airflow使用指南一 安装与启动
+title: Airflow 使用指南一 安装与启动
 date: 2017-12-29 12:55:01
 tags:
   - Airflow
@@ -232,4 +232,5 @@ Logfiles: - -
 ```
 
 可以访问 http://localhost:8080/admin/ , 呈现出的主界面如下:
-![img](http://img.blog.csdn.net/20170802173129848?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvU3VubnlZb29uYQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Airflow/how-install-and-startup-airflow-1.png?raw=true)

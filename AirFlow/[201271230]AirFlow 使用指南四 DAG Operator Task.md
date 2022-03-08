@@ -1,3 +1,15 @@
+---
+layout: post
+author: sjf0115
+title: AirFlow 使用指南四 DAG Operator Task
+date: 2017-12-30 12:55:01
+tags:
+  - Airflow
+
+categories: Airflow
+permalink: dag-operator-task-airflow
+---
+
 ### 1. DAG
 
 在Airflow中，DAG或有向无环图是你运行所有任务的集合，以某种组织方式来反映所有任务之间的关系和依赖。

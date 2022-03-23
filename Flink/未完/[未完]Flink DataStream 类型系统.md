@@ -14,9 +14,11 @@ permalink: physical-partitioning-in-apache-flink
 
 Flink 在其内部构建了一套自己的类型系统，Flink 现阶段支持的类型分类如下图所示，从图中可以看到 Flink 类型可以分为基础类型（Basic）、数组（Arrays）、复合类型（Composite）、辅助类型（Auxiliary）、泛型和其它类型（Generic）。Flink 支持任意的 Java 或是 Scala 类型。不需要像 Hadoop 一样去实现一个特定的接口（org.apache.hadoop.io.Writable），Flink 能够自动识别数据类型。
 
-### 1.1 原生数据类型
 
-Flink 通过实现 BasicTypeInfo 数据类型，能够支持任意 Java 原生基本类型（装箱）或 String 类型，例如，Integer、String、Double 等，如以下代码所示，通过从给定的元素集中创建DataStream数据集。
+
+### 1.1 原始类型
+
+Flink 通过实现 BasicTypeInfo 数据类型，能够支持任意 Java 原生基本类型（装箱）或 String 类型，例如，Integer、String、Double 等，如以下代码所示，通过从给定的元素集中创建 DataStream 数据集。
 ```
 //创建Int类型的数据集
 val intStream:DataStream[Int] = env.fromElements(3, 1, 2, 1, 5)
@@ -99,7 +101,7 @@ public class Person {
 ```java
 env.fromElements(new Person("Lucy", 18), new Person("Tom", 12))
 ```
-### 1.5 Flink Value类型
+### 1.5 Flink Value 类型
 
 Value 数据类型实现了 org.apache.flink.types.Value，其中包括 read() 和 write() 两个方法完成序列化和反序列化操作，相对于通用的序列化工具会有着比较高效的性能。目前 Flink 提供了內建的 Value 类型有 IntValue、DoubleValue 以及 StringValue 等，用户可以结合原生数据类型和 Value 类型使用。
 
@@ -129,15 +131,62 @@ TypeInformation<Tuple2<String, Double>> info2 = hint.getTypeInfo();
 ```
 在内部，这会创建 TypeHint 的匿名子类，捕获泛型信息并会将其保留到运行时。
 
-而在 Scala 中，Flink 使用在编译时运行的宏捕获所有泛型类型信息：
-```scala
-// important: this import is needed to access the 'createTypeInformation' macro function
-import org.apache.flink.streaming.api.scala._
-val stringInfo: TypeInformation[String] = createTypeInformation[String]
-val tupleInfo: TypeInformation[(String, Double)] = createTypeInformation[(String, Double)]
+
+## 2. 类型信息
+
+### 2.1 为数据类型创建类型信息
+
+Flink 类型系统的核心类是 TypeInformation。它为系统提供生成序列化器和比较器所需的必要信息。当应用程序提交执行时，Flink 的类型系统会尝试为处理的每种数据类型自动推断 TypeInformation。一个名为类型提取器的组件会分析所有函数的泛型类型以及返回类型，来获取相应的 TypeInformation 对象。但是，有时类型提取器会失灵，或者你可能想定义自己的类型并告诉 Flink 如何有效地处理它们。在这种情况下，你需要为特定数据类型生成 TypeInformation。
+
+Flink 为 Java 和 Scala 提供了两个实用工具类，使用静态方法就可以生成 TypeInformation。对于 Java，工具类是 org.apache.flink.api.common.typeinfo.Types，具体使用如以下示例所示：
+
+
+
+### 2.2 显示提供类型信息
+
+大多数情况下，Flink 可以自动推断类型并生成正确的 TypeInformation。Flink 的类型提取器利用反射以及分析函数签名和子类信息，生成用户自定义函数的正确输出类型。但是，有时无法提取必要的信息（例如，Java 擦除泛型类型信息），会抛出类似的如下异常：
+```
+Exception in thread "main" org.apache.flink.api.common.functions.InvalidTypesException: The return type of function 'main(ReturnsExample.java:21)' could not be determined automatically, due to type erasure. You can give type information hints by using the returns(...) method on the result of the transformation call, or by letting your function implement the 'ResultTypeQueryable' interface.
+	at org.apache.flink.api.dag.Transformation.getOutputType(Transformation.java:479)
+	at org.apache.flink.streaming.api.datastream.DataStream.addSink(DataStream.java:1236)
+	at org.apache.flink.streaming.api.datastream.DataStream.print(DataStream.java:937)
+...
+Caused by: org.apache.flink.api.common.functions.InvalidTypesException: The generic type parameters of 'Tuple2' are missing. In many cases lambda methods don't provide enough information for automatic type extraction when Java generics are involved. An easy workaround is to use an (anonymous) class instead that implements the 'org.apache.flink.api.common.functions.MapFunction' interface. Otherwise the type has to be specified explicitly using type information.
+...
+```
+此外，在某些情况下，Flink 选择的 TypeInformation 可能无法生成最有效的序列化器和反序列化器的。因此，你可能需要为你使用的数据类型显式地提供 TypeInformation。有两种方法可以提供 TypeInformation，从上面的异常信息中我们也可以知道：
+- 实现 ResultTypeQueryable 接口
+- 使用 returns 方法给出类型信息提示
+
+#### 2.2.1 ResultTypeQueryable
+
+你可以通过实现 ResultTypeQueryable 接口来扩展函数以显式提供返回类型的 TypeInformation。如下示例是一个显式提供返回类型的 MapFunction：
+```java
+public static class ResultTypeMapFunction implements MapFunction<String, Stu>, ResultTypeQueryable {
+    @Override
+    public Stu map(String value) throws Exception {
+        String[] params = value.split(",");
+        String name = params[0];
+        int age = Integer.parseInt(params[1]);
+        return new Stu(name, age);
+    }
+
+    @Override
+    public TypeInformation getProducedType() {
+        return Types.POJO(Stu.class);
+    }
+}
 ```
 
-## 3. 类型信息获取
+#### 2.2.2 returns
+
+在使用 Java DataStream API 定义 Dataflow 时，你还可以使用 returns() 方法显式指定算子的返回类型，如下所示：
+```java
+DataStream<Tuple2<String, Integer>> result = source
+    .map(value -> Tuple2.of(value.split(",")[0], Integer.parseInt(value.split(",")[1])))
+    .returns(Types.TUPLE(Types.STRING, Types.INT));
+```
+
 
 通常情况下 Flink 都能正常进行数据类型推断，并选择合适的 serializers 以及 comparators。但在某些情况下却无法直接做到，例如，定义函数时如果使用到了泛型，JVM 就会出现类型擦除的问题，使得 Flink 并不能很容易地获取到数据集中的数据类型信息。同时在 Scala API 和 Java API 中，Flink 分别使用了不同的方式重构了数据类型信息。
 

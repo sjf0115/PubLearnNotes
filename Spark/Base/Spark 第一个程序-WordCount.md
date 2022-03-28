@@ -1,11 +1,10 @@
 ---
 layout: post
 author: sjf0115
-title: Spark 第一个Spark程序WordCount
+title: Spark 第一个程序 WordCount
 date: 2018-03-11 15:03:01
 tags:
   - Spark
-  - Spark 基础
 
 categories: Spark
 permalink: spark-first-application-word-count
@@ -19,12 +18,6 @@ permalink: spark-first-application-word-count
 <dependency>
     <groupId>org.apache.spark</groupId>
     <artifactId>spark-core_2.11</artifactId>
-    <version>${spark.version}</version>
-</dependency>
-
-<dependency>
-    <groupId>org.apache.spark</groupId>
-    <artifactId>spark-sql_2.11</artifactId>
     <version>${spark.version}</version>
 </dependency>
 ```

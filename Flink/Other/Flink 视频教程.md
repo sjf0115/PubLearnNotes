@@ -78,7 +78,7 @@
 ### 4.5 20181104-上海
 
 - [x] [Apache Flink 在有赞的实践与踩过的坑](https://www.bilibili.com/video/BV1pt411h7N4?spm_id_from=333.999.0.0)
-  - [] [Flink 在有赞实时计算的实践](https://mp.weixin.qq.com/s/3CKCjQk5ebl3p3rFxXlp9w)
+  - [x] [Flink 在有赞实时计算的实践](https://mp.weixin.qq.com/s/3CKCjQk5ebl3p3rFxXlp9w)
 - [ ] [基于运维平台提高 Flink 的易用性](https://www.bilibili.com/video/BV1Zt411t7yq?spm_id_from=333.999.0.0)
 - [ ] [Flink 在汇智的实践](https://www.bilibili.com/video/BV1Zt411t7a6?spm_id_from=333.999.0.0)
 - [ ] [Flink 在袋鼠云一站式大数据平台中的使用](https://www.bilibili.com/video/BV1Zt411t7Wo?spm_id_from=333.999.0.0)
@@ -110,11 +110,11 @@
 
 ### 4.9 20190511-上海
 
-- [ ] [携程基于Apache Flink构建实时智能异常检测平台Prophet实践](https://www.bilibili.com/video/BV1k4411J7mf?p=1)
-- [ ] [基于Kubernetes的Flink特性及管理](https://www.bilibili.com/video/BV1k4411J7mf?p=2)
-- [ ] [菜鸟在物流场景中基于Apache Flink的流计算实践](https://www.bilibili.com/video/BV1k4411J7mf?p=3)
-- [ ] [Apache Flink在B站的应用和实践](https://www.bilibili.com/video/BV1k4411J7mf?p=4)
-- [ ] [Apache Flink与Apache Hive的集成](https://www.bilibili.com/video/BV1k4411J7mf?p=5)
+- [ ] [携程基于 Apache Flink 构建实时智能异常检测平台Prophet实践](https://www.bilibili.com/video/BV1k4411J7mf?p=1)
+- [ ] [基于 Kubernetes 的 Flink 特性及管理](https://www.bilibili.com/video/BV1k4411J7mf?p=2)
+- [ ] [菜鸟在物流场景中基于 Apache Flink 的流计算实践](https://www.bilibili.com/video/BV1k4411J7mf?p=3)
+- [ ] [Apache Flink 在B站的应用和实践](https://www.bilibili.com/video/BV1k4411J7mf?p=4)
+- [ ] [Apache Flink 与 Apache Hive 的集成](https://www.bilibili.com/video/BV1k4411J7mf?p=5)
 
 ### 4.10 20190512-北京
 
@@ -266,8 +266,32 @@
 
 ### 5.3 Flink Forward Asia 2020
 
+## 6. 技术解密
 
-## Flink Forward 全球在线会议-中文精华版
+### 6.1 版本解读
+
+- [ ] [Apache Flink 1.9 特性解读](https://www.bilibili.com/video/BV1Jx411X72n?p=1)
+- [ ] [Flink SQL 1.9.0 技术内幕和最佳实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=5)
+- [ ] [Flink 1.11 新版本深度解析](https://www.bilibili.com/video/BV1ph411o746?spm_id_from=333.999.0.0)
+- [ ] [Flink SQL 1.11 新功能与最佳实践](https://www.bilibili.com/video/BV1Ck4y1y7Dc?p=4)
+- [ ] [深入解读 Flink SQL 1.13](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
+- [ ] [Flink 1.14 新特性预览](https://www.bilibili.com/video/BV1xM4y157AD?p=4)
+
+
+### 6.2 深度解析
+
+- [ ] [Flink Pulsar Connector 机制剖析](https://www.bilibili.com/video/BV1YQ4y1A7VN?spm_id_from=333.999.0.0)
+- [ ] [最佳实践：Flink 流式导入 HBase](https://www.bilibili.com/video/BV1gk4y1z7EQ?spm_id_from=333.999.0.0)
+- [ ] [Flink 1.11 JDBC Connector：Flink 与数据库集成最佳实践](https://www.bilibili.com/video/BV1bp4y1q78d?spm_id_from=333.999.0.0)
+- [ ] [基于 Flink SQL CDC 的实时数据同步方案](https://www.bilibili.com/video/BV1zt4y1D7kt?spm_id_from=333.999.0.0)
+- [ ] [深度集成 Flink: Apache Iceberg 0.11.0 最新解读](https://www.bilibili.com/video/BV1TT4y1N7fP?spm_id_from=333.999.0.0)
+- [ ] [Flink 1.12 基于 FLINK SQL 的实时数据打宽](https://www.bilibili.com/video/BV1Ap4y1h7j1?spm_id_from=333.999.0.0)
+- [ ] [Flink 1.12 深度解析upsert-kafka](https://www.bilibili.com/video/BV1HZ4y1w7R3?spm_id_from=333.999.0.0)
+- [ ] [Flink 1.12 PyFlink 1.12新功能解析](https://www.bilibili.com/video/BV1bV411Y7Kz?spm_id_from=333.999.0.0)
+- [ ] [Flink 1.12 Flink on K8s在阿里巴巴的实践](https://www.bilibili.com/video/BV1FU4y1Y7nM?spm_id_from=333.999.0.0)
+- [ ] [Flink Hudi 集成解密](https://www.bilibili.com/video/BV1fy4y1x7nH?spm_id_from=333.999.0.0)
+
+## 7. Flink Forward 全球在线会议-中文精华版
 
 - [ ] [Stateful Functions 2.0: Stream Processing meets Serverless Applications](https://www.bilibili.com/video/BV1Uf4y1m7Hx?p=1)
 - [ ] [Stream analytics made real with Pravega and Apache Flink](https://www.bilibili.com/video/BV1Uf4y1m7Hx?p=2)
@@ -289,8 +313,9 @@
 - [ ] [A deep dive into Flink SQL](https://www.bilibili.com/video/BV1Uf4y1m7Hx?p=18)
 - [ ] [Lyft: 基于Flink的准实时海量数据分析平台](https://www.bilibili.com/video/BV1Uf4y1m7Hx?p=19)
 
+## 8. 实际案例
 
-
+- [ ] [美团实时数仓监控报警体系建设](https://www.bilibili.com/video/BV1bp4y1U7i9?spm_id_from=333.999.0.0)
 - [ ] [3.11 基于 Apache Flink 的监控告警系统](https://www.bilibili.com/video/BV1DJ411p7QR?spm_id_from=333.999.0.0)
 - [ ] [3.12 30分钟教你入门 - Apache Flink 知识图谱详解](https://www.bilibili.com/video/BV1M7411V7zF?spm_id_from=333.999.0.0)
 - [ ] [3.13 【1.10特别篇】Demo: 基于 Flink SQL 构建离线应用](https://www.bilibili.com/video/BV1o7411A7ki?spm_id_from=333.999.0.0)
@@ -311,18 +336,7 @@
 
 
 
-- [ ] [【生态篇】Flink Pulsar Connector 机制剖析](https://www.bilibili.com/video/BV1YQ4y1A7VN?spm_id_from=333.999.0.0)
-- [ ] [最佳实践：Flink 流式导入 HBase](https://www.bilibili.com/video/BV1gk4y1z7EQ?spm_id_from=333.999.0.0)
-- [ ] [【实时数仓篇】美团实时数仓监控报警体系建设](https://www.bilibili.com/video/BV1bp4y1U7i9?spm_id_from=333.999.0.0)
-- [ ] [【发版特刊】Flink 1.11 新版本深度解析](https://www.bilibili.com/video/BV1ph411o746?spm_id_from=333.999.0.0)
-- [ ] [【Flink 1.11】Flink JDBC Connector：Flink 与数据库集成最佳实践](https://www.bilibili.com/video/BV1bp4y1q78d?spm_id_from=333.999.0.0)
-- [ ] [基于 Flink SQL CDC 的实时数据同步方案](https://www.bilibili.com/video/BV1zt4y1D7kt?spm_id_from=333.999.0.0)
-- [ ] [深度集成 Flink: Apache Iceberg 0.11.0 最新解读](https://www.bilibili.com/video/BV1TT4y1N7fP?spm_id_from=333.999.0.0)
-- [ ] [【Flink 1.12】基于 FLINK SQL 的实时数据打宽](https://www.bilibili.com/video/BV1Ap4y1h7j1?spm_id_from=333.999.0.0)
-- [ ] [【Flink 1.12】深度解析upsert-kafka](https://www.bilibili.com/video/BV1HZ4y1w7R3?spm_id_from=333.999.0.0)
-- [ ] [【Flink 1.12】PyFlink 1.12新功能解析](https://www.bilibili.com/video/BV1bV411Y7Kz?spm_id_from=333.999.0.0)
-- [ ] [【Flink 1.12】 Flink on K8s在阿里巴巴的实践](https://www.bilibili.com/video/BV1FU4y1Y7nM?spm_id_from=333.999.0.0)
-- [ ] [【技术生态】Flink Hudi. 集成解密](https://www.bilibili.com/video/BV1fy4y1x7nH?spm_id_from=333.999.0.0)
+
 - [ ] []()
 - [ ] []()
 ..

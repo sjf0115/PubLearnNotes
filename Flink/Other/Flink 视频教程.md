@@ -127,12 +127,12 @@
 
 ### 4.11 20190629-北京
 
-- [ ] [Apache Flink 1.9 特性解读](https://www.bilibili.com/video/BV1Jx411X72n?p=1)
+- [x] [Apache Flink 1.9 特性解读](https://www.bilibili.com/video/BV1Jx411X72n?p=1)
 - [ ] [打造基于Apache Flink Table API的机器学习生态](https://www.bilibili.com/video/BV1Jx411X72n?p=2)
 - [ ] [基于Flink on Kubernetes的大数据平台](https://www.bilibili.com/video/BV1Jx411X72n?p=3)
 - [ ] [基于Apache Flink的高性能机器学习算法库](https://www.bilibili.com/video/BV1Jx411X72n?p=4)
 - [ ] [Apache Flink在快手的应用与实践](https://www.bilibili.com/video/BV1Jx411X72n?p=5)
-- [ ] [Apache Flink-1.9与Hive的兼容性](https://www.bilibili.com/video/BV1Jx411X72n?p=6)
+- [ ] [Apache Flink 1.9 与 Hive 的兼容性](https://www.bilibili.com/video/BV1Jx411X72n?p=6)
 
 ### 4.12 20190831-深圳
 
@@ -270,7 +270,7 @@
 
 ### 6.1 版本解读
 
-- [ ] [Apache Flink 1.9 特性解读](https://www.bilibili.com/video/BV1Jx411X72n?p=1)
+- [x] [Apache Flink 1.9 特性解读](https://www.bilibili.com/video/BV1Jx411X72n?p=1)
 - [ ] [Flink SQL 1.9.0 技术内幕和最佳实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=5)
 - [ ] [Flink 1.11 新版本深度解析](https://www.bilibili.com/video/BV1ph411o746?spm_id_from=333.999.0.0)
 - [ ] [Flink SQL 1.11 新功能与最佳实践](https://www.bilibili.com/video/BV1Ck4y1y7Dc?p=4)

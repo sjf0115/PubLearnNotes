@@ -2,7 +2,7 @@
 ## 1. 版本迭代
 
 | 版本 | 解读 | 链接 |
-| :------------- | :------------- |
+| :------------- | :------------- | :------------- |
 | 1.9   | Flink 1.9 特性解读 | [视频](https://www.bilibili.com/video/BV1Jx411X72n?p=1) |
 | 1.9   | Flink SQL 1.9.0 技术内幕和最佳实践 | [视频](https://www.bilibili.com/video/BV1Y4411y7u6?p=5) |
 | 1.11  | Flink 1.11 新版本深度解析 | [视频](https://www.bilibili.com/video/BV1ph411o746?spm_id_from=333.999.0.0) |

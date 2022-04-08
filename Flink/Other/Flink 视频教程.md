@@ -140,7 +140,7 @@
 - [ ] [Apache Flink在中国农业银行的探索和实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=2)
 - [ ] [混合云、边缘计算下的实时计算平台设计](https://www.bilibili.com/video/BV1Y4411y7u6?p=3)
 - [ ] [构建批流一体数据集成平台的一致性语义保证](https://www.bilibili.com/video/BV1Y4411y7u6?p=4)
-- [ ] [Flink SQL 1.9.0 技术内幕和最佳实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=5)
+- [x] [Flink SQL 1.9.0 技术内幕和最佳实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=5)
 
 ### 4.13 20190907-上海
 
@@ -271,11 +271,11 @@
 ### 6.1 版本解读
 
 - [x] [Apache Flink 1.9 特性解读](https://www.bilibili.com/video/BV1Jx411X72n?p=1)
-- [ ] [Flink SQL 1.9.0 技术内幕和最佳实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=5)
-- [ ] [Flink 1.11 新版本深度解析](https://www.bilibili.com/video/BV1ph411o746?spm_id_from=333.999.0.0)
-- [ ] [Flink SQL 1.11 新功能与最佳实践](https://www.bilibili.com/video/BV1Ck4y1y7Dc?p=4)
-- [ ] [深入解读 Flink SQL 1.13](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
-- [ ] [Flink 1.14 新特性预览](https://www.bilibili.com/video/BV1xM4y157AD?p=4)
+- [x] [Flink SQL 1.9.0 技术内幕和最佳实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=5)
+- [x] [Flink 1.11 新版本深度解析](https://www.bilibili.com/video/BV1ph411o746?spm_id_from=333.999.0.0)
+- [x] [Flink SQL 1.11 新功能与最佳实践](https://www.bilibili.com/video/BV1Ck4y1y7Dc?p=4)
+- [x] [深入解读 Flink SQL 1.13](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
+- [x] [Flink 1.14 新特性预览](https://www.bilibili.com/video/BV1xM4y157AD?p=4)
 
 
 ### 6.2 深度解析

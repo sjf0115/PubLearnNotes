@@ -12,7 +12,7 @@ permalink: flink-could-not-find-any-factory-for-identifier-json
 
 ## 1. 现象
 
-在运行 Flink SQL [程序]()时，抛出如下异常：
+在运行 Flink SQL [程序](https://github.com/sjf0115/data-example/blob/master/flink-example-1.14/src/main/java/com/flink/example/table/connectors/KafkaSourceTableExample.java)时，抛出如下异常：
 ```java
 Exception in thread "main" org.apache.flink.table.api.ValidationException: Unable to create a source for reading table 'default_catalog.default_database.kafka_source_table'.
 

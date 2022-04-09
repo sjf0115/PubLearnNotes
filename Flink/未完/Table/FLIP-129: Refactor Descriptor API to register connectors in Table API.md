@@ -8,7 +8,7 @@
 
 因此，connect 在 Flink 1.11 版本中被废弃。在这个 FLIP 中，我们提出一个新的 API 以编程的方式在 Table API 上的定 Source 和 Sink，无需切换到 SQL DDL。
 
-```
+```java
 tableEnv.connect(
         new Kafka() // can be replaced by new Connector("kafka-0.11")
             .version("0.11")

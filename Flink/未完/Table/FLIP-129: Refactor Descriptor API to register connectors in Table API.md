@@ -1,14 +1,16 @@
 
 ## 1. 目标
 
-在 Flink 1.5.0 中引入了 TableEnvironment#connect API，用于实例化和配置表 Table Source 和 Sink。在那个时候，SQL DDL 一直在开发和优化中，功能也变得更加强大，其中许多功能无法从 #connect 中访问。此外，该 API 也显示中如下几个缺点：
+在 Flink 1.5.0 中引入了 TableEnvironment#connect API，用于实例化以及配置 Table Source 和 Sink。在这个时候，SQL DDL 还一直处于开发和优化中。随着 SQL DDL 功能变得越来越强大，其中许多功能无法在 connect API 实现。此外，该 API 也显现出如下几个缺点：
 - Connector 必须实现对应的描述符，例如 `new Kafka()`，这会增加维护的工作量以及重复信息。
 - SQL DDL 和 Connector 的底层实现不同，需要维护不同的代码路径。
 - Descriptor API 有很多已知问题：[FLINK-17548](https://issues.apache.org/jira/browse/FLINK-17548)、[FLINK-17186](https://issues.apache.org/jira/browse/FLINK-17186)、[FLINK-15801](https://issues.apache.org/jira/browse/FLINK-15801)、[FLINK-15943](https://issues.apache.org/jira/browse/FLINK-15943)。
 
 因此，connect 在 Flink 1.11 版本中被废弃。在这个 FLIP 中，我们提出一个新的 API 以编程的方式在 Table API 上的定 Source 和 Sink，无需切换到 SQL DDL。
 
-```java
+## 2. Connect API
+
+```
 tableEnv.connect(
         new Kafka() // can be replaced by new Connector("kafka-0.11")
             .version("0.11")
@@ -39,6 +41,7 @@ tableEnv.connect(
 connect() 方法在 TableEnvironment 的方法中看起来很奇怪，因为所有其他方法都是跟 SQL 兼容的。因此，我们认为 `tEnv#createTemporaryTable(path, descriptor)` 是比 `connect()` 更好的入口。
 
 `TableEnvironment#createTemporaryTable(path, descriptor)` 将描述符和表的注册实现了解耦。我们可以轻松地支持更多功能，例如 `TableEnvironment#from(descriptor)` 和 `Table#executeInsert(descriptor)` 具有相同描述符接口/类。
+
 
 
 ## 2. Public Interfaces
@@ -195,7 +198,6 @@ StatementSet addInsert(TableDescriptor descriptor, Table table);
 
 删除现有的 API，并将其替换为新的、不兼容的 API。 然而，旧的 API 自 Flink 1.11 起已被弃用，并且缺乏对许多功能的支持，因此我们预计这不会影响到许多用户，因为目前的建议是切换到 SQL DDL。 对于受影响的用户，迁移需要相对较小的更改，并且可以涵盖所有现有功能。
 
-## 5.
 
 
 

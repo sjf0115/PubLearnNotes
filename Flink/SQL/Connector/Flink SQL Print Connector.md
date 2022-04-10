@@ -32,7 +32,7 @@ Print Connector 只能作为 Sink 输出表，不能作为 Source 输入表。Pr
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-print-connector-1.png?raw=true)
 
-### 2. 创建Print表
+### 2. 创建 Print 表
 
 使用如下语句指定 connector 参数选项为 'print'：
 ```sql
@@ -61,9 +61,5 @@ LIKE behavior_table (EXCLUDING ALL)
 | print-identifier | 可选 | 无 | String | 作为输出内容的前缀标示 Print |
 | standard-error | 可选 | false | Boolean | 如果打印到标准错误流而不是标准输出流，设置为 true |
 | sink.parallelism | 可选 | 无 | Integer | 定义 Print sink 算子的并行度。默认情况下，并行度由框架决定，并与上游链算子有相同的并行度 |
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文：[Print SQL Connector](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/connectors/table/print/)

@@ -1,6 +1,8 @@
 
 ### 1. 简介
 
+Retraction 是流式数据处理中撤回过早下发（Early Firing）数据的一种机制，类似于传统数据库的 Update 操作。级联的聚合等复杂 SQL 中如果没有 Retraction 机制，就会导致最终的计算结果与批处理不同，这也是目前业界很多流计算引擎的缺陷。
+
 '撤回'是数据流的重要组成部分，用于修正流中提前触发的结果。提前触发在流式处理场景中被广泛使用，例如，'无窗口'或无限流聚合和流内连接、窗口（提前触发）聚合和流-流内部连接。如 Streaming 102 [1] 中所述，主要在如下两种情况下需要撤回：
 - 更新 Keyed Table：Key 是 Source Table 上的主键（PK）或者是聚合中的 groupKey/partitionKey
 - 动态窗口（例如，会话窗口）合并：窗口合并时新值可能会在多个先前的窗口中进行替换。
@@ -11,7 +13,43 @@
 
 ### 2. 101 - 了解问题
 
-我们以'对 Keyd Table 更新'为例来了解为什么需要对之前输出的结果进行撤回。在这个例子中，我们首先计算每个单词的出现次数，然后再计算次数对应的单词个数。如表 1 所示，假设初始阶段 count:1 的频率为 2，count:2 的频率为 1。
+考虑如下统计词频分布的 SQL：
+```sql
+
+SELECT
+  cnt, COUNT(cnt) AS freq
+FROM (
+  SELECT word, COUNT(*) AS cnt
+  FROM words_table
+  GROUP BY word
+)
+GROUP BY cnt
+```
+假设输入数据是：
+
+| word  |
+| :---- |
+| Hello |
+| World |
+| Hello |
+
+则经过上面的计算后，预期的输出结果应该是：
+
+| cnt   | freq  |
+| :---- | :---- |
+| 1     | 1     |
+| 2     | 1     |
+
+但与批处理不同，流处理的数据是一条条到达的，理论上每一条数据都会触发一次计算，所以在处理了第一个 Hello 和第一个 World 之后，词频为 1 的单词数已经变成了 2：
+
+![](1)
+
+此时再处理第二个 Hello 时，如果不能修正之前的结果，Hello 就会在词频等于 1 和词频等于 2 这两个窗口下被同时统计，显然这个结果是错误的，这就是没有 Retraction 机制带来的问题。
+
+
+
+
+我们以更新 Keyd Table 为例来说明为什么需要对之前输出的结果进行撤回。在这个例子中，我们首先计算每个单词的出现次数，然后再计算次数对应的单词个数。如表 1 所示，假设初始阶段 count:1 的频率为 2，count:2 的频率为 1。
 
 ![](1)
 
@@ -114,5 +152,5 @@ https://ata.alibaba-inc.com/articles/120955?spm=ata.23639746.0.0.68e851a38KBd4E
 
 
 
-- https://blog.csdn.net/a1240466196/article/details/109975823?spm=1001.2101.3001.6650.2&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-2.essearch_pc_relevant&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-2.essearch_pc_relevant
+-
 - https://blog.csdn.net/u013411339/article/details/119974387?spm=1001.2101.3001.6650.15&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-15.highlightwordscore&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-15.highlightwordscore

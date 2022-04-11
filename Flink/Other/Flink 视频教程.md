@@ -261,10 +261,68 @@
 
 ### 5.2 Flink Forward Asia 2019
 
-#### 5.2.1 人工智能
+#### 5.2.1 核心技术
 
+- [ ] [Pluggable Shuffle Service and Unaligned Checkpoint](https://www.bilibili.com/video/BV1WJ411r7XY?p=1)
+- [ ] [漂移计算——跨 DC 跨数据源的高性能 SQL 引擎](https://www.bilibili.com/video/BV1WJ411r7XY?p=2)
+- [ ] [New Source API – Make it Easy!](https://www.bilibili.com/video/BV1WJ411r7XY?p=3)
+- [ ] [Stateful Functions](https://www.bilibili.com/video/BV1WJ411r7XY?p=4)
+- [ ] [Apache Flink 新场景——OLAP 引擎](https://www.bilibili.com/video/BV1WJ411r7XY?p=5)
+- [ ] [New Feature and Improvements on State Backends in Flink 1.10](https://www.bilibili.com/video/BV1WJ411r7XY?p=6)
+- [ ] [阿里巴巴在 Apache Flink 大规模持久化存储的实践之道](https://www.bilibili.com/video/BV1WJ411r7XY?p=7)
+- [ ] [Using Apache Flink as a Unified Data Processing Platform](https://www.bilibili.com/video/BV1WJ411r7XY?p=8)
+- [ ] [深入探索 Apache Flink SQL 流批统一的查询引擎与最佳实践](https://www.bilibili.com/video/BV1WJ411r7XY?p=9)
+- [ ] [Apache Flink 流批一体的资源管理与任务调度](https://www.bilibili.com/video/BV1WJ411r7XY?p=10)
+
+#### 5.2.2 开源大数据生态
+
+- [ ] [YuniKorn 对 Flink on K8s 的调度优化 ](https://www.bilibili.com/video/BV1sJ411r7Fm?p=1)
+- [ ] [流处理基准测试](https://www.bilibili.com/video/BV1sJ411r7Fm?p=2)
+- [ ] [Apache Flink and the Apache Way](https://www.bilibili.com/video/BV1sJ411r7Fm?p=3)
+- [ ] [Delivering stream data reliably with Pravega](https://www.bilibili.com/video/BV1sJ411r7Fm?p=4)
+- [ ] [Deep dive into Pyflink & integration with Zeppelin](https://www.bilibili.com/video/BV1sJ411r7Fm?p=5)
+- [ ] [Apache Flink 与 Apache Hive 的集成](https://www.bilibili.com/video/BV1sJ411r7Fm?p=6)
+- [ ] [趣头条基于 Apache Flink+ClickHouse 构建实时数据分析平台](https://www.bilibili.com/video/BV1sJ411r7Fm?p=7)
+- [ ] [基于 Apache Flink 的边缘流式计算](https://www.bilibili.com/video/BV1sJ411r7Fm?p=8)
+- [ ] [基于 Apache Pulsar 和 Apache Flink 进行批流一体的弹性数据处理](https://www.bilibili.com/video/BV1sJ411r7Fm?p=9)
+- [ ] [The integretion of Apache Flink SQL and Apache Calcite](https://www.bilibili.com/video/BV1sJ411r7Fm?p=10)
 
 ### 5.3 Flink Forward Asia 2020
+
+#### 5.3.1 核心技术
+
+- [ ] [Flink SQL 在快手的落地和扩展](https://www.bilibili.com/video/BV1j34y1B72o?p=1)
+- [ ] [Flink State-Backend Improvements and Evolution in 2021](https://www.bilibili.com/video/BV1j34y1B72o?p=2)
+- [ ] [Powering HTAP at ByteDance with Apache Flink](https://www.bilibili.com/video/BV1j34y1B72o?p=3)
+- [ ] [深入解析 Flink 细粒度资源管理](https://www.bilibili.com/video/BV1j34y1B72o?p=4)
+- [ ] [Flink Join 算子优化](https://www.bilibili.com/video/BV1j34y1B72o?p=5)
+- [ ] [Flink 新一代流计算和容错 - 阶段总结和展望](https://www.bilibili.com/video/BV1j34y1B72o?p=6)
+- [ ] [Improvements of Job Scheduler and Query Execution on Flink OLAP](https://www.bilibili.com/video/BV1j34y1B72o?p=7)
+- [ ] [面向流批一体的 Flink Runtime 新进展](https://www.bilibili.com/video/BV1j34y1B72o?p=8)
+- [ ] [Trisk：在 Flink 上实现以 task 为中心的流处理动态 reconfiguration 的 control plane](https://www.bilibili.com/video/BV1j34y1B72o?p=9)
+- [ ] [Flink Connector 社区新动向与 Hybrid Source 原理实践](https://www.bilibili.com/video/BV1j34y1B72o?p=10)
+- [ ] [基于 FFI 的 PyFlink 下一代 Python 运行时介绍](https://www.bilibili.com/video/BV1j34y1B72o?p=11)
+- [ ] [StateBackend Performance Improvements with Cache](https://www.bilibili.com/video/BV1j34y1B72o?p=12)
+- [ ] [为实时机器学习设计的算法接口与迭代引擎](https://www.bilibili.com/video/BV1j34y1B72o?p=13)
+
+#### 5.3.2 开源解决方案
+
+- [ ] [HTAP 趋势下，大数据的未来](https://www.bilibili.com/video/BV1RY41187fJ?p=1)
+- [ ] [Pravega Flink connector Table API 进阶功能揭秘](https://www.bilibili.com/video/BV1RY41187fJ?p=1)
+- [ ] [打造批流融合：Pulsar - Flink Connector 的设计、开发和使用](https://www.bilibili.com/video/BV1RY41187fJ?p=1)
+- [ ] [大数据三剑合一：Flink + Zeppelin + Airflow](https://www.bilibili.com/video/BV1RY41187fJ?p=1)
+- [ ] [Mars on Flink：实时数据流上的 Pandas](https://www.bilibili.com/video/BV1RY41187fJ?p=1)
+- [ ] [蚂蚁实时计算 Flink on OceanBase](https://www.bilibili.com/video/BV1RY41187fJ?p=1)
+- [ ] [双剑合璧：Flink + StarRocks 构建实时数仓解决方案](https://www.bilibili.com/video/BV1RY41187fJ?p=1)
+- [ ] [使用 Apache Atlas 追踪 Apache Flink 的实时数据仓库血缘](https://www.bilibili.com/video/BV1RY41187fJ?p=1)
+
+#### 5.3.3 流批一体
+
+- [ ] [流批一体在字节跳动特征平台的实践](https://www.bilibili.com/video/BV15r4y1v7Pe?p=1)
+- [ ] [美团基于流批一体构建增量数仓生产实践](https://www.bilibili.com/video/BV15r4y1v7Pe?p=2)
+- [ ] [流批一体在京东的探索与实践](https://www.bilibili.com/video/BV15r4y1v7Pe?p=3)
+- [ ] [基于 Flink Dynamic Table 构建流批一体数仓](https://www.bilibili.com/video/BV15r4y1v7Pe?p=4)
+- [ ] [Flink 流批一体在小米的探索和实践](https://www.bilibili.com/video/BV15r4y1v7Pe?p=5)
 
 ## 6. 技术解密
 
@@ -290,6 +348,7 @@
 - [ ] [Flink 1.12 PyFlink 1.12新功能解析](https://www.bilibili.com/video/BV1bV411Y7Kz?spm_id_from=333.999.0.0)
 - [ ] [Flink 1.12 Flink on K8s在阿里巴巴的实践](https://www.bilibili.com/video/BV1FU4y1Y7nM?spm_id_from=333.999.0.0)
 - [ ] [Flink Hudi 集成解密](https://www.bilibili.com/video/BV1fy4y1x7nH?spm_id_from=333.999.0.0)
+- [ ] [A deep dive into Flink SQL](https://www.bilibili.com/video/BV1Uf4y1m7Hx?p=18)
 
 ## 7. Flink Forward 全球在线会议-中文精华版
 

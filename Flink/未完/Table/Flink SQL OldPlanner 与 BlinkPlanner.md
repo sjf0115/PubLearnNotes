@@ -46,15 +46,23 @@ Flink Table 的新架构实现了查询处理器的插件化，社区完整保�
 
 > 两个查询处理器之间的语义和功能大部分是一致的，但并未完全对齐。
 
-## 4. 如何启用 Planner
+## 4. Planner 发展历程
 
-Flink 1.9 到 Flink 1.13 版本中，Flink Old Planner 和 Blink Planner 并存。Flink 1.9
+Flink 1.9 到 Flink 1.13 版本，Flink Planner（Old Planner）和 Blink Planner 两种 Planner 一直并存。最终在 Flink 1.14.0 版本将 Old Planner 的所有代码移除，彻底退出历史舞台：
 
-Flink 1.11 将 Blink Planner 设置为默认 Planner。因此开发的时候，需要根据需要引入其一，或两个都引入也可以。
+![]()
 
-### 4.1 Flink 1.9.0 版本
+- Flink 1.9.0：在这个版本 Blink Planner 尚未完全集成。因此，Flink Planner（Old Planner）仍然是 1.9 版本的默认 Planner，建议在生产环境使用这个 Planner。
+- Flink 1.10.0：从这个版本开始 Blink Planner 成为 SQL Client 的默认 Planner。Table API 中 Old Planner 的切换，计划在下一个版本中进行，因此我们建议用户开始熟悉 Blink Planner。具体查阅[FLINK-15495](https://jira.apache.org/jira/browse/FLINK-15495)
+- Flink 1.11.0：从这个版本开始 Blink Planner 成为 Table API/SQL 的默认 Planner。Old Planner 仍然在支持，但后续版本中会完全废弃使用。对于生产环境，我们建议可以迁移到 Blink Planner 上。具体查阅[FLINK-17339](https://jira.apache.org/jira/browse/FLINK-17339)
+- Flink 1.13.0：从这个版本开始 Old Planner 标记为 Deprecated。Blink Planner 现在已成为一些版本的默认 Planner，以后也将是唯一的一个 Planner。这意味着 BatchTableEnvironment 和 SQL/DataSet 互操作性都即将结束。请使用统一的 TableEnvironment 进行批处理和流处理。具体查阅[FLINK-21709](https://issues.apache.org/jira/browse/FLINK-21709)
+- Flink 1.14.0：我们在将 Blink Planner 加入到 Flink 时，就已明确它终将取代原本的 Flink Planner（Old Planner）。Blink 速度更快，功能也更加完整。Blink Planner 成为默认的 Planner 已稳定运行好几个版本。在 Flink 1.14.0，我们终于将旧版 Planner 的所有代码移除了。
 
-如果你想在 IDE 中本地运行 Table API 或者 SQL 程序，需要在项目中显式地增加 Planner 的依赖：
+## 5. 如何启用 Planner
+
+### 5.1 Flink 1.9.0 版本
+
+被选择的 Planner 必须要在正在执行的 Java 进程的类路径中。对于集群设置，默认的两个 Planner 都会自动地加载到类路径中。如果你想在 IDE 中本地运行 Table API 或者 SQL 程序，需要在项目中显式地增加 Planner 的依赖：
 ```xml
 <!-- 推荐使用老的 Planner -->
 <dependency>
@@ -79,29 +87,33 @@ Flink 1.11 将 Blink Planner 设置为默认 Planner。因此开发的时候，�
 ```
 如果作业需要运行在集群环境，打包时将 Blink Planner 相关依赖的 scope 设置为 provided，表示这些依赖由集群环境提供。这是因为 Flink 在编译打包时，已经将 Blink Planner 相关的依赖打包，不需要再次引入，避免冲突。
 
-不过，Blink 的查询处理器尚未完全集成。因此，1.9 之前的 Flink 处理器仍然是 1.9 版本的默认处理器，建议用于生产设置。可以在创建 TableEnvironment 时通过 EnvironmentSettings 配置启用 Blink 处理器。被选择的处理器必须要在正在执行的 Java 进程的类路径中。对于集群设置，默认两个查询处理器都会自动地加载到类路径中。
+对于流处理作业可以在创建 TableEnvironment 时通过 EnvironmentSettings 配置启用 Old Planner：
 
-### 4.2 Flink 1.10 版本
-
-从 Flink 1.10.0 版本开始 Blink Planner 成为 SQL Client 的默认 Planner。Table API 中 Old Planner 的切换也计划在下一个版本中进行，因此我们建议用户开始熟悉 Blink Planner。
-> 具体查阅[FLINK-15495](https://jira.apache.org/jira/browse/FLINK-15495)
-
-### 4.3 Flink 1.11.0 版本
-
-从 Flink 1.11.0 版本开始 Blink Planner 成为 Table API/SQL 的默认 Planner。Old Planner 仍然在支持，但后续版本中会完全废弃使用。对于生产环境，我们建议可以迁移到 Blink Planner 上。
-
-> 具体查阅[FLINK-17339](https://jira.apache.org/jira/browse/FLINK-17339)
-
-### 4.4 Flink 1.13.0 版本
-
-从 Flink 1.13.0 版本开始 Table API & SQL API 的 Old Planner 标记为 Deprecated，并将在 Flink 1.14 中彻底删除。Blink Planner 现在已成为某些版本的默认 Planner，并将是唯一的一个。这意味着 BatchTableEnvironment 和 SQL/DataSet 互操作性都即将结束。请使用统一的 TableEnvironment 进行批处理和流处理。
-> 具体查阅[FLINK-21709](https://issues.apache.org/jira/browse/FLINK-21709)
-
-### 4.3 Flink 1.14 版本
-
-我们在将 Blink Planner 加入到 Flink 时，就已明确它终将取代原本的 Flink Planner（Old Planner）。Blink 速度更快，功能也更加完整。最近一年，Blink Planner 已成为默认的 Planner。在 Flink 1.14，我们终于将旧版 Planner 的所有代码移除了。这让我们得以移除许多过时的接口，避免用户在实现自定义连接器和函数时产生不知该用哪个接口的困惑。
+![]()
 
 
+### 5.2 Flink 1.13.0 版本
+
+
+### 5.3 Flink 1.14.0 版本
+
+可以看到如下所示在 Flink 1.14 版本中 Old Planner 方法已经被移除：
+```java
+@Deprecated
+public Builder useOldPlanner() {
+    throw new TableException(
+            "The old planner has been removed in Flink 1.14. "
+                    + "Please upgrade your table program to use the default "
+                    + "planner (previously called the 'blink' planner).");
+}
+```
+由于 Old Planner 已经被移除，Blink Planner 成为唯一一个 Planner，因此不再需要指定使用的是哪一个 Planner，useBlinkPlanner 方法在后续版本中也会被删除：
+```java
+@Deprecated
+public Builder useBlinkPlanner() {
+    return this;
+}
+```
 
 
 

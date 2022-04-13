@@ -168,7 +168,7 @@
 - [ ] [批流融合在唯品会的实践应用](https://www.bilibili.com/video/BV1Ck4y1y7Dc?p=1)
 - [ ] [Analytics Zoo 在 Flink 极客挑战赛中的应用](https://www.bilibili.com/video/BV1Ck4y1y7Dc?p=2)
 - [ ] [Flink 在小红书实时平台的应用](https://www.bilibili.com/video/BV1Ck4y1y7Dc?p=3)
-- [ ] [Flink SQL 1.11 新功能与最佳实践](https://www.bilibili.com/video/BV1Ck4y1y7Dc?p=4)
+- [x] [Flink SQL 1.11 新功能与最佳实践](https://www.bilibili.com/video/BV1Ck4y1y7Dc?p=4)
 
 ### 4.17 20200926-深圳
 
@@ -186,7 +186,7 @@
 
 ### 4.19 20210512-北京
 
-- [ ] [深入解读 Flink SQL 1.13](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
+- [x] [深入解读 Flink SQL 1.13](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
 - [ ] [Flink 1.13: Towards Scalable Cloud Native Application](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
 - [ ] [面向流批一体的 Flink 运行时与 DataStream API 优化](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
 - [ ] [State backend Flink-1.13 优化及生产实践分享](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
@@ -208,7 +208,7 @@
 - [ ] [Flink 实时作业的智能诊断和配置](https://www.bilibili.com/video/BV1xM4y157AD?p=1)
 - [ ] [万亿级实时数据入湖利器 - Auto Optimizer Service](https://www.bilibili.com/video/BV1xM4y157AD?p=2)
 - [ ] [基于 Flink 的 OpenMLDB 数据库实时更新系统](https://www.bilibili.com/video/BV1xM4y157AD?p=3)
-- [ ] [Flink 1.14 新特性预览](https://www.bilibili.com/video/BV1xM4y157AD?p=4)
+- [x] [Flink 1.14 新特性预览](https://www.bilibili.com/video/BV1xM4y157AD?p=4)
 
 ## 5. Flink Forward
 
@@ -265,7 +265,7 @@
 
 - [ ] [Pluggable Shuffle Service and Unaligned Checkpoint](https://www.bilibili.com/video/BV1WJ411r7XY?p=1)
 - [ ] [漂移计算——跨 DC 跨数据源的高性能 SQL 引擎](https://www.bilibili.com/video/BV1WJ411r7XY?p=2)
-- [ ] [New Source API – Make it Easy!](https://www.bilibili.com/video/BV1WJ411r7XY?p=3)
+- [x] [New Source API – Make it Easy!](https://www.bilibili.com/video/BV1WJ411r7XY?p=3)
 - [ ] [Stateful Functions](https://www.bilibili.com/video/BV1WJ411r7XY?p=4)
 - [ ] [Apache Flink 新场景——OLAP 引擎](https://www.bilibili.com/video/BV1WJ411r7XY?p=5)
 - [ ] [New Feature and Improvements on State Backends in Flink 1.10](https://www.bilibili.com/video/BV1WJ411r7XY?p=6)

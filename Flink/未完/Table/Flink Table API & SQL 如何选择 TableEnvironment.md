@@ -31,9 +31,6 @@ TableEnvironment 提供的是一个纯 Table 生态的上下文环境，适用�
 
 TableEnvironment 是 Table API 中提供的基本接口类，可以通过调用静态的 create() 方法来创建一个 TableEnvironment 实例。方法可以传入一个环境的配置参数 EnvironmentSettings，可以指定当前 TableEnvironment 的执行模式和计划器 Planner。执行模式有批处理和流处理两种选择，默认是流处理模式；计划器默认使用 blink planner。
 
-
-
-
 ### 2.2 StreamTableEnvironment
 
 两个 StreamTableEnvironment 分别用于 Java 和 Scala 的流计算场景，流计算的对象分别是 Java 和 Scala 的 DataStream。相比 TableEnvironment，StreamTableEnvironment 提供了 DataStream 和 Table 之间相互转换的接口：

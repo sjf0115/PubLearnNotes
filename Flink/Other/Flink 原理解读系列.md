@@ -3,3 +3,4 @@
 - [面向流批一体的 Flink Runtime 新进展](https://mp.weixin.qq.com/s/-PrwWUOqgaDVFpQMPcykfA)
 - [Flink CDC 2.0 详解核心改进](https://mp.weixin.qq.com/s/cSDWcnpTefO8hkCc6AJdhQ)
 - [深入分析 Flink SQL 工作机制](https://mp.weixin.qq.com/s/ys7NhZyMO8nBPwWGmymspw)
+- [Apache Flink 结合 Kafka 构建端到端的 Exactly-Once 处理](https://mp.weixin.qq.com/s/sccyZRowiOtJ3_Dq9uQnsw)

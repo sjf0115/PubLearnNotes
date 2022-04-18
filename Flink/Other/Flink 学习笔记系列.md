@@ -7,6 +7,7 @@
 - [4个步骤让 Flink 应用程序达到生产状态](https://mp.weixin.qq.com/s/ssdv4r2_RDcfBX_2iDJHGg)
 - [Flink 数据交换策略 Partitioner](https://mp.weixin.qq.com/s/RkHU7yFs3ikUAuGo_5NKTQ)
 - [Flink 任务失败恢复策略](https://mp.weixin.qq.com/s/NahcdejoLBR0OputqpMcTw)
+- Flink 与 SPI
 
 ## 2. DataStream
 
@@ -30,6 +31,7 @@
 
 ### 2.3 Function
 
+- Flink DataStream 类型系统 TypeInformation
 - [Flink 算子如何使用](https://mp.weixin.qq.com/s/7u9uR4sQAYjfHabSsUsHVQ)
 - [Flink 如何使用 ProcessFunction](https://mp.weixin.qq.com/s/Eiov3mkDyGzJ2PivAToeDQ)
 - [Flink 如何使用 ProcessFunction](https://mp.weixin.qq.com/s/LIoxAqUnBdpobVr_afef7Q)
@@ -40,12 +42,22 @@
 
 ## 3. Table & SQL
 
+- [Flink SQL 动态表的持续查询](https://mp.weixin.qq.com/s/CaNPCtEjxRRhm1T1lZJj1w)
 - [Flink 1.14 Table API & SQL 第一个程序 WordCount](https://mp.weixin.qq.com/s/y95sAeog8uXKMkbbFzLyqQ)
 - [Flink Table API & SQL Planner 演变](https://mp.weixin.qq.com/s/KaRjvtfLHJRqfmf1790chQ)
+- Flink Table API & SQL 数据类型 DataType
+- Flink Table API & SQL TableEnvironment
 - [Flink Table API & SQL 基本操作](https://mp.weixin.qq.com/s/GVh4VFhuTfO9HuGWGSNJWQ)
+- Flink Table 与 Stream 相互转换
 - [Flink SQL 客户端如何使用](https://mp.weixin.qq.com/s/6hXHlLx9ihS_bOo1Pgh5zA)
-- [Flink SQL 动态表的持续查询](https://mp.weixin.qq.com/s/CaNPCtEjxRRhm1T1lZJj1w)
 - [Flink SQL 如何定义时间属性](https://mp.weixin.qq.com/s/BHy0ubnsYQ23wTcTGHSlKg)
+- Flink SQL 窗口
+- Flink SQL TVF
+- Flink SQL 自定义函数
+- Flink SQL 自定义 Source & Sink
+- Flink SQL Catalogs
+- Flink SQL 与 Hive 的集成
+- Flink SQL 性能优化
 
 ## 4. 容错
 

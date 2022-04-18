@@ -9,4 +9,7 @@
 - [ ] [How to beat the CAP theorem](http://nathanmarz.com/blog/how-to-beat-the-cap-theorem.html)
 - [x] [Questioning the Lambda Architecture](https://www.oreilly.com/radar/questioning-the-lambda-architecture/)
 - [x] [Streaming 101: The world beyond batch](https://www.oreilly.com/ideas/the-world-beyond-batch-streaming-101)
+- [x] [Streaming 101:批处理之外的流式世界第一部分](https://mp.weixin.qq.com/s/NiW7Fv4HidSveB_2sbdfkg)
 - [x] [Streaming 102: The world beyond batch](https://www.oreilly.com/ideas/the-world-beyond-batch-streaming-102)
+- [x] [Streaming 102:批处理之外的流式世界第二部分](https://mp.weixin.qq.com/s/FTu3Ti1pD_6BJHcDJA-MNg)
+- [x] [对流处理的误解](https://mp.weixin.qq.com/s/x_zNUdx_wTPNdl0Mf1uZaQ)

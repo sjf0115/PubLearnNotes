@@ -148,9 +148,6 @@ public TypeSerializer<T> createSerializer(ExecutionConfig executionConfig) {
 对于大多数数据类型 Flink 可以自动生成对应的序列化器，能非常高效地对数据集进行序列化和反序列化，比如，BasicTypeInfo、WritableTypeIno 等，但针对 GenericTypeInfo 类型，Flink 会使用 Kyro 进行序列化和反序列化。其中，Tuple、Pojo 和 CaseClass 类型是复合类型，它们可能嵌套一个或者多个数据类型。在这种情况下，它们的序列化器同样是复合的。它们会将内嵌类型的序列化委托给对应类型的序列化器。
 
 
-除了对类型地描述之外，TypeInformation 还提供了序列化的支撑。在 TypeInformation 中有一个方法：createSerializer：
-
-用来创建序列化器，序列化器中定义了一系列的方法。可以通过 serialize 和 deserialize 方法将指定类型进行序列化。Flink 中也提供了非常丰富的序列化器。
 
 ## 3. 显示指定 TypeInformation
 

@@ -13,10 +13,10 @@
 
 ## 2. Apache Flink 系列教程-进阶篇
 
-- [ ] [1. Apache Flink Runtime核心机制剖析](https://www.bilibili.com/video/BV1y4411a7Bz?spm_id_from=333.999.0.0)
+- [ ] [1. Apache Flink Runtime 核心机制剖析](https://www.bilibili.com/video/BV1y4411a7Bz?spm_id_from=333.999.0.0)
 - [ ] [2. Apache Flink Time 深度解析](https://www.bilibili.com/video/BV1G441177wT?spm_id_from=333.999.0.0)
 - [ ] [3、Apache Flink Checkpoint-轻量级分布式快照](https://www.bilibili.com/video/BV1k4411H7JP?spm_id_from=333.999.0.0)
-- [ ] [4、Apache Flink on Yarn/K8S原理剖析及实践](https://www.bilibili.com/video/BV174411W7oC?spm_id_from=333.999.0.0)
+- [ ] [4、Apache Flink on Yarn/K8S 原理剖析及实践](https://www.bilibili.com/video/BV174411W7oC?spm_id_from=333.999.0.0)
 - [x] [5、Apache Flink 数据类型和序列化](https://www.bilibili.com/video/BV114411H7Ww?spm_id_from=333.999.0.0)
 - [ ] [6、Apache Flink 作业执行解析](https://www.bilibili.com/video/BV174411M7tS?spm_id_from=333.999.0.0)
 - [ ] [7、Apache Flink 网络流控与反压剖析](https://www.bilibili.com/video/BV124411P7V9?spm_id_from=333.999.0.0)

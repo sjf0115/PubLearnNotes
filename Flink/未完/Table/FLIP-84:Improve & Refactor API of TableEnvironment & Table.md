@@ -16,9 +16,6 @@ TableEnvironment#sqlUpdate() 方法对于 DDL 会立即执行，但对于 INSERT
 
 单次执行不接受多个 INSERT INTO 语句。
 
-
-
-
 让我们举个例子来解释缓冲 SQL/Tables 执行问题：
 ```sql
 tEnv.sqlUpdate("CREATE TABLE test (...) with (path = '/tmp1')");

@@ -47,6 +47,7 @@
 - [Flink Table API & SQL Planner 演变](https://mp.weixin.qq.com/s/KaRjvtfLHJRqfmf1790chQ)
 - Flink Table API & SQL 数据类型 DataType
 - Flink Table API & SQL TableEnvironment
+- Flink Table API & SQL 重构优化 TableEnviromnent 接口
 - [Flink Table API & SQL 基本操作](https://mp.weixin.qq.com/s/GVh4VFhuTfO9HuGWGSNJWQ)
 - Flink Table 与 Stream 相互转换
 - [Flink SQL 客户端如何使用](https://mp.weixin.qq.com/s/6hXHlLx9ihS_bOo1Pgh5zA)

@@ -1,31 +1,37 @@
 ---
 layout: post
 author: smartsi
-title: Flink DataStream 类型系统
+title: Flink DataStream 类型系统 TypeInformation
 date: 2021-10-07 16:35:01
 tags:
   - Flink
 
 categories: Flink
-permalink: physical-partitioning-in-apache-flink
+permalink: flink-datastream-typeinformation
 ---
+
+Flink DataStream 应用程序所处理的事件以数据对象的形式存在。函数调用时会掺入数据对象，同时也可以输出数据对象。因此，Flink 在内部需要能够处理这些对象。当通过网络传输或者读写状态后端、检查点以及保存点时，需要对它们进行序列化和反序列化。为了能够更高效的做到这一点，Flink 需要详细了解应用程序处理的数据类型。Flink 使用类型信息的概念来表示数据类型，并为每种数据类型生成特定的序列化器、反序列化器以及比较器。
+
+此外，Flink 还有一个类型提取系统，可以分析函数的输入和返回类型来自动获取类型信息，进而获得序列化器和反序列化器。但是，在某些情况下，例如 使用了 Lambda 函数或者泛型类型，必须显式提供类型信息才能使应用程序正常工作或者提高其性能。
+
+在本文中，我们会讨论 Flink 支持的数据类型，如何为数据类型创建类型信息，以及如何在 Flink 的类型系统无法自动推断函数的返回类型时提供提示，最后简单说明一下显示指定类型信息的两个场景。
 
 ## 1. 数据类型
 
-Flink 在其内部构建了一套自己的类型系统。Flink 支持任意的 Java 或是 Scala 类型，不需要像 Hadoop 一样去实现一个特定的接口（org.apache.hadoop.io.Writable），能够自动识别数据类型。Flink 对支持的不同类型进行了划分，如下图所示：
+Flink 支持 Java 和 Scala 所有常见的数据类型，也不需要像 Hadoop 一样去实现一个特定的接口（org.apache.hadoop.io.Writable），能够自动识别数据类型。使用最多的可以分为如下几类，如下图所示：
 
-![](1)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-datastream-typeinformation-1.png?raw=true)
 
-从图中可以看到 Flink 类型可以分为基本类型、数组类型、复合类型、辅助类型、泛型以及其它类型。
+从图中可以看到 Flink 类型可以分为基本类型、数组类型、复合类型、辅助类型以及泛型。
 
 ### 1.1 基本类型
 
-Flink 能够支持任意 Java 原生基本类型（包装类型）、所有 Scala 基本类型以及 Void、String、Date、BigDecimal 和 BigInteger等类型。例如，Integer、String、Double 等，如以下代码所示，通过从给定的元素集中创建 DataStream 数据集：
+Flink 能够支持所有 Java 和 Scala 原生基本类型（包装类型）以及 Void、String、Date、BigDecimal、BigInteger 等类型。例如通过从给定的元素集中创建 DataStream 数据集：
 ```java
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-// 创建Integer类型的数据集
+// 创建 Integer 类型的数据集
 DataStream<Integer> integerElements = env.fromElements(1, 2, 3);
-// 创建String类型的数据集
+// 创建 String 类型的数据集
 DataStream<String> stringElements = env.fromElements("1", "2", "3");
 ```
 
@@ -35,14 +41,22 @@ DataStream<String> stringElements = env.fromElements("1", "2", "3");
 - 基本类型数组：基本类型的 Java 数组，支持 BOOLEAN、BYTE、SHORT、INT、LONG、FLOAT、DOUBLE、CHAR
 - 对象数组：Object 类型的 Java 数组，支持 String 以及其他对象
 
+例如通过从给定的元素集中创建 DataStream 数据集：
+```java
+int[] a = {1, 2};
+int[] b = {3, 4};
+DataStream<int[]> arrayElements = env.fromElements(a, b);
+```
+
 ### 1.3 复合数据类型
 
 #### 1.3.1 Java Tuples 类型
 
-Flink 在 Java 接口中定义了元组类（Tuple）供用户使用。Flink Tuples 是固定长度固定类型的 Java Tuple 实现，不支持空值存储。Flink Java Tuple 类型字段数量上限为25（Tuple0-Tuple25），如果字段数量超过上限，可以通过继承 Tuple 类的方式进行拓展。如下代码所示，创建 Tuple 数据类型数据集：
+Flink 在 Java 接口中定义了元组类（Tuple）供用户使用。元组是由固定数量的强类型字段组成的复合数据类型。如下代码所示，创建 Tuple 数据类型数据集：
 ```java
 DataStream<Tuple2> tupleElements = env.fromElements(new Tuple2(1, "a"), new Tuple2(2, "b"));
 ```
+Flink 提供了 Java 元组的高效实现，最多包含 25 个字段，每个字段长度都对应一个单独的实现，即 Tuple0 到 Tuple25。如果字段数量超过上限，可以通过继承 Tuple 类的方式进行拓展。
 
 #### 1.3.2 Scala Case Class 与 Tuple 类型
 
@@ -65,22 +79,20 @@ tupleStream.keyBy("_1")
 
 #### 1.3.3 ROW 类型
 
-Row 是一种固定长度、可识别空值的复合类型，以确定的字段顺序存储多个值。无论字段的类型如何，每个字段都可以为空。无法自动推断行字段的类型；因此，无论何时生成 Row，都需要提供类型信息。如下代码所示，创建 Row 数据类型数据集：
+Row 是一种固定长度、可识别空值的复合类型，以确定的字段顺序存储多个值。每个字段的类型都可以不一样并且每个字段都可以为空。由于无法自动推断行字段的类型，因此在生成 Row 时都需要提供类型信息。如下代码所示，创建 Row 数据类型数据集：
 ```java
-Row row = new Row(3);
-row.setField(0, 1);
-row.setField(1, "a");
-DataStream<Row> rowElements = env.fromElements(row);
+DataStream<Row> rowElements = env.fromElements(Row.of(0, "a", 3.14));
 ```
 
 #### 1.3.4 POJO 类型
 
-在 Flink 中使用 POJO 类可以通过字段名称获取字段，例如 dataStream.join(otherStream).where("name").equalTo("personName")，对于用户做数据处理则非常透明和简单。如果在 Flink 中使用 POJO 数据类型，需要遵循以下要求：
-- POJOs 类必须是 Public 修饰且必须独立定义，不能是内部类；
+Flink 会分析那些不属于任何一类的数据类型，尝试将它们作为 POJO 类型进行处理。如果一个类型满足如下条件，Flink 就会将它们作为 POJO 数据类型：
+- POJOs 类必须是一个公有类，Public 修饰且独立定义，不能是内部类；
 - POJOs 类中必须包含一个 Public 修饰的无参构造器；
 - POJOs 类中所有的字段必须是 Public 或者具有 Public 修饰的 getter 和 setter 方法；
 - POJOs 类中的字段类型必须是 Flink 支持的。
 
+例如，如下 Java 类就会被 Flink 识别为 POJO：
 ```Java
 // (1) 必须是 Public 修饰且必须独立定义，不能是内部类
 public class Person {
@@ -116,15 +128,19 @@ env.fromElements(new Person("Lucy", 18), new Person("Tom", 12))
 
 ### 1.4 辅助类型
 
-Option、Either、List、Map 等
+在 Flink 中也支持一些比较特殊的数据数据类型，例如 Scala 中的 List、Map、Either、Option、Try 数据类型，以及 Java 中 Either 数据类型，还有 Hadoop 的 Writable 数据类型。如下代码所示，创建 List 类型数据集：
+```java
+DataStream<ArrayList<Integer>> listElements = env.fromElements(
+        Lists.newArrayList(1, 2), Lists.newArrayList(3, 4)
+);
+```
+这种数据类型使用场景不是特别广泛，主要原因是数据中的操作相对不像 POJOs 类那样方便和透明，用户无法根据字段位置或者名称获取字段信息，同时要借助 Types Hint 帮助 Flink 推断数据类型信息。
 
 Value 数据类型实现了 org.apache.flink.types.Value，其中包括 read() 和 write() 两个方法完成序列化和反序列化操作，相对于通用的序列化工具会有着比较高效的性能。目前 Flink 提供了內建的 Value 类型有 IntValue、DoubleValue 以及 StringValue 等，用户可以结合原生数据类型和 Value 类型使用。
 
-在 Flink 中也支持一些比较特殊的数据数据类型，例如 Scala 中的 List、Map、Either、Option、Try 数据类型，以及 Java 中 Either 数据类型，还有 Hadoop 的 Writable 数据类型。如下代码所示，创建 Map 和 List 类型数据集。这种数据类型使用场景不是特别广泛，主要原因是数据中的操作相对不像 POJOs 类那样方便和透明，用户无法根据字段位置或者名称获取字段信息，同时要借助 Types Hint 帮助 Flink 推断数据类型信息，关于 Tyeps Hmt 介绍可以参考下一小节。
-
 ### 1.5 泛型类型
 
-Flink 支持所有的 Java 类和 Scala 类。不过如果没有按照上面 POJO 类型的要求来定义，就会被 Flink 当作泛型类来处理。Flink 会把泛型类型当作黑盒，无法获取它们内部的属性;它 们也不是由 Flink 本身序列化的，而是由 Kryo 序列化的。
+那些无法特别处理的类型会被当做泛型类型处理并交给 Kryo 序列化框架进行序列化。如果可能的话，尽可能的避免使用 Kryo。Kryo 作为一个通用的序列化框架，通常效率不高。
 
 ## 2. TypeInformation
 

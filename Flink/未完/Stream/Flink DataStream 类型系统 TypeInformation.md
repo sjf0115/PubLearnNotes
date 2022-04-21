@@ -2,7 +2,7 @@
 layout: post
 author: smartsi
 title: Flink DataStream 类型系统 TypeInformation
-date: 2021-10-07 16:35:01
+date: 2022-04-21 16:35:01
 tags:
   - Flink
 
@@ -146,11 +146,9 @@ Value 数据类型实现了 org.apache.flink.types.Value，其中包括 read() �
 
 那这么多的数据类型，在 Flink 内部又是如何表示的呢？在 Flink 中每一个具体的类型都对应了一个具体的 TypeInformation 实现类。例如，BasicTypeInformation 中的 IntegerTypeInformation 对应了 Integer 数据类型。数据类型的描述信息都是由 TypeInformation 定义，比较常用的 TypeInformation 有 BasicTypeInfo、TupleTypeInfo、CaseClassTypeInfo、PojoTypeInfo 类等，如下图所示：
 
-![](2)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-datastream-typeinformation-2.png?raw=true)
 
 TypeInformation 为系统提供生成序列化器和比较器提供必要的信息。当应用程序提交执行时，Flink 的类型系统会尝试为处理的每种数据类型自动推断 TypeInformation。类型提取器会分析函数的泛型类型以及返回类型，来获取相应的 TypeInformation 对象。但是，有时类型提取器会失灵，或者你可能想定义自己的类型并告诉 Flink 如何有效地处理它们。在这种情况下，你需要为特定数据类型生成 TypeInformation。
-
-#### 2.1.1 序列化器
 
 除了对类型地描述之外，TypeInformation 还提供了序列化的支撑。每一个 TypeInformation 都会为对应的具体数据类型提供一个专属的序列化器。TypeInformation 会提供一个 createSerialize() 方法，通过这个方法就可以得到该类型进行数据序列化操作与反序列化操作的序列化器 TypeSerializer：
 ```java  
@@ -160,8 +158,6 @@ public TypeSerializer<T> createSerializer(ExecutionConfig executionConfig) {
 ```
 
 对于大多数数据类型 Flink 可以自动生成对应的序列化器，能非常高效地对数据集进行序列化和反序列化，比如，BasicTypeInfo、WritableTypeIno 等，但针对 GenericTypeInfo 类型，Flink 会使用 Kyro 进行序列化和反序列化。其中，Tuple、Pojo 和 CaseClass 类型是复合类型，它们可能嵌套一个或者多个数据类型。在这种情况下，它们的序列化器同样是复合的。它们会将内嵌类型的序列化委托给对应类型的序列化器。
-
-
 
 ## 3. 显示指定 TypeInformation
 
@@ -221,11 +217,11 @@ TypeHint 的原理是在内部创建匿名子类，捕获泛型信息并会将�
 
 例如 BasicTypeInfo 类定义了一系列常用类型的快捷方式，对于 String、Boolean、Byte、Short、Integer、Long、Float、Double、Char 等基本类型的类型声明，可以直接使用：
 
-![]()
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-datastream-typeinformation-3.png?raw=true)
 
 当然，如果觉得 BasicTypeInfo 还是太长，Flink 还提供了完全等价的 Types 类（org.apache.flink.api.common.typeinfo.Types）：
 
-![]()
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-datastream-typeinformation-4.png?raw=true)
 
 Types 为常见数据类型提供 TypeInformation，使用起来非常方便，如下示例：
 ```java
@@ -309,6 +305,7 @@ public static class ResultTypeMapFunction implements MapFunction<String, Stu>, R
 
 ### 4.1 Table 转 DataStream
 
+Table 转 DataStream 的时候，Table 并清楚 DataStream 的数据结构，因此需要给当前转换出来的 DataStream 显性的指定数据类型：
 ```java
 // 转化为 Pojo 类型
 DataStream<WordCount> stream1 = tEnv.toAppendStream(table, Types.POJO(WordCount.class));
@@ -319,18 +316,7 @@ DataStream<Row> stream2 = tEnv.toAppendStream(table, Types.ROW(Types.STRING, Typ
 
 ### 4.2 Lambda 表达式与泛型
 
-由于 Java 的泛型会出现类型擦除问题，Flink 通过 Java 反射机制尽可能重构类型信息，例如，使用函数签名以及子类的信息等。对于函数的返回类型取决于输入类型的情况时，会包含一些简单的类型推断：
-```java
-public class AppendOne<T> implements MapFunction<T, Tuple2<T, Long>> {
-    public Tuple2<T, Long> map(T value) {
-        return new Tuple2<T, Long>(value, 1L);
-    }
-}
-```
-存在 Flink 无法重构所有泛型类型信息的情况。在这种情况下，用户必须通过类型提示（Type Hints）提供帮助。
-但是如果函数的输出类型不依赖于输入参数的类型信息，这个时候就需要借助于类型提示来告诉系统函数中传入的参数类型信息和输出参数信息。
-
-在 Flink 无法重建擦除的泛型类型信息的情况下，Java API 提供了类型提示。类型提示告诉系统函数产生的数据流或数据集的类型，如下所示使用 returns 语句指定生成的类型：
+由于 Java 泛型会出现类型擦除问题，因此 Flink 通过 Java 反射机制尽可能重构类型信息，例如使用函数签名以及子类的信息等。对于函数的返回类型取决于输入类型的情况时，会包含一些简单的类型推断。但如果无法重构所有的泛型类型信息时，需要借助于类型提示来告诉系统函数中传入的参数类型信息和输出参数信息。如下所示使用 returns 语句指定生成的类型：
 ```java
 env.fromElements(1, 2, 3)
   .map(i -> Tuple2.of(i, i*i))

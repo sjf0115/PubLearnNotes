@@ -148,13 +148,11 @@ Value 数据类型实现了 org.apache.flink.types.Value，其中包括 read() �
 
 ![](2)
 
-TypeInformation 主要作用是为了在 Flink 系统内有效地对数据结构类型进行管理，能够在分布式计算过程中对数据的类型进行管理和推断。同时基于对数据的类型信息管理，对 Flink 内部数据存储也进行了相应的性能优化。Flink 能够支持任意的 Java 或 Scala 的数据类型，不用像 Hadoop 中的 org.apache.hadoop.io.Writable 而实现特定的序列化和反序列化接口，从而让用户能够更加容易使用已有的数据结构类型。另外使用 TypeInformation 管理数据类型信息，能够在数据处理之前将数据类型推断出来，而不是真正在触发计算后才识别出，这样能够及时有效地避免用户在使用 Flink 编写应用的过程中的数据类型问题。
-
-Flink 类型系统的核心类是 TypeInformation。它为系统提供生成序列化器和比较器所需的必要信息。当应用程序提交执行时，Flink 的类型系统会尝试为处理的每种数据类型自动推断 TypeInformation。一个名为类型提取器的组件会分析所有函数的泛型类型以及返回类型，来获取相应的 TypeInformation 对象。但是，有时类型提取器会失灵，或者你可能想定义自己的类型并告诉 Flink 如何有效地处理它们。在这种情况下，你需要为特定数据类型生成 TypeInformation。
+TypeInformation 为系统提供生成序列化器和比较器提供必要的信息。当应用程序提交执行时，Flink 的类型系统会尝试为处理的每种数据类型自动推断 TypeInformation。类型提取器会分析函数的泛型类型以及返回类型，来获取相应的 TypeInformation 对象。但是，有时类型提取器会失灵，或者你可能想定义自己的类型并告诉 Flink 如何有效地处理它们。在这种情况下，你需要为特定数据类型生成 TypeInformation。
 
 #### 2.1.1 序列化器
 
-除了对类型地描述之外，TypeInformation 还提供了序列化的支撑。在 Flink 中每一个具体的类型都对应了一个具体的 TypeInformation 实现类，每一个 TypeInformation 都会为对应的具体数据类型提供一个专属的序列化器。TypeInformation 会提供一个 createSerialize() 方法，通过这个方法就可以得到该类型进行数据序列化操作与反序列化操作的序列化器 TypeSerializer：
+除了对类型地描述之外，TypeInformation 还提供了序列化的支撑。每一个 TypeInformation 都会为对应的具体数据类型提供一个专属的序列化器。TypeInformation 会提供一个 createSerialize() 方法，通过这个方法就可以得到该类型进行数据序列化操作与反序列化操作的序列化器 TypeSerializer：
 ```java  
 public TypeSerializer<T> createSerializer(ExecutionConfig executionConfig) {
     return this.serializer;
@@ -167,7 +165,7 @@ public TypeSerializer<T> createSerializer(ExecutionConfig executionConfig) {
 
 ## 3. 显示指定 TypeInformation
 
-大多数情况下，Flink 可以自动推断类型生成正确的 TypeInformation，并选择合适的 serializers 以及 comparators。Flink 的类型提取器利用反射分析函数签名以及子类信息，生成函数的正确输出类型。但是有时无法提取必要的信息，例如定义函数时如果使用到了泛型，JVM 就会出现类型擦除的问题，使得 Flink 并不能很容易地获取到数据集中的数据类型信息。这时候可能会抛出如下类似的异常：
+大多数情况下，Flink 可以自动推断类型生成正确的 TypeInformation，并选择合适的序列化器和比较器。Flink 的类型提取器利用反射分析函数签名以及子类信息，生成函数的正确输出类型。但是有时无法提取必要的信息，例如定义函数时如果使用到了泛型，JVM 就会出现类型擦除的问题，使得 Flink 并不能很容易地获取到数据集中的数据类型信息。这时候可能会抛出如下类似的异常：
 ```
 Exception in thread "main" org.apache.flink.api.common.functions.InvalidTypesException: The return type of function 'main(ReturnsExample.java:21)' could not be determined automatically, due to type erasure. You can give type information hints by using the returns(...) method on the result of the transformation call, or by letting your function implement the 'ResultTypeQueryable' interface.
 	at org.apache.flink.api.dag.Transformation.getOutputType(Transformation.java:479)

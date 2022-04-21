@@ -17,8 +17,8 @@
 - [Flink 如何现实新的流处理应用第一部分:事件时间与无序处理](https://mp.weixin.qq.com/s/UNR1LfkudwIXvuZLDkf0Pg)
 - [Flink 轻松理解 Watermark](https://mp.weixin.qq.com/s/eVaamssSKJre755N8C-LVQ)
 - [Flink Watermark 机制](https://mp.weixin.qq.com/s/ylKTLuITlG_v8Rs5DuJiwA)
-- [Flink 在1.10版本之前如何生成Watermark](https://mp.weixin.qq.com/s/kaI1wY72gb-t43Lx4E0vKQ)
-- [Flink 1.11版本如何生成Watermark](https://mp.weixin.qq.com/s/RuugIEG3f22C5R1B4McMxA)
+- [Flink 在1.10版本之前如何生成 Watermark](https://mp.weixin.qq.com/s/kaI1wY72gb-t43Lx4E0vKQ)
+- [Flink 1.11版本如何生成 Watermark](https://mp.weixin.qq.com/s/RuugIEG3f22C5R1B4McMxA)
 
 ### 2.2 Window 窗口
 
@@ -31,7 +31,7 @@
 
 ### 2.3 Function
 
-- Flink DataStream 类型系统 TypeInformation
+- [Flink DataStream 类型系统 TypeInformation](https://mp.weixin.qq.com/s/B51JhmE7ouvxqwoqLAzxiw)
 - [Flink 算子如何使用](https://mp.weixin.qq.com/s/7u9uR4sQAYjfHabSsUsHVQ)
 - [Flink 如何使用 ProcessFunction](https://mp.weixin.qq.com/s/Eiov3mkDyGzJ2PivAToeDQ)
 - [Flink 如何使用 ProcessFunction](https://mp.weixin.qq.com/s/LIoxAqUnBdpobVr_afef7Q)

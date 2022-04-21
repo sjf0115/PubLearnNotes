@@ -136,8 +136,8 @@
 
 ### 4.12 20190831-深圳
 
-- [ ] [Apache Kafka在现代数据驱动架构中的角色](https://www.bilibili.com/video/BV1Y4411y7u6?p=1)
-- [ ] [Apache Flink在中国农业银行的探索和实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=2)
+- [ ] [Apache Kafka 在现代数据驱动架构中的角色](https://www.bilibili.com/video/BV1Y4411y7u6?p=1)
+- [ ] [Apache Flink 在中国农业银行的探索和实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=2)
 - [ ] [混合云、边缘计算下的实时计算平台设计](https://www.bilibili.com/video/BV1Y4411y7u6?p=3)
 - [ ] [构建批流一体数据集成平台的一致性语义保证](https://www.bilibili.com/video/BV1Y4411y7u6?p=4)
 - [x] [Flink SQL 1.9.0 技术内幕和最佳实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=5)
@@ -200,7 +200,7 @@
 - [ ] [JFlink on TiDB - 便捷可靠的实时数据业务支撑](https://www.bilibili.com/video/BV1m64y147rU?spm_id_from=333.999.0.0)
 - [ ] [Flink + TiDB，体验实时数仓之美](https://www.bilibili.com/video/BV1m64y147rU?spm_id_from=333.999.0.0)
 - [ ] [TiDB x Flink 的端到端实时计算](https://www.bilibili.com/video/BV1m64y147rU?spm_id_from=333.999.0.0)
-- [ ] [Flink SQL 在奇虎 360的 实践](https://www.bilibili.com/video/BV1m64y147rU?spm_id_from=333.999.0.0)
+- [x] [Flink SQL 在奇虎 360的 实践](https://www.bilibili.com/video/BV1m64y147rU?spm_id_from=333.999.0.0)
 - [ ] [详解 Flink-CDC](https://www.bilibili.com/video/BV1m64y147rU?spm_id_from=333.999.0.0)
 
 ### 4.21 20210807-深圳

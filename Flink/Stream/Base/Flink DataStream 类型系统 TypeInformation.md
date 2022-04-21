@@ -2,7 +2,7 @@
 layout: post
 author: smartsi
 title: Flink DataStream 类型系统 TypeInformation
-date: 2022-04-21 16:35:01
+date: 2022-04-07 16:35:01
 tags:
   - Flink
 
@@ -10,9 +10,9 @@ categories: Flink
 permalink: flink-datastream-typeinformation
 ---
 
-Flink DataStream 应用程序所处理的事件以数据对象的形式存在。函数调用时会掺入数据对象，同时也可以输出数据对象。因此，Flink 在内部需要能够处理这些对象。当通过网络传输或者读写状态后端、检查点以及保存点时，需要对它们进行序列化和反序列化。为了能够更高效的做到这一点，Flink 需要详细了解应用程序处理的数据类型。Flink 使用类型信息的概念来表示数据类型，并为每种数据类型生成特定的序列化器、反序列化器以及比较器。
+Flink DataStream 应用程序所处理的事件以数据对象的形式存在。函数调用时会传入数据对象，同时也可以输出数据对象。因此，Flink 在内部需要能够处理这些对象。当通过网络传输或者读写状态后端、检查点以及保存点时，需要对它们进行序列化和反序列化。为了能够更高效的做到这一点，Flink 需要详细了解应用程序处理的数据类型。Flink 使用类型信息的概念来表示数据类型，并为每种数据类型生成特定的序列化器、反序列化器以及比较器。
 
-此外，Flink 还有一个类型提取系统，可以分析函数的输入和返回类型来自动获取类型信息，进而获得序列化器和反序列化器。但是，在某些情况下，例如 使用了 Lambda 函数或者泛型类型，必须显式提供类型信息才能使应用程序正常工作或者提高其性能。
+此外，Flink 还有一个类型提取系统，可以分析函数的输入和返回类型来自动获取类型信息，进而获得序列化器和反序列化器。但是，在某些情况下，例如使用了 Lambda 函数或者泛型类型，必须显式提供类型信息才能使应用程序正常工作或者提高其性能。
 
 在本文中，我们会讨论 Flink 支持的数据类型，如何为数据类型创建类型信息，以及如何在 Flink 的类型系统无法自动推断函数的返回类型时提供提示，最后简单说明一下显示指定类型信息的两个场景。
 
@@ -38,7 +38,7 @@ DataStream<String> stringElements = env.fromElements("1", "2", "3");
 ### 1.2 数组类型
 
 数组类型包含两种类型：
-- 基本类型数组：基本类型的 Java 数组，支持 BOOLEAN、BYTE、SHORT、INT、LONG、FLOAT、DOUBLE、CHAR
+- 基本类型数组：基本类型的 Java 数组，支持 boolean、byte、short、int、long、float 等
 - 对象数组：Object 类型的 Java 数组，支持 String 以及其他对象
 
 例如通过从给定的元素集中创建 DataStream 数据集：
@@ -135,8 +135,6 @@ DataStream<ArrayList<Integer>> listElements = env.fromElements(
 );
 ```
 这种数据类型使用场景不是特别广泛，主要原因是数据中的操作相对不像 POJOs 类那样方便和透明，用户无法根据字段位置或者名称获取字段信息，同时要借助 Types Hint 帮助 Flink 推断数据类型信息。
-
-Value 数据类型实现了 org.apache.flink.types.Value，其中包括 read() 和 write() 两个方法完成序列化和反序列化操作，相对于通用的序列化工具会有着比较高效的性能。目前 Flink 提供了內建的 Value 类型有 IntValue、DoubleValue 以及 StringValue 等，用户可以结合原生数据类型和 Value 类型使用。
 
 ### 1.5 泛型类型
 
@@ -325,6 +323,6 @@ env.fromElements(1, 2, 3)
   .print();
 ```
 
-原文：
+参考：
 - [Apache Flink 进阶（五）：数据类型和序列化](https://mp.weixin.qq.com/s/FziI1YyaccuRLQAURWLnUw)
 - [Flink 类型和序列化机制简介](https://cloud.tencent.com/developer/article/1240444)

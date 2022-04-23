@@ -173,9 +173,9 @@
 ### 4.17 20200926-深圳
 
 - [ ] [Hudi on Flink在顺丰的实践应用](https://www.bilibili.com/video/BV14A411J7e6?p=1)
-- [ ] [用Analytics-Zoo和Flink实现隐私保护的Cluster Serving](https://www.bilibili.com/video/BV14A411J7e6?p=2)
+- [ ] [用 Analytics-Zoo 和 Flink 实现隐私保护的 Cluster Serving](https://www.bilibili.com/video/BV14A411J7e6?p=2)
 - [ ] [Flink 在腾讯视频的实践](https://www.bilibili.com/video/BV14A411J7e6?p=3)
-- [ ] [基于Flink+Iceberg构建企业级实时数据湖](https://www.bilibili.com/video/BV14A411J7e6?p=4)
+- [ ] [基于 Flink+Iceberg 构建企业级实时数据湖](https://www.bilibili.com/video/BV14A411J7e6?p=4)
 
 ### 4.18 20210417-上海
 

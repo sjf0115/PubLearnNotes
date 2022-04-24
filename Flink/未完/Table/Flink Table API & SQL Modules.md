@@ -14,7 +14,94 @@ Modules 可以允许用户扩展 Flink 的内置对象，例如定义类似于 F
 
 ## 4. How to Load, Unload, Use and List Modules
 
+### 4.1 Using SQL
 
+用户可以在 Table API 和 SQL CLI 中使用 SQL 加载/卸载/使用/列出 Module：
+```java
+EnvironmentSettings settings = EnvironmentSettings.inStreamingMode();
+TableEnvironment tableEnv = TableEnvironment.create(settings);
+
+// Show initially loaded and enabled modules
+tableEnv.executeSql("SHOW MODULES").print();
+// +-------------+
+// | module name |
+// +-------------+
+// |        core |
+// +-------------+
+tableEnv.executeSql("SHOW FULL MODULES").print();
+// +-------------+------+
+// | module name | used |
+// +-------------+------+
+// |        core | true |
+// +-------------+------+
+
+// Load a hive module
+tableEnv.executeSql("LOAD MODULE hive WITH ('hive-version' = '...')");
+
+// Show all enabled modules
+tableEnv.executeSql("SHOW MODULES").print();
+// +-------------+
+// | module name |
+// +-------------+
+// |        core |
+// |        hive |
+// +-------------+
+
+// Show all loaded modules with both name and use status
+tableEnv.executeSql("SHOW FULL MODULES").print();
+// +-------------+------+
+// | module name | used |
+// +-------------+------+
+// |        core | true |
+// |        hive | true |
+// +-------------+------+
+
+// Change resolution order
+tableEnv.executeSql("USE MODULES hive, core");
+tableEnv.executeSql("SHOW MODULES").print();
+// +-------------+
+// | module name |
+// +-------------+
+// |        hive |
+// |        core |
+// +-------------+
+tableEnv.executeSql("SHOW FULL MODULES").print();
+// +-------------+------+
+// | module name | used |
+// +-------------+------+
+// |        hive | true |
+// |        core | true |
+// +-------------+------+
+
+// Disable core module
+tableEnv.executeSql("USE MODULES hive");
+tableEnv.executeSql("SHOW MODULES").print();
+// +-------------+
+// | module name |
+// +-------------+
+// |        hive |
+// +-------------+
+tableEnv.executeSql("SHOW FULL MODULES").print();
+// +-------------+-------+
+// | module name |  used |
+// +-------------+-------+
+// |        hive |  true |
+// |        core | false |
+// +-------------+-------+
+
+// Unload hive module
+tableEnv.executeSql("UNLOAD MODULE hive");
+tableEnv.executeSql("SHOW MODULES").print();
+// Empty set
+tableEnv.executeSql("SHOW FULL MODULES").print();
+// +-------------+-------+
+// | module name |  used |
+// +-------------+-------+
+// |        hive | false |
+// +-------------+-------+
+```
+
+### 4.2 Using Java
 
 
 

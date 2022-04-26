@@ -3,7 +3,7 @@ Flink 从 1.9 版本开始支持支持 Hive，不过作为 beta 版，不推荐�
 
 ## 1. 什么是 HiveCatalog
 
-近年来，Hive Metastore 已经发展成为 Hadoop 生态系统元数据中心的标准。许多公司在生产环境中使用 Hive Metastore 服务来管理元数据(无论是 Hive 元数据还是非 Hive 元数据)。对于部署 Hive 和 Flink 的用户来说，HiveCatalog 能够让他们使用 Hive Metastore 来管理 Flink 的元数据。
+近年来，Hive Metastore 已经发展成为 Hadoop 生态系统元数据中心的标准。许多公司在生产环境中使用 Hive Metastore 服务来管理元数据(无论是 Hive 元数据还是非 Hive 元数据)。对于部署 Hive 和 Flink 的用户来说，HiveCatalog 能够让我们使用 Hive Metastore 来管理 Flink 的元数据。
 
 对于刚刚部署 Flink 的用户，HiveCatalog 是 Flink 提供的唯一一个开箱即用的持久化 Catalog。在没有持久化 Catalog 的情况下，使用 Flink SQL CREATE DDL 必须在每个会话中重复创建元对象，例如 Kafka 表，这会浪费大量的时间。HiveCatalog 通过授权用户仅创建一次表和其他元对象来填补这一空白，并在以后跨会话时方便地引用和管理它们。
 
@@ -15,38 +15,36 @@ Flink 从 1.9 版本开始支持支持 Hive，不过作为 beta 版，不推荐�
 
 一旦配置完成，HiveCatalog 就可以开箱即用。用户可以使用 DDL 语句创建 Flink 元对象，并且在此之后可以立即看到。
 
-HiveCatalog 可用于处理两种类型的表：Hive 兼容表(Hive-compatible Tables)以及通用表(Generic Tables)。Hive 兼容表是指以 Hive 兼容的方式存储的表，包括存储层中的元数据和数据。因此，通过 Flink 创建与 Hive 兼容的表可以从 Hive 侧查询。另一方面，通用表是只针对于 Flink 的。当使用 HiveCatalog 创建通用表时，我们只是使用 HMS 持久化存储元数据。虽然这些表对 Hive 是可见的，但是 Hive 不能理解这些元数据。因此，在 Hive 中使用这样的表会导致未定义的行为。
+HiveCatalog 可用于处理两种类型的表：Hive 兼容表(Hive-compatible Tables)以及通用表(Generic Tables)。Hive 兼容表是指以 Hive 兼容的方式存储的表，包括存储层中的元数据和数据。因此，通过 Flink 创建的 Hive 兼容表可以在 Hive 侧直接查询。另一方面，通用表是只针对于 Flink 的。当使用 HiveCatalog 创建通用表时，我们只是使用 HMS 持久化存储元数据。虽然这些表对 Hive 是可见的，但是 Hive 无法理解这些元数据。因此，在 Hive 中使用这样的表会导致未知错误。
 
 建议使用 Hive Dialect 来创建与 Hive 兼容的表。如果您想使用默认 Dialect 来创建 Hive 兼容表，请确保在表属性中设置 'connector'='hive'，否则在 HiveCatalog 中，默认情况下表被认为是通用的。需要注意的是，如果使用 Hive Dialect，则不需要 connector 属性。
 
 ### 3.1 设置 Hive Metastore
 
-运行一个 Hive Metastore。
-
-在这里，我们建立了一个本地 Hive Metastore 和我们的Hive -site.xml文件在本地路径/opt/ Hive -conf/ Hive -site.xml。我们有如下的配置:
+运行一个 Hive Metastore。hive-site.xml 进行如下的配置:
 ```xml
 <configuration>
    <property>
       <name>javax.jdo.option.ConnectionURL</name>
-      <value>jdbc:mysql://localhost/metastore?createDatabaseIfNotExist=true</value>
+      <value>jdbc:mysql://localhost:3306/hive_meta?createDatabaseIfNotExist=true</value>
       <description>metadata is stored in a MySQL server</description>
    </property>
 
    <property>
       <name>javax.jdo.option.ConnectionDriverName</name>
-      <value>com.mysql.jdbc.Driver</value>
+      <value>com.mysql.cj.jdbc.Driver</value>
       <description>MySQL JDBC driver class</description>
    </property>
 
    <property>
       <name>javax.jdo.option.ConnectionUserName</name>
-      <value>...</value>
+      <value>root</value>
       <description>user name for connecting to mysql server</description>
    </property>
 
    <property>
       <name>javax.jdo.option.ConnectionPassword</name>
-      <value>...</value>
+      <value>root</value>
       <description>password for connecting to mysql server</description>
    </property>
 

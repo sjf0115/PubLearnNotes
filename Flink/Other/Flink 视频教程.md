@@ -281,7 +281,7 @@
 - [ ] [Apache Flink and the Apache Way](https://www.bilibili.com/video/BV1sJ411r7Fm?p=3)
 - [ ] [Delivering stream data reliably with Pravega](https://www.bilibili.com/video/BV1sJ411r7Fm?p=4)
 - [ ] [Deep dive into Pyflink & integration with Zeppelin](https://www.bilibili.com/video/BV1sJ411r7Fm?p=5)
-- [ ] [Apache Flink 与 Apache Hive 的集成](https://www.bilibili.com/video/BV1sJ411r7Fm?p=6)
+- [x] [Apache Flink 与 Apache Hive 的集成](https://www.bilibili.com/video/BV1sJ411r7Fm?p=6)
 - [ ] [趣头条基于 Apache Flink+ClickHouse 构建实时数据分析平台](https://www.bilibili.com/video/BV1sJ411r7Fm?p=7)
 - [ ] [基于 Apache Flink 的边缘流式计算](https://www.bilibili.com/video/BV1sJ411r7Fm?p=8)
 - [ ] [基于 Apache Pulsar 和 Apache Flink 进行批流一体的弹性数据处理](https://www.bilibili.com/video/BV1sJ411r7Fm?p=9)

@@ -73,7 +73,7 @@ OK
 Time taken: 0.028 seconds, Fetched: 0 row(s)
 ```
 
-### 3.2 配置Flink集群和SQL CLI
+### 3.2 配置 Flink 集群和 SQL CLI
 
 将 Hive 依赖项添加到 Flink 安装目录下的 lib 目录下，并修改 SQL CLI 的 yaml 配置文件 sql-cli-defaults.yaml 如下:
 ```xml

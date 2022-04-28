@@ -121,11 +121,13 @@ cp flink-sql-connector-hive-2.3.6_2.11-1.13.5.jar /opt/flink/lib/
 
 ## 2. SQL CLI 连接 Hive
 
-将上面的 jar 包添加至 Flink 的 lib 目录下之后，就可以使用 Flink 操作 Hive 的数据表了。现在我们可以启动 SQL 客户端来与 Hive 进行交互。SQL 客户端脚本位于 Flink 的 bin 目录中，可以通过嵌入式模式来启动 SQL 客户端 CLI：
+将上面的 jar 包添加至 Flink 的 lib 目录下之后，就可以使用 Flink 操作 Hive 的数据表了。现在我们启动 SQL 客户端来与 Hive 进行交互。SQL 客户端脚本位于 Flink 的 bin 目录中，可以通过嵌入式模式来启动 SQL 客户端 CLI：
 ```
 ./bin/sql-client.sh embedded
 ```
-Flink 1.13 版本不再通过 YAML 的方式来配置 SQL 客户端，而是使用一个初始化脚本在主 SQL 脚本执行前来配置环境，使用 -i 参数执行。具体参考[Flink SQL 客户端如何使用](https://mp.weixin.qq.com/s/6hXHlLx9ihS_bOo1Pgh5zA)。如下使用 DDL 方式直接创建 HiveCatalog：
+要使用 Flink 与 Hive 进行交互，需要配置一个 HiveCatalog 来访问 Hive 中的元数据。另一方面，HiveCatalog 也可以利用 Hive Metastore 持久化存储 Flink 自身的元数据。具体请查阅[如何在 Flink 1.9 中使用 Hive？](https://mp.weixin.qq.com/s/AYl5Je7J602juyuCnLn0fw)
+
+Flink 1.13 版本不再通过 YAML 的方式来配置 SQL 客户端，而是在一个初始化脚本中创建配置并在主 SQL 脚本执行前使用 -i 参数执行。具体参考[Flink SQL 客户端如何使用](https://mp.weixin.qq.com/s/6hXHlLx9ihS_bOo1Pgh5zA)。这里为了方便直接在 CLI 中使用 DDL 创建 HiveCatalog，如下所示：
 ```sql
 -- 创建 Catalog
 CREATE CATALOG my_hive_catalog WITH (
@@ -133,8 +135,6 @@ CREATE CATALOG my_hive_catalog WITH (
     'default-database' = 'default',
     'hive-conf-dir' = '/opt/hive/conf'
 );
--- 设置 HiveCatalog 为当前会话的 Catalog
-USE CATALOG my_hive_catalog;
 ```
 
 ![](1)
@@ -150,9 +150,7 @@ USE CATALOG my_hive_catalog;
 | hive-version     | 否 | (none)  | String | HiveCatalog 能够自动检测正在使用的 Hive 版本。建议不要指定 Hive 版本，除非自动检测失败 |
 | hadoop-conf-dir  | 否 | (none)  | String | Hadoop conf 目录的路径。仅支持本地文件系统路径。设置 Hadoop conf 的推荐方法是通过 HADOOP_CONF_DIR 环境变量。仅当环境变量不起作用时才使用该选项，例如如果要单独配置每个 HiveCatalog。|
 
-## 3. 操作 Hive 中的表
-
-接下来，我们可以查看注册的catalog：
+接下来，我们可以查看注册的 Catalog：
 ```sql
 Flink SQL> SHOW CATALOGS;
 +-----------------+
@@ -163,7 +161,20 @@ Flink SQL> SHOW CATALOGS;
 +-----------------+
 2 rows in set
 ```
-假设 Hive 中有一张 behavior 表，我们在 Flink 中查询该表：
+
+我们将此 Catalog 设置为当前会话的 Catalog，这样我们就可以操作 Hive 表：
+```
+USE CATALOG my_hive_catalog;
+```
+如下我们查看有哪些 Hive 表：
+```
+```
+
+## 3. 操作 Hive 中的表
+
+### 3.1 访问 Hive 元数据
+
+通过 HiveCatalog 我们可以访问 Hive 中的元数据来操作 Hive 表，例如读写数据。从上面我们知道 Hive 中有一张 behavior 表，现在我们在 Flink 中查询该表：
 ```sql
 Flink SQL> SELECT * FROM behavior LIMIT 2;
 2022-04-27 23:44:40,827 INFO  org.apache.hadoop.mapred.FileInputFormat                     [] - Total input paths to process : 1
@@ -171,7 +182,7 @@ Flink SQL> SELECT * FROM behavior LIMIT 2;
 ```
 ![](2)
 
-现在我们在 Flink 中向 Hive behavior 表中插入一条数据：
+我们在 Flink 中向 Hive behavior 表中插入一条数据：
 ```sql
 Flink SQL> INSERT INTO behavior SELECT 'uid-a', 'wid-a', '2022-04-27 23:12:01', 'Hello Flink';
 [INFO] Submitting SQL update statement to the cluster...
@@ -186,6 +197,30 @@ uid-a	wid-a	2022-04-27 23:12:01	Hello Flink
 Time taken: 0.608 seconds, Fetched: 1 row(s)
 ```
 从上面可以知道我们插入成功了。
+
+### 3.2 持久化元数据
+
+接下来，我们在 Flink SQL CLI 中创建一张 Kafka 的数据源表：
+```sql
+CREATE TABLE kafka_word_count_table (
+  word STRING COMMENT '单词',
+  frequency BIGINT COMMENT '次数'
+) WITH (
+  'connector' = 'kafka',
+  'topic' = 'word',
+  'properties.bootstrap.servers' = 'localhost:9092',
+  'properties.group.id' = 'kafka-connector-word',
+  'scan.startup.mode' = 'earliest-offset',
+  'format' = 'json',
+  'json.ignore-parse-errors' = 'true',
+  'json.fail-on-missing-field' = 'false'
+)
+```
+查看表结构：
+```
+
+```
+我们可以在 Hive 的客户端中执行下面命令查看刚刚在 Flink SQL CLI 中创建的表
 
 
 ..

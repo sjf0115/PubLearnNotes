@@ -221,5 +221,22 @@
 - [ ] [Flink on yarn应用部署](https://mp.weixin.qq.com/s/VCmeuzz-euCmu9ojZJ3uaA)
 - [ ] [Flink 原理与实现：内存管理](https://flink-learning.org.cn/article/detail/78ff81d85d022778205a0b84663446e0)
 
+### 15. CDC
+
+- [Flink CDC 原理、实践和优化](https://mp.weixin.qq.com/s/_khnjLbX56Ud4yYFvHnmkA)
+- [Flink CDC 2.0 正式发布，详解核心改进](https://mp.weixin.qq.com/s/iwY5975XXp7QOBeV0q4TfQ)
+- [Flink CDC 2.1 正式发布，稳定性大幅提升，新增 Oracle，MongoDB 支持](https://mp.weixin.qq.com/s/ImCATHNpI_hmWDwh13EvhQ)
+- [Flink CDC 2.2 正式发布，新增四种数据源，支持动态加表，提供增量快照框架](https://mp.weixin.qq.com/s/oLezzfC6LFENwO--BJpelQ)
+- [图文详解CDC技术，看这一篇就够了！](https://mp.weixin.qq.com/s/OcZQ4oyJ3WYDAOqCu3SWIQ)
+- [Apache Flink CDC 批流融合技术原理分析](https://mp.weixin.qq.com/s/LTKfi85Oftc7_k_gXz5anw)
+- [Flink SQL CDC 上线！我们总结了 13 条生产实践经验](https://mp.weixin.qq.com/s/Mfn-fFegb5wzI8BIHhNGvQ)
+- [基于 Flink SQL CDC 的实时数据同步方案](https://mp.weixin.qq.com/s/QNJlacBUlkMT7ksKKSNa5Q)
+- [Flink CDC 系列 - Flink CDC 如何简化实时数据入湖入仓](https://mp.weixin.qq.com/s/rMWDbVfyWCU2HSKpDMRUZw)
+- [实时数据湖：Flink CDC流式写入Hudi](https://mp.weixin.qq.com/s/JkCbvfJhdz9gT-Tw1pUBIA)
+- []()
+- []()
+- []()
+- []()
+- []()
 
 ...

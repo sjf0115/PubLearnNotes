@@ -95,6 +95,7 @@ python /opt/datax/bin/datax.py -r streamreader -w streamwriter
 ### 3.2 根据模板编写配置文件
 
 (1) 配置同步任务的读取端
+
 通过配置模板已生成了基本的读取端配置。此时你可以继续手动配置同步任务的读取端数据信息：
 ```json
 "reader": {
@@ -115,6 +116,7 @@ python /opt/datax/bin/datax.py -r streamreader -w streamwriter
 }
 ```
 (2) 配置同步任务的写入端
+
 配置完成读取端数据信息后，可以继续手动配置同步任务的写入端数据信息：
 ```json
 "writer": {
@@ -126,6 +128,7 @@ python /opt/datax/bin/datax.py -r streamreader -w streamwriter
 }
 ```
 (3) 配置通道控制
+
 当上述步骤配置完成后，则需要配置同步速率：
 ```json
 "setting": {

@@ -183,13 +183,7 @@
 - [ ] [Flink 原理与实现：Table & SQL API](https://flink-learning.org.cn/article/detail/5133eced98854eff56cc2eaa2150b1e4)
 - [ ] [Flink关系型API解读：Table API 与SQL](https://mp.weixin.qq.com/s/niHzIB7xCXO4gmlJeRfjGw)
 - [ ] [Flink 源码阅读笔记（17）- Flink SQL 中的时间属性](https://blog.jrwang.me/2019/2019-09-16-flink-sourcecode-sql-time-attribute.md/)
-- [ ] [Flink CDC 2.0 正式发布，详解核心改进](Flink CDC 2.0 正式发布，详解核心改进)
-- [ ] [基于 Flink SQL CDC 的实时数据同步方案](https://mp.weixin.qq.com/s/QNJlacBUlkMT7ksKKSNa5Q)
-- [ ] [Flink SQL CDC 上线！我们总结了 13 条生产实践经验](https://mp.weixin.qq.com/s/Mfn-fFegb5wzI8BIHhNGvQ)
-- [ ] [基于 Flink SQL 构建流批一体的 ETL 数据集成](https://mp.weixin.qq.com/s/uFexQhW1vH92b-qxNoC03Q)
-- [ ] [Flink SQL CDC 实践以及一致性分析](https://mp.weixin.qq.com/s/tE70jJO6pZTe6oB0fKcZkQ)
-- [ ] [Flink CDC 原理、实践和优化](https://mp.weixin.qq.com/s/_khnjLbX56Ud4yYFvHnmkA)
-- [ ] [尚硅谷大数据Flink CDC教程](https://www.bilibili.com/video/BV1wL4y1Y7Xu?p=3)
+
 
 ### 13. 调优
 
@@ -233,10 +227,12 @@
 - [基于 Flink SQL CDC 的实时数据同步方案](https://mp.weixin.qq.com/s/QNJlacBUlkMT7ksKKSNa5Q)
 - [Flink CDC 系列 - Flink CDC 如何简化实时数据入湖入仓](https://mp.weixin.qq.com/s/rMWDbVfyWCU2HSKpDMRUZw)
 - [实时数据湖：Flink CDC流式写入Hudi](https://mp.weixin.qq.com/s/JkCbvfJhdz9gT-Tw1pUBIA)
-- []()
-- []()
-- []()
-- []()
-- []()
+- [ ] [Flink CDC 2.0 正式发布，详解核心改进](Flink CDC 2.0 正式发布，详解核心改进)
+- [ ] [基于 Flink SQL CDC 的实时数据同步方案](https://mp.weixin.qq.com/s/QNJlacBUlkMT7ksKKSNa5Q)
+- [ ] [Flink SQL CDC 上线！我们总结了 13 条生产实践经验](https://mp.weixin.qq.com/s/Mfn-fFegb5wzI8BIHhNGvQ)
+- [ ] [基于 Flink SQL 构建流批一体的 ETL 数据集成](https://mp.weixin.qq.com/s/uFexQhW1vH92b-qxNoC03Q)
+- [ ] [Flink SQL CDC 实践以及一致性分析](https://mp.weixin.qq.com/s/tE70jJO6pZTe6oB0fKcZkQ)
+- [ ] [Flink CDC 原理、实践和优化](https://mp.weixin.qq.com/s/_khnjLbX56Ud4yYFvHnmkA)
+- [ ] [尚硅谷大数据Flink CDC教程](https://www.bilibili.com/video/BV1wL4y1Y7Xu?p=3)
 
 ...

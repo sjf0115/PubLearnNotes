@@ -201,11 +201,11 @@ DATE
 TIME
 TIME(p)
 ```
-其中 p 是秒的小数部分的位数（精度）。p 的值必须在 [0, 9] 之间。如果未指定精度，p 默认为 0。
+使用 TIME(p) 来声明，其中 p 是秒的小数部分的位数（精度）。p 的值必须在 [0, 9] 之间。如果未指定精度，p 默认为 0。
 
 #### 3.4.3 TIMESTAMP
 
-不带时区的时间戳数据类型，格式为 '年-月-日 小时:分钟:秒[.小数]'，精度达到纳秒，取值范围为 [0000-01-01 00:00:00.000000000, 9999-12-31 23:59:59.999999999]。与标准 SQL 相比，不支持闰秒（23:59:60 和 23:59:61），语义上更接近于 java.time.LocalDateTime。此类型不支持和 BIGINT（JVM long 类型）互相转换，此类型是无时区的：
+不带时区的时间戳数据类型，格式为 '年-月-日 小时:分钟:秒[.小数]'，精度达到纳秒，取值范围为 [0000-01-01 00:00:00.000000000, 9999-12-31 23:59:59.999999999]。与标准 SQL 相比，不支持闰秒（23:59:60 和 23:59:61），语义上更接近于 java.time.LocalDateTime：
 ```sql
 TIMESTAMP
 TIMESTAMP(p)
@@ -213,11 +213,11 @@ TIMESTAMP(p)
 TIMESTAMP WITHOUT TIME ZONE
 TIMESTAMP(p) WITHOUT TIME ZONE
 ```
-其中 p 是秒的小数部分的位数（精度）。p 的值必须在 [0, 9] 之间。如果未指定精度，p 默认为 6。TIMESTAMP(p) WITHOUT TIME ZONE 与 TIMESTAMP 等价。
+使用 TIMESTAMP(p) 来声明类型，其中 p 是秒的小数部分的位数（精度）。p 的值必须在 [0, 9] 之间。如果未指定精度，p 默认为 6。TIMESTAMP(p) WITHOUT TIME ZONE 与 TIMESTAMP(p) 等价。
 
 #### 3.4.4 TIMESTAMP WITH TIME ZONE
 
-带时区的时间戳数据类型，格式为 '年-月-日 小时:分钟:秒[.小数] 时区'，精度达到纳秒，取值范围为 [0000-01-01 00:00:00.000000000 +14:59, 9999-12-31 23:59:59.999999999 -14:59]。与 TIMESTAMP_LTZ 相比，时区偏移信息物理存储在每个数据中。
+带时区的时间戳数据类型，格式为 '年-月-日 小时:分钟:秒[.小数] 时区'，精度达到纳秒，取值范围为 [0000-01-01 00:00:00.000000000 +14:59, 9999-12-31 23:59:59.999999999 -14:59]：
 ```sql
 TIMESTAMP WITH TIME ZONE
 TIMESTAMP(p) WITH TIME ZONE
@@ -225,10 +225,7 @@ TIMESTAMP(p) WITH TIME ZONE
 
 #### 3.4.5 TIMESTAMP_LTZ
 
-带本地时区的时间戳数据类型，'年-月-日 小时:分钟:秒[.小数] 时区'，精度可达纳秒，取值范围为 [0000-01-01 00:00:00.000000000 +14:59, 9999-12-31 23:59:59.999999999 -14:59]。与标准 SQL 相比，不支持闰秒（23:59:60 和 23:59:61），在语义上更接近于 java.time.OffsetDateTime。
-
-与 TIMESTAMP WITH TIME ZONE 相比，时区偏移信息并非物理存储在每个数据中。相反，此类型在 Table 编程环境的 UTC 时区中采用 java.time.Instant 语义。每个数据都在当前会话中配置的本地时区中进行解释，以便用于计算和可视化。此类型允许根据配置的会话时区来解释 UTC 时间戳，可以区分时区无关和时区相关的时间戳类型。
-
+带本地时区的时间戳数据类型，'年-月-日 小时:分钟:秒[.小数] 时区'，精度可达纳秒，取值范围为 [0000-01-01 00:00:00.000000000 +14:59, 9999-12-31 23:59:59.999999999 -14:59]。与标准 SQL 相比，不支持闰秒（23:59:60 和 23:59:61），在语义上更接近于 java.time.OffsetDateTime：
 ```sql
 TIMESTAMP_LTZ
 TIMESTAMP_LTZ(p)
@@ -236,12 +233,13 @@ TIMESTAMP_LTZ(p)
 TIMESTAMP WITH LOCAL TIME ZONE
 TIMESTAMP(p) WITH LOCAL TIME ZONE
 ```
-其中 p 是秒的小数部分的位数（精度）。p 的值必须在 [0, 9] 之间。如果未指定精度，那么 p 默认为 6。TIMESTAMP(p) WITH LOCAL TIME ZONE 与 TIMESTAMP_LTZ(p) 等价。
+使用 TIMESTAMP_LTZ(p) 来声明类型，其中 p 是秒的小数部分的位数（精度）。p 的值必须在 [0, 9] 之间。如果未指定精度，那么 p 默认为 6。TIMESTAMP(p) WITH LOCAL TIME ZONE 与 TIMESTAMP_LTZ(p) 等价。
+
+TIMESTAMP_LTZ 与 TIMESTAMP WITH TIME ZONE 的区别在于：TIMESTAMP WITH TIME ZONE 的时区信息是携带在数据中的，例如 2022-01-01 00:00:00.000000000 +08:00；而 TIMESTAMP_LTZ 的时区信息不是携带在数据中的，而是由 Flink SQL 任务的全局配置决定的，我们可以由 table.local-time-zone 参数来设置时区。
 
 #### 3.4.6 INTERVAL YEAR TO MONTH
 
 一组由 Year-Month Interval 组成的数据类型，其范围从 -9999-11 到 +9999-11，可以表达：
-
 ```sql
 INTERVAL YEAR
 INTERVAL YEAR(p)

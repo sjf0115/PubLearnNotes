@@ -77,10 +77,15 @@ MySQL Reader 插件支持读取表和视图。表字段可以依序指定全部�
 - jdbcUrl：描述的是到对端数据库的JDBC连接信息，使用JSON的数组描述，并支持一个库填写多个连接地址。之所以使用JSON数组描述连接信息，是因为阿里集团内部支持多个IP探测，如果配置了多个，MysqlReader 可以依次探测ip的可连接性，直到选择一个合法的IP。如果全部连接失败，MysqlReader报错。 注意，jdbcUrl必须包含在connection配置单元中。对于阿里集团外部使用情况，JSON数组填写一个JDBC连接即可。
 - username：必选字段，数据源的用户名。
 - password：必选字段，数据源指定用户名的密码。
+
 - table：必选字段，需要同步的表。可以支持多张表，使用 JSON 数组表示。当配置多张表时，用户自己需保证多张表是同一 Schema 结构。注意，table 必须包含在 connection 配置单元中。
+
 - column：必选字段，表中需要需要同步的列名。可以同步多列，使用 JSON 数组表示。用户使用 `*` 表示同步所有列，例如 `['*']`。支持列裁剪，即列可以挑选部分列进行导出；支持列换序，即列可以不按照表 Schema 信息进行导出。支持常量配置，用户需要按照 MySQL SQL 语法格式: `["id", "`table`", "1", "'bazhen.csy'", "null", "to_char(a + 1)", "2.3" , "true"]` id 为普通列名，`table` 为包含保留字的列名，1为整形数字常量，'bazhen.csy'为字符串常量，null为空指针，to_char(a + 1)为表达式，2.3为浮点数，true为布尔值。
+
 - splitPk：可选字段，数据分片的键。MysqlReader 进行数据抽取时，如果指定 splitPk，表示用户希望使用 splitPk 代表的字段进行数据分片，DataX 因此会启动并发任务进行数据同步，这样可以大大提供数据同步的效能。推荐 splitPk 用户使用表主键，因为表主键通常情况下比较均匀，因此切分出来的分片也不容易出现数据热点。目前splitPk仅支持整形数据切分，不支持浮点、字符串、日期等其他类型。如果用户指定其他非支持类型，MysqlReader将报错。如果splitPk不填写，包括不提供splitPk或者splitPk值为空，DataX视作使用单通道同步该表数据。
+
 - where：可选字段，过滤条件。MysqlReader 根据指定的 column、table、where 条件拼接 SQL，并根据这个 SQL 进行数据抽取。在实际业务场景中，往往会选择当天的数据进行同步，可以将 where 条件指定为 gmt_create > $bizdate 。注意：不可以将 where 条件指定为 limit 10，limit 不是 SQL 的合法 where 子句。where条件可以有效地进行业务增量同步。如果不填写where语句，包括不提供where的key或者value，DataX均视作同步全量数据。
+
 - querySql：可选字段，自定义查询 SQL。在有些业务场景下，where这一配置项不足以描述所筛选的条件，用户可以通过该配置型来自定义筛选SQL。当用户配置了这一项之后，DataX系统就会忽略table，column这些配置型，直接使用这个配置项的内容对数据进行筛选，例如需要进行多表join后同步数据，使用select a,b from table_a join table_b on table_a.id = table_b.id。当用户配置querySql时，MysqlReader直接忽略table、column、where条件的配置，querySql优先级大于table、column、where选项。
 
 ### 1.4 类型转换

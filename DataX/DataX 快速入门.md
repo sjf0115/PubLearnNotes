@@ -38,6 +38,7 @@ python {YOUR_DATAX_HOME}/bin/datax.py {YOUR_DATAX_HOME}/job/job.json
 ```python
 python /opt/datax/bin/datax.py /opt/datax/job/job.json
 ```
+看到如下运行信息表示我们已经运行成功了：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/DataX/datax-quick-start-1.png?raw=true)
 
@@ -96,7 +97,7 @@ python /opt/datax/bin/datax.py -r streamreader -w streamwriter
 
 (1) 配置同步任务的读取端
 
-通过配置模板已生成了基本的读取端配置。此时你可以继续手动配置同步任务的读取端数据信息：
+通过配置模板已生成了基本的读取端配置。此时你可以继续手动配置同步任务的读取端数据信息，如下所示输出5条记录，第一个字段数据类型为 Long 的 10，第二个字段数据类型为 String 的 `hello，DataX`：
 ```json
 "reader": {
     "name": "streamreader",
@@ -111,7 +112,7 @@ python /opt/datax/bin/datax.py -r streamreader -w streamwriter
               "value": "hello，DataX"
           }
         ],
-        "sliceRecordCount": "100"
+        "sliceRecordCount": "5"
     }
 }
 ```

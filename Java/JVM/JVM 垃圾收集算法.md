@@ -24,12 +24,14 @@ permalink: jvm-garbage-collection-algorithm
 - 另外一个是空间问题，标记清除之后会产生大量不连续的内存碎片，空间碎片太多可能会导致，当程序在以后的运行过程中需要分配较大对象时无法找到足够的连续内存而不得不提前触发另一次垃圾收集动作。
 
 标记-清除算法的执行过程如下图所示：
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Java/jvm-garbage-collection-algorithm-1.jpg?raw=true)
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jvm-garbage-collection-algorithm-1.jpg?raw=true)
 
 ### 2. 复制算法
 
 为了解决效率问题，一种称为 `复制` （`Copying`）的收集算法出现了，它将可用内存按容量划分为大小相等的两块，每次只使用其中的一块。当这一块的内存用完了，就将还存活着的对象复制到另外一块上面，然后再把已使用过的内存空间一次清理掉。这样使得每次都是对其中的一块进行内存回收，内存分配时也就不用考虑内存碎片等复杂情况，只要移动堆顶指针，按顺序分配内存即可，实现简单，运行高效。只是这种算法的代价是将内存缩小为原来的一半，未免太高了一点。复制算法的执行过程如下图所示：
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Java/jvm-garbage-collection-algorithm-2.jpg?raw=true)
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jvm-garbage-collection-algorithm-2.jpg?raw=true)
 
 现在的商业虚拟机都采用这种收集算法来回收新生代，IBM 的专门研究表明，新生代中的对象 `98%` 是朝生夕死的，所以并不需要按照 `1∶1` 的比例来划分内存空间，而是将内存分为一块较大的 `Eden` 空间和两块较小的 `Survivor` 空间，每次使用 `Eden` 和其中的一块 `Survivor`。当回收时，将 `Eden` 和 `Survivor` 中还存活着的对象一次性地拷贝到另外一块 `Survivor` 空间上，最后清理掉 `Eden` 和刚才用过的 `Survivor` 的空间。`HotSpot` 虚拟机默认 `Eden` 和 `Survivor` 的大小比例是 `8∶1`，也就是每次新生代中可用内存空间为整个新生代容量的 `90%`（`80%+10%`），只有 `10%` 的内存是会被 `浪费` 的。当然，`98%` 的对象可回收只是一般场景下的数据，我们没有办法保证每次回收都只有不多于 `10%` 的对象存活，当 `Survivor` 空间不够用时，需要依赖其他内存（这里指老年代）进行分配担保（Handle Promotion）。
 
@@ -40,7 +42,8 @@ permalink: jvm-garbage-collection-algorithm
 复制收集算法在对象存活率较高时就要执行较多的复制操作，效率将会变低。更关键的是，如果不想浪费 `50%` 的空间，就需要有额外的空间进行分配担保，以应对被使用的内存中所有对象都 `100%` 存活的极端情况，所以在老年代一般不能直接选用这种算法。
 
 根据老年代的特点，有人提出了另外一种 `标记-整理` （`Mark-Compact`）算法，标记过程仍然与 `标记-清除` 算法一样，但后续步骤不是直接对可回收对象进行清理，而是让所有存活的对象都向一端移动，然后直接清理掉端边界以外的内存，`标记-整理` 算法的示意图如下图所示:
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Java/jvm-garbage-collection-algorithm-3.jpg?raw=true)
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jvm-garbage-collection-algorithm-3.jpg?raw=true)
 
 ### 4. 分代收集算法
 

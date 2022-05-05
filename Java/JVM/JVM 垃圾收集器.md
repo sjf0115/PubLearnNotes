@@ -15,7 +15,7 @@ permalink: jvm-common-garbage-collector
 
 如果说收集算法是内存回收的方法论，那么垃圾收集器就是内存回收的具体实现。`Java` 虚拟机规范中对垃圾收集器应该如何实现并没有任何规定，因此不同的厂商、不同版本的虚拟机所提供的垃圾收集器都可能会有很大差别，并且一般都会提供参数供用户根据自己的应用特点和要求组合出各个年代所使用的收集器。下面讨论的是基于 `JDK 1.7 Update 14` 之后的 `HotSpot` 虚拟机。这个虚拟机包含的所有收集器如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Java/jvm-common-garbage-collector-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jvm-common-garbage-collector-1.png?raw=true)
 
 图中展示了7种作用于不同分代的收集器，如果两个收集器之间存在连线，就说明它们可以搭配使用。虚拟机所处的区域，则表示它是属于新生代收集器还是老年代收集器。下面会介绍这些收集器的特性，基本原理和使用场景。
 
@@ -44,13 +44,7 @@ permalink: jvm-common-garbage-collector
 `Parallel Scavenge` 收集器的特点是它的关注点与其他的收集器不同， `CMS` 等收集器的关注点是尽可能的缩短垃圾收集时的用户线程的停顿时间， 而 `Parallel Scavenge` 收集器的目标则是达到一个可控制的吞吐量。停顿时间越短就越适合需要与用户交互的程序，良好的响应速度能提升用户体验，而高吞吐量则可以高效率的利用CPU时间，尽快完成程序的运算任务，主要适合在后台运算而不需要太多交互的任务。由于与吞吐量关系密切，该收集器也经常成为 `吞吐量优先` 收集器。`Parallel Scavenge` 收集器可以通过设置 `-XX:+UseAdaptivSizePolicy` 参数开启 `GC` 自适应调节策略，不需要手工指定新生代的大小(`-Xmn`)，Eden与Survivor区的比例(`-XX:SurvivorRatio`)，晋升老年代对象年龄等细节参数，虚拟机会根据当前系统的运行情况收集性能监控信息，动态调整这些参数以提供最合适的停顿时间或者最大的吞吐量。自适应调节策略也是`Parallel Scavenge` 收集器与 `ParNew`收集器的一个重要区别。
 
 备注:
-```
-吞吐量 = 运行用户代码的时间 / （运行用户代码的时间 + 垃圾收集的时间）
-
-Example:
-虚拟机总共运行了100分钟，其中垃圾收集花掉1分钟，则吞吐量为99%
-
-```
+> 吞吐量 = 运行用户代码的时间 / （运行用户代码的时间 + 垃圾收集的时间）。例如，虚拟机总共运行了100分钟，其中垃圾收集花掉1分钟，则吞吐量为99%。
 
 ### 4. Serial Old 收集器
 

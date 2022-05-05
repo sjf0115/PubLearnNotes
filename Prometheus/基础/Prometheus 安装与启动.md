@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Prometheus安装与启动
+title: Prometheus 安装与启动
 date: 2020-11-14 10:21:01
 tags:
   - Prometheus
@@ -18,7 +18,7 @@ permalink: how-install-and-startup-prometheus
 
 根据我们的操作系统选择我们要下载的[发行包](https://prometheus.io/download/)，在这我们以 Mac Os 为例：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Prometheus/how-install-and-startup-prometheus-1.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Prometheus/how-install-and-startup-prometheus-1.jpg?raw=true)
 
 > 官方提供了已经编译好的二进制包以及[Docker镜像](https://hub.docker.com/u/prom)。
 
@@ -122,21 +122,21 @@ scrape_configs:
 ```
 正常的情况下，你可以看到以下输出内容：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Prometheus/how-install-and-startup-prometheus-2.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Prometheus/how-install-and-startup-prometheus-2.jpg?raw=true)
 
 现在服务器已经开始运行了，我们可以通过 http://localhost:9090 浏览 prometheus 信息：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Prometheus/how-install-and-startup-prometheus-3.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Prometheus/how-install-and-startup-prometheus-3.jpg?raw=true)
 
 我们还可以看看正在抓取的端点和一些原始的Prometheus指标。为此，我们可以浏览 http://localhost:9090/metrics 并查看返回的内容：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Prometheus/how-install-and-startup-prometheus-4.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Prometheus/how-install-and-startup-prometheus-4.jpg?raw=true)
 
 ### 5. 表达式浏览器
 
 由于上述查看指标的方式对用户不是很友好，所以我们可以使用 Prometheus 的内置表达式浏览器来查看，例如我们使用表达式浏览器找出 go_gc_duration_seconds 指标。我们可以在查询框中键入指标名称，然后单击 Execute 按钮得到具有这个名称的所有指标：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Prometheus/how-install-and-startup-prometheus-5.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Prometheus/how-install-and-startup-prometheus-5.jpg?raw=true)
 
 这将返回多个不同的时间序列以及每个时间序列记录的最新值，所有时间序列均具有度量名称 go_gc_duration_seconds，但具有不同的 quantile 标签。
 

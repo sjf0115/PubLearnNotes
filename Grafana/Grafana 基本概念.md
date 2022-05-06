@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Grafana系列之基本概念
+title: Grafana 系列之基本概念
 date: 2019-08-17 13:48:34
 tags:
   - Grafana

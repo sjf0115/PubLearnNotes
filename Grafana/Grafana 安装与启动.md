@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Grafana安装与启动
+title: Grafana 安装与启动
 date: 2019-08-03 12:22:34
 tags:
   - Grafana
@@ -10,7 +10,7 @@ categories: Grafana
 permalink: how-to-install-and-run-grafana
 ---
 
-### 1. Homebrew安装
+### 1. Homebrew 安装
 
 #### 1.1 下载与安装
 
@@ -127,14 +127,10 @@ INFO[08-03|22:39:24] Initializing SqlStore                    logger=server
 
 要运行 `Grafana`，请打开浏览器并转到 `http://localhost:3000/`。如果你尚未配置其他端口，则 `Grafana` 侦听的默认 Http 端口为 3000。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Grafana/how-to-install-and-run-grafana-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Grafana/how-to-install-and-run-grafana-1.png?raw=true)
 
 > 默认登录账号与密码为: admin/ admin
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Grafana/how-to-install-and-run-grafana-2.png?raw=true)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Grafana/how-to-install-and-run-grafana-2.png?raw=true)
 
 原文:[Installing on Mac](https://grafana.com/docs/installation/mac/)

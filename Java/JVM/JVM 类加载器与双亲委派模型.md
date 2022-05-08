@@ -73,9 +73,7 @@ for (String paths : appClassLoaderPath.split(";")){
 - 扩展加载源
 - 防止源码泄漏
 
-开发人员可以通过继承抽象类 java.lang.ClassLoader 类的方式，实现自己的类加载器，以满足一些特殊的需求。在 JDK 1.2 之前，在自定义类加载器时，总会去继承 ClassLoader 类并重写 loadClass() 方法，从而实现自定义的类加载类，但是在 JDK 1.2 之后已不再建议用户去覆盖 loadClass() 方法，而是建议把自定义的类加载逻辑写在 findclass() 方法中。
-
-第一步自定义一个实体类 Car.java：
+开发人员可以通过继承抽象类 java.lang.ClassLoader 类的方式，实现自己的类加载器，以满足一些特殊的需求。在 JDK 1.2 之前，在自定义类加载器时，总会去继承 ClassLoader 类并重写 loadClass() 方法，从而实现自定义的类加载类，但是在 JDK 1.2 之后已不再建议用户去覆盖 loadClass() 方法，而是建议把自定义的类加载逻辑写在 findclass() 方法中。下面我们来实现一个自定义类加载器并演示如何使用。第一步自定义一个实体类 Car.java：
 ```java
 // 测试对象 Car
 public class Car {
@@ -88,7 +86,7 @@ public class Car {
     }
 }
 ```
-第二步自定义一个类加载器，我们自定义的 CustomClassLoader 继承自 java.lang.ClassLoader，且只实现 findClass 方法：
+第二步自定义一个类加载器，我们定义的 CustomClassLoader 继承自 java.lang.ClassLoader，且只实现 findClass 方法：
 ```java
 // 自定义加载器
 public class CustomClassLoader extends ClassLoader{
@@ -137,13 +135,14 @@ ClassLoader: sun.misc.Launcher$AppClassLoader@49476842
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jvm-class-loader-parents-delegation-model-1.png?raw=true)
 
-而这个目录正好是应用程序类加载的路径，可以使用[]()代码验证。为了解决这个问题，我们可以把 Car.class 移动到 /opt/data 目录下（删除 target/classes 目录下的 Car.class 文件，避免由应用程序类加载器加载）。再次运行输出如下结果：
+而这个目录正好是应用程序类加载的路径，可以使用[ClassLoaderPathExample](https://github.com/sjf0115/data-example/blob/master/common-example/src/main/java/com/common/example/jvm/classLoader/ClassLoaderPathExample.java)代码验证。为了解决这个问题，我们可以把 Car.class 手动移动到 /opt/data 目录下（删除 target/classes 目录下的 Car.class 文件，避免由应用程序类加载器加载）。再次运行输出如下结果：
 ```
 CustomClassLoader: com.common.example.bean.Car
 welcome you
 this is a car
 ClassLoader: com.common.example.jvm.classLoader.CustomClassLoader@4617c264
 ```
+这样 Car 类就使用我们自定义的类加载器加载了。
 
 ## 2. 什么是双亲委派模型
 
@@ -165,13 +164,13 @@ System.out.println(extClassLoader); // sun.misc.Launcher$ExtClassLoader@5acf9800
 ClassLoader bootstrapClassLoader = extClassLoader.getParent();
 System.out.println(bootstrapClassLoader); // null
 ```
-在上述代码中依次输出 ClassLoaderParent 类的类加载器，父类加载器以及父类的父类加载器。可以看到当前类的加载器是应用程序类加载器，它的父类亲加载器是扩展类加载器，扩展类加载器的父类输出了一个 null，这个 null 会去调用启动类加载器。后续通过 ClassLoader 类的源码我们可以知道这一点。
+在上述代码中依次输出当前类的类加载器，父类加载器以及父类的父类加载器。可以看到当前类的加载器是应用程序类加载器，它的父类亲加载器是扩展类加载器，扩展类加载器的父类输出了一个 null，这个 null 会去调用启动类加载器。后续通过 ClassLoader 类的源码我们可以知道这一点。
 
 那到底什么是双亲委派模型呢？其实我们把上述类加载器之间的这种层次关系，我们称为类加载器的双亲委派模型（Parents Delegation Model）。双亲委派模型要求除了顶层的启动类加载器外，其余的类加载器都应当有自己的父类加载器。这里类加载器之间的父子关系一般不会以继承（Inheritance）的关系来实现，而是都使用组合（Composition）关系来复用父加载器的代码。
 
 类加载器的双亲委派模型是在 JDK 1.2 期间被引入并被广泛应用于之后几乎所有的 Java 程序中。但它并不是一个强制性的约束模型，而是 Java 设计者推荐给开发者的一种类加载器实现方式。
 
-我们从概念上知道了什么是双亲委派模型，那它到底是用来做什么的呢？双亲委派模型的工作过程是：如果一个类加载器收到了类加载的请求，它首先不会自己去尝试加载这个类，而是把这个请求委派给父类加载器去完成，每一个层次的类加载器都是如此，因此所有的加载请求最终都委派到顶层的启动类加载器中，只有当父加载器反馈自己无法完成这个加载请求（它的搜索范围中没有找到所需的类）时，子加载器才会尝试自己去加载。
+我们从概念上知道了什么是双亲委派模型，那它到底是如何工作的呢？双亲委派模型的工作过程是：如果一个类加载器收到了类加载的请求，它首先不会自己去尝试加载这个类，而是把这个请求委派给父类加载器去完成，每一个层次的类加载器都是如此，因此所有的加载请求最终都委派到顶层的启动类加载器中，只有当父加载器反馈自己无法完成这个加载请求（它的搜索范围中没有找到所需的类）时，子加载器才会尝试自己去加载。
 
 ## 3. 为什么需要双亲委派模型
 
@@ -200,17 +199,12 @@ protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundE
                     c = findBootstrapClassOrNull(name);
                 }
             } catch (ClassNotFoundException e) {
-                // ClassNotFoundException thrown if class not found
-                // from the non-null parent class loader
             }
 
             if (c == null) {
-                // If still not found, then invoke findClass in order
-                // to find the class.
+                // 如果仍未找到，则调用 findClass 以查找该类。
                 long t1 = System.nanoTime();
                 c = findClass(name);
-
-                // this is the defining class loader; record the stats
                 sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);
                 sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
                 sun.misc.PerfCounter.getFindClasses().increment();

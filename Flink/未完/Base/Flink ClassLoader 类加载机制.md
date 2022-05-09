@@ -13,22 +13,38 @@
 - Java 的应用程序类加载器：加载类路径 classpath 下的所有类
 - Flink 的动态类加载器(动态插件/用户代码)：用于从插件或用户代码 jar 中加载类。动态类加载器把应用程序类加载器作为父类加载器。
 
-默认情况下，Flink 会颠倒类加载顺序，即首先查看动态类加载器，并且仅在类不是动态加载代码的一部分时才查看父类（应用程序类加载器）。
+默认情况下，Flink 会颠倒类加载顺序，即首先查看动态类加载器，如果类不是动态加载代码的一部分时才会委托给父类加载器，即应用程序类加载器。
 
-反向类加载的好处是插件和作业可以使用与 Flink 核心本身不同的库版本，这在不同版本的库不兼容时非常有用。该机制有助于避免常见的依赖冲突错误，如 IllegalAccessError 或 NoSuchMethodError。代码的不同部分只是拥有单独的类副本（Flink 的核心或其依赖项之一可以使用与用户代码或插件代码不同的副本）。在大多数情况下，这很有效，不需要用户进行额外的配置。
+反向类加载的好处是插件和作业可以使用与 Flink 核心库不同的版本，这在不同版本的库不兼容时非常有用。该机制有助于避免常见的依赖冲突错误，如 IllegalAccessError 或 NoSuchMethodError。代码的不同部分只是拥有单独的类副本（Flink 的核心或其依赖项之一可以使用与用户代码或插件代码不同的副本）。在大多数情况下，这很有效，不需要用户进行额外的配置。
 
-但是，在某些情况下，反向类加载会导致问题（见下文，“X 不能强制转换为 X”）。对于用户代码类加载，您可以通过 Flink config 中的 classloader.resolve-order 将 ClassLoader 解析顺序配置为 parent-first（从 Flink 的默认 child-first）恢复到 Java 的默认模式。
+但是，在某些情况下，反向类加载会导致问题（见下文，“X 不能强制转换为 X”）。对于动态类加载器，我们可以通过 Flink config 中的 classloader.resolve-order 将 ClassLoader 解析顺序配置为 parent-first（Flink 默认为 child-first）恢复到 Java 的默认模式。
 
-请注意，某些类总是以父类优先的方式解析（首先通过父类加载器），因为它们在 Flink 的核心和插件/用户代码或面向插件/用户代码的 API 之间共享。这些类的包是通过 classloader.parent-first-patterns-default 和 classloader.parent-first-patterns-additional 配置的。要添加新的包以首先加载，请设置 classloader.parent-first-patterns-additional 配置选项。
-
+需要注意的是，某些类必须以父类优先的方式解析（首先通过父类加载器），因为它们在 Flink 核心库与插件/用户代码或面向插件/用户代码的 API 之间共享。这些类的包需要通过 classloader.parent-first-patterns-default 和 classloader.parent-first-patterns-additional 来配置。要添加新的包实现 parent-first 加载，需要设置 classloader.parent-first-patterns-additional 配置选项。
 
 
 在具有动态类加载的设置中，我们可能会看到 com.foo.X 无法转换为 com.foo.X 的异常。这意味着 com.foo.X 类的多个版本已由不同的类加载器加载，并且该类的类型试图相互分配。
 
 一个常见的原因是库与 Flink 的反向类加载方法不兼容。您可以关闭反向类加载来验证这一点（在 Flink 配置中设置 classloader.resolve-order: parent-first）或从反向类加载中排除库（在 Flink 配置中设置 classloader.parent-first-patterns-additional）。
 
-另一个原因可能是缓存的对象实例，由一些库（如 Apache Avro）或实习对象（例如通过 Guava 的实习生）产生。这里的解决方案是要么设置一个没有任何动态类加载的设置，要么确保相应的库完全是动态加载代码的一部分。后者意味着该库不能添加到 Flink 的 /lib 文件夹中，而必须是应用程序 fat-jar/uber-jar 的一部分
+另一个原因可能是缓存的对象实例，由一些库（如 Apache Avro）或实习对象（例如通过 Guava 的实习生）产生。这里的解决方案是要么设置一个没有任何动态类加载的设置，要么确保相应的库完全是动态加载代码的一部分。后者意味着该库不能添加到 Flink 的 lib 文件夹中，而必须是应用程序 fat-jar/uber-jar 的一部分
 
+## 避免用户代码的动态类加载
+
+所有组件(JobManger、TaskManager、Client、ApplicationMaster 等)在启动时都会记录其类路径 classpath 设置。可以在日志开头的环境信息中找到。当运行 JobManager 和 TaskManagers 专用于一些特定作业的设置时，可以将用户代码的 JAR 直接放入 lib 目录下，以确保它们是类路径的一部分而不是动态加载。
+
+通常可以将作业的 JAR 文件放入 lib 目录下。JAR 自然成为应用程序类加载器（AppClassLoader）和动态类加载器（FlinkUserCodeClassLoader）的一部分。因为应用程序类加载器是动态加载器的父类加载器，按照双亲委派模型类的加载会委派到应用程序类加载器上，所以 lib 目录下的类只会被应用程序类加载器加载一次。对于那些无法放入 lib 目录下的作业 JAR（例如，因为设置是由多个作业使用的会话），仍然可以将常用库放入 lib 目录下，并避免动态加载这些类。
+
+## 在用户代码中手动加载类
+
+在某些情况下，转换函数、Source 或 Sink 需要手动加载类（通过反射动态加载）。为了实现这个目标，需要有一个访问作业类的类加载器。在这种情况下，可以将函数（或者 Source、Sink）设为 RichFunction（例如 RichMapFunction 或 RichWindowFunction）并通过 getRuntimeContext().getUserCodeClassLoader() 访问用户代码类加载器。
+
+## X cannot be cast to X exceptions
+
+在具有动态类加载的设置中，您可能会看到样式 com.foo.X 无法转换为 com.foo.X 的异常。这意味着 com.foo.X 类的多个版本已由不同的类加载器加载，并且该类的类型试图相互分配。
+
+一个常见的原因是库与 Flink 的反向类加载方法不兼容。您可以关闭反向类加载来验证这一点（在 Flink 配置中设置 classloader.resolve-order: parent-first）或从反向类加载中排除库（在 Flink 配置中设置 classloader.parent-first-patterns-additional）。
+
+另一个原因可能是缓存的对象实例，由一些库（如 Apache Avro）或实习对象（例如通过 Guava 的实习生）产生。这里的解决方案是要么设置一个没有任何动态类加载的设置，要么确保相应的库完全是动态加载代码的一部分。后者意味着该库不能添加到 Flink 的 /lib 文件夹中，而必须是应用程序 fat-jar/uber-jar 的一部分
 
 
 

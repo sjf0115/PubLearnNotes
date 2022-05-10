@@ -46,7 +46,7 @@ server.1=localhost:2888:3888
 ...
 ```
 
-### 3. 配置Kafka
+### 3. 配置 Kafka
 
 第一个 broker 配置 `server-9092.properties` 如下:
 ```
@@ -103,7 +103,7 @@ log.dirs=/Users/smartsi/opt/kafka/logs/log-9092
 ```
 Kafka存储Log的目录。
 
-### 4. 启动Kafka服务器
+### 4. 启动 Kafka 服务器
 
 有两种方式可以启动 Kafka 服务器:
 ```
@@ -218,9 +218,5 @@ this is my first message
 this is my second message
 ```
 如果你将上述命令在不同的终端中运行，那么现在就可以将消息输入到生产者终端中，并将它们在消费终端中显示出来。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 原文:[Quickstart](http://kafka.apache.org/quickstart)

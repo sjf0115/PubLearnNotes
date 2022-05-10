@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Kafka 监控工具之Kafka Manager
+title: Kafka 监控工具之 Kafka Manager
 date: 2019-09-06 21:00:01
 tags:
   - Kafka
@@ -85,7 +85,7 @@ application.features=["KMClusterManagerFeature","KMTopicManagerFeature","KMPrefe
 
 ### 6. 启动服务
 
-解压缩生成的zip文件，并将其移到工作目录后，可以运行如下命令启动服务：
+解压缩生成的 zip 文件，并将其移到工作目录后，可以运行如下命令启动服务：
 ```
 bin/kafka-manager
 ```
@@ -93,10 +93,6 @@ bin/kafka-manager
 ```
 bin/kafka-manager -Dconfig.file=/path/to/application.conf -Dhttp.port=8080
 ```
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 参考:
 - [使用Kafka Manager管理Kafka集群](http://www.itmuch.com/work/kafka-manager/)

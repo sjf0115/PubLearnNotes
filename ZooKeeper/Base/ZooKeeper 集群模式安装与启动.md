@@ -120,7 +120,3 @@ WatchedEvent state:SyncConnected type:None path:null
 其他自动实现同步，客户端只需要和一台保持连接即可。
 
 成功连接后，系统会输出ZooKeeper的相关配置信息和相关环境，并在屏幕上输出 `Welcome to ZooKeeper!` 等信息。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)

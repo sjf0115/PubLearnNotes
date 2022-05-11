@@ -1,8 +1,6 @@
 ## 1. 入门
 
 - [ ] [Apache Hudi：不一样的存储、不一样的计算](https://mp.weixin.qq.com/s/B3qMjqzI_U20wQmE0NSsrQ)
-- [ ] [Onehouse 对Apache Hudi开源社区的承诺](https://mp.weixin.qq.com/s/Mh6nCzeybFeOcTSq83VcGg)
-- [ ] [重磅！基于Apache Hudi的商业公司Onehouse成立](https://mp.weixin.qq.com/s/v1l8y8mIAwoHXajr46RWyA)
 - [ ] [只会数仓？数据湖与Apache Hudi有必要了解一下](https://mp.weixin.qq.com/s/Y70PI1kFt1JQ5jKatvCSTw)
 - [ ] [集成才是硬道理！ 用它构建一个完整的Hadoop](https://mp.weixin.qq.com/s/Wjk6XnjyaPQrrWWPf0UlUQ)
 - [ ] [数据湖框架选型很纠结？一文了解Apache Hudi核心优势](https://mp.weixin.qq.com/s/74BPBr-KC2wUn5cqorm-wQ)
@@ -52,7 +50,8 @@
 - [ ] [Apache Hudi PMC畅谈Hudi未来演进之路](https://mp.weixin.qq.com/s/ZNn1xLPHyso2uHaLg1icxQ)
 - [ ] [Apache Hudi在Apache官方Blog出镜](https://mp.weixin.qq.com/s/NbA3ida9CT9xM1l8sgwssA)
 - [ ] [Apache Hudi社区发展数据盘点](https://mp.weixin.qq.com/s/QWKNwY0Sxyl_NeifWuYgdQ)
-
+- [ ] [Onehouse 对Apache Hudi开源社区的承诺](https://mp.weixin.qq.com/s/Mh6nCzeybFeOcTSq83VcGg)
+- [ ] [重磅！基于Apache Hudi的商业公司Onehouse成立](https://mp.weixin.qq.com/s/v1l8y8mIAwoHXajr46RWyA)
 
 ## 3. 进阶
 

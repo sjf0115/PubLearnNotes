@@ -1,34 +1,24 @@
 
-对于流表上的 SQL 查询，组窗口函数的 time_attr 参数必须引用指定行的处理时间或事件时间的有效时间属性。 请参阅时间属性的文档以了解如何定义时间属性。
+不再推荐使用 Group Window Aggregation。现在推荐使用功能更加强大以及更有效的 Window TVF Aggregation。与 Group Window Aggregation 相比，Window TVF Aggregation 有很多优势，包括：
+- 具有性能调优中提到的所有性能优化。
+- 支持标准的 GROUPING SETS 语法。
+- 可以在窗口聚合结果后应用 Window TopN。
 
-对于批处理表上的 SQL，组窗口函数的 time_attr 参数必须是 TIMESTAMP 类型的属性。
+Group Window Aggregation 通过 SQL 查询的 GROUP BY 子句来定义。就像使用常规 GROUP BY 子句一样查询，但是 GROUP BY 子句会包含一个分组窗口函数。批处理表和流表上的 SQL 支持以下组窗口函数。
+
+对于流处理，分组窗口函数的 time_attr 参数必须使用一个有效的时间属性，可以是处理时间属性，也可以是事件时间属性。对于批处理，分组窗口函数的 time_attr 参数必须是 TIMESTAMP 类型的属性。
 
 
-分组窗口聚合在 SQL 查询的 GROUP BY 子句中定义。就像使用常规 GROUP BY 子句的查询一样，使用包含组窗口函数的 GROUP BY 子句的查询会计算每个组的单个结果行。 批处理表和流表上的 SQL 支持以下组窗口函数。
-
-
-Group Window是和GroupBy语句绑定使用的窗口，和Table API一样，Flink SQL也支持三种窗口类型，分别为Tumble Windows、HOP Windows 和 Session Windows，其中 HOP Windows 对应 Table API 中的 Sliding Window，同时每种窗口分别有相应的使用场景和方法。
+Group Window 是和 GroupBy 语句绑定使用的窗口，和Table API一样，Flink SQL也支持三种窗口类型，分别为Tumble Windows、HOP Windows 和 Session Windows，其中 HOP Windows 对应 Table API 中的 Sliding Window，同时每种窗口分别有相应的使用场景和方法。
 
 ## 1. Tumble Windows
 
-滚动窗口的窗口长度是固定的，且窗口和窗口之间的数据不会重合。SQL中通过 TUMBLE(time_attr, interval) 关键字来定义滚动窗口，其中参数 time_attr 用于指定时间属性，参数 interval 用于指定窗口的固定长度。
+滚动窗口的窗口长度是固定的，且窗口和窗口之间的数据不会重合。SQL 中通过 TUMBLE(time_attr, interval) 窗口函数来定义滚动窗口，其中参数 time_attr 用于指定时间属性，参数 interval 用于指定窗口的固定长度。
 
 滚动窗口可以应用在基于 EventTime 的批量计算和流式计算场景中，和基于 ProcessTime 的流式计算场景中。窗口元数据信息可以通过在 Select 语句中使用相关的函数获取，且窗口元数据信息可用于后续的 SQL 操作，例如可以通过 TUMBLE_START 获取窗口起始时间，TUMBLE_END 获取窗口结束时间，TUMBLE_ROWTIME 获取窗口事件时间，TUMBLE_PROCTIME 获取窗口数据中的 ProcessTime。如以下实例所示，分别创建基于不同时间属性的 Tumble 窗口：
 ```java
 
 ```
-
-val env = StreamExecutionEnvironment.getExecutionEnvironment
-val tableEnv = TableEnvironment.getTableEnvironment(env)
-// 创建数据集
-val ds: DataStream[(Long, String, Int)] = ...
-// 注册表名信息并定义字段proctime为Process Time,定义字段rowtime为rowtime,
-
-tableEnv.registerDataStream("Sensors", ds, 'id, 'type, 'var1, 'proctime.proctime, 'rowtime.rowtime)
-//基于proctime创建TUMBLE窗口,并指定10min切分为一个窗口,根据id进行聚合求取var1的和
-tableEnv.sqlQuery(SELECT id, SUM(var1) FROM Sensors GROUP BY TUMBLE(proctime, INTERVAL '10' MINUTE), id"
-//基于rowtime创建TUMBLE窗口,并指定5min切分为一个窗口,根据id进行聚合求取var1的和
-tableEnv.sqlQuery(SELECT id, SUM(var1) FROM Sensors GROUP BY TUMBLE(proctime, INTERVAL '5’ MINUTE), id"
 
 ## 2. HOP Windows
 

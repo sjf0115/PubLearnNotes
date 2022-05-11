@@ -85,7 +85,6 @@
 - [ ] [通过Z-Order技术加速Hudi大规模数据集分析方案](https://mp.weixin.qq.com/s/qos-QGfJbP36qwq9h1lUkQ)
 - [ ] [一文彻底理解Apache Hudi的清理服务](https://mp.weixin.qq.com/s/jIm0P6GnYXMdG6kyg_8bjA)
 - [ ] [17张图带你彻底理解Hudi Upsert原理](https://mp.weixin.qq.com/s/BYHwv16A7LAKZMnOZ8y6mA)
-- [ ] [提升50%+！Presto如何提升Hudi表查询性能？](https://mp.weixin.qq.com/s/ZnoME7YXRXhYhgq-qbtyMA)
 - [ ] [一文彻底掌握Apache Hudi的主键和分区配置](https://mp.weixin.qq.com/s/A59QDz7W06uCM_yZkmkYQw)
 - [ ] [Apache Hudi如何智能处理小文件问题](https://mp.weixin.qq.com/s/rvCF-pUbKdFzud80hP8b5A)
 - [ ] [查询时间降低60%！Apache Hudi数据布局黑科技了解下](https://mp.weixin.qq.com/s/5JdOrI8HpJJS-xkVG296iw)
@@ -99,29 +98,6 @@
 - [ ] [配置DataDog监控Apache Hudi应用指标](https://mp.weixin.qq.com/s/Jxi2iEJi9qXq86xk4uQkmg)
 - [ ] [Apache Hudi数据备份与转储利器：HoodieSnapshotExporter](https://mp.weixin.qq.com/s/mvUbWKhWeYYWZG65GgHywQ)
 - [ ] [Apache Hudi删除记录新姿势](https://mp.weixin.qq.com/s/1hnZPJA7bETaMbRcOt8eyQ)
-
-### 3.4 集成
-
-- [ ] [Apache Hudi 与 Hive 集成手册](https://mp.weixin.qq.com/s/TksSvRC1Hof1Io1iuEpJzQ)
-- [ ] [整合Apache Hudi + Flink + CDH](https://mp.weixin.qq.com/s/FYPdx3y0nJDA7ErFMqJVZA)
-- [ ] [使用Apache Pulsar + Hudi 构建Lakehouse方案了解下？](https://mp.weixin.qq.com/s/6lGicldAz0eeDYGWnDtfJg)
-- [ ] [Apache Flink 1.12.2集成Hudi 0.9.0运行指南](https://mp.weixin.qq.com/s/TKFZYwPbGSKSo29EDeaPIw)
-- [ ] [解锁Apache Flink读写Apache Hudi新姿势](https://mp.weixin.qq.com/s/cG4KQdcjd98s8h0Ini7CWw)
-- [ ] [Apache Hudi与Apache Flink更好地集成，最新方案了解下？](https://mp.weixin.qq.com/s/91tQFCW3hi7YJR3qIi3ARg)
-- [ ] [Apache Hudi + Flink作业运行指南](https://mp.weixin.qq.com/s/d1GI1AYHUpKwz_VHd41CeA)
-- [ ] [通过Apache Hudi和Alluxio建设高性能数据湖](https://mp.weixin.qq.com/s/OdzM5uphMsVWGvNxJ36l9w)
-- [ ] [Hudi on Flink最新进展了解下？](https://mp.weixin.qq.com/s/LvKaj5ytk6imEU5Dc1Sr5Q)
-- [ ] [Apache Hudi和Presto的前世今生](https://mp.weixin.qq.com/s/1z1t8A2hPkuslQ7TvSOezg)
-- [ ] [使用Apache Spark和Apache Hudi构建分析数据湖](https://mp.weixin.qq.com/s/zkrotGEhPhEECuTrkPtXvQ)
-- [ ] [填坑！线上Presto查询Hudi表异常排查](https://mp.weixin.qq.com/s/ik_AKz82G8jPbVq9Q02umg)
-- [ ] [Impala 3.4版本正式集成Apache Hudi](https://mp.weixin.qq.com/s/L6vrHo0u3OjERvEVWGLobw)
-- [ ] [使用Apache Hudi DeltaStreamer将数据流写入OSS](https://mp.weixin.qq.com/s/--MCLK-yFcPOH23DCKlzYA)
-- [ ] [将Kafka流式数据摄取至Hudi](https://mp.weixin.qq.com/s/cSpXl0uvYZD4YdGbr4RyTA)
-- [ ] [Apache Hudi集成Apache Zeppelin](https://mp.weixin.qq.com/s/_mNwL5uXSDYyqtLDPx0iDA)
-- [ ] [使用Spark Streaming写入Hudi](https://mp.weixin.qq.com/s/3216e7HjroAB4TfKDYSenQ)
-- [ ] [基于Apache Hudi 和 Kylin 构建准实时高性能数据仓库](https://mp.weixin.qq.com/s/KafqWfAJOJGV3tVOTAo-hA)
-- [ ] [Apache Hudi与Impala完成整合](https://mp.weixin.qq.com/s/gGH8FmxTo_ZPkgaHoDNW2w)
-- [ ] [Spark读取变更Hudi数据集Schema实现分析](https://mp.weixin.qq.com/s/Xl77J4Ubu9FjYIIDWHbN6g)
 
 ## 4. 运维
 
@@ -160,7 +136,31 @@
 - [ ] [Upsert在Hudi中的实现分析](https://mp.weixin.qq.com/s/DITW0qSeuiN1Uz6y24oo9w)
 - [ ] [Bloom Filter在Hudi中的应用](https://mp.weixin.qq.com/s/K6K1ukDHmWnCDwaGyT08SA)
 
-## 6. 案例
+### 6. 周边生态
+
+- [ ] [Apache Hudi 与 Hive 集成手册](https://mp.weixin.qq.com/s/TksSvRC1Hof1Io1iuEpJzQ)
+- [ ] [整合Apache Hudi + Flink + CDH](https://mp.weixin.qq.com/s/FYPdx3y0nJDA7ErFMqJVZA)
+- [ ] [使用Apache Pulsar + Hudi 构建Lakehouse方案了解下？](https://mp.weixin.qq.com/s/6lGicldAz0eeDYGWnDtfJg)
+- [ ] [Apache Flink 1.12.2集成Hudi 0.9.0运行指南](https://mp.weixin.qq.com/s/TKFZYwPbGSKSo29EDeaPIw)
+- [ ] [解锁Apache Flink读写Apache Hudi新姿势](https://mp.weixin.qq.com/s/cG4KQdcjd98s8h0Ini7CWw)
+- [ ] [Apache Hudi与Apache Flink更好地集成，最新方案了解下？](https://mp.weixin.qq.com/s/91tQFCW3hi7YJR3qIi3ARg)
+- [ ] [Apache Hudi + Flink作业运行指南](https://mp.weixin.qq.com/s/d1GI1AYHUpKwz_VHd41CeA)
+- [ ] [通过Apache Hudi和Alluxio建设高性能数据湖](https://mp.weixin.qq.com/s/OdzM5uphMsVWGvNxJ36l9w)
+- [ ] [Hudi on Flink最新进展了解下？](https://mp.weixin.qq.com/s/LvKaj5ytk6imEU5Dc1Sr5Q)
+- [ ] [Apache Hudi和Presto的前世今生](https://mp.weixin.qq.com/s/1z1t8A2hPkuslQ7TvSOezg)
+- [ ] [使用Apache Spark和Apache Hudi构建分析数据湖](https://mp.weixin.qq.com/s/zkrotGEhPhEECuTrkPtXvQ)
+- [ ] [填坑！线上Presto查询Hudi表异常排查](https://mp.weixin.qq.com/s/ik_AKz82G8jPbVq9Q02umg)
+- [ ] [Impala 3.4版本正式集成Apache Hudi](https://mp.weixin.qq.com/s/L6vrHo0u3OjERvEVWGLobw)
+- [ ] [使用Apache Hudi DeltaStreamer将数据流写入OSS](https://mp.weixin.qq.com/s/--MCLK-yFcPOH23DCKlzYA)
+- [ ] [将Kafka流式数据摄取至Hudi](https://mp.weixin.qq.com/s/cSpXl0uvYZD4YdGbr4RyTA)
+- [ ] [Apache Hudi集成Apache Zeppelin](https://mp.weixin.qq.com/s/_mNwL5uXSDYyqtLDPx0iDA)
+- [ ] [使用Spark Streaming写入Hudi](https://mp.weixin.qq.com/s/3216e7HjroAB4TfKDYSenQ)
+- [ ] [基于Apache Hudi 和 Kylin 构建准实时高性能数据仓库](https://mp.weixin.qq.com/s/KafqWfAJOJGV3tVOTAo-hA)
+- [ ] [Apache Hudi与Impala完成整合](https://mp.weixin.qq.com/s/gGH8FmxTo_ZPkgaHoDNW2w)
+- [ ] [Spark读取变更Hudi数据集Schema实现分析](https://mp.weixin.qq.com/s/Xl77J4Ubu9FjYIIDWHbN6g)
+- [ ] [提升50%+！Presto如何提升Hudi表查询性能？](https://mp.weixin.qq.com/s/ZnoME7YXRXhYhgq-qbtyMA)
+
+## 7. 案例
 
 - [ ] [印尼医疗龙头企业Halodoc的数据平台转型之Lakehouse架构](https://mp.weixin.qq.com/s/kup3yMzROiSubLffnk77Mw)
 - [ ] [印尼医疗龙头企业Halodoc的数据平台转型之路：基于Apache Hudi的数据平台V2.0](https://mp.weixin.qq.com/s/QhlXHmPCZ842HbuCcpDxsQ)

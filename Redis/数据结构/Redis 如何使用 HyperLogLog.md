@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Redis 如何使用HyperLogLog
+title: Redis 如何使用 HyperLogLog
 date: 2019-12-01 14:59:06
 tags:
   - Redis
@@ -22,13 +22,13 @@ Redis 在 2.8.9 版本添加了 HyperLogLog 数据结构，用来做基数统计
 
 ### 3. 命令
 
-HyperLogLog 目前只支持3个命令，`PFADD`、`PFCOUNT`、`PFMERGE`。我们先来逐一介绍一下。
+HyperLogLog 目前只支持 3 个命令，`PFADD`、`PFCOUNT`、`PFMERGE`。我们先来逐一介绍一下。
 
 #### 3.1 PFADD
 
 > 最早可用版本：2.8.9。时间复杂度：O(1)。
 
-`PFADD` 命令可以将元素(可以指定多个元素)添加到 HyperLogLog 数据结构中并存储在第一个参数 `key` 指定的键中。如果命令执行之后，基数估计发生变化就返回1，否则返回0。如果指定的 `key` 不存在，那么就创建一个空的 HyperLogLog 数据结构(即，指定字符串长度以及编码的 Redis String)。也可以调用不指定元素参数而只指定键的命令。如果键存在，不执行任何操作并返回0；如果键不存在，则会创建一个新的 HyperLogLog 数据结并且返回1。
+`PFADD` 命令可以将元素(可以指定多个元素)添加到 HyperLogLog 数据结构中，存储到第一个参数 `key` 指定的键中。命令执行之后，如果基数估计(评估的元素个数)发生变化就返回 1，否则返回 0。如果指定的 `key` 不存在，那么就创建一个空的 HyperLogLog 数据结构(即，指定字符串长度以及编码的 Redis String)。也可以调用不指定元素参数而只指定键的命令。如果键存在，不执行任何操作并返回 0；如果键不存在，则会创建一个新的 HyperLogLog 数据结并且返回 1。本质上只是创建一个新的 HyperLogLog 数据结，不存储任何元素。
 
 (1) 语法格式:
 ```
@@ -36,7 +36,7 @@ PFADD key element [element ...]
 ```
 (2) 返回值:
 ```
-整型，如果至少有个元素被添加返回 1， 否则返回 0。
+整型，如果至少有个元素被添加返回 1，否则返回 0。
 ```
 (3) Example:
 ```
@@ -50,7 +50,7 @@ PFADD key element [element ...]
 
 > 最早可用版本：2.8.9。时间复杂度：O(1)，对于多个比较大的key的时间复杂度是O(N)。
 
-`PFCOUNT` 命令返回指定 HyperLogLog 的基数估算值。对于单个键，该命令返回的是指定键的基数估算值，如果键不存在，则返回0。对于多个键，返回的是多个 HyperLogLog 并集的基数估算值，通过将多个 HyperLogLog 合并为一个临时的 HyperLogLog 计算基数估算值。可以使用 HyperLogLog 只使用很少且恒定的内存来计算集合的不同元素个数。每个 HyperLogLog 只用 12K 加上键本身的几个字节。
+`PFCOUNT` 命令返回指定 HyperLogLog 的基数估算值(元素个数)。对于单个键，该命令返回的是该键的基数估算值，如果该键不存在，则返回 0。对于多个键，返回的是多个 HyperLogLog 并集的基数估算值，通过将多个 HyperLogLog 合并为一个临时的 HyperLogLog 计算基数估算值。HyperLogLog 只使用很少且恒定的内存来计算集合的不同元素个数。每个 HyperLogLog 只用 12K 加上键本身的几个字节。
 
 (1) 语法格式:
 ```
@@ -87,9 +87,9 @@ HyperLogLog 返回的结果并不精确，错误率大概在 0.81% 左右。
 
 即使理论上处理一个密集型 HyperLogLog 需要花费较长时间，但是当只指定一个键时，`PFCOUNT` 命令仍然具有很高的性能。这是因为 `PFCOUNT` 会缓存上一次计算的基数，并且这个基数并不会一直变动，因为 `PFADD` 命令大多数情况下不会更新寄存器。所以才可以达到每秒上百次请求的效果。
 
-当使用 `PFCOUNT` 命令处理多个键时，会对 HyperLogLog 进行合并操作，这一步非常耗时，更重要的是通过计算出来的并集的基数是不能缓存的。因此当使用多个键时，`PFCOUNT` 可能需要花费一些时间(毫秒数量级)，因此不应过多使用。
+当使用 `PFCOUNT` 命令处理多个键时，会对 HyperLogLog 进行合并操作，这一步非常耗时，更重要的是通过计算出来的并集的基数是不能缓存的。因此当使用多个键时，`PFCOUNT` 可能需要花费一些时间(毫秒数量级)，因此不建议过多使用。
 
-> 我们应该记住，该命令的单键和多键执行语义上是不同的并且具有不同的性能。
+> 需要注意的是，该命令的单键和多键执行语义是不同的并且具有不同的性能。不建议过多使用多键执行语义。
 
 #### 3.3 PFMERGE
 
@@ -116,7 +116,3 @@ OK
 127.0.0.1:6379> PFCOUNT hll3
 (integer) 6
 ```
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)

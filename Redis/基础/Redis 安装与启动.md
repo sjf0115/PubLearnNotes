@@ -159,7 +159,7 @@ redis-server /opt/redis/conf/redis.conf
 
 ### 3.2 客户端
 
-可以使用内置的客户端命令 redis-cli 进行使用:
+可以使用内置的客户端命令 redis-cli 进行启动:
 ```
 localhost:~$ redis-cli
 127.0.0.1:6379>
@@ -173,7 +173,7 @@ PONG
 
 ### 3.3 停止 Redis
 
-考虑到 Redis 有可能正在将内存中的数据同步到磁盘中，强行终止 Redis 进程可能会导致数据丢失．正确停止 Redis 的方式应该是向 Redis 发送 SHUTDOWN 命令，方法为：
+考虑到 Redis 有可能正在将内存中的数据同步到磁盘中，强行终止 Redis 进程可能会导致数据丢失。正确停止 Redis 的方式应该是向 Redis 发送 SHUTDOWN 命令，方法为：
 ```
 redis-cli SHUTDOWN
 ```

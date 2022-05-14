@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: 使用Redis Bitamp简单快速实时计算指标
+title: Redis 使用 Bitamp 简单快速实时计算指标
 date: 2019-04-27 10:21:06
 tags:
   - Redis
@@ -22,9 +22,9 @@ Bitmap 或 Bitset 是一个由 0 和 1 构成的数组。在 Bitmap 中每一个
 
 Bitmap 中 1 的个数称之为基数。我们有一种有效算法来计算基数，例如，在 MacBook Pro 上，在包含10亿位填充90％的 Bitmap 上计算基数耗时 21.1 ms。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Redis/fast-easy-realtime-metrics-using-redis-bitmaps-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Redis/fast-easy-realtime-metrics-using-redis-bitmaps-1.png?raw=true)
 
-### 3. Redis中的Bitmap
+### 3. Redis 中的 Bitmap
 
 Redis 允许二进制键和二进制值。Bitmap 也是二进制值。将键指定 offset 设置为 0 或 1，`setbit（key，offset，value）` 操作需要用 `O(1)` 时间复杂度。
 
@@ -32,7 +32,7 @@ Redis 允许二进制键和二进制值。Bitmap 也是二进制值。将键指�
 
 为了统计今天登录的不同用户，我们创建了一个 Bitmap，其中每个用户都由一个 offset 标识。当用户访问页面或执行操作时，会将表示用户ID的 offset 设置为 1。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Redis/fast-easy-realtime-metrics-using-redis-bitmaps-2.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Redis/fast-easy-realtime-metrics-using-redis-bitmaps-2.png?raw=true)
 
 在这个简单的例子中，每次用户登录时，我们都会执行：
 ```java
@@ -46,14 +46,14 @@ redis.setbit(play:yyyy-mm-dd, user_id, 1)
 ```
 今天播放歌曲的不同用户是存储以 `play:yyyy-mm-dd` 为键的值。要计算每周或每月度量指标，我们可以简单地计算一周或一个月中所有每日 Bitmap 的并集，然后计算结果 Bitmap 的总体基数。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Redis/fast-easy-realtime-metrics-using-redis-bitmaps-3.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Redis/fast-easy-realtime-metrics-using-redis-bitmaps-3.png?raw=true)
 
 你还可以非常轻松地提取更复杂的指标。例如，11月播放歌曲的会员用户为：
 ```
 (play:2011-11-01 ∪ play:2011-11-02 ∪...∪play:2011-11-30) ∩ premium:2011-11
 ```
 
-### 5. 使用1.28亿用户进行性能比较
+### 5. 使用 1.28 亿用户进行性能比较
 
 下表显示了针对1.28亿用户在1天，7天和30天计算的比较。通过组合每日 Bitmap 计算7日和30日指标：
 

@@ -116,9 +116,9 @@ BITCOUNT key [ start end [ BYTE | BIT]]
 (integer) 5
 ```
 
-### 3.4 Bitmaps 间的运算
+### 3.4 BITOP
 
-> 最早可用版本：2.6.0。时间复杂度： O(N)。
+> 最早可用版本：2.6.0。时间复杂度：O(N)。
 
 语法格式：
 ```
@@ -170,7 +170,7 @@ BITOP NOT destkey srckey
 
 ### 3.5 BITPOS
 
-> 最早可用版本：2.8.7。时间复杂度： O(N)。
+> 最早可用版本：2.8.7。时间复杂度：O(N)。
 
 语法格式：
 ```

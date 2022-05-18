@@ -55,7 +55,10 @@
 - Flink SQL 窗口
 - Flink SQL TVF
 - Flink SQL 自定义函数
-- Flink SQL 自定义 Source & Sink
+- Flink SQL 自定义标量函数
+- Flink SQL 自定义 Source
+- Flink SQL 自定义 Sink
+- Flink SQL 自定义 Format
 - Flink SQL Catalogs
 - Flink SQL 与 Hive 的集成
 - Flink SQL 性能优化

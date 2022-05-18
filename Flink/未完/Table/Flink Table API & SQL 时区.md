@@ -30,10 +30,10 @@ Received a total of 1 row
 - TIMESTAMP_LTZ 可以用于跨时区业务，因为是绝对时间点描述了不同时区的同一瞬时点。在同一时间点，世界上所有机器的 System.currentTimeMillis() 返回的值都是一样的。这两者是一样的逻辑。
 
 ```sql
-Flink SQL> CREATE VIEW T1 AS SELECT TO_TIMESTAMP_LTZ(1652453226541, 3);
-
 Flink SQL> SET table.local-time-zone=UTC;
-Flink SQL> SELECT * FROM T1;
+[INFO] Session property has been set.
+
+Flink SQL> SELECT TO_TIMESTAMP_LTZ(1652453226541, 3);
 +----+-------------------------+
 | op |                  EXPR$0 |
 +----+-------------------------+
@@ -42,7 +42,9 @@ Flink SQL> SELECT * FROM T1;
 Received a total of 1 row
 
 Flink SQL> SET table.local-time-zone=Asia/Shanghai;
-Flink SQL> SELECT * FROM T1;
+[INFO] Session property has been set.
+
+Flink SQL> SELECT TO_TIMESTAMP_LTZ(1652453226541, 3);
 +----+-------------------------+
 | op |                  EXPR$0 |
 +----+-------------------------+
@@ -271,7 +273,7 @@ Flink SQL> CREATE VIEW MyView4 AS
                 item,
                 MAX(price) as max_price
             FROM MyTable2
-                GROUP BY TUMBLE(ts, INTERVAL '10' MINUTES), item;
+            GROUP BY TUMBLE(ts, INTERVAL '10' MINUTES), item;
 
 Flink SQL> DESC MyView4;
 

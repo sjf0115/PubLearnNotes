@@ -14,9 +14,9 @@ permalink: flink-table-sql-custom-scalar-function
 
 Scalar Function 也被称为标量函数，将 0 个、1个或多个标量值映射为一个新的标量值。输入与输出是一对一的关系，即读入一行数据，写出一条输出值。在自定义标量函数时，用户需要确认 Flink 内部是否已经实现相应的标量函数，如果已经实现则可以直接使用；如果没有实现，那么在注册自定义函数过程中，需要和内置的其他标量名称区分开，否则会导致注册函数失败，影响应用的正常执行。Flink 常见的内置标量函数有 DATE()、UPPER()、LTRIM() 等。
 
-## 2. 定义标量函数
+## 2. 自定义标量函数
 
-定义 Scalar Function 需要继承 org.apache.flink.table.functions.ScalarFunction 类。实现函数的类必须声明为 public、不能是抽象类，并且可以全局访问。因此，不允许使用非静态内部类或者匿名类。如果要在 Catalog 中存储用户自定义的函数，那么该类必须具有一个默认构造函数并且必须在运行时可实例化：
+自定义 Scalar Function 需要继承 org.apache.flink.table.functions.ScalarFunction 类。实现函数的类必须声明为 public、不能是抽象类，并且可以全局访问。因此，不允许使用非静态内部类或者匿名类。如果要在 Catalog 中存储用户自定义的函数，那么该类必须具有一个默认构造函数并且必须在运行时可实例化：
 ```java
 public class AddScalarFunction extends ScalarFunction {
   ...
@@ -47,7 +47,7 @@ public Long eval(Long... values) {
     return result;
 }
 ```
-需要注意的是，ScalarFunction 抽象类中并没有定义 eval() 方法，所以不能直接在代码中重写该方法，但 Table API 的框架底层又要求了计算方法必须为 eval。这也是 Table API 和 SQL 目前还不够完善的地方。
+需要注意的是，ScalarFunction 抽象类中并没有定义 eval 方法，所以不能直接在代码中重写该方法，但 Table API 的框架底层又要求了计算方法必须为 eval。这也是 Table API 和 SQL 目前还不够完善的地方。
 
 如下通过定义 AddScalarFunction Class 并继承 ScalarFunction 接口，实现对两个数值相加的功能：
 ```java

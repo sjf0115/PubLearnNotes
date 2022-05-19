@@ -230,3 +230,5 @@ tEnv.sqlQuery("SELECT a.name, b.fruit \n" +
 | +I |                            tom |                         (NULL) |
 +----+--------------------------------+--------------------------------+
 ```
+
+> [完整代码](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/table/function/custom/SplitTableFunctionExample.java)

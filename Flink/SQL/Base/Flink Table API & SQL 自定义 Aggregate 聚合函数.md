@@ -258,3 +258,5 @@ tEnv.sqlQuery("SELECT course, custom_avg(score) AS avg_score FROM stu_score GROU
 | +U |                           英语 |                           92.5 |
 +----+--------------------------------+--------------------------------+
 ```
+
+> [完整代码](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/table/function/custom/AvgAggregateFunctionExample.java)

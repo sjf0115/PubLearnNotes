@@ -72,7 +72,7 @@ public AvgAccumulator createAccumulator() {
     return new AvgAccumulator();
 }
 ```
-accumulate 方法将每次传入的数据元素累加到自定义的累加器中(在这是 AvgAccumulator)，另外 accumulate() 方法也可以通过方法复载的方式处理不同类型的数据：
+accumulate 方法将每次传入的数据元素累加到自定义的累加器中(在这是 AvgAccumulator)，另外 accumulate 方法也可以通过方法复载的方式处理不同类型的数据：
 ```java
 public void accumulate(AvgAccumulator acc, Long value) {
     // 更新累加器

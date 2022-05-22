@@ -1,3 +1,5 @@
+https://github.com/troyyxk/flink_state_cache/blob/4db8b5f2454be2ee4a1e7e5ad425f8f2fa3c890a/flink-simplified-cache-master/docs/content.zh/docs/dev/table/functions/udfs.md
+
 
 在 Flink Table API 中除了提供大量的内建函数之外，用户也能够实现自定义函数，这样极大地拓展了 Table API 和 SQL 的计算表达能力，使得用户能够更加方便灵活地使用Table API或SQL编写Flink应用。但需要注意的是，自定义函数主要在Table API和SQL中使用，对于DataStream和DataSet API的应用，则无须借助自定义函数实现，只要在相应接口代码中构建计算函数逻辑即可。
 通常情况下，用户自定义的函数需要在Flink TableEnvironment中进行注册，然后才能在Table API和SQL中使用。函数注册通过TableEnvironment的registerFunction()方法完成，本质上是将用户自定义好的Function注册到TableEnvironment中的Function CataLog中，每次在调用的过程中直接到CataLog中获取函数信息。Flink目前没有提供持久化注册的接口，因此需要每次在启动应用的时候重新对函数进行注册，且当应用被关闭后，TableEnvironment中已经注册的函数信息将会被清理。

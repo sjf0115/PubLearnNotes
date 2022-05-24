@@ -65,10 +65,97 @@ public class FileSink implements Sink {
 }
 ```
 
-
-
-
 ## 3. SPI 实现原理
+
+### 3.1 ServiceLoader.load 初始化
+
+从上面可以知道入口在 ServiceLoader.load 方法中：
+```java
+public static <S> ServiceLoader<S> load(Class<S> service) {
+    // 获取当前线程上下文类加载器
+    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+    // 将 service 接口类和线程上下文类加载器作为参数传入，继续调用 load 重载方法
+    return ServiceLoader.load(service, cl);
+}
+
+public static <S> ServiceLoader<S> load(Class<S> service, ClassLoader loader) {
+    // 创建 ServiceLoader 对象
+    return new ServiceLoader<>(service, loader);
+}
+```
+使用当前线程的 Thread#getContextClassLoader 方法获取上下文类加载器。将 service 接口类和线程上下文类加载器作为参数传入 load 重载方法中，继续调用 load 重载方法，创建一个 ServiceLoader 对象：
+```java
+public final class ServiceLoader<S> implements Iterable<S> {
+  private final Class<S> service;
+  private final ClassLoader loader;
+  private final AccessControlContext acc;
+  // 构造函数
+  private ServiceLoader(Class<S> svc, ClassLoader cl) {
+      // 指定类不能为null
+      service = Objects.requireNonNull(svc, "Service interface cannot be null");
+      // 如果类加载器为null则使用应用程类加载器(系统类加载器)
+      loader = (cl == null) ? ClassLoader.getSystemClassLoader() : cl;
+      acc = (System.getSecurityManager() != null) ? AccessController.getContext() : null;
+      // 调用 reload 方法
+      reload();
+  }
+
+  public Iterator<S> iterator() {
+    ...
+  }
+}
+```
+
+![](31)
+
+从上面我们看到了 ServiceLoader 的整体框架：ServiceLoader 实现了 Iterable 接口，并重写了 iterator 方法产生一个迭代器。可以看到在构建 ServiceLoader 对象时除了给其成员属性赋值外，还调用了 reload 方法：
+```java
+// 缓存 service 接口实现类的实例
+private LinkedHashMap<String,S> providers = new LinkedHashMap<>();
+private LazyIterator lookupIterator;
+
+public void reload() {
+    // 清空 providers
+    providers.clear();
+    // 创建 LazyIterator 对象
+    lookupIterator = new LazyIterator(service, loader);
+}
+```
+providers 其实是一个 LinkedHashMap，用来缓存读取到的 META-INFO.services 文件夹下 service 接口实现类的实例，所以在创建 ServiceLoader 对象的时，首先清空缓存中的数据。此外还创建了一个 LazyIterator 对象：
+```java
+private class LazyIterator implements Iterator<S> {
+    Class<S> service;
+    ClassLoader loader;
+    private LazyIterator(Class<S> service, ClassLoader loader) {
+        this.service = service;
+        this.loader = loader;
+    }
+
+    private boolean hasNextService() {
+        ...
+    }
+
+    private S nextService() {
+        ...
+    }
+
+    public boolean hasNext() {
+        ...
+    }
+
+    public S next() {
+        ...
+    }
+
+    public void remove() {
+     ...
+    }
+}
+```
+可以看到在创建 LazyIterator 对象时，也只是给其成员变量 service 和 loader 变量赋值，我们一直也没有看到去 META-INF/services 文件夹下读取 service 接口的实现类。其实 ServiceLoader 的 load 方法只是做初始化工作，并不做加载工作。真正的工作是交给了 LazyIterator 对象。Lazy 顾名思义是懒的意思，Iterator就是迭代的意思。我们猜测 LazyIterator 对象的作用是在迭代的时候再去加载 service 接口的实现类。
+
+### 3.2 ServiceLoader.iterator 懒加载
+
 
 
 

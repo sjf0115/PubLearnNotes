@@ -156,7 +156,141 @@ private class LazyIterator implements Iterator<S> {
 
 ### 3.2 ServiceLoader.iterator 懒加载
 
+通过上面我们知道 ServiceLoader 的 load 方法只是做初始化工作，并不做加载工作。真正的加载还是需要 ServiceLoader 实例的 iterator 方法：
+```java
+Iterator<Sink> iterator = sinkServiceLoader.iterator();
+```
+其实在上面构造 ServiceLoader 对象时，我们知道 ServiceLoader 不仅实现了 Iterable 接口，并重写了 iterator 方法产生一个迭代器。这个 iterator 方法就是我们要将的 iterator 方法。下面我们一起看一下 iterator 方法是如何执行的：
+```java
+public Iterator<S> iterator() {
+    // 返回一个迭代器
+    return new Iterator<S>() {
+        Iterator<Map.Entry<String,S>> knownProviders
+            = providers.entrySet().iterator();
+        public boolean hasNext() {
+            if (knownProviders.hasNext())
+                return true;
+            return lookupIterator.hasNext();
+        }
+        public S next() {
+            if (knownProviders.hasNext())
+                return knownProviders.next().getValue();
+            return lookupIterator.next();
+        }
+        public void remove() {
+            throw new UnsupportedOperationException();
+        }
+    };
+}
+```
+在 Iterator 接口 hasNext() 和 next() 方法匿名实现中，首先会从全局变量 providers 中判断是否已经缓存了服务提供方的实现类，如果已缓存，直接返回结果；如果还未缓存，则会继续调用 LazyIterator 类中对应的 hasNext() 和 next() 方法。
 
+#### 3.2.1 hasNext 与 next
+
+在 LazyIterator 类内部实现中，hasNext() 方法逻辑主要在 hasNextService() 方法中完成，next() 方法逻辑主要在 nextService() 方法中完成：
+```java
+public boolean hasNext() {
+    if (acc == null) {
+        // 调用 hasNextService 实现
+        return hasNextService();
+    } else {
+        PrivilegedAction<Boolean> action = new PrivilegedAction<Boolean>() {
+            public Boolean run() { return hasNextService(); }
+        };
+        return AccessController.doPrivileged(action, acc);
+    }
+}
+
+public S next() {
+    if (acc == null) {
+        // nextService
+        return nextService();
+    } else {
+        PrivilegedAction<S> action = new PrivilegedAction<S>() {
+            public S run() { return nextService(); }
+        };
+        return AccessController.doPrivileged(action, acc);
+    }
+}
+```
+
+#### 3.2.2 hasNextService  
+
+hasNext() 方法逻辑主要在 hasNextService() 方法中完成，具体看看 hasNextService 是如何实现的。如果没有指定类加载器 loader 则使用 ClassLoader.getSystemResources 方法加载配置文件，否则会使用指定类加载器 loader 的 getResources 方法加载。具体加载哪些配置文件呢？我可以看到 PREFIX 实际上是 META-INF/services/ 目录，service.getName() 是接口的全限定名，所以类加载器会查找 META-INF/services/ 目录下以 service.getName() 方法获取接口的全限定名的配置文件，缓存在 configs 对象中：
+```java
+private boolean hasNextService() {
+    // 是否有下一个全限定名
+    if (nextName != null) {
+        return true;
+    }
+    // 1. 加载配置文件(可能会有多个)
+    if (configs == null) {
+        try {
+            // PREFIX 为 META-INF/services/
+            // service.getName() 接口的全限定名
+            String fullName = PREFIX + service.getName();
+            if (loader == null)
+                configs = ClassLoader.getSystemResources(fullName);
+            else
+                configs = loader.getResources(fullName);
+        } catch (IOException x) {
+            fail(service, "Error locating configuration files", x);
+        }
+    }
+    // 2. pending 为实现类全限定名的迭代器 每次首先检查其是否有直接可用的
+    while ((pending == null) || !pending.hasNext()) {
+        // 是否有可供解析的配置文件
+        if (!configs.hasMoreElements()) {
+            return false;
+        }
+        // 解析配置文件获取实现类的全限定名(可能会有多个)
+        pending = parse(service, configs.nextElement());
+    }
+    nextName = pending.next();
+    return true;
+}
+```
+我们可以看到 hasNextService 做了初始化加载配置文件以及解析配置文件内容的工作，具体流程如下图所示：
+
+![]()
+
+nextName 变量存储下一个可以获取的接口实现类的全限定名，首先判断 nextName 变量是否有可以直接获取的全限定名，如果有直接返回 true；如果没有，则需要判断是否加载过配置文件，只有当 configs 对象为 null 时，即从来没有加载过配置文件时，才会根据指定的文件名加载配置文件(可能会有多个，如上面示例就会有两个配置文件)，配置文件信息存储在 configs 对象中。如果之前加载过，就不会再去加载一次；下一步检查全限定名缓存队列 pending(字符串数组的迭代器)中是否有可用的全限定名，如果有直接取出一个存储在 nextName 变量中，后续 nextService 方法直接使用这个变量获取全限定名即可；如果没有，需要从加载完的配置文件中解析出接口实现类的全限定名(一个配置文件中可能会有多个全限定名，如上面示例就有两个：com.connector.FileSink 和 com.connector.HdfsSink)。解析出来的多个全限定名缓存在队列 pending 中。每次调用 hasNextService，都会首先从 pending 中取出一个全限定名，只有没有时才会考虑去解析配置文件。
+
+#### 3.2.3 nextService
+
+可以看到会在 nextService 方法中实现服务提供者实现类的实例化，并放进 providers 集合中：
+```java
+private S nextService() {
+    // 是否有下一个
+    if (!hasNextService())
+        throw new NoSuchElementException();
+    // 从 nextName 中取出下一个接口实现类的全限定名
+    String cn = nextName;
+    // 取走之后赋为 null，表示没有下一个了，需要从 pending 中重新获取
+    nextName = null;
+    Class<?> c = null;
+    try {
+        // 根据全限定名加载类
+        c = Class.forName(cn, false, loader);
+    } catch (ClassNotFoundException x) {
+        fail(service, "Provider " + cn + " not found");
+    }
+    if (!service.isAssignableFrom(c)) {
+        fail(service, "Provider " + cn  + " not a subtype");
+    }
+    try {
+        // 创建对象
+        S p = service.cast(c.newInstance());
+        // 缓存到全局的 LinkedHashMap 中
+        providers.put(cn, p);
+        return p;
+    } catch (Throwable x) {
+        fail(service, "Provider " + cn + " could not be instantiated",x);
+    }
+    throw new Error(); // This cannot happen
+}
+```
+在 hasNextService() 方法中只是完成了配置文件的加载与解析，我们得到了服务提供者实现类的全限定名的字符串，并没有真正完成具体实现类的实例化，真正类的实例化是在调用 nextService() 方法中完成的。
 
 
 参考：

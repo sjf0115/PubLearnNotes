@@ -160,7 +160,7 @@
 
 - [ ] [袋鼠云基于flink实现的分布式数据同步工具Flinkx](https://www.bilibili.com/video/BV1Fi4y147XB?spm_id_from=333.999.0.0)
 - [ ] [网易云音乐实时数仓实践](https://www.bilibili.com/video/BV1EZ4y1p7tN?spm_id_from=333.999.0.0)
-- [ ] [Apache Flink SQL 1.10 在有赞的实践应用](https://www.bilibili.com/video/BV1mC4y1H7gn?spm_id_from=333.999.0.0)
+- [x] [Apache Flink SQL 1.10 在有赞的实践应用](https://www.bilibili.com/video/BV1mC4y1H7gn?spm_id_from=333.999.0.0)
 - [ ] [Apache Flink 在 AI 流程中的应用](https://www.bilibili.com/video/BV1Y5411s7r3?spm_id_from=333.999.0.0)
 
 ### 4.16 20200802-上海

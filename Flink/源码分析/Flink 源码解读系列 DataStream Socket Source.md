@@ -1,8 +1,9 @@
-从 Socket 读取字符串，将读取到的字节转换为字符。当接收到分隔符时，会输出当前字符串，并开始一个新的字符串的收集。
 
 ## 1. 如何使用
 
+DataStream API 支持从 Socket 套接字读取数据。我们只需要调用 socketTextStream 方法，并指定要读取的主机和端口号即可：
 ```java
+StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 DataStream<String> text = env.socketTextStream(hostname, port);
 ```
 
@@ -35,6 +36,7 @@ private final int port;
 private final String delimiter;
 private final long maxNumRetries;
 private final long delayBetweenRetries;
+private static final int DEFAULT_CONNECTION_RETRY_SLEEP = 500;
 
 public SocketTextStreamFunction(String hostname, int port, String delimiter, long maxNumRetries) {
     this(hostname, port, delimiter, maxNumRetries, DEFAULT_CONNECTION_RETRY_SLEEP);

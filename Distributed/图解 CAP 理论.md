@@ -4,9 +4,9 @@ author: sjf0115
 title: 图解 CAP 理论
 date: 2019-09-21 12:35:17
 tags:
-  - Architecture
+  - 分布式
 
-categories: Architecture
+categories: 分布式
 permalink: an-illustrated-proof-of-the-cap-theorem
 ---
 
@@ -27,14 +27,15 @@ CAP定理指出任何分布式系统不可能同时保持一致，可用性以�
 
 让我们来考虑一个非常简单的分布式系统。我们的分布式系统由两台服务器G1和G2组成；这两台服务器都追踪同一个变量v，变量v的初始值为v0；G1和G2之间可以相互通信，同样也可以与外部的客户端通信；我们的分布式系统的架构如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Architecture/an-illustrated-proof-of-the-cap-theorem-1.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Distributed/an-illustrated-proof-of-the-cap-theorem-1.jpg?raw=true)
 
 客户端可以向任何服务器发送读写请求。当服务器接收到请求之后，将根据请求执行一些计算，然后把请求结果返回给客户端。一个写请求过程如下所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Architecture/an-illustrated-proof-of-the-cap-theorem-2.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Distributed/an-illustrated-proof-of-the-cap-theorem-2.jpg?raw=true)
 
 下面是一个读请求过程：
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Architecture/an-illustrated-proof-of-the-cap-theorem-3.jpg?raw=true)
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Distributed/an-illustrated-proof-of-the-cap-theorem-3.jpg?raw=true)
 
 现在我们已经建立好我们的分布式系统，下面我们一起探讨一下分布式系统的一致性、可用性以及分区容错性的含义。
 
@@ -50,12 +51,13 @@ CAP定理指出任何分布式系统不可能同时保持一致，可用性以�
 
 下面是一个非一致性的分布式系统的例子:
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Architecture/an-illustrated-proof-of-the-cap-theorem-4.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Distributed/an-illustrated-proof-of-the-cap-theorem-4.jpg?raw=true)
 
 上图中客户端向G1服务器发起写请求，将变量v的值从v0更新为v1，并得到G1服务器的确认响应。但当向G2服务器读取变量v的值时，读取到的却是旧的值v0，与期待的v1不一致。
 
 下面是一个一致性的分布式系统的例子:
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Architecture/an-illustrated-proof-of-the-cap-theorem-5.jpg?raw=true)
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Distributed/an-illustrated-proof-of-the-cap-theorem-5.jpg?raw=true)
 
 在这个系统中，G1在给客户端发送确认之前，会先把v的新值复制给G2，这样，当客户端从G2读取v的值时就能读取到最新的值v1。
 
@@ -79,7 +81,8 @@ CAP定理指出任何分布式系统不可能同时保持一致，可用性以�
 
 这就意味着服务器G1和G2之间互相发送的任意消息都可能丢失。如果所有的消息都丢失了，那么我们的系统就变成了如下所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Architecture/an-illustrated-proof-of-the-cap-theorem-6.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Distributed/an-illustrated-proof-of-the-cap-theorem-6.jpg?raw=true)
+
 > 与第一个图相比，两个节点之间缺少了联系。
 
 为了满足分区容错性，我们的系统需要能在网络分区情况下也能正常的工作。
@@ -91,15 +94,16 @@ CAP定理指出任何分布式系统不可能同时保持一致，可用性以�
 现在我们已经了解了一致性、可用性和分区容错性的含义，现在我们来证明一个系统不可能同时满足这三个属性。
 
 假设存在一个同时满足这三个属性的系统，我们要做的第一件就是让系统发生网络分区，就像下图的情况一样：
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Architecture/an-illustrated-proof-of-the-cap-theorem-7.jpg?raw=true)
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Distributed/an-illustrated-proof-of-the-cap-theorem-7.jpg?raw=true)
 
 接下来，我们有一个客户端向G1发起写请求，将v的值更新为v1。因为系统是可用的，所以G1必须给客户端发送响应，但是由于网络分区，G1无法将其数据复制到G2。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Architecture/an-illustrated-proof-of-the-cap-theorem-8.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Distributed/an-illustrated-proof-of-the-cap-theorem-8.jpg?raw=true)
 
 接着，客户端向G2发起一个读请求，因为系统是可用的，所以G2必须给客户端返回响应。又由于网络分区的，G2无法从G1更新v的值，所以G2返回给客户端的是旧的值v0。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Architecture/an-illustrated-proof-of-the-cap-theorem-9.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Distributed/an-illustrated-proof-of-the-cap-theorem-9.jpg?raw=true)
 
 客户端已经将G1上v的值修改为v1，但是从G2上读取到的值仍然是v0，这违背了一致性。
 
@@ -112,10 +116,6 @@ CAP定理指出任何分布式系统不可能同时保持一致，可用性以�
 综上所述，G2无法同时做到一致性和可用性。系统设计时只能选择一个。如果追求一致性，那么无法保证所有节点的可用性；如果追求所有节点的可用性，那就没法做到一致性。
 
 所以，对于一个分布式系统来说，P是一个基本要求，CAP三者中，只能根据系统要求在A和C两者之间做权衡。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 英译对照:
 - Consistency：一致性

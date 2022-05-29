@@ -1,5 +1,7 @@
 SocketTextStreamFunction
 
+从 Socket 读取字符串，将读取到的字节转换为字符。当接收到分隔符时，会输出当前字符串，并开始一个新的字符串的收集。
+
 ## 1. 如何使用
 
 ```java
@@ -69,6 +71,11 @@ public class SocketTextStreamFunction implements SourceFunction<String> {
 
 #### 2.2.1 run
 
-当 Source 输出元素时，可以在 run 方法中调用 SourceContext 接口的 collect 或者 collectWithTimestamp 方法输出元素。run 方法需要尽可能的一直运行，因此大多数 Source 在 run 方法中都有一个 while 循环。Source 也必须具有响应 cancel 方法调用中断 while 循环的能力。比较通用的模式是添加 volatile 布尔类型变量 isRunning 来表示是否在运行中。在 cancel 方法中设置为 false，并在循环条件中检查该变量是否为 true：
+当 Source 输出元素时，可以在 run 方法中调用 SourceContext 接口的 collect 或者 collectWithTimestamp 方法输出元素。run 方法需要尽可能的一直运行，因此在 run 方法中会有一个 while 循环。为了响应 cancel 方法中断 while 循环的能力，通用方案是添加 volatile 布尔类型变量 isRunning 来表示是否在运行中。在 cancel 方法中设置为 false，并在循环条件中检查该变量是否为 true：
+```java
+
+```
+
+
 
 #### 2.2.2 cancel

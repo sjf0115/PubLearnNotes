@@ -14,6 +14,8 @@ permalink: flink-sql-table-source-sink
 > Flink 版本：1.10
 
 
+https://blog.csdn.net/wangpei1949/article/details/105619547
+
 TableFactory 接口允许将与外部系统的连接声明与实际实现分开。Table Factory 根据标准化、基于字符串的属性创建 TableSource 或者 TableSink 的配置实例。可以使用 Descriptor 以编程方式或通过 SQL 客户端的 YAML 配置文件生成属性。
 
 ## 1. 定义 TableSource

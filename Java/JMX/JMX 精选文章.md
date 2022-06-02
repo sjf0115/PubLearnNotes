@@ -1,0 +1,2 @@
+- [ ] [Java Management Extensions (JMX) Technology Tutorial](https://docs.oracle.com/javase/1.5.0/docs/guide/jmx/tutorial/tutorialTOC.html)
+- [ ] [JMX quick start](https://www.logicbig.com/tutorials/core-java-tutorial/jmx/quick-start.html)

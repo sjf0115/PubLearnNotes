@@ -53,15 +53,102 @@ JMX 已经对 JVM 进行了多维度资源检测，所以可以轻松启动 JMX 
 
 ## 3 实战
 
-在这里，我们将学习 JMX 的基础知识以及如何使用 JConsole 连接和管理 MBean。让我们现在开始…
+我们以实际问题为例，假设我们希望给应用程序添加一个用户黑名单功能，凡是在黑名单中的用户禁止访问，传统的做法是定义一个配置文件，启动的时候读取：
+```
+# blacklist.txt
+a
+b
+...
+```
+如果要修改黑名单怎么办？修改配置文件，然后重启应用程序。但是每次都重启应用程序实在是太麻烦了，能不能不重启应用程序？可以自己写一个定时读取配置文件的功能，检测到文件改动时自动重新读取。上述需求本质上是在应用程序运行期间对参数、配置等进行热更新并要求尽快生效。
 
-首先，我们需要创建 MBean，为此我们需要首先创建定义我们想要公开的属性和操作的接口。 接口名称必须以 MBean 结尾。 如果您只想允许只读，则可以保留 setter 方法。
+这个需求我们可以尝试使用 JMX 的方式实现，我们不必自己编写自动重新读取的任何代码，只需要提供一个符合 JMX 标准的 MBean 来存储用户黑名单即可。
 
-应用程序可以通过以下方式访问平台 MXBean：
+### 3.1 黑名单管理接口 BlacklistMBean
 
-1. 直接访问一个 MXBean 接口
-- 通过调用 getPlatformMXBean 或 getPlatformMXBeans 方法获取 MXBean 实例，并在正在运行的虚拟机中本地访问 MXBean。
-- 构造一个 MXBean 代理实例，通过调用 getPlatformMXBean(MBeanServerConnection, Class) 或 getPlatformMXBeans(MBeanServerConnection, Class) 方法将方法调用转发到给定的 MBeanServer。 newPlatformMXBeanProxy 方法还可用于构造-给定 ObjectName 的 MXBean 代理实例。代理通常被构造为远程访问另一个正在运行的虚拟机的 MXBean。
+JMX 的 MBean 通常以 MBean 结尾，因此我们遵循标准命名规范，首先编写一个 BlacklistMBean 接口实现对用户黑名单的管理：
+```java
+public interface BlackListMBean {
+    // 获取黑名单列表
+    public String[] getBlackList();
+    // 在黑名单列表中添加一个用户
+    public void addBlackItem(String uid);
+    // 判断某个用户是否在黑名单中
+    public boolean contains(String uid);
+    // 获取黑名单大小
+    public int getBlackListSize();
+}
+```
 
-2.通过MBeanServer间接访问一个MXBean接口
-- 通过平台 MBeanServer 本地访问 MXBean 或通过特定的 MBeanServerConnection 远程访问 MXBean。 MXBean 的属性和操作仅使用 JMX 开放类型，包括 OpenType 中定义的基本数据类型、CompositeData 和 TabularData。详细信息在 MXBean 规范中指定了映射。
+### 3.2 黑名单管理实现 BlackList
+
+MBean 有一个规则，标准 MBean 接口名称必需是在要实现类名后面加上 MBean 后缀, 并且实现类必须和 MBean 接口必需在同一包下。所以我们的黑名单管理实现类必须为 BlackList，其中定义了一个 uidSet 集合存储用户黑名单：
+```java
+public class BlackList implements BlackListMBean {
+    private Set<String> uidSet = new HashSet<>();
+    @Override
+    public String[] getBlackList() {
+        return uidSet.toArray(new String[0]);
+    }
+    @Override
+    public void addBlackItem(String uid) {
+        uidSet.add(uid);
+    }
+    @Override
+    public boolean contains(String uid) {
+        return uidSet.contains(uid);
+    }
+    @Override
+    public int getBlackListSize() {
+        return uidSet.size();
+    }
+}
+```
+### 3.3 实时热更新 MBean
+
+```java
+public class BlackListServer {
+    public static void main(String[] args) throws Exception {
+        String hostname = "localhost";
+        int port = 9000;
+        // 获取 MBean Server
+        MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
+
+        // 创建 MBean 初始黑名单用户为 a 和 b
+        BlackList blackList = new BlackList();
+        blackList.addBlackItem("a");
+        blackList.addBlackItem("b");
+
+        // 注册
+        ObjectName objectName = new ObjectName("com.common.example.jmx:type=BlackList, name=BlackListMBean");
+        platformMBeanServer.registerMBean(blackList, objectName);
+
+        // 循环接收
+        while (true) {
+            // 简单从 Socket 接收字符串模拟接收到的用户Id
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(hostname, port), 0);
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                    char[] buffer = new char[8012];
+                    int bytes;
+                    while ((bytes = reader.read(buffer)) != -1) {
+                        String result = new String(buffer, 0, bytes);
+                        String uid = result;
+                        // 去掉换行符
+                        if (result.endsWith("\n")) {
+                            uid = result.substring(0, result.length() - 1);
+                        }
+                        if (blackList.contains(uid)) {
+                            System.out.println("[INFO] uid " + uid + " is in black list");
+                        } else {
+                            System.out.println("[INFO] uid " + uid + " is not in black list");
+                        }
+                    }
+                }
+            }
+            Thread.sleep(3000);
+            System.out.println("[INFO] 休眠 3s ..............");
+        }
+    }
+}
+```

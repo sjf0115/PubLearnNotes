@@ -1,26 +1,32 @@
 
 ## 1. 什么是 JMX
 
-JMX，全称 Java Management Extensions，是在 J2SE 5.0 版本中引入的一个功能。提供了一种在运行时动态管理资源的框架，主要用于企业应用程序中实现可配置或动态获取应用程序的状态。
-
-JMX 提供了一种简单、标准的监控和管理资源的方式，对于如何定义一个资源给出了明确的结构和设计模式，主要用于监控和管理应用程序运行状态、资源信息、Java 虚拟机运行情况等信息。JMX 是可以动态的，可以在资源创建、安装、实现时进行动态监控和管理。
+JMX，全称 Java Management Extensions，是在 J2SE 5.0 版本中引入的一个功能。提供了一种在运行时动态管理资源的框架，主要用于企业应用程序中实现可配置或动态获取应用程序的状态。JMX 提供了一种简单、标准的监控和管理资源的方式，对于如何定义一个资源给出了明确的模式。
 
 ## 2. JMX 架构
 
-要通过 JMX 管理资源，我们需要创建 Managed Bean (简称 MBean)来表示要管理的资源，然后将其注册到 MBean Server 中。MBean Server 作为所有已注册 MBean 的管理代理，实现对外提供服务以及对内管理 MBean 资源。
-
-JMX 不仅仅用于本地管理，JMX Remote API 为 JMX 添加了远程功能，使之可以通过网络远程监视和管理应用程序。我们可以使用 JMX Connector 连接到 MBean Server 并管理注册的资源。例如，可以使用 JDK 自带的 JConsole 连接到本地或远程 MBean Server。
-
 JMX 架构分为三层：
-- Probe 资源探测层：包含检测资源的探针，称为 MBean
-- Agent 服务代理层：或者称为 MBeanServer 层，JMX 的核心。充当 MBean 和应用程序之间的中介。
-- Remote Management 远程管理层：能够让应用程序远程通过 Connector 和 Adapter 访问 MBeanServer。Connector 使用各种通信（RMI、IIOP、JMS、WS-* ...）提供对 MBeanServer API 的远程访问，而 Adapter 通过另一种协议（SNMP，...）或基于 Web 的 GUI（HTML/HTTP , WML/HTTP, ...)提供对 MBeanServer API 的远程访问。
+- 资源探测层：包含检测资源的探针，称为 MBean。
+- 服务代理层：或者称为 MBeanServer 层，是 JMX 的核心。充当 MBean 和应用程序之间的中介。
+- 远程管理层：能够让应用程序远程通过 Connector 和 Adapter 访问 MBeanServer。Connector 使用各种通信（RMI、IIOP、JMS、WS-* ...）提供对 MBeanServer API 的远程访问，而 Adapter 通过另一种协议（SNMP，...）或基于 Web 的 GUI（HTML/HTTP , WML/HTTP, ...)提供对 MBeanServer API 的远程访问。
 
 ![](1)
 
-### 2.1 资源管理 MBean
+要通过 JMX 管理资源，我们需要创建 MBean 来表示要管理的资源，然后将其注册到 MBean Server 中。MBean Server 作为所有已注册 MBean 的管理代理，实现对外提供服务以及对内管理 MBean 资源。JMX 不仅仅用于本地管理，JMX Remote API 为 JMX 添加了远程功能，使之可以通过网络远程监视和管理应用程序。我们可以使用 JMX Connector 连接到 MBean Server 并管理注册的资源。例如，可以使用 JDK 自带的 JConsole 连接到本地或远程 MBean Server。
 
-资源管理在架构中标识为资源探测层（Probe Level），在 JMX 中，使用 MBean 或 MXBean 来表示一个资源（下面简称 MBean），访问和管理资源也都是通过 MBean，所以 MBean 往往包含着资源的属性和操作方法。
+### 2.1 资源探测层 MBean
+
+资源探测层的核心是用于资源管理的 Managed bean，简称 MBean。MBean 表示在 Java 虚拟机中运行的资源，例如应用程序或 Java EE 技术服务（事务监视器、JDBC 驱动程序等）。Java EE 6 规定 MBean 是由 Java 类实现的 bean。MBean 可用来收集重点关注的统计信息，比如性能、资源使用以及问题等，也可以用于获取和设置应用程序配置或属性（推/拉模式），也还可以用于故障通知或者状态变更（推送）等。
+
+MBean 有两种基本类型：
+- Standard MBean：这是最简单的一种 MBean。实现了一个业务接口，其中包含属性的 setter 和 getter 以及操作（即方法）。
+- Dynamic MBean：实现 javax.management.DynamicMBean 接口的 MBean，该接口提供了一种列出属性和操作以及获取和设置属性值的方法。
+
+此外还有 Open MBeans、Model MBeans 和 Monitor MBeans。Open MBean 是依赖于基本数据类型的动态 MBean。Model MBean 是可以在运行时配置的动态 MBean。
+
+MBean 管理的很简单，包含两个部分：
+- 可以读写的属性，实现包含属性的 setter 和 getter 方法
+- 可以调用的方法，可以向它提供参数或者获取返回值
 
 JMX 已经对 JVM 进行了多维度资源检测，所以可以轻松启动 JMX 代理来访问内置的 JVM 资源检测，从而通过 JMX 技术远程监控和管理 JVM：
 
@@ -40,60 +46,54 @@ JMX 已经对 JVM 进行了多维度资源检测，所以可以轻松启动 JMX 
 
 此外，我们可以创建自定义的 MBean（MXBean），为此我们需要首先创建一个接口，定义属性以及操作。接口名称必须以 MBean 结尾：
 ```java
-public interface ResourceMBean {
-    public String getLastItem();
-    public int getSize();
-    public List<String> getItems();
-    public void addItem(String item);
-    public String getItem(int pos);
+public interface CounterMBean {
+    public int getCounter();
+    public void setCounter(int counter);
+    // 增加1
+    public void increase();
+    // 降低1
+    public void decrease();
 }
 ```
-下一步是提供 MBean 接口的实现。JMX 命名约定是实现类名为接口名去掉 MBean 后缀。所以我的实现类将是 Resource：
+下一步是提供 MBean 接口的实现。JMX 命名约定是实现类名为接口名去掉 MBean 后缀。所以我的实现类将是 Counter：
 ```java
-public class Resource implements ResourceMBean {
-    private List<String> items = new ArrayList<>();
+public class Counter implements CounterMBean {
+    private int counter = 0;
     @Override
-    public String getLastItem() {
-        return items.get(getSize()-1);
+    public int getCounter() {
+        return counter;
     }
     @Override
-    public int getSize() {
-        return items.size();
+    public void setCounter(int counter) {
+        this.counter = counter;
     }
     @Override
-    public List<String> getItems() {
-        return items;
+    public void increase() {
+        this.counter += 1;
     }
     @Override
-    public void addItem(String item) {
-        items.add(item);
-    }
-    @Override
-    public String getItem(int pos) {
-        return items.get(pos);
+    public void decrease() {
+        this.counter -= 1;
     }
 }
 ```
 
-### 2.2 资源代理 MBean Server
+### 2.2 服务代理层 MBean Server
 
 资源代理 MBean Server 是 MBean 资源的代理，通过 MBean Server 可以远程管理 MBean 资源。MBean 资源和 MBean Server 往往都是在同一个 JVM 中，但这不是必须的。想要 MBean Server 可以管理 MBean 资源，首先要把资源注册到 MBean Server 上，任何符合 JMX 的 MBean 资源都可以进行注册，最后 MBean Server 会提供一个远程通信接口对外提供服务。
 
 现在我们需要将上面创建的 MBean 实现 Resource 注册到 MBean Server 中：
 ```java
-public class ResourceManagement {
+public class CounterManagement {
     public static void main(String[] args) throws Exception {
         // 获取 MBean Server
         MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
         // 创建 MBean
-        Resource resource = new Resource();
-        resource.addItem("item_1");
-        resource.addItem("item_2");
-        resource.addItem("item_3");
+        Counter counter = new Counter();
+        counter.setCounter(0);
         // 注册
-        ObjectName objectName = new ObjectName("com.common.example.jmx:type=Resource, name=CustomResourceMBean");
-        platformMBeanServer.registerMBean(resource, objectName);
-
+        ObjectName objectName = new ObjectName("com.common.example.jmx:type=Counter, name=CounterMBean");
+        platformMBeanServer.registerMBean(counter, objectName);
         // 防止退出
         while (true) {
             Thread.sleep(3000);
@@ -110,9 +110,9 @@ public class ResourceManagement {
 - type=MXBean 接口的实现类的类名
 - name=自定义的名字
 
-在这里，我们使用的是：'com.common.example.jmx:type=Resource, name=CustomResourceMBean'。
+在这里，我们使用的是：'com.common.example.jmx:type=Counter, name=CounterMBean'。
 
-### 2.3 JMX 远程管理
+### 2.3 远程管理层
 
 可以通过网络协议访问 JMX API，如 HTTP 协议、SNMP（网络管理协议）协议、RMI 远程调用协议等，JMX 技术默认实现了 RMI 远程调用协议。
 

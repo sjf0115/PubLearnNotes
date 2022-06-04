@@ -11,13 +11,18 @@ JMX 提供了一种简单、标准的监控和管理资源的方式，对于如�
 
 JMX 不仅仅用于本地管理，JMX Remote API 为 JMX 添加了远程功能，使之可以通过网络远程监视和管理应用程序。我们可以使用 JMX Connector 连接到 MBean Server 并管理注册的资源。例如，可以使用 JDK 自带的 JConsole 连接到本地或远程 MBean Server。
 
+JMX 架构分为三层：
+- Probe 资源探测层：包含检测资源的探针，称为 MBean
+- Agent 服务代理层：或者称为 MBeanServer 层，JMX 的核心。充当 MBean 和应用程序之间的中介。
+- Remote Management 远程管理层：能够让应用程序远程通过 Connector 和 Adapter 访问 MBeanServer。Connector 使用各种通信（RMI、IIOP、JMS、WS-* ...）提供对 MBeanServer API 的远程访问，而 Adapter 通过另一种协议（SNMP，...）或基于 Web 的 GUI（HTML/HTTP , WML/HTTP, ...)提供对 MBeanServer API 的远程访问。
+
+![](1)
+
 ### 2.1 资源管理 MBean
 
 资源管理在架构中标识为资源探测层（Probe Level），在 JMX 中，使用 MBean 或 MXBean 来表示一个资源（下面简称 MBean），访问和管理资源也都是通过 MBean，所以 MBean 往往包含着资源的属性和操作方法。
 
-下面列举 JMX 对 JVM 的资源检测类，都可以直接使用。
-
-Java 虚拟机具有以下管理接口的单个实例：
+JMX 已经对 JVM 进行了多维度资源检测，所以可以轻松启动 JMX 代理来访问内置的 JVM 资源检测，从而通过 JMX 技术远程监控和管理 JVM：
 
 | 资源接口 | 管理的资源 | Object Name | Java 虚拟机中的实例个数 |
 | :------------- | :------------- | :------------- | :------------- |
@@ -33,23 +38,85 @@ Java 虚拟机具有以下管理接口的单个实例：
 | MemoryPoolMXBean	     | 内存	   | java.lang:type=MemoryPool,name=<pool名称>	| 1个或更多 |
 | BufferPoolMXBean	     | Buffer | java.nio:type=BufferPool,name=<pool名称> | 1个或更多 |
 
-
-
-JMX 已经对 JVM 进行了多维度资源检测，所以可以轻松启动 JMX 代理来访问内置的 JVM 资源检测，从而通过 JMX 技术远程监控和管理 JVM。
+此外，我们可以创建自定义的 MBean（MXBean），为此我们需要首先创建一个接口，定义属性以及操作。接口名称必须以 MBean 结尾：
+```java
+public interface ResourceMBean {
+    public String getLastItem();
+    public int getSize();
+    public List<String> getItems();
+    public void addItem(String item);
+    public String getItem(int pos);
+}
+```
+下一步是提供 MBean 接口的实现。JMX 命名约定是实现类名为接口名去掉 MBean 后缀。所以我的实现类将是 Resource：
+```java
+public class Resource implements ResourceMBean {
+    private List<String> items = new ArrayList<>();
+    @Override
+    public String getLastItem() {
+        return items.get(getSize()-1);
+    }
+    @Override
+    public int getSize() {
+        return items.size();
+    }
+    @Override
+    public List<String> getItems() {
+        return items;
+    }
+    @Override
+    public void addItem(String item) {
+        items.add(item);
+    }
+    @Override
+    public String getItem(int pos) {
+        return items.get(pos);
+    }
+}
+```
 
 ### 2.2 资源代理 MBean Server
 
-资源代理 MBean Server 是 MBean 资源的代理，通过 MBean Server 可以让 MBean 资源用于远程管理，MBean 资源和 MBean Server 往往都是在同一个 JVM 中，但这不是必须的。
+资源代理 MBean Server 是 MBean 资源的代理，通过 MBean Server 可以远程管理 MBean 资源。MBean 资源和 MBean Server 往往都是在同一个 JVM 中，但这不是必须的。想要 MBean Server 可以管理 MBean 资源，首先要把资源注册到 MBean Server 上，任何符合 JMX 的 MBean 资源都可以进行注册，最后 MBean Server 会提供一个远程通信接口对外提供服务。
 
-想要 MBean Server 可以管理 MBean 资源，首先要把资源注册到 MBean Server，任何符合 JMX 的 MBean 资源都可以进行注册，最后 MBean Server 会暴露一个远程通信接口对外提供服务。
+现在我们需要将上面创建的 MBean 实现 Resource 注册到 MBean Server 中：
+```java
+public class ResourceManagement {
+    public static void main(String[] args) throws Exception {
+        // 获取 MBean Server
+        MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
+        // 创建 MBean
+        Resource resource = new Resource();
+        resource.addItem("item_1");
+        resource.addItem("item_2");
+        resource.addItem("item_3");
+        // 注册
+        ObjectName objectName = new ObjectName("com.common.example.jmx:type=Resource, name=CustomResourceMBean");
+        platformMBeanServer.registerMBean(resource, objectName);
+
+        // 防止退出
+        while (true) {
+            Thread.sleep(3000);
+            System.out.println("[INFO] 休眠 3s ..............");
+        }
+    }
+}
+```
+首先我们通过 ManagementFactory 来获取 MBean Server 来注册 MBean。我们会使用 ObjectName 向 MbeanServer 注册 MBean 接口实现类 Resource 实例。ObjectName 由 domain:key 格式构成：
+- domain：可以是任意字符串，但根据 MBean 命名约定，一般使用 Java 包名（避免命名冲突）
+- key：以逗号分隔的'key=value'键值对列表
+
+我们一般会定义两个 key：
+- type=MXBean 接口的实现类的类名
+- name=自定义的名字
+
+在这里，我们使用的是：'com.common.example.jmx:type=Resource, name=CustomResourceMBean'。
 
 ### 2.3 JMX 远程管理
 
 可以通过网络协议访问 JMX API，如 HTTP 协议、SNMP（网络管理协议）协议、RMI 远程调用协议等，JMX 技术默认实现了 RMI 远程调用协议。
 
 受益于资源管理 MBean 的充分解耦，可以轻松的把资源管理功能扩展到其他协议，如通过 HTTP 在网页端进行管理。
-
-
 
 ## 3 实战
 
@@ -104,51 +171,65 @@ public class BlackList implements BlackListMBean {
     }
 }
 ```
-### 3.3 实时热更新 MBean
+### 3.3 实时热更新黑名单 MBeanServer
 
+下一步，我们要使用 JMX 来实时热更新这个 MBean，首先我们要把 MBean 注册到 MBeanServer 中，初始黑名单只有两个用户 a 和 b：
 ```java
-public class BlackListServer {
-    public static void main(String[] args) throws Exception {
-        String hostname = "localhost";
-        int port = 9000;
-        // 获取 MBean Server
-        MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
+// 获取 MBean Server
+MBeanServer platformMBeanServer = ManagementFactory.getPlatformMBeanServer();
 
-        // 创建 MBean 初始黑名单用户为 a 和 b
-        BlackList blackList = new BlackList();
-        blackList.addBlackItem("a");
-        blackList.addBlackItem("b");
+// 创建 MBean 初始黑名单用户为 a 和 b
+BlackList blackList = new BlackList();
+blackList.addBlackItem("a");
+blackList.addBlackItem("b");
 
-        // 注册
-        ObjectName objectName = new ObjectName("com.common.example.jmx:type=BlackList, name=BlackListMBean");
-        platformMBeanServer.registerMBean(blackList, objectName);
+// 注册
+ObjectName objectName = new ObjectName("com.common.example.jmx:type=BlackList, name=BlackListMBean");
+platformMBeanServer.registerMBean(blackList, objectName);
+```
+objectName 指定了 MBean 的名字，通常以 xxx:type=xxx, name=xxx 来分类 MBean。
 
-        // 循环接收
-        while (true) {
-            // 简单从 Socket 接收字符串模拟接收到的用户Id
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(hostname, port), 0);
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-                    char[] buffer = new char[8012];
-                    int bytes;
-                    while ((bytes = reader.read(buffer)) != -1) {
-                        String result = new String(buffer, 0, bytes);
-                        String uid = result;
-                        // 去掉换行符
-                        if (result.endsWith("\n")) {
-                            uid = result.substring(0, result.length() - 1);
-                        }
-                        if (blackList.contains(uid)) {
-                            System.out.println("[INFO] uid " + uid + " is in black list");
-                        } else {
-                            System.out.println("[INFO] uid " + uid + " is not in black list");
-                        }
-                    }
+使用 MBean 和普通 Bean 是完全一样的。例如，我们使用 Socket 接收字符串模拟用户登录，并根据用户黑名单对用户进行拦截：
+```
+String hostname = "localhost";
+int port = 9000;
+// 循环接收
+while (true) {
+    // 简单从 Socket 接收字符串模拟接收到的用户Id
+    try (Socket socket = new Socket()) {
+        socket.connect(new InetSocketAddress(hostname, port), 0);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+            char[] buffer = new char[8012];
+            int bytes;
+            while ((bytes = reader.read(buffer)) != -1) {
+                String result = new String(buffer, 0, bytes);
+                String uid = result;
+                // 去掉换行符
+                if (result.endsWith("\n")) {
+                    uid = result.substring(0, result.length() - 1);
+                }
+                if (blackList.contains(uid)) {
+                    System.out.println("[INFO] uid " + uid + " is in black list");
+                } else {
+                    System.out.println("[INFO] uid " + uid + " is not in black list");
                 }
             }
-            Thread.sleep(3000);
-            System.out.println("[INFO] 休眠 3s ..............");
         }
     }
+    Thread.sleep(3000);
+    System.out.println("[INFO] 休眠 3s ..............");
 }
 ```
+
+### 3.4 演示
+
+下一步就是正常启动用户登录应用程序，打开另一个命令行窗口，输入 jconsole 命令启动 JavaSE 自带的一个 JMX 客户端程序：
+
+
+
+https://www.liaoxuefeng.com/wiki/1252599548343744/1282385687609378
+https://www.journaldev.com/1352/what-is-jmx-mbean-jconsole-tutorial
+https://mp.weixin.qq.com/s/9JyOdaAysYjMg3W5z4G05A
+https://blog.csdn.net/dghkgjlh/article/details/123510748
+https://docs.oracle.com/javase/7/docs/api/java/lang/management/OperatingSystemMXBean.html
+https://runebook.dev/zh-CN/docs/openjdk/java.management/java/lang/management/managementfactory

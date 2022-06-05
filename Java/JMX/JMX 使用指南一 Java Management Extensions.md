@@ -251,7 +251,7 @@ while (true) {
 ```
 [INFO] uid c is in black list
 ```
-可见，用户 c 确实被添加到了黑名单中了。我们调用 removeBlackItem 移除用户 a：
+可见，用户 c 确实被添加到了黑名单中了。现在我们希望从用户黑名单中移除用户 a，点击操作 removeBlackItem 进行移除：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jmx-java-management-extensions-7.png?raw=true)
 

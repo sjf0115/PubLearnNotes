@@ -1,3 +1,14 @@
+---
+layout: post
+author: smartsi
+title: JMX 使用指南一 Java Management Extensions
+date: 2021-06-27 12:07:21
+tags:
+  - JMX
+
+categories: JMX
+permalink: jmx-java-management-extensions
+---
 
 ## 1. 什么是 JMX
 
@@ -6,17 +17,17 @@ JMX，全称 Java Management Extensions，是在 J2SE 5.0 版本中引入的一�
 ## 2. JMX 架构
 
 JMX 架构分为三层：
-- 资源探测层：包含检测资源的探针，称为 MBean。
-- 服务代理层：或者称为 MBeanServer 层，是 JMX 的核心。充当 MBean 和应用程序之间的中介。
-- 远程管理层：能够让应用程序远程通过 Connector 和 Adapter 访问 MBeanServer。Connector 使用各种通信（RMI、IIOP、JMS、WS-* ...）提供对 MBeanServer API 的远程访问，而 Adapter 通过另一种协议（SNMP，...）或基于 Web 的 GUI（HTML/HTTP , WML/HTTP, ...)提供对 MBeanServer API 的远程访问。
+- 资源层：该层包含 MBean 及其可管理的资源，提供了实现 JMX 技术可管理资源的规范。
+- 代理层：或者称为 MBean Server 层，是 JMX 的核心。充当 MBean 和应用程序之间的中介。
+- 远程管理层：能够让应用程序远程通过 Connector 和 Adapter 访问 MBean Server。
 
 ![](1)
 
 要通过 JMX 管理资源，我们需要创建 MBean 来表示要管理的资源，然后将其注册到 MBean Server 中。MBean Server 作为所有已注册 MBean 的管理代理，实现对外提供服务以及对内管理 MBean 资源。JMX 不仅仅用于本地管理，JMX Remote API 为 JMX 添加了远程功能，使之可以通过网络远程监视和管理应用程序。我们可以使用 JMX Connector 连接到 MBean Server 并管理注册的资源。例如，可以使用 JDK 自带的 JConsole 连接到本地或远程 MBean Server。
 
-### 2.1 资源探测层 MBean
+### 2.1 资源探测层
 
-资源探测层的核心是用于资源管理的 Managed bean，简称 MBean。MBean 表示在 Java 虚拟机中运行的资源，例如应用程序或 Java EE 技术服务（事务监视器、JDBC 驱动程序等）。Java EE 6 规定 MBean 是由 Java 类实现的 bean。MBean 可用来收集重点关注的统计信息，比如性能、资源使用以及问题等，也可以用于获取和设置应用程序配置或属性（推/拉模式），也还可以用于故障通知或者状态变更（推送）等。
+资源探测层的核心是用于资源管理的 Managed bean，简称 MBean。MBean 表示在 Java 虚拟机中运行的资源，例如应用程序或 Java EE 技术服务（事务监视器、JDBC 驱动程序等）。MBean 可用来收集重点关注的统计信息，比如性能、资源使用以及问题等，也可以用于获取和设置应用程序配置或属性（推/拉模式），也还可以用于故障通知或者状态变更（推送）等。
 
 MBean 有两种基本类型：
 - Standard MBean：这是最简单的一种 MBean。实现了一个业务接口，其中包含属性的 setter 和 getter 以及操作（即方法）。
@@ -24,38 +35,18 @@ MBean 有两种基本类型：
 
 此外还有 Open MBeans、Model MBeans 和 Monitor MBeans。Open MBean 是依赖于基本数据类型的动态 MBean。Model MBean 是可以在运行时配置的动态 MBean。
 
-MBean 管理的很简单，包含两个部分：
-- 可以读写的属性，实现包含属性的 setter 和 getter 方法
-- 可以调用的方法，可以向它提供参数或者获取返回值
-
-JMX 已经对 JVM 进行了多维度资源检测，所以可以轻松启动 JMX 代理来访问内置的 JVM 资源检测，从而通过 JMX 技术远程监控和管理 JVM：
-
-| 资源接口 | 管理的资源 | Object Name | Java 虚拟机中的实例个数 |
-| :------------- | :------------- | :------------- | :------------- |
-| ClassLoadingMXBean     | 类加载的 | java.lang:type=ClassLoading  | 1个 |
-| MemoryMXBean	         | 内存系统	| java.lang:type=Memory | 1个 |
-| ThreadMXBean	         | 线程系统	  | java.lang:type=Threading	| 1个 |
-| RuntimeMXBean	         | 运行时系统 | java.lang:type=Runtime	| 1个 |
-| OperatingSystemMXBean	 | 操作系统	| java.lang:type=OperatingSystem	| 1个 |
-| PlatformLoggingMXBean	 | 日志系统	| java.util.logging:type=Logging	| 1个 |
-| CompilationMXBean	     | 汇编系统 | java.lang:type=Compilation	 | 0个或1个 |
-| GarbageCollectorMXBean | 垃圾收集	| java.lang:type=GarbageCollector,name=<collector名称> | 1个或更多 |
-| MemoryManagerMXBean	   | 内存池	 | java.lang:typeMemoryManager,name=<manager名称> | 1个或更多 |
-| MemoryPoolMXBean	     | 内存	   | java.lang:type=MemoryPool,name=<pool名称>	| 1个或更多 |
-| BufferPoolMXBean	     | Buffer | java.nio:type=BufferPool,name=<pool名称> | 1个或更多 |
-
-此外，我们可以创建自定义的 MBean（MXBean），为此我们需要首先创建一个接口，定义属性以及操作。接口名称必须以 MBean 结尾：
+MBean 是一个轻量级的 Java 类，它知道如何使用、获取和操作其资源，以便为代理和用户提供访问或功能。除了 JVM 会把自身的各种资源以 MBean 注册到 JMX 中，我们自己的配置、监控等资源也可以作为 MBean 注册到 JMX，这样管理程序就可以直接控制我们暴露的 MBean。为此我们需要首先创建一个接口（定义属性和操作），并且接口的名称必须以 MBean 结尾：
 ```java
 public interface CounterMBean {
+    // 管理属性
     public int getCounter();
     public void setCounter(int counter);
-    // 增加1
+    // 管理操作
     public void increase();
-    // 降低1
     public void decrease();
 }
 ```
-下一步是提供 MBean 接口的实现。JMX 命名约定是实现类名为接口名去掉 MBean 后缀。所以我的实现类将是 Counter：
+下一步是提供 MBean 接口的实现。JMX 命名约定实现类名为接口名去掉 MBean 后缀。所以我的实现类将是 Counter：
 ```java
 public class Counter implements CounterMBean {
     private int counter = 0;
@@ -67,22 +58,29 @@ public class Counter implements CounterMBean {
     public void setCounter(int counter) {
         this.counter = counter;
     }
+    // 加1
     @Override
     public void increase() {
         this.counter += 1;
     }
+    // 减1
     @Override
     public void decrease() {
         this.counter -= 1;
     }
 }
 ```
+MBean 允许通过使用 JMX 代理来管理资源。每个 MBean 都会暴露了底层资源的一部分属性和操作：
+- 可以读写的属性，实现包含属性的 setter 和 getter 方法，在这为 counter。
+- 可以调用的方法，可以向它提供参数或者获取返回值，在这有 increase 和 decrease。
 
-### 2.2 服务代理层 MBean Server
+### 2.2 代理层
 
-资源代理 MBean Server 是 MBean 资源的代理，通过 MBean Server 可以远程管理 MBean 资源。MBean 资源和 MBean Server 往往都是在同一个 JVM 中，但这不是必须的。想要 MBean Server 可以管理 MBean 资源，首先要把资源注册到 MBean Server 上，任何符合 JMX 的 MBean 资源都可以进行注册，最后 MBean Server 会提供一个远程通信接口对外提供服务。
+代理层充当管理资源和应用程序之间的中介。代理层提供对来自管理应用程序的管理资源的访问。JMX 代理可以在嵌入在管理资源的机器中的 JVM 中运行，也可以位于远程位置。代理不需要知道它公开的资源以及使用公开 MBean 的管理器应用程序。它充当处理 MBean 的服务，并允许通过通过 Connector 或 Adaptor 公开的协议来操作 MBean。
 
-现在我们需要将上面创建的 MBean 实现 Resource 注册到 MBean Server 中：
+代理层的职责之一是将应用程序与管理资源分离。应用程序不会直接引用管理的资源，而是通过 JMX 代理的对象名称引用调用管理操作。代理层的核心组件是 MBean Server，作为 MBean 的注册中心，并允许应用程序发现已注册 MBean 的管理接口。除此之外，代理层提供了四种代理服务，使管理 MBean 更加容易：计时器服务、监控服务、关系服务以及动态 MBean 加载服务。  
+
+想要 MBean Server 可以管理 MBean 资源，首先要把资源注册到 MBean Server 上，任何符合 JMX 的 MBean 资源都可以进行注册。现在我们需要将上面创建的 MBean 实现类 Counter 注册到 MBean Server 中：
 ```java
 public class CounterManagement {
     public static void main(String[] args) throws Exception {
@@ -102,7 +100,7 @@ public class CounterManagement {
     }
 }
 ```
-首先我们通过 ManagementFactory 来获取 MBean Server 来注册 MBean。我们会使用 ObjectName 向 MbeanServer 注册 MBean 接口实现类 Resource 实例。ObjectName 由 domain:key 格式构成：
+首先我们通过 ManagementFactory 来获取 MBean Server 来注册 MBean。我们会使用 ObjectName 向 MbeanServer 注册 MBean 接口实现类 Counter 实例。ObjectName 由 domain:key 格式构成：
 - domain：可以是任意字符串，但根据 MBean 命名约定，一般使用 Java 包名（避免命名冲突）
 - key：以逗号分隔的'key=value'键值对列表
 
@@ -114,11 +112,13 @@ public class CounterManagement {
 
 ### 2.3 远程管理层
 
-可以通过网络协议访问 JMX API，如 HTTP 协议、SNMP（网络管理协议）协议、RMI 远程调用协议等，JMX 技术默认实现了 RMI 远程调用协议。
+远程管理层是 JMX 架构的最外层，该层负责使 JMX 代理对外部世界可用。代理层并没有实现远程访问方法，所以在远程管理层会提供一个远程通信接口对外提供服务。提供对外服务需要通过使用一个或多个 JMX Connector 或者 Adaptor 来实现。Connector 和 Adaptor 允许应用程序通过特定协议访问远程 JMX 代理，这样来自不同 JVM 的应用程序就可以调用 MBean Server 上的管理操作、获取或设置管理属性、实例化和注册新的 MBean，以及注册和接收来自管理资源的通知。
 
-受益于资源管理 MBean 的充分解耦，可以轻松的把资源管理功能扩展到其他协议，如通过 HTTP 在网页端进行管理。
+Connector 是将代理 API 暴露给其他分布式技术，例如 Java RMI，而 Adaptor 则是通过 HTTP 或者 SNMP 等不同的协议提供对 MBean 的可见性。事实上，一个代理可以使用许多不同的技术。Connector 和 Adaptor 在 JMX 环境中提供相同的功能。
 
-## 3 实战
+JavaSE 提供了一个 Jconsole 程序，用于通过 RMI 连接到 MBean Server，这样就可以管理整个 Java 进程。下面示例我们会使用 JConsole 来演示效果。
+
+## 3. 实战
 
 我们以实际问题为例，假设我们希望给应用程序添加一个用户黑名单功能，凡是在黑名单中的用户禁止访问，传统的做法是定义一个配置文件，启动的时候读取：
 ```
@@ -127,7 +127,7 @@ a
 b
 ...
 ```
-如果要修改黑名单怎么办？修改配置文件，然后重启应用程序。但是每次都重启应用程序实在是太麻烦了，能不能不重启应用程序？可以自己写一个定时读取配置文件的功能，检测到文件改动时自动重新读取。上述需求本质上是在应用程序运行期间对参数、配置等进行热更新并要求尽快生效。
+如果要修改黑名单怎么办？修改配置文件，然后重启应用程序。但是每次都重启应用程序实在是太麻烦了，能不能不重启应用程序？可以自己写一个定时读取配置文件的功能，检测到文件改动时自动重新读取。上述需求本质上就是在应用程序运行期间对参数、配置等进行热更新并要求尽快生效。
 
 这个需求我们可以尝试使用 JMX 的方式实现，我们不必自己编写自动重新读取的任何代码，只需要提供一个符合 JMX 标准的 MBean 来存储用户黑名单即可。
 
@@ -149,7 +149,7 @@ public interface BlackListMBean {
 
 ### 3.2 黑名单管理实现 BlackList
 
-MBean 有一个规则，标准 MBean 接口名称必需是在要实现类名后面加上 MBean 后缀, 并且实现类必须和 MBean 接口必需在同一包下。所以我们的黑名单管理实现类必须为 BlackList，其中定义了一个 uidSet 集合存储用户黑名单：
+MBean 有一个规则，标准 MBean 接口名称必需是在要实现类名后面加上 MBean 后缀。所以我们的黑名单管理实现类必须为 BlackList，其中定义了一个 uidSet 集合存储用户黑名单：
 ```java
 public class BlackList implements BlackListMBean {
     private Set<String> uidSet = new HashSet<>();
@@ -187,9 +187,7 @@ blackList.addBlackItem("b");
 ObjectName objectName = new ObjectName("com.common.example.jmx:type=BlackList, name=BlackListMBean");
 platformMBeanServer.registerMBean(blackList, objectName);
 ```
-objectName 指定了 MBean 的名字，通常以 xxx:type=xxx, name=xxx 来分类 MBean。
-
-使用 MBean 和普通 Bean 是完全一样的。例如，我们使用 Socket 接收字符串模拟用户登录，并根据用户黑名单对用户进行拦截：
+下面我们使用 Socket 接收字符串模拟用户登录，并根据用户黑名单对用户进行拦截：
 ```
 String hostname = "localhost";
 int port = 9000;
@@ -225,11 +223,40 @@ while (true) {
 
 下一步就是正常启动用户登录应用程序，打开另一个命令行窗口，输入 jconsole 命令启动 JavaSE 自带的一个 JMX 客户端程序：
 
+![](2)
 
+通过 jconsole 连接到我们当前正在运行的应用程序，在 jconsole 中可直接看到内存、CPU 等资源的监控。点击 MBean Tab，左侧按分类列出所有 MBean，可以在 com.common.example.jmx 下查看我们创建的 MBean 信息：
 
-https://www.liaoxuefeng.com/wiki/1252599548343744/1282385687609378
-https://www.journaldev.com/1352/what-is-jmx-mbean-jconsole-tutorial
-https://mp.weixin.qq.com/s/9JyOdaAysYjMg3W5z4G05A
-https://blog.csdn.net/dghkgjlh/article/details/123510748
-https://docs.oracle.com/javase/7/docs/api/java/lang/management/OperatingSystemMXBean.html
-https://runebook.dev/zh-CN/docs/openjdk/java.management/java/lang/management/managementfactory
+![](3)
+
+点击 BlackList 属性，可以看到目前黑名单中用户有 a 和 b 两个用户，即默认的黑名单用户：
+
+![](4)
+
+我们在 Socket 中输入用户 a、b、c 模拟用户登录，输出日志如下：
+```
+[INFO] uid a is in black list
+[INFO] uid b is in black list
+[INFO] uid c is not in black list
+```
+可见，用户 a 和 b 确实被添加到了用户黑名单中了，而用户 c 不在用户黑名单中。我们点击操作 contains，填入用户 c 并点击 contains 按钮，验证用户 c 是否是在黑名单中，如下图所示用户 c 确实不在黑名单中：
+
+![](5)
+
+现在我们希望用户 c 也添加在黑名单中，点击操作 addBlackItem，填入用户 c 并点击 addBlackItem 按钮。相当于 jconsole 通过 JMX 接口调用了我们自己的 BlacklistMBean 的 addBlackItem() 方法，传入的参数就是填入的用户 c：
+
+![](6)
+
+再次查看属性 blackList，可以看到结果已经更新了。我们在 Socket 中输入用户 c 模拟用户登录，测试一下黑名单功能是否已生效：
+```
+[INFO] uid c is in black list
+```
+可见，用户 c 确实被添加到了黑名单中了。我们调用 removeBlackItem 移除用户 a：
+
+![](7)
+
+我们在 Socket 中输入用户 a 模拟用户登录测试一下黑名单功能是否生效：
+```
+[INFO] uid a is not in black list
+```
+可见，用户 a 确实从用户黑名单中移除了。

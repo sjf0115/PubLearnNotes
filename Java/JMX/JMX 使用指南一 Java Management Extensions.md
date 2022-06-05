@@ -21,7 +21,7 @@ JMX 架构分为三层：
 - 代理层：或者称为 MBean Server 层，是 JMX 的核心。充当 MBean 和应用程序之间的中介。
 - 远程管理层：能够让应用程序远程通过 Connector 和 Adapter 访问 MBean Server。
 
-![](1)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jmx-java-management-extensions-1.png?raw=true)
 
 要通过 JMX 管理资源，我们需要创建 MBean 来表示要管理的资源，然后将其注册到 MBean Server 中。MBean Server 作为所有已注册 MBean 的管理代理，实现对外提供服务以及对内管理 MBean 资源。JMX 不仅仅用于本地管理，JMX Remote API 为 JMX 添加了远程功能，使之可以通过网络远程监视和管理应用程序。我们可以使用 JMX Connector 连接到 MBean Server 并管理注册的资源。例如，可以使用 JDK 自带的 JConsole 连接到本地或远程 MBean Server。
 
@@ -223,15 +223,15 @@ while (true) {
 
 下一步就是正常启动用户登录应用程序，打开另一个命令行窗口，输入 jconsole 命令启动 JavaSE 自带的一个 JMX 客户端程序：
 
-![](2)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jmx-java-management-extensions-2.png?raw=true)
 
 通过 jconsole 连接到我们当前正在运行的应用程序，在 jconsole 中可直接看到内存、CPU 等资源的监控。点击 MBean Tab，左侧按分类列出所有 MBean，可以在 com.common.example.jmx 下查看我们创建的 MBean 信息：
 
-![](3)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jmx-java-management-extensions-3.png?raw=true)
 
 点击 BlackList 属性，可以看到目前黑名单中用户有 a 和 b 两个用户，即默认的黑名单用户：
 
-![](4)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jmx-java-management-extensions-4.png?raw=true)
 
 我们在 Socket 中输入用户 a、b、c 模拟用户登录，输出日志如下：
 ```
@@ -241,11 +241,11 @@ while (true) {
 ```
 可见，用户 a 和 b 确实被添加到了用户黑名单中了，而用户 c 不在用户黑名单中。我们点击操作 contains，填入用户 c 并点击 contains 按钮，验证用户 c 是否是在黑名单中，如下图所示用户 c 确实不在黑名单中：
 
-![](5)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jmx-java-management-extensions-5.png?raw=true)
 
 现在我们希望用户 c 也添加在黑名单中，点击操作 addBlackItem，填入用户 c 并点击 addBlackItem 按钮。相当于 jconsole 通过 JMX 接口调用了我们自己的 BlacklistMBean 的 addBlackItem() 方法，传入的参数就是填入的用户 c：
 
-![](6)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jmx-java-management-extensions-6.png?raw=true)
 
 再次查看属性 blackList，可以看到结果已经更新了。我们在 Socket 中输入用户 c 模拟用户登录，测试一下黑名单功能是否已生效：
 ```
@@ -253,7 +253,7 @@ while (true) {
 ```
 可见，用户 c 确实被添加到了黑名单中了。我们调用 removeBlackItem 移除用户 a：
 
-![](7)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Java/jmx-java-management-extensions-7.png?raw=true)
 
 我们在 Socket 中输入用户 a 模拟用户登录测试一下黑名单功能是否生效：
 ```

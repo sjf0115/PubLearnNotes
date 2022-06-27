@@ -66,7 +66,9 @@ permalink: geohash-algorithm
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/geohash-algorithm-10.png?raw=true)
 
-GeoHash 具有以下特点：
+例如，我们还是以天安门为例，整个中国大部分都落在 w 区间；继续划分 32 个子网格，北京大部分区域都落在 x 区间，就这样一直迭代划分，最终天安门的 Base32 编码为 wx4g08c。
+
+综上可以看出，GeoHash 具有以下特点：
 - GeoHash 用一个字符串表示经度和纬度两个坐标;
 - GeoHash 表示的并不是一个点，而是一个区域;
 - GeoHash 编码的前缀表示更大的区域;
@@ -80,48 +82,48 @@ GeoHash 具有以下特点：
 - 合并后的二进制串，按照从前往后，每隔 5 位，换算成十进制数字，最后不足 5 位的用 0 补齐；
 - 最后，根据 base32 的对照表，将十进制数字翻译成字符串，即得到地理坐标对应的目标 GeoHash 字符串
 
-对一个地理坐标编码时，按照初始区间范围纬度[-90,90]和经度[-180,180]，计算目标经度和纬度分别落在左区间还是右区间。落在左区间则取0，右区间则取1。然后，对上一步得到的区间继续按照此方法对半查找，得到下一位二进制编码。当编码长度达到业务的进度需求后，根据“偶数位放经度，奇数位放纬度”的规则，将得到的二进制编码穿插组合，得到一个新的二进制串。最后，根据base32的对照表，将二进制串翻译成字符串，即得到地理坐标对应的目标GeoHash字符串。
-
 ### 3.1 根据经纬度计算二进制编码
 
-以坐标 '40.08118559489892, 116.60367893736044' 为例，计算其 GeoHash 字符串。首先对纬度做二进制编码：
-- 将 `[-90,90]` 平分为 2 部分，纬度 '40.08118559489892' 落在右区间 `(0,90]`，则第一位取 1;
+对一个地理坐标编码时，按照初始区间范围纬度 `[-90,90]` 和经度 `[-180,180]`，计算目标经度和纬度分别落在左区间还是右区间。落在左区间则取 0，右区间则取 1。然后，对上一步得到的区间继续按照此方法对半查找，得到下一位二进制编码，直到编码长度达到业务需要的精度。我们天安门坐标 '39.90733194004775, 116.39124226796913' 为例，计算其 GeoHash 字符串。首先对纬度做二进制编码：
+- 将 `[-90,90]` 平分为 2 部分，纬度 '39.90733194004775' 落在右区间 `(0,90]`，则第一位取 1;
 - 将 `(0,90]` 平分为 2 部分，纬度落在左区间 `(0,45]`，则第二位取 0;
-- 如下图所示不断重复以上步骤，得到的目标区间会越来越小，区间的两个端点也越来越逼近 '40.08118559489892';
+- 如下图所示不断重复以上步骤，得到的目标区间会越来越小，区间的两个端点也越来越逼近 '39.90733194004775'：
 
-![]()
+![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/geohash-algorithm-11.png?raw=true)
 
-最终纬度二进制编码为 101110010000000。同样也对经度做二进制编码，如下图所示不断迭代：
+最终纬度二进制编码为 101110001100000111。同样也对经度做二进制编码，如下图所示不断迭代：
 
-![]()
+![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/geohash-algorithm-12.png?raw=true)
 
-最终经度二进制编码为 110100101110101。
+最终经度二进制编码为 110100101100010001。
 
 ### 3.2 经纬度二进制编码奇偶组合
 
-按照'偶数位放经度，奇数位放纬度'的规则，将经纬度的二进制编码穿插编码
+按照'偶数位放经度，奇数位放纬度'的规则，将经纬度的二进制编码穿插编码：
 
-![]()
+![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/geohash-algorithm-13.png?raw=true)
 
-最终经纬度穿插二进制编码为 11100 11001 10011 10010 00111 00010。
+最终经纬度穿插二进制编码为 11100	11101	00100	01111	00000 01000	01011 1。
 
 ### 3.3 Base32编码
 
 Base32 编码是用 0-9、b-z（去掉a, i, l, o）这 32 个字母进行编码，如下所示是对应的对照表：
 
-![]()
+![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/geohash-algorithm-14.png?raw=true)
 
 具体操作是先将上一步得到的合并后二进制编码 每 5 位转换为一个十进制数字，得到 28,25,19,18,7,2。然后对照 Base32 编码表生成 Base32 编码：
 
-![]()
+![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/geohash-algorithm-15.png?raw=true)
 
-得到 Base32 编码为：wtmk72。
+得到 Base32 编码为：wx4g08c。
+
+> Base32 编码长度为 7 位，需要经度 18 位，纬度 17 位穿插编码。
 
 ## 4. 编码长度与精度
 
 GeoHash 是将空间不断的二分，然后将二分的路径转化为 Base32 编码。从原理可以看出，Geohash 表示的是一个矩形区间，而不是一个点，GeoHash 字符串值越长，这个矩形区间就越小，标识的位置也就越精确。下图是维基百科中不同长度 GeoHash 下的经纬度误差：
 
-![]()
+![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/geohash-algorithm-16.png?raw=true)
 
 ## 5. 注意
 
@@ -131,7 +133,7 @@ GeoHash 有两个需要注意的问题。第一个是边界问题，第二个是
 
 第一个需要注意的是边界问题：
 
-![]()
+![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/geohash-algorithm-17.png?raw=true)
 
 如上图所示，如果我们在红点位置，区域内还有一个黄点车辆，相邻区域内的也有一个绿点车辆。由于 GeoHash 表示的是一个矩形区间，我们会认为在同一个区间内的 2 个位置是最近的，黄点车辆和我们所处同一个矩形区间内，因此我们会认为黄点车辆离我们最近。但是从图中可以直观的看到绿点的车辆明显离我们更近一些，只是因为绿点车辆刚好在另一个区间内。
 
@@ -139,97 +141,17 @@ GeoHash 有两个需要注意的问题。第一个是边界问题，第二个是
 
 ### 5.2 曲线突变问题
 
-第一个需要注意的是曲线突变问题。GeoHash 是将二维的坐标点做了如下编码：
+第一个需要注意的是曲线突变问题。有时候可能会给人一个误解就是如果两个 GeoHash 之间二进制的差异越小，那么这两个区间距离就越近。这完全是错误的，比如上面图中的 01111 和 10000，这两个区间二进制只差 00001，但实际物理距离比较远。
 
-![]()
-
-有时候可能会给人一个误解就是如果两个 GeoHash 之间二进制的差异越小，那么这两个区间距离就越近。这完全是错误的，比如上图中的 0111 和 1000，这两个区间二进制只差 0001，但实际物理距离比较远。
-
-
-
-
-
-[一种基于快速GeoHash实现海量商品与商圈高效匹配的算法](https://mp.weixin.qq.com/s/2B-VJ2xgwxrmsSkE6zuoPA)
-[Geohash边界分形与拟合，让你的边界纵享丝滑](https://mp.weixin.qq.com/s/IN1L2-Pp9o-3LgXHAo6F7w)
-[基于Geohash算法切分OID4点码](https://mp.weixin.qq.com/s/N7wJ9uqSWwgUSj6rr_FKSQ)
-[Elasticsearch 在地理信息空间索引的探索和演进](https://mp.weixin.qq.com/s/y33FQjFN-f58h1_TIwgMAw)
-[Redis(6)——GeoHash查找附近的人](https://mp.weixin.qq.com/s/wALOAK9mewQOyajTaSqGUw)
-[Redis 到底是怎么实现“附近的人”这个功能的？](https://mp.weixin.qq.com/s/2uSr2YOjtLbUdHI01qc4rw)
-[是什么能让 APP 快速精准定位到我们的位置？](https://mp.weixin.qq.com/s/KqCxb24FoIge9AropiSzXg)
-
-
+参考：
 - 经纬度坐标在线转 GeoHash：http://geohash.co/
+- GeoHash 编码划分：https://geohash.softeng.co/
 - [如何搜索附近的商家? Geohash （上）](https://www.youtube.com/watch?v=NCvYkJWenb8)
 - [如何搜索附近的商家? Geohash （下）](https://www.youtube.com/watch?v=_UAkuUVzwcY)
-
-
-
-
-
-
-
-
-
-
-
-![](http://img.blog.csdn.net/20171026101315516?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvU3VubnlZb29uYQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
-
-
-POI: 116.615,40.054
-北京首都国际机场3号航站楼C区 116.614989,40.054538
-
-
-(1) 10米
-
-40.0555 116.615
-
-40.0554 116.615
-
-wx4gveuknqqk
-
-wx4gveu7w7y2
-
-前缀为7
-
-(2) 100米
-
-40.054 116.615
-40.055 116.615
-
-wx4gves7qqy2
-wx4gveu3q3nq
-
-前缀为6
-
-(3) 1000米
-40.04 116.615
-40.05 116.615
-
-wx4gv9h3ykyr
-wx4gvduknmn7
-
-前缀为5
-
-(4) 10000米
-40.1 116.615
-40.0 116.615
-
-wx4ujeurqmy3
-wx4gt9u2ykqq
-
-前缀为3
-
-
-
-
-
-
-
-测试:
-
-用户A:116.591366,40.071987      wx4gu
-用户B:116.591967,40.107577      wx4uh
-T1航站楼:116.587847,40.081313   wx4uh
-
-A-T距离: 1078米
-B-T距离: 2937米
+- [一种基于快速GeoHash实现海量商品与商圈高效匹配的算法](https://mp.weixin.qq.com/s/2B-VJ2xgwxrmsSkE6zuoPA)
+- [Geohash边界分形与拟合，让你的边界纵享丝滑](https://mp.weixin.qq.com/s/IN1L2-Pp9o-3LgXHAo6F7w)
+- [基于Geohash算法切分OID4点码](https://mp.weixin.qq.com/s/N7wJ9uqSWwgUSj6rr_FKSQ)
+- [Elasticsearch 在地理信息空间索引的探索和演进](https://mp.weixin.qq.com/s/y33FQjFN-f58h1_TIwgMAw)
+- [Redis(6)——GeoHash查找附近的人](https://mp.weixin.qq.com/s/wALOAK9mewQOyajTaSqGUw)
+- [Redis 到底是怎么实现“附近的人”这个功能的？](https://mp.weixin.qq.com/s/2uSr2YOjtLbUdHI01qc4rw)
+- [是什么能让 APP 快速精准定位到我们的位置？](https://mp.weixin.qq.com/s/KqCxb24FoIge9AropiSzXg)

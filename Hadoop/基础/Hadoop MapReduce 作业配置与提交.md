@@ -7,7 +7,7 @@ tags:
   - Hadoop
 
 categories: Hadoop
-permalink: hadoop-mapreduce-inputsplit
+permalink: hadoop-mapreduce-job-conf-submit
 ---
 
 在 Hadoop 中，Common、HDFS 和 MapReduce 各有对应的配置文件，用于保存对应模块中可配置的参数。这些配置文件均为 ⅩML 格式且由两部分构成：系统默认配置文件和管理员自定义配置文件。其中，系统默认配置文件分别是 core-default.xml、hdfs-default.xml和 mapred-default.xml，它们包含了所有可配置属性的默认值。而管理员自定义配置文件分别是 core-site.xml、hdfs-site.xml 和 mapred-site.xml。它们由管理员设置，主要用于定义一些新的配置属性或者覆盖系统默认配置文件中的默认值。通常这些配置一旦确定，便不能被修改（如果想修改，需重新启动 Hadoop）。需要注意的是，core-default.xml和 core-site.xml 属于公共基础库的配置文件，默认情况下，Hadoop 总会优先加载它们。

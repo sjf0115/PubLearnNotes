@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hadoop 利用ToolRunner运行MapReduce
+title: Hadoop 利用 ToolRunner 运行 MapReduce
 date: 2018-06-01 17:01:01
 tags:
   - Hadoop
@@ -11,13 +11,11 @@ categories: Hadoop
 permalink: hadoop-base-implementing-the-tool-interface-for-mapreduce
 ---
 
-大多数人通常使用通过静态 main 方法执行驱动程序代码创建他们的 MapReduce 作业。这种实现的缺点是大多数特定的配置（如果有的话）通常都是硬编码的(例如：设置Reducer的个数)。如果需要随时修改一些配置属性（例如：修改Reducer数量），就必须修改代码，然后重新构建你的jar文件并重新部署应用程序。这种方式很浪费时间。这可以通过在 MapReduce 驱动程序代码中实现 Tool 接口来避免。
+大多数人通常使用通过静态 main 方法执行驱动程序代码创建他们的 MapReduce 作业。这种实现的缺点是大多数特定的配置（如果有的话）通常都是硬编码的(例如：设置 Reducer 的个数)。如果需要随时修改一些配置属性（例如：修改 Reducer 数量），就必须修改代码，然后重新构建你的 jar 文件并重新部署应用程序。这种方式很浪费时间。这可以通过在 MapReduce 驱动程序代码中实现 Tool 接口来避免。
 
-### 1. Hadoop配置
+### 1. Hadoop 配置
 
-通过实现 Tool 接口并扩展 Configured 类，你可以通过 GenericOptionsParser 轻松的在命令行界面设置 hadoop 配置对象。这使得你的代码更加具有可移植性（并且更加简洁），因为你不需要再对任何特定配置进行硬编码。
-
-让我们举几个例子，使用和不使用Tool接口。
+通过实现 Tool 接口并扩展 Configured 类，你可以通过 GenericOptionsParser 轻松的在命令行界面设置 Hadoop 配置对象。这使得你的代码更加具有可移植性（并且更加简洁），因为你不需要再对任何特定配置进行硬编码。让我们举几个例子，使用和不使用Tool接口。
 
 #### 1.1 不使用 Tool 接口
 
@@ -121,7 +119,7 @@ public class WordCountNoTool{
     }
 }
 ```
-如下方式执行 MapReduce 作业。你期望在这里只有2个参数 inputPath 和 outputPath，可以通过 main方法String数组上的索引[0]和[1]获取：
+如下方式执行 MapReduce 作业。你期望在这里只有2个参数 inputPath 和 outputPath，可以通过 main 方法 String 数组上的索引 [0] 和 [1] 获取：
 ```
 hadoop jar common-tool-jar-with-dependencies.jar com.sjf.open.example.WordCountNoTool ${inputPath} ${outputPath}
 ```
@@ -224,7 +222,7 @@ public class WordCountWithTool extends Configured implements Tool {
     }
 }
 ```
-ToolsRunner 通过其静态 run 方法执行 MapReduce 作业。在这个例子中，我们不需要对 reducer的个数进行硬编码，因为它可以直接可以在命令行中指定（使用`-D`选项）：
+ToolsRunner 通过其静态 run 方法执行 MapReduce 作业。在这个例子中，我们不需要对 reducer 的个数进行硬编码，因为它可以直接可以在命令行中指定（使用`-D`选项）：
 ```
 hadoop jar common-tool-jar-with-dependencies.jar com.sjf.open.example.WordCountWithTool -D mapred.reduce.tasks=1 ${inputPath} ${outputPath}
 ```
@@ -246,4 +244,8 @@ hadoop jar common-tool-jar-with-dependencies.jar com.sjf.open.example.WordCountN
 -files 指定复制到集群上的文件，以逗号分隔
 -libjars 指定包含在类路径中的jar文件，以逗号分隔
 ```
-原文:https://hadoopi.wordpress.com/2013/06/05/hadoop-implementing-the-tool-interface-for-mapreduce-driver/
+
+
+
+参考:
+- [Implementing the Tool interface for MapReduce driver](https://hadoopi.wordpress.com/2013/06/05/hadoop-implementing-the-tool-interface-for-mapreduce-driver/)

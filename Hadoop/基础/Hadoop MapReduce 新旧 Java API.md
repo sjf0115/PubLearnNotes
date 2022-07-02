@@ -6,13 +6,24 @@
 
 ### 1.1 存放位置
 
-旧版 API 放在 org.apache.hadoop.mapred 包中，而新版 API 则放在 org.apache.hadoop. mapreduce 包及其子包中。
+旧版 API 放在 org.apache.hadoop.mapred 包中，而新版 API 则放在 org.apache.hadoop.mapreduce 包及其子包中。
 
 ### 1.2 接口变为抽象类
 
 接口通常作为一种严格的'协议约束'。只有方法声明而没有方法实现，且要求所有实现类（不包括抽象类）必须实现接口中的每一个方法。接口的最大优点是允许一个类实现多个接口，进而实现类似 C++ 中的'多重继承'。
 
+```java
+public static class WordCountMapper extends MapReduceBase implements Mapper<LongWritable, Text, Text, IntWritable> {
+    ...
+}
+```
 抽象类则是一种较宽松的'约束协议'。为某些方法提供默认实现，而继承类可以选择性的是否重新实现哪些方法。正是因为这一点，抽象类在类衍化方面更有优势，也就是说，抽象类具有良好的向后兼容性，当需要为抽象类添加新的方法时，只要新添加的方法提供了默认实现，用户之前的代码就不必修改了。
+
+```java
+public static class WordCountMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
+    ...
+}
+```
 
 考虑到抽象类在 API 衍化方面的优势，新 API 将 InputFormat、OutputFormat、Mapper、Reducer 和 Partitioner 由接口变为抽象类。
 

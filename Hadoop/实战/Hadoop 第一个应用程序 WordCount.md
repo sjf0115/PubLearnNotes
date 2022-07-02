@@ -9,3 +9,11 @@ tags:
 categories: Hadoop
 permalink: hadoop-word-count
 ---
+
+
+
+## 运行
+
+```
+hadoop jar hadoop-example-1.0.jar com.hadoop.example.base.WordCountV2 /data/word-count/word-count-input /data/word-count/word-count-output-v2
+```

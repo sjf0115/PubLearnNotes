@@ -17,6 +17,8 @@ public static class WordCountMapper extends MapReduceBase implements Mapper<Long
     ...
 }
 ```
+> MapReduceBase 提供了 Mapper 接口的默认实现
+
 抽象类则是一种较宽松的'约束协议'。为某些方法提供默认实现，而继承类可以选择性的是否重新实现哪些方法。正是因为这一点，抽象类在类衍化方面更有优势，也就是说，抽象类具有良好的向后兼容性，当需要为抽象类添加新的方法时，只要新添加的方法提供了默认实现，用户之前的代码就不必修改了。
 
 ```java

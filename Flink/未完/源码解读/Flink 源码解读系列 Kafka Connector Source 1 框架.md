@@ -19,7 +19,122 @@ public FlinkKafkaConsumerBase(List<String> topics, Pattern topicPattern,
 }
 ```
 
-### 1.1 ResultTypeQueryable
+### 1.1 RichParallelSourceFunction
+
+#### 1.1.1 Open
+
+RichParallelSourceFunction 的 Open 方法主要用来初始化如下几个工作：
+- 确定 Offset 的提交模式 offsetCommitMode
+- 创建 Partition 分区发现器 partitionDiscoverer
+- 确定要读取的每个 Partition 的 Offset，存储在 subscribedPartitionsToStartOffsets 数据结构中。Offset 分配策略具体取决于是否是从状态中恢复，下面会具体分析
+- 初始化序列化器 deserializer
+```java
+public void open(Configuration configuration) throws Exception {
+    // 1. 确定 Offset 提交模式
+    this.offsetCommitMode = OffsetCommitModes.fromConfiguration(
+          getIsAutoCommitEnabled(),
+          enableCommitOnCheckpoints,
+          ((StreamingRuntimeContext) getRuntimeContext()).isCheckpointingEnabled()
+    );
+    // 2. 创建分区发现器
+    this.partitionDiscoverer = createPartitionDiscoverer(
+          topicsDescriptor,
+          getRuntimeContext().getIndexOfThisSubtask(),
+          getRuntimeContext().getNumberOfParallelSubtasks()
+    );
+    this.partitionDiscoverer.open();
+
+    // 3. 确定读取的 Partition 集合以及初始化读取的 Offset
+    subscribedPartitionsToStartOffsets = new HashMap<>();
+    final List<KafkaTopicPartition> allPartitions = partitionDiscoverer.discoverPartitions();
+    // Offset 分配策略具体取决于是否是从状态中恢复
+    if (restoredState != null) {
+        // 如果是从状态中恢复
+    } else {
+        // 如果不是从状态中恢复
+    }
+    // 4. 序列化器
+    this.deserializer.open(
+          RuntimeContextInitializationContextAdapters.deserializationAdapter(
+                  getRuntimeContext(),
+                  metricGroup -> metricGroup.addGroup("user")
+          )
+    );
+}
+```
+如果是从状态恢复中，那如何确定每个分区要读取的 Offset：
+```java
+// 如果是新分区则采用 EARLIEST_OFFSET 策略
+for (KafkaTopicPartition partition : allPartitions) {
+    if (!restoredState.containsKey(partition)) {
+        restoredState.put(partition, KafkaTopicPartitionStateSentinel.EARLIEST_OFFSET);
+    }
+}
+// 分区 Partition 分配策略 判断哪些 Partition 分配给该 Task
+for (Map.Entry<KafkaTopicPartition, Long> restoredStateEntry : restoredState.entrySet()) {
+    //
+    int subTaskIndex = KafkaTopicPartitionAssigner.assign(
+        restoredStateEntry.getKey(),
+        getRuntimeContext().getNumberOfParallelSubtasks()
+    );
+    if (subTaskIndex == getRuntimeContext().getIndexOfThisSubtask()) {
+        subscribedPartitionsToStartOffsets.put(restoredStateEntry.getKey(), restoredStateEntry.getValue());
+    }
+}
+// 默认为 true
+if (filterRestoredPartitionsWithCurrentTopicsDescriptor) {
+    subscribedPartitionsToStartOffsets.entrySet().removeIf(
+        entry -> {
+            if (!topicsDescriptor.isMatchingTopic(entry.getKey().getTopic())) {
+                return true;
+            }
+            return false;
+        }
+    );
+}
+```
+首次运行：
+```java
+switch (startupMode) {
+    case SPECIFIC_OFFSETS:
+        if (specificStartupOffsets == null) {
+            // 抛出 no specific offsets were specified 异常
+        }
+        for (KafkaTopicPartition seedPartition : allPartitions) {
+            Long specificOffset = specificStartupOffsets.get(seedPartition);
+            if (specificOffset != null) {
+                // 由于指定的偏移量代表下一条要读取的记录，我们将其减一，以便消费者的初始状态是正确的
+                subscribedPartitionsToStartOffsets.put(seedPartition, specificOffset - 1);
+            } else {
+                // 如果用户提供的特定偏移不包含此分区的值，则默认为 GROUP_OFFSET
+                subscribedPartitionsToStartOffsets.put(seedPartition, KafkaTopicPartitionStateSentinel.GROUP_OFFSET);
+            }
+        }
+        break;
+    case TIMESTAMP:
+        if (startupOffsetsTimestamp == null) {
+            // 抛出 no startup timestamp was specified 异常
+        }
+        for (Map.Entry<KafkaTopicPartition, Long> partitionToOffset : fetchOffsetsWithTimestamp(allPartitions, startupOffsetsTimestamp).entrySet()) {
+            Long offset = partitionToOffset.getValue() == null ? KafkaTopicPartitionStateSentinel.LATEST_OFFSET : partitionToOffset.getValue() - 1;
+            subscribedPartitionsToStartOffsets.put(partitionToOffset.getKey(), offset);
+        }
+
+        break;
+    default:
+        for (KafkaTopicPartition seedPartition : allPartitions) {
+            subscribedPartitionsToStartOffsets.put(seedPartition, startupMode.getStateSentinel());
+        }
+}
+
+if (!subscribedPartitionsToStartOffsets.isEmpty()) {
+    // 打印日志 输出不同 startupMode 下读取的分区 Partition
+} else {
+    // 打印日志 当前 Task 没有分区可以读取
+}
+```
+
+### 1.2 ResultTypeQueryable
 
 ResultTypeQueryable 接口比较简单，只需要实现 getProducedType 方法返回序列化器的返回值数据类型信息即可：
 ```java
@@ -29,7 +144,7 @@ public TypeInformation<T> getProducedType() {
 ```
 > deserializer 是 Kafka 的序列化器
 
-### 1.2 CheckpointedFunction
+### 1.3 CheckpointedFunction
 
 需要实现 CheckpointedFunction 接口如下的两个方法：
 ```java
@@ -39,7 +154,7 @@ public interface CheckpointedFunction {
 }
 ```
 
-#### 1.2.1 initializeState
+#### 1.3.1 initializeState
 
 使用 UnionListState 存储 Kafka 每个 Partition 的 Offset 信息。如果是从故障中恢复，则从 UnionListState 中获取故障前存储的所有 Offset 信息，并存储在 TreeMap 数据结构中。如果是首次运行，不需要从状态中恢复，只是打印一条日志说明没有状态恢复：
 ```java
@@ -79,7 +194,7 @@ static TupleSerializer<Tuple2<KafkaTopicPartition, Long>> createStateSerializer(
 }
 ```
 
-#### 1.2.2 snapshotState
+#### 1.3.2 snapshotState
 
 ```java
 public final void snapshotState(FunctionSnapshotContext context) throws Exception {
@@ -117,9 +232,9 @@ public final void snapshotState(FunctionSnapshotContext context) throws Exceptio
 ```
 
 
-### 1.3 CheckpointListener
+### 1.4 CheckpointListener
 
-### 1.4 RichParallelSourceFunction
+
 
 ## 2. FlinkKakfaConsumer
 

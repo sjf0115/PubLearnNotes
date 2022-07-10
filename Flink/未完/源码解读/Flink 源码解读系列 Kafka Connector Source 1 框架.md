@@ -133,6 +133,60 @@ if (!subscribedPartitionsToStartOffsets.isEmpty()) {
     // 打印日志 当前 Task 没有分区可以读取
 }
 ```
+#### 1.1.2 run
+
+第一件事情就是初始化 Offset 提交 Metric 以及 Offset 回调方法：
+```java
+// 提交成功 Metric
+this.successfulCommits = this.getRuntimeContext().getMetricGroup().counter(COMMITS_SUCCEEDED_METRICS_COUNTER);
+// 提交失败 Metric                
+this.failedCommits = this.getRuntimeContext().getMetricGroup().counter(COMMITS_FAILED_METRICS_COUNTER);
+// Offset 提交回调
+this.offsetCommitCallback =
+        new KafkaCommitCallback() {
+            @Override
+            public void onSuccess() {
+                // 提交成功
+                successfulCommits.inc();
+            }
+            @Override
+            public void onException(Throwable cause) {
+                // 提交失败
+                failedCommits.inc();
+            }
+        };
+```
+判断订阅 Partitin 是否有开始消费位置 Offset。如果没有，则会直接抛出异常；如果为空，则会将 SubTask 标记为暂时空闲，一旦该 SubTask 发现新分区并开始收集记录时，SubTask 的状态将自动触发回到活跃状态：
+```java
+if (subscribedPartitionsToStartOffsets == null) {
+    throw new Exception("The partitions were not set for the consumer");
+}
+
+if (subscribedPartitionsToStartOffsets.isEmpty()) {
+    sourceContext.markAsTemporarilyIdle();
+}
+```
+创建 kafkaFetcher：
+```java
+this.kafkaFetcher = createFetcher(
+      sourceContext,
+      subscribedPartitionsToStartOffsets,
+      watermarkStrategy,
+      (StreamingRuntimeContext) getRuntimeContext(),
+      offsetCommitMode,
+      getRuntimeContext().getMetricGroup().addGroup(KAFKA_CONSUMER_METRICS_GROUP),
+      useMetrics);
+```
+判断是否开启了动态发现新分区
+```java
+if (discoveryIntervalMillis == PARTITION_DISCOVERY_DISABLED) {
+    kafkaFetcher.runFetchLoop();
+} else {
+    runWithPartitionDiscovery();
+}
+```
+
+
 
 ### 1.2 ResultTypeQueryable
 

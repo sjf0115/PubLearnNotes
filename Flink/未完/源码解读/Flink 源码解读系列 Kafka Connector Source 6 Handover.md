@@ -55,8 +55,9 @@ public ConsumerRecords<byte[], byte[]> pollNext() throws Exception {
     }
 }
 ```
-## 3. 关闭
+## 3. 关闭生产者线程
 
+close 用来关闭生产者线程，清空所有变量。如果 produce(ConsumerRecords) 和 pollNext() 方法当前还在阻塞中或者下一次调用时会抛出 ClosedException：
 ```java
 public void close() {
     synchronized (lock) {
@@ -69,8 +70,9 @@ public void close() {
     }
 }
 ```
-## 4. 中断生产者
+## 4. 中断生产者线程
 
+wakeupProducer 用来中断生产者线程，不再往 Handover 中存储元素了。如果生产者线程当前在阻塞在 produce(ConsumerRecords) 方法中，那么调用如下方法之后它将退出 produce 方法并抛出 WakeupException：
 ```java
 public void wakeupProducer() {
     synchronized (lock) {

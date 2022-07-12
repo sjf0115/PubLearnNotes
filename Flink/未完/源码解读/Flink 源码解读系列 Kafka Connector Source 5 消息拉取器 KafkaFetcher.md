@@ -49,6 +49,13 @@ if (discoveryIntervalMillis == PARTITION_DISCOVERY_DISABLED) {
 }
 ```
 
+### 1.1 runFetchLoop
+
+
+
+### 1.2 runWithPartitionDiscovery
+
+
 ## 2. 消费线程 KafkaConsumerThread
 
 ### 2.1 run
@@ -155,21 +162,20 @@ public void shutdown() {
     // wake up all blocking calls on the queue
     unassignedPartitionsQueue.close();
     // 不能在 KafkaConsumer 上调用 close()，因为如果有并发正在调用，会抛出异常
+    // 调用 wakeupProducer 中断 produce 线程
     handover.wakeupProducer();
-
     // this wakes up the consumer if it is blocked in a kafka poll
     synchronized (consumerReassignmentLock) {
         if (consumer != null) {
             consumer.wakeup();
         } else {
-            // the consumer is currently isolated for partition reassignment;
-            // set this flag so that the wakeup state is restored once the reassignment is
-            // complete
             hasBufferedWakeup = true;
         }
     }
 }
 ```
+
+### 2.3
 
 https://www.cnblogs.com/Springmoon-venn/p/13614670.html
 https://www.jianshu.com/p/5e349967679d

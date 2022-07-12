@@ -147,7 +147,29 @@ try {
     // fall through the loop
 }
 ```
+### 2.2 shutdown
 
+```java
+public void shutdown() {
+    running = false;
+    // wake up all blocking calls on the queue
+    unassignedPartitionsQueue.close();
+    // 不能在 KafkaConsumer 上调用 close()，因为如果有并发正在调用，会抛出异常
+    handover.wakeupProducer();
+
+    // this wakes up the consumer if it is blocked in a kafka poll
+    synchronized (consumerReassignmentLock) {
+        if (consumer != null) {
+            consumer.wakeup();
+        } else {
+            // the consumer is currently isolated for partition reassignment;
+            // set this flag so that the wakeup state is restored once the reassignment is
+            // complete
+            hasBufferedWakeup = true;
+        }
+    }
+}
+```
 
 https://www.cnblogs.com/Springmoon-venn/p/13614670.html
 https://www.jianshu.com/p/5e349967679d

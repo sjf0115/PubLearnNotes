@@ -40,6 +40,128 @@ protected AbstractFetcher<T, ?> createFetcher(
     );
 }
 ```
+## 1.1 构造器
+
+```java
+public KafkaFetcher(
+        SourceFunction.SourceContext<T> sourceContext,
+        Map<KafkaTopicPartition, Long> assignedPartitionsWithInitialOffsets,
+        SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
+        ProcessingTimeService processingTimeProvider,
+        long autoWatermarkInterval,
+        ClassLoader userCodeClassLoader,
+        String taskNameWithSubtasks,
+        KafkaDeserializationSchema<T> deserializer,
+        Properties kafkaProperties,
+        long pollTimeout,
+        MetricGroup subtaskMetricGroup,
+        MetricGroup consumerMetricGroup,
+        boolean useMetrics)
+        throws Exception {
+    super(
+            sourceContext,
+            assignedPartitionsWithInitialOffsets,
+            watermarkStrategy,
+            processingTimeProvider,
+            autoWatermarkInterval,
+            userCodeClassLoader,
+            consumerMetricGroup,
+            useMetrics);
+
+    this.deserializer = deserializer;
+    this.handover = new Handover();
+
+    this.consumerThread =
+            new KafkaConsumerThread(
+                    LOG,
+                    handover,
+                    kafkaProperties,
+                    unassignedPartitionsQueue,
+                    getFetcherName() + " for " + taskNameWithSubtasks,
+                    pollTimeout,
+                    useMetrics,
+                    consumerMetricGroup,
+                    subtaskMetricGroup);
+    this.kafkaCollector = new KafkaCollector();
+}
+```
+
+```java
+protected AbstractFetcher(
+        SourceContext<T> sourceContext,
+        Map<KafkaTopicPartition, Long> seedPartitionsWithInitialOffsets,
+        SerializedValue<WatermarkStrategy<T>> watermarkStrategy,
+        ProcessingTimeService processingTimeProvider,
+        long autoWatermarkInterval,
+        ClassLoader userCodeClassLoader,
+        MetricGroup consumerMetricGroup,
+        boolean useMetrics)
+        throws Exception {
+    this.sourceContext = checkNotNull(sourceContext);
+    this.watermarkOutput = new SourceContextWatermarkOutputAdapter<>(sourceContext);
+    this.watermarkOutputMultiplexer = new WatermarkOutputMultiplexer(watermarkOutput);
+    this.checkpointLock = sourceContext.getCheckpointLock();
+    this.userCodeClassLoader = checkNotNull(userCodeClassLoader);
+
+    // Metric 指标
+    this.useMetrics = useMetrics;
+    this.consumerMetricGroup = checkNotNull(consumerMetricGroup);
+    this.legacyCurrentOffsetsMetricGroup = consumerMetricGroup.addGroup(LEGACY_CURRENT_OFFSETS_METRICS_GROUP);
+    this.legacyCommittedOffsetsMetricGroup = consumerMetricGroup.addGroup(LEGACY_COMMITTED_OFFSETS_METRICS_GROUP);
+    // Watermark 策略
+    this.watermarkStrategy = watermarkStrategy;
+    if (watermarkStrategy == null) {
+        timestampWatermarkMode = NO_TIMESTAMPS_WATERMARKS;
+    } else {
+        timestampWatermarkMode = WITH_WATERMARK_GENERATOR;
+    }
+
+    this.unassignedPartitionsQueue = new ClosableBlockingQueue<>();
+
+
+    // initialize subscribed partition states with seed partitions
+    this.subscribedPartitionStates =
+            createPartitionStateHolders(
+                    seedPartitionsWithInitialOffsets,
+                    timestampWatermarkMode,
+                    watermarkStrategy,
+                    userCodeClassLoader);
+    // check that all seed partition states have a defined offset
+    for (KafkaTopicPartitionState<?, ?> partitionState : subscribedPartitionStates) {
+        if (!partitionState.isOffsetDefined()) {
+            throw new IllegalArgumentException(
+                    "The fetcher was assigned seed partitions with undefined initial offsets.");
+        }
+    }
+
+    // all seed partitions are not assigned yet, so should be added to the unassigned partitions
+    // queue
+    for (KafkaTopicPartitionState<T, KPH> partition : subscribedPartitionStates) {
+        unassignedPartitionsQueue.add(partition);
+    }
+
+    // register metrics for the initial seed partitions
+    if (useMetrics) {
+        registerOffsetMetrics(consumerMetricGroup, subscribedPartitionStates);
+    }
+
+    // if we have periodic watermarks, kick off the interval scheduler
+    if (timestampWatermarkMode == WITH_WATERMARK_GENERATOR && autoWatermarkInterval > 0) {
+        PeriodicWatermarkEmitter<T, KPH> periodicEmitter =
+                new PeriodicWatermarkEmitter<>(
+                        checkpointLock,
+                        subscribedPartitionStates,
+                        watermarkOutputMultiplexer,
+                        processingTimeProvider,
+                        autoWatermarkInterval);
+
+        periodicEmitter.start();
+    }
+}
+```
+
+
+### 1.2 runFetchLoop
 
 ```java
 if (discoveryIntervalMillis == PARTITION_DISCOVERY_DISABLED) {
@@ -49,11 +171,33 @@ if (discoveryIntervalMillis == PARTITION_DISCOVERY_DISABLED) {
 }
 ```
 
-### 1.1 runFetchLoop
+```java
+try {
+    // (1) 启动消费者线程 KafkaConsumerThread 底层本质是一个Kafka消费者
+    consumerThread.start();
+    // (2) 循环轮询
+    while (running) {
+        // 从 Handover 中获取 Kafka 消息 如果没有消息会被阻塞
+        final ConsumerRecords<byte[], byte[]> records = handover.pollNext();
 
+        // get the records for each topic partition
+        for (KafkaTopicPartitionState<T, TopicPartition> partition : subscribedPartitionStates()) {
+            List<ConsumerRecord<byte[], byte[]>> partitionRecords = records.records(partition.getKafkaPartitionHandle());
+            partitionConsumerRecordsHandler(partitionRecords, partition);
+        }
+    }
+} finally {
+    // 退出消费者线程
+    consumerThread.shutdown();
+}
+try {
+    consumerThread.join();
+} catch (InterruptedException e) {
+    Thread.currentThread().interrupt();
+}
+```
 
-
-### 1.2 runWithPartitionDiscovery
+### 1.3 runWithPartitionDiscovery
 
 
 ## 2. 消费线程 KafkaConsumerThread

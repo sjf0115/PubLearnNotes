@@ -135,6 +135,7 @@
 - [ ] [Flink and Prometheus: Cloud-native monitoring of streaming applications](https://flink.apache.org/features/2019/03/11/prometheus-monitoring.html)
 - [ ] [Flink Network Stack Vol. 2: Monitoring, Metrics, and that Backpressure Thing](https://flink.apache.org/2019/07/23/flink-network-stack-2.html)
 - [ ] [深入了解Flink网络栈（二）：监控、指标和处理背压](https://mp.weixin.qq.com/s/TuH82OtiAhXkirZ0PVf7Ug)
+- [ ] [Flink Metrics&REST API 介绍和原理解析](https://mp.weixin.qq.com/s/OjntWRFkLin8chQuvC6Bww)
 
 ### 10. Sink
 

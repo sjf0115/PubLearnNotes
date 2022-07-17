@@ -1,174 +1,137 @@
-Flink公开了一个度量指标系统，允许收集和显示度量指标给外部系统。
+除了使用 Flink 系统自带的监控指标之外，用户也可以自定义监控指标。可以通过在 RichFunction 中调用 getRuntimeContext().getMetricGroup() 获取 MetricGroup 对象，然后将需要监控的指标记录在 MetricGroup 所支持的 Metric 中，然后就可以将自定义指标注册到 Flink 系统中。目前 Flink 支持 Counter、Gauge、Histogram 以及 Meter 四种类型的监控指标的注册和获取。
 
-### 1. 注册Metrics
+### 1. 注册 Metrics
 
-你可以通过在继承`RichFunction`的用户自定义函数中调用`getRuntimeContext().getMetricGroup()`来访问度量系统。此方法返回一个`MetricGroup`对象，你可以使用它创建并注册新的度量指标。
-
-下面说一下度量指标类型。Flink支持计数器(Counters)，量表(Gauges)，直方图(Histograms)和仪表(Meters)。
 
 #### 1.1 Counter
 
-计数器用来计算一些东西。当前值可以通过使用`inc()`/`inc(long n)`或`dec()`/`dec(long n)`进行加减计算。你可以通过调用`MetricGroup`对象上的`counter(String name)`来创建和注册计数器。
-
+org.apache.flink.metrics.Counter 是最常用的一种 Metric，主要为了对指标进行计数类型的统计，且仅支持 Int 和 Long 数据类型。你可以通过调用 MetricGroup 对象上的 `counter(String name)` 来创建和注册 Counter。计数值可以通过使用 `inc()`/`inc(long n)` 或 `dec()`/`dec(long n)` 进行加减计算。如下代码所示实现了在 flatMap 方法中对进入到算子中的单词进行计数统计，得到 words-counter 监控指标：
 ```java
-public class MyMapper extends RichMapFunction<String, Integer> {
-  private Counter counter;
-
-  @Override
-  public void open(Configuration config) {
-    this.counter = getRuntimeContext().getMetricGroup().counter("myCounter");
-  }
-
-  @Override
-  public Integer map(String value) throws Exception {
-    this.counter.inc();
-  }
+public static class WordsFlatMapFunction extends RichFlatMapFunction<String, String> {
+    private transient Counter counter;
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        // 注册 Counter
+        this.counter = getRuntimeContext()
+                .getMetricGroup()
+                .counter("words-counter");
+    }
+    @Override
+    public void flatMap(String value, Collector<String> collector) throws Exception {
+        for (String word : value.split("\\s")) {
+            // 计数
+            counter.inc();
+            collector.collect(word);
+        }
+    }
 }
 ```
-
-或者，你也可以使用自定义Counter：
+或者，你也可以使用自定义 Counter：
 ```java
-public class MyMapper extends RichMapFunction<String, Integer> {
-  private Counter counter;
-
-  @Override
-  public void open(Configuration config) {
-    this.counter = getRuntimeContext().getMetricGroup().counter("myCustomCounter", new CustomCounter());
-  }
-}
+this.counter = getRuntimeContext()
+      .getMetricGroup()
+      .counter("custom-counter", new CustomCounter());
 ```
 
 #### 1.2 Gauge
 
-Gauge提供了任何你需要类型的值(A Gauge provides a value of any type on demand)。为了使用Gauge，你必须首先创建一个实现`org.apache.flink.metrics.Gauge`接口的类。返回值的类型没有限制。你可以通过调用`MetricGroup`对象上的gauge(String name, Gauge gauge）来注册Gauge。
-
-Java版本:
+org.apache.flink.metrics.Gauge 是最简单的一种 Metric，主要用于单值更新，直接反映了数值变化，可以提供任何你需要的类型值。Gauge 相对于 Counter 指标更加通用，可以支持任何类型的数据记录和统计，且不限制返回的结果类型。为了使用 Gauge，你必须首先创建一个实现 `org.apache.flink.metrics.Gauge` 接口的类，返回值的类型没有限制。然后通过调用 MetricGroup 对象上的 `gauge(String name, Gauge gauge)` 来注册 Gauge。如下代码所示实现了在 flatMap 方法中对进入到算子中的单词进行计数统计，得到 words-gauge 监控指标：
 ```java
-public class MyMapper extends RichMapFunction<String, Integer> {
-  private int valueToExpose;
-  @Override
-  public void open(Configuration config) {
-    getRuntimeContext().getMetricGroup()
-      .gauge("MyGauge", new Gauge<Integer>() {
-        @Override
-        public Integer getValue() {
-          return valueToExpose;
+public static class WordsFlatMapFunction extends RichFlatMapFunction<String, String> {
+    private transient int valueToExpose = 0;
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        // 注册 Gauge
+        getRuntimeContext()
+                .getMetricGroup()
+                .gauge("words-gauge", new Gauge<Integer>() {
+                    @Override
+                    public Integer getValue() {
+                        return valueToExpose;
+                    }
+                });
+    }
+
+    @Override
+    public void flatMap(String value, Collector<String> collector) throws Exception {
+        for (String word : value.split("\\s")) {
+            // 展示所有单词个数
+            valueToExpose++;
+            collector.collect(word);
         }
-      });
-  }
+    }
 }
 ```
 
-Scala版本:
-```
-public class MyMapper extends RichMapFunction[String,Int] {
-  val valueToExpose = 5
-
-  override def open(parameters: Configuration): Unit = {
-    getRuntimeContext()
-      .getMetricGroup()
-      .gauge("MyGauge", ScalaGauge[Int]( () => valueToExpose ) )
-  }
-  ...
-}
-```
-备注:
-```
-请注意，reporter会将对象转换成一个字符串，这意味着必需实现一个有意义的toString()方法。
-```
 
 #### 1.3 Histogram
 
-Histogram测量Long类型值的分布。你可以通过在`MetricGroup`对象上调用`histogram(String name, Histogram histogram)`来注册一个。
+可以使用直方图表示数值类型数据的分布。Flink 的直方图特别适合用来展示 Long 类型的指标。你可以通过 org.apache.flink.metrics.Histogram 接口来收集数值，获取收集值的数量并为到目前为止收集的值生成统计信息（例如，最小值、最大值、标准差，均值等）。
 
-```java
-public class MyMapper extends RichMapFunction<Long, Integer> {
-  private Histogram histogram;
-
-  @Override
-  public void open(Configuration config) {
-    this.histogram = getRuntimeContext().getMetricGroup()
-      .histogram("myHistogram", new MyHistogram());
-  }
-
-  @Override
-  public Integer map(Long value) throws Exception {
-    this.histogram.update(value);
-  }
-}
-```
-
-Flink不提供Histogram的默认实现，但提供了一个封装，允许使用`Codahale`/`DropWizard`的Histogram。要使用这个封装，需要在你的pom.xml中添加下面的依赖项：
-```
+你可以通过调用 MetricGroup 对象上调用 `histogram(String name, Histogram histogram)` 来注册一个 Histogram。但是 Flink 中没有默认的 Histograms 实现类，但提供了一个封装类 DropwizardHistogramWrapper，然后通过引入 Codahale/DropWizard Histograms 来完成数据分布指标的获取。注意，DropwizardHistogramWrapper 包装类并不在 Flink 默认依赖库中，需要单独引入如下 Maven 依赖：
+```xml
 <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-metrics-dropwizard</artifactId>
-      <version>1.3.2</version>
+      <version>1.13.6</version>
 </dependency>
 ```
-然后你可以像这样注册一个`Codahale`/`DropWizard` Histogram：
+
+如下代码所示，定义 histogramMapper 类实现 RichMapFunction 接口，使用 DropwizardHistogramWrapper 包装类转换 Codahale/DropWizard Histograms，统计 Map 函数中输入数据的分布情况，最终得到 words-histogram 监控指标：
 ```java
-public class MyMapper extends RichMapFunction<Long, Integer> {
-  private Histogram histogram;
-
-  @Override
-  public void open(Configuration config) {
-    com.codahale.metrics.Histogram histogram =
-      new com.codahale.metrics.Histogram(new SlidingWindowReservoir(500));
-
-    this.histogram = getRuntimeContext()
-      .getMetricGroup()
-      .histogram("myHistogram", new DropwizardHistogramWrapper(histogram));
-  }
+public static class WordsMapFunction extends RichMapFunction<String, Long> {
+    private transient Histogram histogram;
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        // 创建 Codahale/DropWizard Histograms
+        com.codahale.metrics.Histogram dropwizardHistogram =
+                new com.codahale.metrics.Histogram(new SlidingWindowReservoir(500));
+        // 使用 DropwizardHistogramWrapper 包装类转换
+        this.histogram = getRuntimeContext()
+                .getMetricGroup()
+                .histogram("words-histogram", new DropwizardHistogramWrapper(dropwizardHistogram));
+    }
+    @Override
+    public Long map(String value) throws Exception {
+        Long v = Long.parseLong(value);
+        // 更新直方图
+        histogram.update(v);
+        return v;
+    }
 }
-
 ```
 
 #### 1.4 Meter
 
-Meter测量平均吞吐量。可以使用`markEvent()`方法注册事件的发生。同时发生多个事件可以使用`markEvent(long n)`方法进行注册。你可以通过在`MetricGroup`对象上调用`meter(String name, Meter meter)`来注册Meter。
+可以使用 Meter 来衡量某些事件发生的速率(每秒的事件数)。org.apache.flink.metrics.Meter 接口提供的方法用于标记一个或者多个事件发生、获取每秒事件发生的速率以及获取当前 Meter 标记的事件数目。
 
+你可以通过在 MetricGroup 对象上调用 `meter(String name, Meter meter)` 来注册 Meter。与 Histograms 相同，Flink 中也没有提供默认的 Meter 实现，需要借助 Codahale/DropWizard Meters 实现，并通过 DropwizardMeterWrapper 包装类转换成 Flink 系统内部的 Meter。可以使用 `markEvent()` 方法注册一个事件的发生，如果同时发生多个事件可以使用 `markEvent(long n)` 方法进行注册。
+
+如下代码所示，在实现的 RichFlatMapFunction 中定义 Meter 指标，并在 Meter 中使用 markEvent() 标记进入到函数中的单词，最终得到 words-histogram 监控指标：
 ```java
-public class MyMapper extends RichMapFunction<Long, Integer> {
-  private Meter meter;
+public static class WordsFlatMapFunction extends RichFlatMapFunction<String, String> {
+    private transient Meter meter;
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        // 创建 Codahale/DropWizard Meter
+        com.codahale.metrics.Meter dropwizardMeter = new com.codahale.metrics.Meter();
+        // 使用 DropwizardHistogramWrapper 包装类转换
+        this.meter = getRuntimeContext()
+                .getMetricGroup()
+                .meter("words-meter", new DropwizardMeterWrapper(dropwizardMeter));
+    }
 
-  @Override
-  public void open(Configuration config) {
-    this.meter = getRuntimeContext()
-      .getMetricGroup()
-      .meter("myMeter", new MyMeter());
-  }
-
-  @Override
-  public Integer map(Long value) throws Exception {
-    this.meter.markEvent();
-  }
+    @Override
+    public void flatMap(String value, Collector<String> collector) throws Exception {
+        String[] words = value.split("\\s");
+        for (String word : words) {
+            // 标记一个单词出现
+            this.meter.markEvent();
+            collector.collect(word);
+        }
+    }
 }
-```
-
-Flink提供了一个封装，允许使用`Codahale`/`DropWizard` Meter。 要使用这个封装，在你的pom.xml中添加下面的依赖项：
-```
-<dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-metrics-dropwizard</artifactId>
-      <version>1.3.2</version>
-</dependency>
-```
-然后你可以像这样注册一个`Codahale`/`DropWizard` Meter：
-```java
-public class MyMapper extends RichMapFunction<Long, Integer> {
-  private Meter meter;
-
-  @Override
-  public void open(Configuration config) {
-    com.codahale.metrics.Meter meter = new com.codahale.metrics.Meter();
-
-    this.meter = getRuntimeContext()
-      .getMetricGroup()
-      .meter("myMeter", new DropwizardMeterWrapper(meter));
-  }
-}
-```
+``
 
 ### 2. 范围
 

@@ -1,29 +1,33 @@
+---
+layout: post
+author: sjf0115
+title: Flink 监控指南一 Metrics 介绍
+date: 2022-07-16 10:02:21
+tags:
+  - Flink
 
+categories: Flink
+permalink: flink-monitor-part-one-metric-base
+---
 
 ## 1. 什么是 Metrics？
 
-Flink 提供的 Metrics 可以在 Flink 内部收集一些指标，比如系统指标的 CPU、内存、线程、JVM、网络、IO、GC 以及任务运行组件 JM、TM、Slot、作业、算子 等相关指标。通过这些指标让开发人员更好地理解作业或集群的状态。由于集群运行后很难发现内部的实际状况，跑得慢或快，是否异常等，开发人员无法实时查看所有的 Task 日志，比如作业很大或者有很多作业的情况下，该如何处理？此时 Metrics 可以很好的帮助开发人员了解作业的当前状况。
-
-Flink Metrics 包含两大作用：
-- 实时采集监控数据。在 Flink 的 UI 界面上，用户可以看到自己提交的任务状态、时延、监控信息等等。
-- 对外提供数据收集接口。用户可以将整个 Flink 集群的监控数据主动上报至第三方监控系统，如：prometheus、grafana 等，下面会介绍。
+Flink 提供的 Metrics 可以在 Flink 内部收集一些指标，比如系统指标的 CPU、内存、线程、JVM、网络、IO、GC 以及任务运行组件 JM、TM、Slot、作业、算子等相关指标。通过这些指标让开发人员更好地理解作业或者集群的状态。由于集群运行后很难发现内部的实际状况，跑得快慢，是否有异常等，开发人员无法实时查看所有的 Task 日志，比如作业很大或者有很多作业的情况下，该如何处理？此时 Metrics 可以很好的帮助开发人员了解作业的当前状况。
 
 ## 2. Metrics 类型
 
 Flink 一共提供了四种 Metric：Counter、Gauge、Histogram、Meter：
-- Counter：计数器，是最常用的一种 Metric。写过 MapReduce 作业的开发人员应该很熟悉 Counter，其含义都是一样的，就是对一个计数器进行累加。例如，Flink 算子的接收记录总数 (numRecordsIn) 和发送记录总数 (numRecordsOut) 就属于 Counter 类型。
-- Gauge：测量器，是最简单的一种 Metric，它直接反映了一个值，根据需要可以提供任何类型的值。例如，Status.JVM.Memory.Heap.Used 当前堆内存使用量就属于 Gauge 类型，每次实时的暴露一个 Gauge，Gauge 当前值就是堆内存使用量。
-- Meter：计量器，用来统计吞吐量和单位时间内发生'事件'的次数。它相当于求一种速率，即事件次数除以使用的时间。例如，记录每秒接收记录数（numRecordsInPerSecond）和每秒输出记录数（numRecordsOutPerSecond）就属于 Meter 类型。
+- Counter：计数器，是最常用的一种 Metric。写过 MapReduce 作业的开发人员应该很熟悉 Counter，其含义都是一样的，就是对一个计数器进行累加。例如，Flink 算子的接收记录总数(numRecordsIn)和发送记录总数(numRecordsOut)就属于 Counter 类型。
+- Gauge：测量器，是最简单的一种 Metric，它直接反映了一个值，根据需要可以提供任何类型的值。例如 Status.JVM.Memory.Heap.Used 当前堆内存使用量就属于 Gauge 类型，每次实时的暴露一个 Gauge，Gauge 当前值就是堆内存使用量。
+- Meter：计量器，用来统计吞吐量和单位时间内发生'事件'的次数。它相当于求一种速率，即事件次数除以使用的时间。例如记录每秒接收记录数（numRecordsInPerSecond）和每秒输出记录数（numRecordsOutPerSecond）就属于 Meter 类型。
 - Histogram：直方图，用来统计数据的分布。例如，分位数（Quantile）、均值、标准偏差（StdDev）、最大值、最小值等，其中最重要一个是统计算子的延迟。此项指标会记录数据处理的延迟信息，对任务监控起到很重要的作用。
 
 ## 3. Metrics 作用范围
 
-作用范围包含用户域和系统域。Flink 的指标体系是按树形结构划分的，每个指标都用一个标识符来表示，标识符的会以'系统域.用户域.名称'的格式来命名。
-
 Flink 的指标体系是按树形结构划分，每个 Metric 都被分配一个标识符，并以这个标识符进行上报。标识符由3部分组成：
 - 注册 Metric 时用户提供的名称
 - 可选的用户定义的作用域
-- 系统提供的作用域。
+- 系统提供的作用域
 
 例如，如果`A.B`是系统作用域，`C.D`是用户作用域，`E`是名称，那么 Metric 的标识符是 `A.B.C.D.E`。举例说明：以算子的指标组结构为例，其默认为：
 ```
@@ -34,7 +38,6 @@ Flink 的指标体系是按树形结构划分，每个 Metric 都被分配一个
 localhost.taskmanager.1234.wordcount.flatmap.0.numRecordsIn
 ```
 > 你可以通过在 `conf/flink-conf.yaml` 中修改 `metrics.scope.delimiter` 参数来修改使用什么分隔符(默认为:`.`)。
-
 
 ## 4. Metrics 上报机制
 
@@ -131,7 +134,6 @@ Metric Reporter 通过一个单线程的线程池定时调用 Scheduled 接口�
 System Metrics，将整个集群的状态已经涵盖得非常详细。具体包括以下方面：
 Master 级别和 Work 级别的 JVM 参数，如 load 和 time；其 Memory 划分也很详细，包括 heap 的使用情况、non-heap 的使用情况、direct 的使用情况，以及 mapped 的使用情况；Threads 可以看到具体有多少线程；还有非常实用的 Garbage Collection。
 Network 使用比较广泛，当需要解决一些性能问题的时候，Network 非常实用。Flink 不只是网络传输，还是一个有向无环图的结构，可以看到它的每个上下游都是一种简单的生产者消费者模型。Flink 通过网络相当于标准的生产者和消费者中间通过有限长度的队列模型。如果想要评估定位性能，中间队列会迅速缩小问题的范围，能够很快的找到问题瓶颈。
-
 
 ### 6.2 User-defined Metrics
 

@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Flink监控 Rest API
+title: Flink 监控指南三 Rest API
 date: 2020-11-14 15:58:01
 tags:
   - Flink
@@ -12,7 +12,7 @@ permalink: flink-monitoring-rest-api
 
 > Flink版本：1.11.2
 
-Flink具有监控 API，可用于查询正在运行的作业以及最近完成的作业的状态和统计信息。Flink 自己的仪表板也使用了这些监控 API，但监控 API 主要是为了自定义监视工具设计的。监控 API 是 REST-ful API，接受 HTTP 请求并返回 JSON 数据响应。
+Flink 具有监控 API，可用于查询正在运行的作业以及最近完成的作业的状态和统计信息。Flink 自己的仪表板也使用了这些监控 API，但监控 API 主要是为了自定义监视工具设计的。监控 API 是 REST-ful API，接受 HTTP 请求并返回 JSON 数据响应。
 
 监控 API 由作为 Dispatcher 的一部的 Web 服务器提供。默认情况下，服务器侦听 8081 的端口，可以通过 flink-conf.yaml 配置文件的 rest.port 配置对其修改。请注意，监控 API 的 Web 服务器和 Web 仪表盘的 Web 服务器目前是相同的，因此可以在同一端口上一起运行。但是，它们响应不同的 HTTP URL。
 ```
@@ -389,9 +389,5 @@ http://localhost:8090/v1/taskmanagers
 | /taskmanagers/metrics | 查看 Taskmanager 的 Metrics 信息 | |
 | /taskmanagers/:taskmanagerid | 查看具体某个 Taskmanager 的详细信息 | taskmanagerid |
 | /taskmanagers/:taskmanagerid/logs | 查看具体某个 Taskmanager 的所有日志文件列表 | taskmanagerid |
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 原文：[Monitoring REST API](https://ci.apache.org/projects/flink/flink-docs-release-1.11/monitoring/rest_api.html)

@@ -1,5 +1,5 @@
 
-### 1. Offset提交模式
+### 1. Offset 提交模式
 
 ```java
 public enum OffsetCommitMode {

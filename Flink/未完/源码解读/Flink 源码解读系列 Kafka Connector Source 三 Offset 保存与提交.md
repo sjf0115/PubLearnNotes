@@ -4,6 +4,8 @@ https://www.cnblogs.com/Springmoon-venn/p/13405140.html
 
 ### 1.1 触发提交
 
+> FlinkKafkaConsumerBase
+
 当 Flink 触发的 Checkpoint 完成时，会调用算子的 notifyCheckpointComplete 方法来周知。只有当 Offset 提交模式为 ON_CHECKPOINTS 时，才会在完成 Checkpoint 时提交 Offset，即在 notifyCheckpointComplete 中完成 Offset 的提交：
 ```java
 public final void notifyCheckpointComplete(long checkpointId) throws Exception {
@@ -61,6 +63,8 @@ this.offsetCommitCallback = new KafkaCommitCallback() {
 
 ### 1.2 等待提交
 
+> KafkaFetcher
+
 notifyCheckpointComplete 方法中提交 Offset 的工作最终转交给了 AbstractFetcher 的 commitInternalOffsetsToKafka 来提交：
 ```java
 public final void commitInternalOffsetsToKafka(Map<KafkaTopicPartition, Long> offsets, @Nonnull KafkaCommitCallback commitCallback) throws Exception {
@@ -93,7 +97,48 @@ protected void doCommitInternalOffsetsToKafka(Map<KafkaTopicPartition, Long> off
 
 ### 1.3 真正提交
 
-然后调用 KafkaConsumerThread.setOffsetsToCommit:  将待提交的 offset 放到 kafka 的消费线程对于的属性 nextOffsetsToCommit 中，等待下一个消费循环提交
+> KafkaConsumerThread
+
+然后调用 KafkaConsumerThread.setOffsetsToCommit 方法将待提交的 offset 存储到 Kafka 消费线程中待提交队列 nextOffsetsToCommit 中，需要等到下一个消费循环开始才会提交：
+```java
+void setOffsetsToCommit(Map<TopicPartition, OffsetAndMetadata> offsetsToCommit, @Nonnull KafkaCommitCallback commitCallback) {
+    if (nextOffsetsToCommit.getAndSet(Tuple2.of(offsetsToCommit, commitCallback)) != null) {
+        ...
+    }
+    handover.wakeupProducer();
+    synchronized (consumerReassignmentLock) {
+        if (consumer != null) {
+            consumer.wakeup();
+        } else {
+            hasBufferedWakeup = true;
+        }
+    }
+}
+```
+然后就到了 kafka 消费的线程，KafkaConsumerThread.run 方法中：  这里是消费 kafka 数据的地方，也提交对应消费组的offset
+
+```java
+public void run() {
+  ...
+  // 获取 Kafka 消费者 consumer
+  this.consumer = getConsumer(kafkaProperties);
+  ...
+  try {
+      ...
+      while (running) {
+          // 检查是否有需要提交的
+          if (!commitInProgress) {
+              final Tuple2<Map<TopicPartition, OffsetAndMetadata>, KafkaCommitCallback> commitOffsetsAndCallback = nextOffsetsToCommit.getAndSet(null);
+              if (commitOffsetsAndCallback != null) {
+                  commitInProgress = true;
+                  // 异步提交 Offset
+                  consumer.commitAsync(commitOffsetsAndCallback.f0, new CommitCallback(commitOffsetsAndCallback.f1));
+              }
+          }
+      }
+  }
+}
+```
 
 
 ...

@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hadoop 多文件输出MultipleOutputFormat
+title: Hadoop 多文件输出 MultipleOutputFormat
 date: 2017-03-15 19:01:01
 tags:
   - Hadoop

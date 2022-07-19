@@ -93,7 +93,7 @@ protected void doCommitInternalOffsetsToKafka(Map<KafkaTopicPartition, Long> off
     consumerThread.setOffsetsToCommit(offsetsToCommit, commitCallback);
 }
 ```
-`Map<KafkaTopicPartition, Long> offsets` 转换为 `Map<TopicPartition, OffsetAndMetadata> offsetsToCommit`
+存储 Offset 的数据结构从 `Map<KafkaTopicPartition, Long>` 转换为 `Map<TopicPartition, OffsetAndMetadata>`，
 
 ### 1.3 真正提交
 
@@ -103,8 +103,10 @@ protected void doCommitInternalOffsetsToKafka(Map<KafkaTopicPartition, Long> off
 ```java
 void setOffsetsToCommit(Map<TopicPartition, OffsetAndMetadata> offsetsToCommit, @Nonnull KafkaCommitCallback commitCallback) {
     if (nextOffsetsToCommit.getAndSet(Tuple2.of(offsetsToCommit, commitCallback)) != null) {
-        ...
+        // 打印提示日志
+        // 如果有没有提交的 Offset 则跳过 提交最新 Checkpoint 的 Offset
     }
+    // 如果 consumer 阻塞在 poll() 或 handover 操作中，唤醒它以尽快提交
     handover.wakeupProducer();
     synchronized (consumerReassignmentLock) {
         if (consumer != null) {
@@ -139,6 +141,11 @@ public void run() {
   }
 }
 ```
+nextOffsetsToCommit 是消费线程存储下一个要提交 Offset 的数据结构 AtomicReference：
+```java
+AtomicReference<Tuple2<Map<TopicPartition, OffsetAndMetadata>, KafkaCommitCallback>> nextOffsetsToCommit;
+```
+
 
 
 ...

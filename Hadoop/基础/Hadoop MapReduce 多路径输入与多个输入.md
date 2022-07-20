@@ -55,4 +55,8 @@ MultipleInputs.addInputPath(job, new Path("page_view/20161129/"), TextInputForma
 ```
 由于点击和浏览数据都是文本文件，所以对两者均使用 TextInputFormat 数据类型。但这两个数据源的行格式不同，所以我们使用两个不一样的 Mapper 进行处理。ClickMapper 读取点击输入数据，PageViewMapper 读取浏览输入数据。
 
+### 3. 递归处理
+
+一个被指定为输入路径的目录，其内容不会被递归处理。事实上，这些目录下的内容只会被当作文件处理，如果目录下包含了子目录，也会被解释为文件从而产生错误。处理这个问题的方法是：使用一个文件 glob 或者以过滤器根据命名模式限定选择目录中的文件。另一种方法是将 mapreduce.input.fileinputformat.input.dir.recursive 设置为 true 从而强制对输入目录进行递归处理。
+
 > 来源：《Hadoop 权威指南》

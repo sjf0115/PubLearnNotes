@@ -14,7 +14,7 @@ permalink: spark-base-launching-applications-with-spark-submit
 
 ### 1. 简介
 
-Spark的 bin 目录下的 spark-submit 脚本用来在集群上启动应用程序。可以通过一个统一的接口使用 Spark 支持的所有[集群管理器](https://spark.apache.org/docs/3.1.3/submitting-applications.html)，这样就不必为每个集群管理器单独配置提交应用程序。
+Spark 的 bin 目录下的 spark-submit 脚本用来在集群上启动应用程序。可以通过一个统一的接口使用 Spark 支持的所有[集群管理器](https://spark.apache.org/docs/3.1.3/submitting-applications.html)，这样就不必为每个集群管理器单独配置提交应用程序。
 
 ### 2. 语法
 
@@ -227,18 +227,13 @@ spark-submit 脚本可以从 properties 文件加载默认的 Spark 配置选项
 
 ### 7. 高级依赖管理
 
-使用 spark-submit 时，包含在 --jars 选项中的应用程序 jar 以及其他 jar 将自动分发到集群。在 --jars 之后提供的 URL 列表必须用逗号分隔。该列表会包含在 driver 和 executor 的 classpath 中。--jars 不支持目录。
+使用 spark-submit 时，需要上传并放到应用 CLASSPATH 中的 Jar 包列表，可以使用参数 --jars 提供。包含在 --jars 选项中的应用程序 jar 以及其他 jar 将会自动分发到集群中。在 --jars 之后提供的 Jar 包列表必须用逗号分隔。需要注意的是 --jars 参数不支持目录。
 
-Spark 使用如下 URL 来以不同策略分发 jar：
+Spark 使用如下 URL 来以不同策略分发 Jar：
 - file：由 driver HTTP 文件服务器提供的绝对路径或者 file:/URI。每个 executor 都可以从 driver HTTP 服务器上拉取文件。
-- 'hdfs:', 'http:', 'https:', 'ftp:'：正如你看到的，从这些 URI 拉取文件和 JAR。
-- local：以 'local:/' 开头的URI应该作为每个工作节点上的本地文件存在。这意味着不会产生网络IO，适用于推送大文件或者JAR到每个工作线程或通过 NFS，GlusterFS 等方式共享这些大文件或者jar。
+- 'hdfs:', 'http:', 'https:', 'ftp:'：正如你看到的，从这些 URI 拉取文件和 Jar。
+- local：以 'local:/' 开头的 URI 应该作为每个 Worker 节点上的本地文件存在。这意味着不会产生网络IO，适用于推送大文件或者 Jar 到每个工作线程或通过 NFS，GlusterFS 等方式共享这些大文件或者 Jar。
 
-请注意，JAR和文件被复制到 executor 节点上每个 SparkContext 的工作目录下。随着时间的推移，这可能会占用大量的空间，需要定时清理。使用 YARN，清理会自动执行；使用 Spark 独立集群，可以使用 `spark.worker.cleanup.appDataTtl` 属性配置自动清理。
-
-用户还可以通过用 `--packages` 提供以逗号分隔的 maven 坐标列表来包含任何其他依赖项。使用此命令时将处理所有传递依赖性。可以使用配置选项 `--repositories` 以逗号分隔的方式添加其他存储库（或SBT中的解析器）。pyspark，spark-shell和 spark-submit 都可以使用这些命令来包含 Spark 的 Packages。
-
-对于Python，等价的 `--py-files` 选项可用于将 `.egg`，`.zip` 和 `.py` 库分发给执行程序。
-
+请注意，Jar 和文件被复制到 executor 节点上每个 SparkContext 的工作目录下。随着时间的推移，这可能会占用大量的空间，需要定时清理。使用 YARN，清理会自动执行；使用 Spark 独立集群，可以使用 `spark.worker.cleanup.appDataTtl` 属性配置自动清理。
 
 原文: https://spark.apache.org/docs/3.1.3/submitting-applications.html

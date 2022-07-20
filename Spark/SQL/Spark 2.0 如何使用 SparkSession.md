@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Spark 在Spark2.0中如何使用SparkSession
+title: Spark 2.0 如何使用 SparkSession
 date: 2018-06-07 17:31:01
 tags:
   - Spark
@@ -11,11 +11,11 @@ categories: Spark
 permalink: spark-sql-how-to-use-sparksession-in-spark-2-0
 ---
 
-除了有时限的交互之外，SparkSession 提供了一个单一的入口来与底层的 Spark 功能进行交互，并允许使用 DataFrame 和 Dataset API 对 Spark 进行编程。最重要的是，它减少了开发人员在与 Spark 进行交互时必须了解和构造概念的数量。
+除了有时限的交互之外，SparkSession 提供了一个单一的入口来与底层的 Spark 功能进行交互，并允许使用 DataFrame 和 Dataset API 对 Spark 进行编程。最重要的是减少了开发人员在与 Spark 进行交互时必须了解和构造概念的数量。
 
 在这篇文章中我们将探讨 Spark 2.0 中的 SparkSession 的功能。
 
-### 1. 探索SparkSession的统一功能
+### 1. 探索 SparkSession 的统一功能
 
 首先，我们将检查 Spark 应用程序 [SparkSessionZipsExample](https://github.com/dmatrix/examples/blob/master/spark/databricks/apps/scala/2.x/src/main/scala/zips/SparkSessionZipsExample.scala)，该应用程序从 JSON 文件读取邮政编码，并使用 DataFrame API 执行一些分析，然后运行 Spark SQL 查询，而无需访问 SparkContext，SQLContext 或 HiveContext。
 

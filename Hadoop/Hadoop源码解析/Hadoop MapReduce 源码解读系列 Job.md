@@ -67,7 +67,7 @@ getInstance(Configuration, String)
 ```
 另外还有一个构造函数：
 ```
-getInstance(JobStatus, Configuration) 
+getInstance(JobStatus, Configuration)
 ```
 
 #### 3.1 getInstance()
@@ -144,7 +144,7 @@ Job对象状态检查：
 ```
 private void ensureState(JobState state) throws IllegalStateException {
     if (state != this.state) {
-      throw new IllegalStateException("Job in state "+ this.state + 
+      throw new IllegalStateException("Job in state "+ this.state +
                                       " instead of " + state);
     }
 
@@ -243,7 +243,7 @@ public boolean waitForCompletion(boolean verbose) throws IOException, Interrupte
       monitorAndPrintJob();
     } else {
       // get the completion poll interval from the client.
-      int completionPollIntervalMillis = 
+      int completionPollIntervalMillis =
         Job.getCompletionPollInterval(cluster.getConf());
       while (!isComplete()) {
         try {
@@ -266,10 +266,10 @@ public void submit() throws IOException, InterruptedException, ClassNotFoundExce
     ensureState(JobState.DEFINE);
     setUseNewAPI();
     connect();
-    final JobSubmitter submitter = 
+    final JobSubmitter submitter =
         getJobSubmitter(cluster.getFileSystem(), cluster.getClient());
     status = ugi.doAs(new PrivilegedExceptionAction<JobStatus>() {
-      public JobStatus run() throws IOException, InterruptedException, 
+      public JobStatus run() throws IOException, InterruptedException,
       ClassNotFoundException {
         return submitter.submitJobInternal(Job.this, cluster);
       }
@@ -305,7 +305,7 @@ private synchronized void connect() throws IOException, InterruptedException, Cl
 随着进度和任务的进行，实时监控作业和打印状态．
 
 ```
-public boolean monitorAndPrintJob() 
+public boolean monitorAndPrintJob()
       throws IOException, InterruptedException {
     String lastReport = null;
     Job.TaskStatusFilter filter;
@@ -317,7 +317,7 @@ public boolean monitorAndPrintJob()
     boolean profiling = getProfileEnabled();
     IntegerRanges mapRanges = getProfileTaskRange(true);
     IntegerRanges reduceRanges = getProfileTaskRange(false);
-    int progMonitorPollIntervalMillis = 
+    int progMonitorPollIntervalMillis =
       Job.getProgressPollInterval(clientConf);
     /* make sure to report full progress after the job is done */
     boolean reportedAfterCompletion = false;
@@ -335,17 +335,17 @@ public boolean monitorAndPrintJob()
         reportedUberMode = true;
         LOG.info("Job " + jobId + " running in uber mode : " + isUber());
       }      
-      String report = 
+      String report =
         (" map " + StringUtils.formatPercent(mapProgress(), 0)+
-            " reduce " + 
+            " reduce " +
             StringUtils.formatPercent(reduceProgress(), 0));
       if (!report.equals(lastReport)) {
         LOG.info(report);
         lastReport = report;
       }
 
-      TaskCompletionEvent[] events = 
-        getTaskCompletionEvents(eventCounter, 10); 
+      TaskCompletionEvent[] events =
+        getTaskCompletionEvents(eventCounter, 10);
       eventCounter += events.length;
       printTaskEvents(events, filter, profiling, mapRanges, reduceRanges);
     }
@@ -353,7 +353,7 @@ public boolean monitorAndPrintJob()
     if (success) {
       LOG.info("Job " + jobId + " completed successfully");
     } else {
-      LOG.info("Job " + jobId + " failed with state " + status.getState() + 
+      LOG.info("Job " + jobId + " failed with state " + status.getState() +
           " due to: " + status.getFailureInfo());
     }
     Counters counters = getCounters();

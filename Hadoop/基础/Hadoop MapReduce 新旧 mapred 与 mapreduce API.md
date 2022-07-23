@@ -77,3 +77,6 @@ System.exit(job.waitForCompletion(true) ? 0 : 1);
 除了以上三点不同之外，新旧 API 在很多其他细节方面也存在小的差别。
 
 > 由于新版和旧版 API 在类层次结构、编程接口名称及对应的参数列表等方面存在较大差别，所以两种 API 不能兼容。但考虑到应用程序的向后兼容性，短时间内不会将旧 API 从 MapReduce 中去掉。即使在完全采用新 API 的版本中，也仅仅将旧 API 标注为过期（deprecated），用户仍然可以使用。
+
+> [旧版本 API WordCount 实现](https://github.com/sjf0115/data-example/blob/master/hadoop-example/src/main/java/com/hadoop/example/base/WordCountV1.java)
+> [新版本 API WordCount 实现](https://github.com/sjf0115/data-example/blob/master/hadoop-example/src/main/java/com/hadoop/example/base/WordCountV2.java)

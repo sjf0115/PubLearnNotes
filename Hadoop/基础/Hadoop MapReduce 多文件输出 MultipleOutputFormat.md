@@ -119,20 +119,22 @@ public class VacationOrderBySex extends Configured implements Tool {
     }
 }
 ```
+
+```
+hadoop jar hadoop-example-1.0.jar com.hadoop.example.output.MultipleOutputsExample /data/word-count/word-count-input /data/word-count/word-count-output
+```
+
 在生成输出的 reduce 中，在 setup() 方法中构造一个 MultipleOutputs 的实例并将它赋予一个实例变量。在 reduce() 方法中使用 MultipleOutputs 实例来写输出，而不是 context。write() 方法作用于键，值和名字。这里使用的是性别作为名字，因此最后产生的输出名称的形式为 sex-r-nnnnn：
 ```
--rw-r--r--   3 xiaosi xiaosi          0 2016-12-06 10:41 tmp/order_by_sex/_SUCCESS
--rw-r--r--   3 xiaosi xiaosi      88574 2016-12-06 10:41 tmp/order_by_sex/f-r-00005.gz
--rw-r--r--   3 xiaosi xiaosi      60965 2016-12-06 10:41 tmp/order_by_sex/m-r-00012.gz
--rw-r--r--   3 xiaosi xiaosi         20 2016-12-06 10:41 tmp/order_by_sex/part-r-00000.gz
--rw-r--r--   3 xiaosi xiaosi         20 2016-12-06 10:41 tmp/order_by_sex/part-r-00001.gz
--rw-r--r--   3 xiaosi xiaosi         20 2016-12-06 10:41 tmp/order_by_sex/part-r-00002.gz
--rw-r--r--   3 xiaosi xiaosi         20 2016-12-06 10:41 tmp/order_by_sex/part-r-00003.gz
--rw-r--r--   3 xiaosi xiaosi         20 2016-12-06 10:41 tmp/order_by_sex/part-r-00004.gz
--rw-r--r--   3 xiaosi xiaosi         20 2016-12-06 10:41 tmp/order_by_sex/part-r-00005.gz
--rw-r--r--   3 xiaosi xiaosi         20 2016-12-06 10:41 tmp/order_by_sex/part-r-00006.gz
--rw-r--r--   3 xiaosi xiaosi         20 2016-12-06 10:41 tmp/order_by_sex/part-r-00007.gz
--rw-r--r--   3 xiaosi xiaosi         20 2016-12-06 10:41 tmp/order_by_sex/part-r-00008.gz
+localhost:target wy$ hadoop fs -ls /data/word-count/word-count-output/
+Found 7 items
+-rw-r--r--   1 wy supergroup          0 2022-07-23 15:31 /data/word-count/word-count-output/_SUCCESS
+-rw-r--r--   1 wy supergroup          9 2022-07-23 15:31 /data/word-count/word-count-output/a-r-00000
+-rw-r--r--   1 wy supergroup          8 2022-07-23 15:31 /data/word-count/word-count-output/f-r-00000
+-rw-r--r--   1 wy supergroup          9 2022-07-23 15:31 /data/word-count/word-count-output/h-r-00000
+-rw-r--r--   1 wy supergroup          4 2022-07-23 15:31 /data/word-count/word-count-output/i-r-00000
+-rw-r--r--   1 wy supergroup          0 2022-07-23 15:31 /data/word-count/word-count-output/part-r-00000
+-rw-r--r--   1 wy supergroup         21 2022-07-23 15:31 /data/word-count/word-count-output/s-r-00000
 ```
 我们可以看到在输出文件中不仅有我们想要的输出文件类型，还有part-r-nnnnn形式的文件，但是文件内没有信息，这是程序默认的输出文件。所以我们在指定输出文件名称时（name-r-nnnnn），不要指定name为part，因为它已经被使用为默认值了。
 

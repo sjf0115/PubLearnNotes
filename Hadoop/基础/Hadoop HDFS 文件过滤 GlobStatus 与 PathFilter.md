@@ -20,17 +20,17 @@ for(String path : params){
 
 ## 2. 文件名过滤
 
-在一步操作中处理批量文件，这个要求很常见。举例来说，处理日志的MapReduce作业可能会分析一个月的文件，这些文件被包含在大量目录中。Hadoop有一个通配的操作，可以方便地使用通配符在一个表达式中核对多个文件，不需要列举每个文件和目录来指定输入。Hadoop为执行通配提供了两个FileSystem方法：
+在一步操作中批量处理文件，这个要求很常见。举例来说，处理日志的 MapReduce 作业可能会分析一个月的文件，这些文件可能会包含在很多目录中。针对这样的需求，可以在一个表达式使用通配符来匹配多个文件，从而不需要列举每个文件和目录来指定输入。Hadoop 提供了两个 FileSystem 方法来使用通配符来匹配：
 ```java
 public FileStatus[] globStatus(Path pathPattern) throws IOException
 public FileStatus[] globStatus(Path pathPattern, PathFilter filter) throws IOException
 ```
 
-globStatus()返回了其路径匹配于所供格式的FileStatus对象数组，按路径排序。可选的PathFilter命令可以进一步指定限制匹配。
+globStatus() 返回了其路径匹配于所供格式的 FileStatus 对象数组，按路径排序。可选的 PathFilter 命令可以进一步指定限制匹配。
 
 ### 2.1 通配符过滤
 
-Hadoop支持的一系列通配符与Unix bash相同：
+Hadoop 支持的一系列通配符与 Unix bash 相同：
 
 通配符|名称|匹配
 ---|---|---
@@ -43,7 +43,7 @@ Hadoop支持的一系列通配符与Unix bash相同：
 `{a,b}`|或选择|匹配包含a或b中的一个的语句
 `\c`|转义字符|匹配元字符c
 
-假设有日志文件存储在按日期分层组织的目录结构中。如此一来，便可以假设2007年最后一天的日志文件就会以/2007/12/31的命名存入目录。假设整个文件列表如下：
+假设有日志文件存储在按日期分层组织的目录结构中。如此一来，便可以假设 2007 年最后一天的日志文件就会以 `/2007/12/31` 的命名存入目录。假设整个文件列表如下：
 ```
 /2007/12/30  
 /2007/12/31  
@@ -51,7 +51,6 @@ Hadoop支持的一系列通配符与Unix bash相同：
 /2008/01/02
 ```
 以下是一些文件通配符及其扩展：
-
 
 通配符|扩展
 ---|---
@@ -78,17 +77,12 @@ for(FileStatus fileStatus : fileStatusArray){
 ```
 输出：
 ```
-----------------------hdfs://qunarcluster/user/xiaosi/mysql-log/201612/01/10/l-test.cn6
-...
-----------------------hdfs://qunarcluster/user/xiaosi/mysql-log/201612/02/10/l-test.cn6
-...
-----------------------hdfs://qunarcluster/user/xiaosi/mysql-log/201612/03/10/l-test.cn6
-...
+
 ```
 
-### 2.2. PathFilter过滤
+### 2.2 PathFilter 过滤
 
-通配格式不是总能够精确地描述我们想要访问的文件集合。比如，使用通配格式排除一个特定的文件就不太可能。FileSystem中的listStatus()和globStatus()方法提供了可选的PathFilter对象，使我们能够通过编程方式控制匹配：
+通配格式不是总能够精确地描述我们想要访问的文件集合。比如，使用通配格式排除一个特定的文件就不太可能。FileSystem 中的 listStatus()和globStatus() 方法提供了可选的 PathFilter 对象，使我们能够通过编程方式控制匹配：
 ```java
 package org.apache.hadoop.fs;  
 
@@ -96,18 +90,13 @@ public interface PathFilter {
    boolean accept(Path path);
 }
 ```
-PathFilter与java.io.FileFilter一样，是Path对象而不是File对象。
-
-展示了一个PathFilter，用于排除匹配一个正则表达式的路径：
+PathFilter 与 java.io.FileFilter 一样，是 Path 对象而不是 File 对象。如下展示了一个 PathFilter，用于排除匹配一个正则表达式的路径：
 ```java
 public class RegexExcludePathFilter implements PathFilter {  
-
   private final String regex;  
-
   public RegexExcludePathFilter(String regex) {  
     this.regex = regex;  
   }  
-
   public boolean accept(Path path) {  
     return !path.toString().matches(regex);  
   }  
@@ -115,7 +104,8 @@ public class RegexExcludePathFilter implements PathFilter {
 ```
 这个过滤器只留下与正则表达式不同的文件。我们将它与预先剔除一些文件集合的通配配合：过滤器用来优化结果。例如：
 ```java
-fs.globStatus( new Path("/2007/*/*"),   
-               new RegexExcludeFilter("^.*/2007/12/31$")
+fs.globStatus(
+  new Path("/2007/*/*"),   
+  new RegexExcludeFilter("^.*/2007/12/31$")
 )
 ```

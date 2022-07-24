@@ -1,9 +1,5 @@
-InputFormat 主要描述了输入数据的格式，并提供如下功能:
-- 校验作业的输入是否符合规范（或者格式）
-- 将输入文件逻辑上拆分为 InputSplits，然后将每个 InputSplit 分配给一个 Mapper(一个 InputSplit 交由一个 MapperTask 处理)
-- 为 Mapper 提供输入数据：提供 RecordReader 实现，给定某个 InputSplit，能将起解析为一个个 key/value 对。
 
-### 1. InputFormat API
+### 1. InputFormat API 变化
 
 在旧版 API 中，InputFormat 是一个接口，包含两种方法:
 ```java
@@ -27,19 +23,25 @@ public abstract class InputFormat<K, V> {
     public abstract RecordReader<K, V> createRecordReader(InputSplit var1, TaskAttemptContext var2) throws IOException, InterruptedException;
 }
 ```
+> 详细请参考 [Hadoop MapReduce 新旧 mapred 与 mapreduce API](https://smartsi.blog.csdn.net/article/details/125954508)
 
+## 2. 功能
 
+InputFormat 主要描述了输入数据的格式，并提供如下功能:
+- 将输入文件逻辑上拆分为 InputSplits，然后将每个 InputSplit 分配给一个 Mapper(一个 InputSplit 交由一个 MapperTask 处理)
+- 为 Mapper 提供输入数据：提供 RecordReader 实现，给定某个 InputSplit，能将起解析为一个个 key/value 对。
+
+### 2.1 getSplits
 
 (1) getSplits 方法主要完成数据切分的功能，将输入数据切分为多个InputSplit。InputSplit有一下两个特点:
 - 逻辑分片: 它只是在逻辑上对输入数据进行分片，并不会在磁盘上将其切分成分片进行存储。InputSplit只记录了分片的元数据信息，比如起始位置，长度以及所在的节点列表等。
 - 可序列化: 在Hadoop中，对象序列化主要有两个作用:进程间通信和永久存储。此处，InputSplit支持序列化操作主要是为了进程间通信。作业被提交到JobTracker之前，Client会调用作业InputFormat中的getSplits函数，并将得到的InputSplit序列化到文件中。
 
+### 2.2 createRecordReader
+
 (2) createRecordReader方法返回一个RecordReader对象,该对象可将输入的InputSplit解析成若干个key/value对。MapReduce框架在MapTask执行过程中, 会不断调用RecordReader对象中的方法, 迭代获取key/value对并交给map()函数处理。
 
 基于文件的InputFormat（通常是FileInputFormat的子类）的默认行为是根据输入文件的总大小（以字节为单位）将输入拆分为逻辑InputSplit。 但是，输入文件的 FileSystem 块大小被视为 InputSplit 的上限。而下限可以通过 **mapreduce.input.fileinputformat.split.minsize** 配置参数进行修改。基于输入大小的逻辑分割对于许多应用显然是不够的，因为要遵守记录边界。 在这种情况下，应用程序还必须实现一个RecordReader，它负责尊重记录边界，并向单个任务提供逻辑InputSplit的面向记录的视图。
-
-### 2. 新版 API InputFormat
-
 
 
 ### 3. InputFormat 实现

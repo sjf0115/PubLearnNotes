@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hadoop Partitioner使用教程
+title: Hadoop MapReduce Partitioner 使用教程
 date: 2017-12-05 20:25:17
 tags:
   - Hadoop
@@ -11,7 +11,7 @@ categories: Hadoop
 permalink: hadoop-mapreduce-partitioner-usage
 ---
 
-`partitioner`在处理输入数据集时就像条件表达式(condition)一样工作。分区阶段发生在`Map`阶段之后，`Reduce`阶段之前。`partitioner`的个数等于`reducer`的个数(The number of partitioners is equal to the number of reducers)。这就意味着一个`partitioner`将根据`reducer`的个数来划分数据(That means a partitioner will divide the data according to the number of reducers)。因此，从一个单独`partitioner`传递过来的数据将会交由一个单独的`reducer`处理(the data passed from a single partitioner is processed by a single Reducer)。
+`partitioner` 在处理输入数据集时就像条件表达式(condition)一样工作。分区阶段发生在`Map`阶段之后，`Reduce`阶段之前。`partitioner`的个数等于`reducer`的个数(The number of partitioners is equal to the number of reducers)。这就意味着一个`partitioner`将根据`reducer`的个数来划分数据(That means a partitioner will divide the data according to the number of reducers)。因此，从一个单独`partitioner`传递过来的数据将会交由一个单独的`reducer`处理(the data passed from a single partitioner is processed by a single Reducer)。
 
 ### 1. Partitioner
 

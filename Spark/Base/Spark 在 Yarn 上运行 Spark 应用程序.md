@@ -21,17 +21,7 @@ permalink: spark-running-spark-applications-on-yarn
 
 有关指定部署模式的选项，请参阅[Spark 应用程序部署工具 spark-submit](https://smartsi.blog.csdn.net/article/details/55271395)。
 
-#### 1.1 Cluster 部署模式
-
-在 Cluster 模式下，Spark Driver 在集群主机上的 ApplicationMaster 上运行，它负责向 YARN 申请资源，并监督作业的运行状况。当用户提交了作业之后，就可以关掉 Client，作业会继续在 YARN 上运行。
-
-spark-submit 客户端将会启动 Yarn 应用（如步骤1），但是它不会运行任何用户代码。除了 ApplicationMaster 在为 Executor 分配资源（如步骤4）之前先启动 Driver 程序（如步骤3b）外，其他过程均与 Client 模式相同：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-base-running-spark-applications-on-yarn-2.png?raw=true)
-
-Cluster 模式不太适合使用 Spark 进行交互式操作。需要用户输入（如spark-shell和pyspark）的 Spark 应用程序需要 Spark Driver 在启动 Spark 应用程序的 Client 进程内运行。
-
-#### 1.2 Client 部署模式
+#### 1.1 Client 部署模式
 
 在 Client 模式下，Spark Driver 在提交作业的主机上运行。ApplicationMaster 仅负责从 YARN 中请求 Executor 容器。在容器启动后，Client 与容器通信以调度工作。
 
@@ -40,6 +30,16 @@ Cluster 模式不太适合使用 Spark 进行交互式操作。需要用户输�
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-base-running-spark-applications-on-yarn-1.png?raw=true)
 
 每个 Executor 在启动时都会连接回 SparkContext，并注册自身。这就向 SparkContext 提供了关于可用于运行任务的 Executor 的数量以及位置的信息。启动的 Executor 的数量在 spark-shell，spark-submit 中设置（如果未设置，默认为2个），同时还设置每个 Executor 的内核数（默认为1）以及内存量（默认为1024MB）。
+
+#### 1.2 Cluster 部署模式
+
+在 Cluster 模式下，Spark Driver 在集群主机上的 ApplicationMaster 上运行，它负责向 YARN 申请资源，并监督作业的运行状况。当用户提交了作业之后，就可以关掉 Client，作业会继续在 YARN 上运行。
+
+spark-submit 客户端将会启动 Yarn 应用（如步骤1），但是它不会运行任何用户代码。除了 ApplicationMaster 在为 Executor 分配资源（如步骤4）之前先启动 Driver 程序（如步骤3b）外，其他过程均与 Client 模式相同：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-base-running-spark-applications-on-yarn-2.png?raw=true)
+
+Cluster 模式不太适合使用 Spark 进行交互式操作。需要用户输入（如spark-shell和pyspark）的 Spark 应用程序需要 Spark Driver 在启动 Spark 应用程序的 Client 进程内运行。
 
 ### 1.3 区别
 
@@ -63,7 +63,22 @@ Driver在哪运行| Client	|ApplicationMaster
 
 ### 3. Example
 
-#### 3.1 以 Cluster 模式运行
+#### 3.1 以 Client 模式运行
+
+下面这个例子展示了如何使用 Client 模式在 Yarn 上运行具有 4 个 Executor 的应用程序，每个 Executor 使用 1 个内核和 2G 内存：
+```
+spark-submit \
+--class com.sjf.example.batch.WordCount \
+--master yarn \
+--deploy-mode client \
+--executor-memory 2g \
+--num-executors 4 \
+--executor-cores 1 \
+${RUN_HOME}/spark-example-jar-with-dependencies.jar \
+${input_path} ${output_path}
+```
+
+#### 3.2 以 Cluster 模式运行
 
 下面这个例子展示了如何使用 Cluster 模式在 Yarn 上运行具有 4 个 Executor 的应用程序，每个 Executor 使用 1 个内核和 2G 内存：
 ```
@@ -78,21 +93,6 @@ ${RUN_HOME}/spark-example-jar-with-dependencies.jar \
 ${input_path} ${output_path}
 ```
 该命令会打印状态，直到作业完成或按下 `control-C`。在 Cluster 模式下终止 spark-submit 进程不会像在 Client 模式下那样终止 Spark 应用程序。要监视正在运行的应用程序的状态，请运行 `yarn application -list`。
-
-#### 3.2 以 Client 模式运行
-
-下面这个例子展示了如何使用 Client 模式在 Yarn 上运行具有 4 个 Executor 的应用程序，每个 Executor 使用 1 个内核和 2G 内存：
-```
-spark-submit \
---class com.sjf.example.batch.WordCount \
---master yarn \
---deploy-mode client \
---executor-memory 2g \
---num-executors 4 \
---executor-cores 1 \
-${RUN_HOME}/spark-example-jar-with-dependencies.jar \
-${input_path} ${output_path}
-```
 
 参考：
 - https://www.cloudera.com/documentation/enterprise/5-14-x/topics/cdh_ig_running_spark_on_yarn.html

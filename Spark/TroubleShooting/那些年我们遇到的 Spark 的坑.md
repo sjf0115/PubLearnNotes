@@ -1,3 +1,14 @@
+
+## 1. Spark Core
+
+- [ ] [Spark 3.1.3 java.lang.NoSuchFieldError: JAVA_9](https://smartsi.blog.csdn.net/article/details/125904545?spm=1001.2014.3001.5502)
+- [ ] [Spark 3.1.3 HADOOP_CONF_DIR or YARN_CONF_DIR must be set](https://smartsi.blog.csdn.net/article/details/126045626?spm=1001.2014.3001.5502)
+
+## 2. Spark SQL
+
+## 3. Spark Streaming
+
+
 ### 1. java.lang.NoClassDefFoundError: org/apache/spark/Logging
 
 

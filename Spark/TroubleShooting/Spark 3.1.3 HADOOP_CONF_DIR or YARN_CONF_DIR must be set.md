@@ -32,7 +32,7 @@ Exception in thread "main" org.apache.spark.SparkException: When running with ma
 
 ## 2. 解决方案
 
-上面错误提示其实已经说的很明白了，在运行环境中缺少了 HADOOP_CONF_DIR 或者 YARN_CONF_DIR 环境变量配置。所以我们在 spark-env.sh 文件中添加如下配置：
+可以看到我们通过 `--master yarn` 来指定以 YARN 模式来提交作业，但是在这我们没有配置 YARN 集群地址，那 Spark 是怎么找到 YARN 集群地址呢？其实就是通过上面错误提示中的 HADOOP_CONF_DIR 或者 YARN_CONF_DIR 环境变量对应的配置文件找到 YARN 集群地址。如果要以 YARN 模式来提交作业，就需要在在 spark-env.sh 文件中添加如下 HADOOP_CONF_DIR 或者 YARN_CONF_DIR 环境变量配置：
 ```
 # Options read in YARN client/cluster mode
 export HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop

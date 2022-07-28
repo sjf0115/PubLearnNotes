@@ -68,14 +68,14 @@ Driver在哪运行| Client	|ApplicationMaster
 下面这个例子展示了如何使用 Client 模式在 Yarn 上运行具有 4 个 Executor 的应用程序，每个 Executor 使用 1 个内核和 2G 内存：
 ```
 spark-submit \
---class com.sjf.example.batch.WordCount \
---master yarn \
---deploy-mode client \
---executor-memory 2g \
---num-executors 4 \
---executor-cores 1 \
-${RUN_HOME}/spark-example-jar-with-dependencies.jar \
-${input_path} ${output_path}
+  --class com.spark.example.core.base.WordCount \
+  --master yarn \
+  --deploy-mode client \
+  --executor-memory 2g \
+  --num-executors 4 \
+  --executor-cores 1 \
+spark-example-3.1-1.0.jar \
+/data/word-count/word-count-input /data/word-count/word-count-output
 ```
 
 #### 3.2 以 Cluster 模式运行
@@ -83,16 +83,16 @@ ${input_path} ${output_path}
 下面这个例子展示了如何使用 Cluster 模式在 Yarn 上运行具有 4 个 Executor 的应用程序，每个 Executor 使用 1 个内核和 2G 内存：
 ```
 spark-submit \
---class com.sjf.example.batch.WordCount \
---master yarn \
---deploy-mode cluster \
---executor-memory 2g \
---num-executors 4 \
---executor-cores 1 \
-${RUN_HOME}/spark-example-jar-with-dependencies.jar \
-${input_path} ${output_path}
+  --class com.spark.example.core.base.WordCount \
+  --master yarn \
+  --deploy-mode cluster \
+  --executor-memory 2g \
+  --num-executors 4 \
+  --executor-cores 1 \
+spark-example-3.1-1.0.jar \
+/data/word-count/word-count-input /data/word-count/word-count-output
 ```
-该命令会打印状态，直到作业完成或按下 `control-C`。在 Cluster 模式下终止 spark-submit 进程不会像在 Client 模式下那样终止 Spark 应用程序。要监视正在运行的应用程序的状态，请运行 `yarn application -list`。
+在 Cluster 模式下终止 spark-submit 进程不会像在 Client 模式下那样终止 Spark 应用程序。要监视正在运行的应用程序的状态，请运行 `yarn application -list`。
 
 参考：
 - https://www.cloudera.com/documentation/enterprise/5-14-x/topics/cdh_ig_running_spark_on_yarn.html

@@ -25,11 +25,13 @@ permalink: spark-running-spark-applications-on-yarn
 
 在 Client 模式下，Spark Driver 在提交作业的主机上运行。ApplicationMaster 仅负责从 YARN 中请求 Executor 容器。在容器启动后，Client 与容器通信以调度工作。
 
-当 Driver 构建新的 SparkContext 实例时就启动了与 Yarn 之间的交互（如步骤1）。Context 向 Yarn 资源管理器 ResouceManager 提交了一个 Yarn 应用（如步骤2），Yarn 资源管理器 ResouceManager 则启动集群节点管理器 NodeManager 上的 Yarn 容器 Container，并在其中运行一个名为 SparkExecutorLauncher 的 ApplicationMaster（如步骤3）。ExecutorLauncher 的任务就是启动 Yarn 容器 Container 中的 Executor，为了做到这一点，ExecutorLauncher　要向资源管理器 ResouceManager 请求资源（如步骤4），然后启动 ExecutorBackend 进程作为分配给它的容器 Container（如步骤5）：
+当 Driver 构建新的 SparkContext 实例时就启动了与 Yarn 之间的交互（如步骤1）。Driver 启动后就会向 Yarn 资源管理器 ResourceManager 提交 Yarn 应用程序（如步骤2），申请启动 ApplicationMaster。随后 ResourceManager 分配集群节点管理器 NodeManager 上的 Yarn 容器 Container，并在其中运行一个名为 SparkExecutorLauncher 的 ApplicationMaster（如步骤3）。ApplicationMaster  负责向 ResourceManager 申请 Executor 内存（如步骤4）。ResourceManger 接收到 ApplicationMaster 的资源申请后分配 Container，然后 ApplicationMaster 在分配指定的 NodeManager 上启动 Container 中的 Executor：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-base-running-spark-applications-on-yarn-1.png?raw=true)
 
-每个 Executor 在启动时都会连接回 SparkContext，并注册自身。这就向 SparkContext 提供了关于可用于运行任务的 Executor 的数量以及位置的信息。启动的 Executor 的数量在 spark-shell，spark-submit 中设置（如果未设置，默认为2个），同时还设置每个 Executor 的内核数（默认为1）以及内存量（默认为1024MB）。
+每个 Executor 在启动后都会向 Driver 注册自身，从而向 SparkContext 提供了关于可用于运行任务的 Executor 的数量以及位置的信息。启动的 Executor 的数量在 spark-shell，spark-submit 中设置（如果未设置，默认为2个），同时还设置每个 Executor 的内核数（默认为1）以及内存量（默认为1024MB）。
+
+> Driver 是一个 JVM 进程，就是我们写的 Spark 应用程序
 
 #### 1.2 Cluster 部署模式
 

@@ -96,6 +96,8 @@ spark-example-3.1-1.0.jar \
 ```
 在 Cluster 模式下终止 spark-submit 进程不会像在 Client 模式下那样终止 Spark 应用程序。要监视正在运行的应用程序的状态，请运行 `yarn application -list`。
 
+> 完成代码示例 [WordCount](https://github.com/sjf0115/data-example/blob/master/spark-example-3.1/src/main/java/com/spark/example/core/base/WordCount.java)
+
 参考：
 - https://www.cloudera.com/documentation/enterprise/5-14-x/topics/cdh_ig_running_spark_on_yarn.html
 - Hadoop权威指南

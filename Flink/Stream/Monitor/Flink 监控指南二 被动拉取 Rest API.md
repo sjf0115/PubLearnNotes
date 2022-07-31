@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Flink 监控指南三 Rest API
+title: Flink 监控指南 被动拉取 Rest API
 date: 2020-11-14 15:58:01
 tags:
   - Flink
@@ -10,21 +10,20 @@ categories: Flink
 permalink: flink-monitoring-rest-api
 ---
 
-> Flink版本：1.11.2
+> Flink版本：1.13.5
 
-Flink 具有监控 API，可用于查询正在运行的作业以及最近完成的作业的状态和统计信息。Flink 自己的仪表板也使用了这些监控 API，但监控 API 主要是为了自定义监视工具设计的。监控 API 是 REST-ful API，接受 HTTP 请求并返回 JSON 数据响应。
+Flink 的 Metric API 可用于查询正在运行的作业以及最近完成的作业的状态和统计信息。Flink 自己的 Web UI 也使用了这些 Metric API，但 Metric API 主要是为了自定义监视工具设计的。Metric API 是 REST-ful API，接受 HTTP 请求并返回 JSON 数据响应。
 
-监控 API 由作为 Dispatcher 的一部的 Web 服务器提供。默认情况下，服务器侦听 8081 的端口，可以通过 flink-conf.yaml 配置文件的 rest.port 配置对其修改。请注意，监控 API 的 Web 服务器和 Web 仪表盘的 Web 服务器目前是相同的，因此可以在同一端口上一起运行。但是，它们响应不同的 HTTP URL。
+Metric API 由 JobManager 的 Web 服务器提供支持。默认情况下，服务器侦听 8081 的端口，可以通过 flink-conf.yaml 配置文件的 rest.port 配置对其修改。需要注意的是，监控 API 的 Web 服务器和 Web UI 的 Web 服务器目前是相同的，因此可以在同一端口上一起运行。但是，它们响应不同的 HTTP URL。
 ```
-# The port to which the REST client connects to. If rest.bind-port has
-# not been specified, then the server will bind to this port as well.
-#
 #rest.port: 8081
 rest.port: 8090
 ```
 防止端口冲突，在这把端口号修改为 8090。
 
-REST API 已版本化，可以通过在 URL 前面加上版本前缀来查询特定版本。前缀始终采用 v [version_number] 的形式。例如，要访问 /foo/bar 的 v1 版本，需要查询 /v1/foo/bar。如果未指定版本，那么 Flink 默认请求最旧版本。如果查询不支持/不存在的版本将返回 404 错误。
+在多个 JobManager 的情况下（为了高可用性），每个 JobManager 会运行自己的 Metric API 实例，由选为集群 Leader 的 JobManager 提供有关已完成和正在运行的作业的信息。
+
+REST API 已版本化，可以通过在 URL 前面加上版本前缀来查询特定版本。前缀始终采用 `v [version_number]` 的形式。例如，要访问 /foo/bar 的 v1 版本，需要查询 /v1/foo/bar。如果未指定版本，那么 Flink 默认请求最旧版本。如果查询不支持/不存在的版本将返回 404 错误。
 
 这些 API 中存在几种异步操作，例如，触发保存点，重新调整作业。他们会返回一个 triggerid 标识我们的 POST 操作，然后需要我们再使用该 triggerid 查询该操作的状态。
 
@@ -40,8 +39,8 @@ http://localhost:8090/v1/config
   "refresh-interval": 3000,
   "timezone-name": "中国时间",
   "timezone-offset": 28800000,
-  "flink-version": "1.11.2",
-  "flink-revision": "fe36135 @ 2020-09-09T16:19:03+02:00",
+  "flink-version": "1.13.5",
+  "flink-revision": "0ff28a7 @ 2021-12-14T23:26:04+01:00",
   "features": {
     "web-submit": true
   }
@@ -58,16 +57,8 @@ http://localhost:8090/v1/jobmanager/config
 ```json
 [
   {
-    "key": "rest.port",
-    "value": "8090"
-  },
-  {
     "key": "taskmanager.memory.process.size",
     "value": "1728m"
-  },
-  {
-    "key": "parallelism.default",
-    "value": "1"
   },
   {
     "key": "jobmanager.execution.failover-strategy",
@@ -78,8 +69,12 @@ http://localhost:8090/v1/jobmanager/config
     "value": "localhost"
   },
   {
-    "key": "taskmanager.numberOfTaskSlots",
-    "value": "1"
+    "key": "jobmanager.memory.off-heap.size",
+    "value": "134217728b"
+  },
+  {
+    "key": "jobmanager.memory.jvm-overhead.min",
+    "value": "201326592b"
   },
   {
     "key": "jobmanager.memory.process.size",
@@ -87,11 +82,35 @@ http://localhost:8090/v1/jobmanager/config
   },
   {
     "key": "web.tmpdir",
-    "value": "/var/folders/54/crgqfp1n52s6560cqcjp7y9h0000gn/T/flink-web-b1a630ec-38b6-45f9-b17d-7756c830311f"
+    "value": "/var/folders/54/crgqfp1n52s6560cqcjp7y9h0000gn/T/flink-web-09fc71cd-6431-4b00-9223-71023375a9f7"
   },
   {
     "key": "jobmanager.rpc.port",
     "value": "6123"
+  },
+  {
+    "key": "rest.port",
+    "value": "8090"
+  },
+  {
+    "key": "parallelism.default",
+    "value": "1"
+  },
+  {
+    "key": "taskmanager.numberOfTaskSlots",
+    "value": "3"
+  },
+  {
+    "key": "jobmanager.memory.jvm-metaspace.size",
+    "value": "268435456b"
+  },
+  {
+    "key": "jobmanager.memory.heap.size",
+    "value": "1073741824b"
+  },
+  {
+    "key": "jobmanager.memory.jvm-overhead.max",
+    "value": "201326592b"
   }
 ]
 ```
@@ -106,17 +125,24 @@ http://localhost:8090/v1/jobmanager/logs
 {
   "logs": [
     {
-      "name": "flink-wy-client-wy.lan.log",
-      "size": 6763
+      "name": "flink-wy-client-localhost.log",
+      "size": 18739
     },
     {
-      "name": "flink-wy-standalonesession-0-wy.lan.log",
-      "size": 20174
+      "name": "flink-wy-standalonesession-0-localhost.log",
+      "size": 41445
     },
-    ...
     {
-      "name": "flink-wy-taskexecutor-0-wy.lan.out",
-      "size": 3749625
+      "name": "flink-wy-standalonesession-0-localhost.out",
+      "size": 481
+    },
+    {
+      "name": "flink-wy-taskexecutor-0-localhost.log",
+      "size": 44688
+    },
+    {
+      "name": "flink-wy-taskexecutor-0-localhost.out",
+      "size": 481
     }
   ]
 }
@@ -390,4 +416,4 @@ http://localhost:8090/v1/taskmanagers
 | /taskmanagers/:taskmanagerid | 查看具体某个 Taskmanager 的详细信息 | taskmanagerid |
 | /taskmanagers/:taskmanagerid/logs | 查看具体某个 Taskmanager 的所有日志文件列表 | taskmanagerid |
 
-原文：[Monitoring REST API](https://ci.apache.org/projects/flink/flink-docs-release-1.11/monitoring/rest_api.html)
+原文：[Monitoring REST API](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/ops/rest_api/)

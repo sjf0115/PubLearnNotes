@@ -31,7 +31,25 @@ Flink 的指标体系是按树形结构划分，每个 Metric 都被分配一个
 - 可选的用户定义的作用域
 - 系统提供的作用域
 
-系统域用于声明指标所对应的系统组件以及包含的上下文信息。它的范围可以为 JobManager，某个 TaskManager，某个作业，某个算子或者任务，你可以通过 flink-conf.yaml 文件中设置对应的指标选项来配置指标所包含的上下文信息。
+系统域用于声明指标所对应的系统组件以及包含的上下文信息。它的范围可以为 JobManager，某个 TaskManager，某个作业，某个算子或者任务，你可以通过 flink-conf.yaml 文件中设置对应的指标选项来配置指标所包含的上下文信息：
+- metrics.scope.jm
+  - 默认值: `<host>.jobmanager`
+  - JobManager 范围内的所有 metrics 将会使用这个路径
+- metrics.scope.jm.job
+  - 默认值: `<host>.jobmanager.<job_name>`
+  - JobManager 和 Job 范围内的所有 metrics 将会使用这个路径
+- metrics.scope.tm
+  - 默认值: `<host>.taskmanager.<tm_id>`
+  - TaskManager 范围内的所有 metrics 将会使用这个路径
+- metrics.scope.tm.job
+  - 默认值: `<host>.taskmanager.<tm_id>.<job_name>`
+  - TaskManager 和 Job 范围内的所有 metrics 将会使用这个路径
+- metrics.scope.task
+  - 默认值: `<host>.taskmanager.<tm_id>.<job_name>.<task_name>.<subtask_index>`
+  - Task 范围内的所有 metrics 将会使用这个路径
+- metrics.scope.operator
+  - 默认值: `<host>.taskmanager.<tm_id>.<job_name>.<operator_name>.<subtask_index>`
+  - Operator 范围内的所有 metrics 将会使用这个路径
 
 
 ```
@@ -85,7 +103,7 @@ GET /jobmanager/metrics
 
 ### 4.2 主动推送 MetricReport
 
-Metric Reporter 通过一个单线程的线程池定时调用 Scheduled 接口的实现类的 report 函数完成定时上报数据，默认每 10 秒上报一次。flink-metrics 模块中通过实现 MetricReporter 接口实现了对 Datadog、Graphite、Influxdb、JMX、Prometheus、Slf4j 日志、StatsD（网络守护进程）等日志模块和监控系统的支持。以 Prometheus 为例，简单说明一下 Flink 是如何以主动推送方式上报监控指标的。
+Metric Reporter 通过一个单线程的线程池定时调用 Scheduled 接口实现类的 report 函数完成定时上报数据，默认每 10 秒上报一次。flink-metrics 模块中通过实现 MetricReporter 接口实现了对 Datadog、Graphite、Influxdb、JMX、Prometheus、Slf4j 日志、StatsD（网络守护进程）等日志模块和监控系统的支持。以 Prometheus 为例，简单说明一下 Flink 是如何以主动推送方式上报监控指标的。
 
 ![]()
 

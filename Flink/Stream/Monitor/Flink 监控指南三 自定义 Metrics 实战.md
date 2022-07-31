@@ -33,6 +33,9 @@ this.counter = getRuntimeContext()
       .counter("custom-counter", new CustomCounter());
 ```
 
+
+
+
 #### 1.2 Gauge
 
 org.apache.flink.metrics.Gauge 是最简单的一种 Metric，主要用于单值更新，直接反映了数值变化，可以提供任何你需要的类型值。Gauge 相对于 Counter 指标更加通用，可以支持任何类型的数据记录和统计，且不限制返回的结果类型。为了使用 Gauge，你必须首先创建一个实现 `org.apache.flink.metrics.Gauge` 接口的类，返回值的类型没有限制。然后通过调用 MetricGroup 对象上的 `gauge(String name, Gauge gauge)` 来注册 Gauge。如下代码所示实现了在 flatMap 方法中对进入到算子中的单词进行计数统计，得到 words-gauge 监控指标：

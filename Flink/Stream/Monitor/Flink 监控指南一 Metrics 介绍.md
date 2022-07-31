@@ -12,7 +12,9 @@ permalink: flink-monitor-part-one-metric-base
 
 ## 1. 什么是 Metrics？
 
-Flink 提供的 Metrics 可以在 Flink 内部收集一些指标，比如系统指标的 CPU、内存、线程、JVM、网络、IO、GC 以及任务运行组件 JM、TM、Slot、作业、算子等相关指标。通过这些指标让开发人员更好地理解作业或者集群的状态。由于集群运行后很难发现内部的实际状况，跑得快慢，是否有异常等，开发人员无法实时查看所有的 Task 日志，比如作业很大或者有很多作业的情况下，该如何处理？此时 Metrics 可以很好的帮助开发人员了解作业的当前状况。
+当你在生产环境中运行像 Flink 这样的数据处理系统时，必须对它们的行为进行监控，以便能够发现性能下降并诊断其原因。在作业很大或者有很多作业的情况下，开发人员无法实时查看所有的 Task 日志，从而无法判断作业运行是否有异常，或者有延迟等。Flink 提供的 Metrics 会收集很多系统和应用指标。通过这些指标让开发人员可以更好地理解作业或者集群的状态。
+
+指标的收集是按照每个算子、每个 TaskManager 或者 JobManager 来进行的。指标类别包括 CPU 使用率，内存使用情况，活动的线程数，垃圾回收统计，网络指标，集群范围的指标（如正在运行的作业数量以及可用资源等），作业指标（包括运行时信息，重试次数和检查点信息），IO 统计数据（包括本地或者远程交换的记录数）等。
 
 ## 2. Metrics 类型
 
@@ -28,6 +30,19 @@ Flink 的指标体系是按树形结构划分，每个 Metric 都被分配一个
 - 注册 Metric 时用户提供的名称
 - 可选的用户定义的作用域
 - 系统提供的作用域
+
+系统域用于声明指标所对应的系统组件以及包含的上下文信息。它的范围可以为 JobManager，某个 TaskManager，某个作业，某个算子或者任务，你可以通过 flink-conf.yaml 文件中设置对应的指标选项来配置指标所包含的上下文信息。
+
+
+```
+metrics.scope.jm: <host>.jobmanager
+metrics.scope.jm.job: <host>.jobmanager.<job_name>
+metrics.scope.tm: <host>.taskmanager.<tm_id>
+metrics.scope.tm.job: <host>.taskmanager.<tm_id>.<job_name>
+metrics.scope.task: <host>.taskmanager.<tm_id>.<job_name>.<task_name>.<subtask_index>
+metrics.scope.operator: <host>.taskmanager.<tm_id>.<job_name>.<operator_name>.<subtask_index>
+```
+
 
 例如，如果`A.B`是系统作用域，`C.D`是用户作用域，`E`是名称，那么 Metric 的标识符是 `A.B.C.D.E`。举例说明：以算子的指标组结构为例，其默认为：
 ```

@@ -18,7 +18,7 @@ for(String path : params){
 }
 ```
 
-## 2. 文件名过滤
+## 2. GlobStatus 文件模式过滤
 
 在一步操作中批量处理文件，这个要求很常见。举例来说，处理日志的 MapReduce 作业可能会分析一个月的文件，这些文件可能会包含在很多目录中。针对这样的需求，可以在一个表达式使用通配符来匹配多个文件，从而不需要列举每个文件和目录来指定输入。Hadoop 提供了两个 FileSystem 方法来使用通配符来匹配：
 ```java
@@ -26,11 +26,11 @@ public FileStatus[] globStatus(Path pathPattern) throws IOException
 public FileStatus[] globStatus(Path pathPattern, PathFilter filter) throws IOException
 ```
 
-globStatus() 返回了其路径匹配于所供格式的 FileStatus 对象数组，按路径排序。可选的 PathFilter 命令可以进一步指定限制匹配。
+globStatus() 返回了路径格式指定模式与相匹配的所有 FileStatus 对象组成的数组，并按路径排序。可选的 PathFilter 命令可以进一步对匹配结果进行限制。
 
 ### 2.1 通配符过滤
 
-Hadoop 支持的一系列通配符与 Unix bash 相同：
+Hadoop 支持的通配符与 Unix bash 支持的相同：
 
 通配符|名称|匹配
 ---|---|---
@@ -38,8 +38,8 @@ Hadoop 支持的一系列通配符与 Unix bash 相同：
 `?`|问号|匹配单一字符
 `[ab]`|字符类别|匹配{a,b}中的一个字符
 `[^ab]`|非字符类别|匹配不是{a,b}中的一个字符
-`[a-b]`|字符范围|匹配一个在{a,b}范围内的 字符(包括ab)，a在字典 顺序上要小于或等于b
-`[^a-b]`|非字符范围|匹配一个不在{a,b}范围内 的字符(包括ab)，a在字 典顺序上要小于或等于b
+`[a-b]`|字符范围|匹配一个在{a,b}范围内的字符(包括ab)，a在字典顺序上要小于或等于b
+`[^a-b]`|非字符范围|匹配一个不在{a,b}范围内的字符(包括ab)，a在字典顺序上要小于或等于b
 `{a,b}`|或选择|匹配包含a或b中的一个的语句
 `\c`|转义字符|匹配元字符c
 
@@ -54,18 +54,27 @@ Hadoop 支持的一系列通配符与 Unix bash 相同：
 
 通配符|扩展
 ---|---
-`/*`|/2007/2008
-`/*/*`|/2007/12 /2008/01
-`/*/12/*`|/2007/12/30 /2007/12/31
-`/200?`|/2007 /2008
-`/200[78]`|/2007 /2008
-`/200[7-8]`|/2007 /2008
-`/200[^01234569]`|/2007 /2008
-`/*/*/{31,01}`|/2007/12/31 /2008/01/01
-`/*/*/3{0,1}`|/2007/12/30 /2007/12/31
-`/*/{12/31,01/01}`|/2007/12/31 /2008/01/01
+`/*`|/2007、/2008
+`/*/*`|/2007/12、/2008/01
+`/*/12/*`|/2007/12/30、/2007/12/31
+`/200?`|/2007、/2008
+`/200[78]`|/2007、/2008
+`/200[7-8]`|/2007、/2008
+`/200[^01234569]`|/2007、/2008
+`/*/*/{31,01}`|/2007/12/31、/2008/01/01
+`/*/*/3{0,1}`|/2007/12/30、/2007/12/31
+`/*/{12/31,01/01}`|/2007/12/31、/2008/01/01
 
-Example：
+### 2.2 示例
+
+通过 put 命令上传数据到 HDFS 中，作为下面 word-count 示例的输入数据源：
+```
+hadoop fs -put /opt/data/word-count/a.txt /data/word-count/input/2007/12/30/a.txt
+hadoop fs -put /opt/data/word-count/b.txt /data/word-count/input/2007/12/31/b.txt
+hadoop fs -put /opt/data/word-count/c.txt /data/word-count/input/2008/01/01/c.txt
+hadoop fs -put /opt/data/word-count/d.txt /data/word-count/input/2008/01/02/d.txt
+```
+
 ```java
 FileSystem fileSystem = FileSystem.get(conf);
 FileStatus[] fileStatusArray = fileSystem.globStatus(new Path("mysql-log/201612/0[1-3]/10/*"));

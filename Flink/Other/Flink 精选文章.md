@@ -128,8 +128,9 @@
 - [ ] [Introducing Complex Event Processing (CEP) with Apache Flink](https://flink.apache.org/news/2016/04/06/cep-monitoring.html)
 - [ ] [Apache Flink 实战教程：CEP 实战](https://flink-learning.org.cn/article/detail/5e6635e9099d24b10aa57a295bfd57c0)
 
-### 9. Monitor
+### 9. 运维
 
+- [ ] [Flink 常见问题定位指南](https://mp.weixin.qq.com/s/976AOUn4rJZvO5LhmQt76w)
 - [ ] [Using Flink Metric Reporter to monitor flink task indicators](https://laptrinhx.com/using-flink-metric-reporter-to-monitor-flink-task-indicators-1231222876/)
 - [ ] [Prometheus + Grafana 监控 Flink](https://www.yuque.com/u552836/hu5de3/mvhz9a)
 - [ ] [Flink and Prometheus: Cloud-native monitoring of streaming applications](https://flink.apache.org/features/2019/03/11/prometheus-monitoring.html)

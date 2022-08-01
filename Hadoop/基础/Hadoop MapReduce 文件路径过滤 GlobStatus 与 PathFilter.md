@@ -142,7 +142,7 @@ c.txt	I
 ```
 > 12月31和1月1号正好对应了 b.txt 和 c.txt 文件
 
-> [GlobStatusExample]()
+> [GlobStatusExample](https://github.com/sjf0115/data-example/blob/master/hadoop-example/src/main/java/com/hadoop/example/input/GlobStatusExample.java)
 
 ### 2.2 PathFilter 过滤
 
@@ -241,6 +241,8 @@ public class PathFilterExample extends Configured implements Tool {
     }
 }
 ```
+> [PathFilterExample](https://github.com/sjf0115/data-example/blob/master/hadoop-example/src/main/java/com/hadoop/example/input/PathFilterExample.java)
+
 核心点在于 globStatus 获取初始化文件后通过 RegexExcludeFilter 过滤器过滤指定的路径：
 ```java
 fs.globStatus(

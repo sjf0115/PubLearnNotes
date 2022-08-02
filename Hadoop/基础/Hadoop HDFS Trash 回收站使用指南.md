@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hadoop Trash回收站使用指南
+title: Hadoop Trash 回收站使用指南
 date: 2017-12-07 10:07:01
 tags:
   - Hadoop
@@ -113,13 +113,8 @@ sudo -uxiaosi hadoop fs -rm -skipTrash tmp/data_group/test/employee/employee_sal
 这会绕过垃圾回收站并立即从文件系统中删除文件。
 
 
-
 资料:
-
-https://developer.ibm.com/hadoop/2015/10/22/hdfs-trash/
-
-https://my.oschina.net/cloudcoder/blog/179381
-
-http://debugo.com/hdfs-trash/
-
-http://hadoop.apache.org/docs/r2.7.3/hadoop-project-dist/hadoop-hdfs/HdfsDesign.html#File_Deletes_and_Undeletes
+- https://developer.ibm.com/hadoop/2015/10/22/hdfs-trash/
+- https://my.oschina.net/cloudcoder/blog/179381
+- http://debugo.com/hdfs-trash/
+- http://hadoop.apache.org/docs/r2.7.3/hadoop-project-dist/hadoop-hdfs/HdfsDesign.html#File_Deletes_and_Undeletes

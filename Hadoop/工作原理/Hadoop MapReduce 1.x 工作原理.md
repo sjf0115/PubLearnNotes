@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hadoop 1.x MapReduce 工作原理
+title: Hadoop MapReduce 1.x 工作原理
 date: 2017-12-14 13:03:01
 tags:
   - Hadoop

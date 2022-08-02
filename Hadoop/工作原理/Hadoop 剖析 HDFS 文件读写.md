@@ -1,19 +1,18 @@
 ---
 layout: post
 author: sjf0115
-title: HDFS 剖析文件读取
+title: Hadoop 剖析 HDFS 文件读写
 date: 2017-11-21 20:29:01
 tags:
   - Hadoop
-  - Hadoop 内部原理
 
 categories: Hadoop
-permalink: hadoop-internal-anatomy-of-a-file-read
+permalink: hadoop-internal-anatomy-of-hdfs-file-wr
 ---
 
 为了了解客户端及与之交互的HDFS、 NameNode 和 DataNode 之间的数据流是什么样的，下图显示了在读取文件时事件的发生顺序。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/hadoop-internal-anatomy-of-a-file-read-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-internal-anatomy-of-hdfs-file-wr-1.png?raw=true)
 
 客户端通过调用 FileSystem 对象的 `open()` 方法来打开希望读取的文件，对于 HDFS 来说，这个对象是分布式文件系统(步骤1)的一个实例。DistributedFileSystem 通过使用 RPC 来调用 NameNode ，以确定文件起始块的位置(步骤2)。对于每一个块， NameNode 返回存有该块副本的 DataNode 地址。此外，这些 DataNode 根据它们与客户端的距离来排序(根据集群的网络拓扑)。如果该客户端本身就是一个 DataNode (比如，在一个 MapReduce 任务中)，并保存有相应数据块的一个副本时，该节点就会从本地 DataNode 读取数据。
 

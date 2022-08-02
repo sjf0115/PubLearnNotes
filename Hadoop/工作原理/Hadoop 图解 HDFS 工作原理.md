@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hadoop 图解HDFS工作原理
+title: Hadoop 图解 HDFS 工作原理
 date: 2017-12-19 10:03:01
 tags:
   - Hadoop
@@ -11,9 +11,9 @@ categories: Hadoop
 permalink: hadoop-illustrate-how-hdfs-works
 ---
 
-结合Maneesh Varshney的漫画改编，为大家分析HDFS存储机制与运行原理。
+结合 Maneesh Varshney 的漫画改编，为大家分析 HDFS 存储机制与运行原理。
 
-### 1. HDFS角色
+### 1. HDFS 角色
 
 如下图所示，`HDFS`存储相关角色与功能如下：
 - `Client`：客户端，系统使用者，调用`HDFS API`操作文件；与`NameNode`交互获取文件元数据；与`DataNode`交互进行数据读写。

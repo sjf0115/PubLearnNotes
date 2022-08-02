@@ -36,7 +36,3 @@ permalink: trouble-shooting-cannot-access-port-50070-in-hadoop
    <value>file:/Users/xxx/tmp/hadoop/dfs/data</value>
 </property>
 ```
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)

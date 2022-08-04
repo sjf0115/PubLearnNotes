@@ -13,17 +13,17 @@ permalink: spark-sql-getting-started
 
 ### 1. 概述
 
-Spark SQL 是用于结构化数据处理的 Spark 模块。与基本的 Spark RDD API 不同，Spark SQL 提供的接口为 Spark 提供了有关数据和计算的更多结构信息。在内部，Spark SQL 使用这些额外的信息执行优化。Spark 提供了几种与 Spark SQL 进行交互的方法，包括 `SQL` 和 `Dataset API`。当使用相同的执行引擎计算结果时，与你用来描述计算的API和语言无关。这种统一意味着开发人员可以轻松地在不同API之间来回切换，从而提供了表达给定转换操作最自然的方式．
+Spark SQL 是用于结构化数据处理的 Spark 模块。与基本的 Spark RDD API 不同，Spark SQL 提供的接口为 Spark 提供了有关数据和计算的更多结构信息。在内部，Spark SQL 使用这些额外的信息执行优化。Spark 提供了几种与 Spark SQL 进行交互的方法，包括 `SQL` 和 `DataSet API`。当使用相同的执行引擎计算结果时，与你用来描述计算的API和语言无关。这种统一意味着开发人员可以轻松地在不同API之间来回切换，从而提供了表达给定转换操作最自然的方式．
 
 #### 1.1 SQL
 
-Spark SQL 的一个用途是执行 SQL 查询。Spark SQL 也可以从现有已安装的 Hive 中读取数据。有关配置此功能的更多信息，请参阅 `Hive Tables` 部分。当使用另一种编程语言运行 SQL 时，结果将以 Dataset/DataFrame 形式返回。你还可以使用命令行或 JDBC/ODBC 与 SQL 接口进行交互。
+Spark SQL 的一个用途是执行 SQL 查询。Spark SQL 也可以从现有已安装的 Hive 中读取数据。当使用另一种编程语言运行 SQL 时，结果将以 DataSet/DataFrame 形式返回。你还可以使用命令行或 JDBC/ODBC 与 SQL 接口进行交互。
 
-#### 1.2 Datasets 与 DataFrames
+#### 1.2 DataSets 与 DataFrames
 
-Dataset 是分布式数据集合。Dataset 是 Spark 1.6 中新增加的一个接口，既有 RDD 所具有的优势（强类型，可以使用 lambda 函数），也具有 Spark SQL 的优化执行引擎的优点。可以从 JVM 对象构建 Dataset，然后使用转换操作函数（map，flatMap，filter等）进行操作。Dataset API 可以在 Scala 和 Java 语言中使用，但 Python 还不支持 Dataset API。但是由于 Python 是动态语言，Dataset API 的许多优点已经在 Python 中实现了（例如，可以通过名称访问行的字段 row.columnName）。R的情况类似。
+DataSet 是分布式数据集合。DataSet 是 Spark 1.6 中新增加的一个接口，既有 RDD 所具有的优势（强类型，可以使用 lambda 函数），也具有 Spark SQL 的优化执行引擎的优点。可以从 JVM 对象构建 DataSet，然后使用转换操作函数（map，flatMap，filter等）进行操作。DataSet API 可以在 Scala 和 Java 语言中使用。
 
-DataFrame 是一个组织成命名列的 Dataset。在概念上等同于关系数据库中的一个表或R/Python中的`data frames`，但是进行了更多优化。DataFrames 可以从各种数据源构建，例如：结构化数据文件，Hive中的表，外部数据库或现有RDD。DataFrame API 在 Scala，Java，Python 和 R 中使用。在 Scala 和 Java 中，DataFrame 是 Rows 组成的 Dataset。在 Scala API 中，DataFrame 只是 Dataset[Row] 的一个别名。在 Java API 中，使用 Dataset<Row> 来表示 DataFrame。
+DataFrame 是一个组织成命名列的 DataSet。在概念上等同于关系数据库中的一个表或 R/Python 中的 `data frames`，但是进行了更多优化。DataFrames 可以从各种数据源构建，例如结构化数据文件，Hive 中的表，外部数据库或者现有 RDD。DataFrame API 在 Scala，Java，Python 和 R 中使用。在 Scala 和 Java 中，DataFrame 是 Rows 组成的 DataSet。在 Scala API 中，DataFrame 只是 DataSet[Row] 的一个别名。在 Java API 中，使用 DataSet<Row> 来表示 DataFrame。
 
 ### 2. 入门
 
@@ -64,28 +64,24 @@ spark = SparkSession \
     .config("spark.some.config.option", "some-value") \
     .getOrCreate()
 ```
-完整示例在 `examples/src/main/java/org/apache/spark/examples/sql/JavaSparkSQLExample.java`。Spark 2.0 中的 SparkSession 为 Hive 功能提供内置支持，包括使用 HiveQL 编写查询，访问 Hive UDF 以及从 Hive 表读取数据的功能。要使用这些功能，你没有必要安装Hive。
+完整示例在 `examples/src/main/java/org/apache/spark/examples/sql/JavaSparkSQLExample.java`。Spark 2.0 中的 SparkSession 为 Hive 功能提供内置支持，包括使用 HiveQL 编写查询，访问 Hive UDF 以及从 Hive 表读取数据的功能。
 
-#### 2.2 创建DataFrames
+#### 2.2 创建 DataFrames
 
-使用 SparkSession，应用程序可以从已存在的 RDD，Hive 表或 Spark 数据源创建 DataFrames。
-
-作为示例，以下将基于JSON文件的内容创建DataFrame：
-
-Json文件内容：
-```
+使用 SparkSession，应用程序可以从已存在的 RDD，Hive 表或 Spark 数据源创建 DataFrames。作为示例，以下将基于 JSON 文件的内容创建 DataFrame，Json文件内容如下所示：
+```json
 {"name":"Michael"}
 {"name":"Andy", "age":30}
 {"name":"Justin", "age":19}
 ```
-创建DataFrames：
+使用如下命令创建 DataFrames：
 ```java
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-// 创建DataFrame
+// 创建 DataFrame
 Dataset<Row> dataFrame = sparkSession.read().json("src/main/resources/person.json");
-// 输出DataFrame内容
+// 输出 DataFrame 内容
 dataFrame.show();
 
 /*+----+-------+
@@ -96,13 +92,9 @@ dataFrame.show();
 |  19| Justin|
 +----+-------+*/
 ```
-#### 2.3 无类型DataSet操作（DataFrame操作）
+#### 2.3 无类型 DataSet 操作（DataFrame操作）
 
-DataFrames 为 Scala， Java， Python 和 R 中的结构化数据操作提供了一种特定领域的语言(DSL)。
-
-如上所述，在 Spark 2.0 中，DataFrames 只是 Scala 和 Java API 中的 Rows 类型的 Dataset。这些操作也被称为 `无类型转换`，与强类型的 Scala/Java DataSets 中的 `类型转换` 相反。
-
-这里我们列举了使用 Datasets 进行结构化数据处理的一些基本示例：
+DataFrames 为 Scala，Java，Python 和 R 中的结构化数据操作提供了一种特定领域的语言(DSL)。如上所述，在 Spark 2.0 中，DataFrames 只是 Scala 和 Java API 中的 Rows 类型的 DataSet。这些操作也被称为 `无类型转换`，与强类型的 Scala/Java DataSets 中的 `类型转换` 相反。这里我们列举了使用 DataSets 进行结构化数据处理的一些基本示例：
 ```java
 Dataset<Row> dataFrame = sparkSession.read().json("src/main/resources/person.json");
 
@@ -155,14 +147,14 @@ dataFrame.groupBy("age").count().show();
 
 有关可在数据集上执行的操作类型的完整列表，请参阅[API文档](http://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/Dataset.html)。
 
-除了简单的列引用和表达式，Datasets还具有丰富的函数库，包括字符串操作，日期算术，常用的数学运算等。 完整列表可参阅在[DataFrame函数参考](http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.functions$)。
+除了简单的列引用和表达式，DataSets还具有丰富的函数库，包括字符串操作，日期算术，常用的数学运算等。 完整列表可参阅在[DataFrame函数参考](http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.sql.functions$)。
 
-#### 2.4 编程方式运行SQL查询
+#### 2.4 编程方式运行 SQL 查询
 
 SparkSession 上的 sql 函数能使应用程序以编程的方式运行 SQL 查询，并将结果以 DataSet<Row> 形式返回。
 
 Java版本：
-```sql
+```java
 // 创建DataFrame
 Dataset<Row> dataFrame = sparkSession.read().json("src/main/resources/person.json");
 // 注册 DataFrame 为 SQL 临时视图

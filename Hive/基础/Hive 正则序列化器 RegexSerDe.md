@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hive 正则序列化器RegexSerDe
+title: Hive 正则序列化器 RegexSerDe
 date: 2018-06-06 13:16:01
 tags:
   - Hive
@@ -10,11 +10,11 @@ categories: Hive
 permalink: hive-base-how-to-use-regexserde
 ---
 
-RegexSerDe 可以从 Hive 两个jar文件的类中获取，`hive-serde-<version>.jar`中的 `org.apache.hadoop.hive.contrib.serde2.RegexSerDe` 以及 `hive-contrib-<version>.jar` 中的 `org.apache.hadoop.hive.serde2.RegexSerDe`。
+RegexSerDe 可以从 Hive 两个 jar 文件的类中获取，`hive-serde-<version>.jar`中的 `org.apache.hadoop.hive.contrib.serde2.RegexSerDe` 以及 `hive-contrib-<version>.jar` 中的 `org.apache.hadoop.hive.serde2.RegexSerDe`。
 
 ### 1. hive.serde2.RegexSerDe
 
-下面这种格式是 Apache 的打出的 Web 日志文件格式。包含我们想要获取的两个字段信息，一个是日志时间，一个是日志Json：
+下面这种格式是 Apache 的打出的 Web 日志文件格式。包含我们想要获取的两个字段信息，一个是日志时间，一个是日志 Json：
 ```
 [2018-06-04 00:00:09  INFO price:335] {"os":"adr","phone":"187xxxx3617", "business":"train", "price":"198"}
 ```
@@ -35,7 +35,7 @@ WITH SERDEPROPERTIES(
 )
 LOCATION '/user/xiaosi/log/price';
 ```
-上面是一个外表，从 `/user/xiaosi/log/price` 路径下加载数据，并经正则表达式的处理，对应到 `time` 和 `line`　两个字段上，现在我们查看一下Hive表中的数据：
+上面是一个外表，从 `/user/xiaosi/log/price` 路径下加载数据，并经正则表达式的处理，对应到 `time` 和 `line`　两个字段上，现在我们查看一下 Hive 表中的数据：
 ```
 hive> select * from adv_push_price limit 10;
 OK
@@ -75,7 +75,7 @@ Caused by: java.lang.ClassNotFoundException: Class org.apache.hadoop.hive.contri
         at org.apache.hadoop.hive.ql.exec.MapOperator.getConvertedOI(MapOperator.java:295)
         ... 24 more
 ```
-上面的意思很明确，我们找不到 `org.apache.hadoop.hive.contrib.serde2.RegexSerDe` 类， `hive-contrib-<version>.jar` 可以在 `$HIVE_HOME/lib` 文件夹中找到，但是仍需要添加到环境变量中，将 `hive-contrib-<version>.jar` 配置到 Hive 会话中。如下所示将 `hive-contrib-<version>.jar` 添加到 `HIVE_AUX_JARS_PATH` 环境变量，将此 jar 永久添加到Hive会话中。在 `conf/hive-site.xml` 添加如下配置：
+上面的意思很明确，我们找不到 `org.apache.hadoop.hive.contrib.serde2.RegexSerDe` 类， `hive-contrib-<version>.jar` 可以在 `$HIVE_HOME/lib` 文件夹中找到，但是仍需要添加到环境变量中，将 `hive-contrib-<version>.jar` 配置到 Hive 会话中。如下所示将 `hive-contrib-<version>.jar` 添加到 `HIVE_AUX_JARS_PATH` 环境变量，将此 jar 永久添加到 Hive 会话中。在 `conf/hive-site.xml` 添加如下配置：
 ```
 <property>
  <name>hive.aux.jars.path</name>
@@ -83,7 +83,7 @@ Caused by: java.lang.ClassNotFoundException: Class org.apache.hadoop.hive.contri
 </property>
 ```
 
-`org.apache.hadoop.hive.serde2.RegexSerDe` 对应的 `hive-serde-<version>.jar` 默认包含在 hive 执行路径中，而 `org.apache.hadoop.hive.contrib.serde2.RegexSerDe`　对应的 `hive-serde-<version>.jar` 却不包含在 hive 执行路径中。
+`org.apache.hadoop.hive.serde2.RegexSerDe` 对应的 `hive-serde-<version>.jar` 默认包含在 hive 执行路径中，而 `org.apache.hadoop.hive.contrib.serde2.RegexSerDe` 对应的 `hive-serde-<version>.jar` 却不包含在 hive 执行路径中。
 
 > 如果表中和数据中定义的列数不匹配，那么我们会遇到下面的错误消息:
 ```
@@ -110,10 +110,9 @@ Caused by: org.apache.hadoop.hive.serde2.SerDeException: Number of matching grou
 	... 9 more
 FAILED: Execution Error, return code 2 from org.apache.hadoop.hive.ql.exec.mr.MapRedTask
 ```
-查看Hive表中声明的列数及其数据类型，以及正则表达式及其输出中的字段.format.string应包含相同数量的列。
+查看Hive表中声明的列数及其数据类型，以及正则表达式及其输出中的字段 .format.string 应包含相同数量的列。
 
-参考资料：　http://hadooptutorial.info/processing-logs-in-hive/
-
-https://blog.csdn.net/s530723542/article/details/38437257
-
-https://www.cnblogs.com/java20130722/archive/2013/06/09/3206794.html
+参考资料：
+- http://hadooptutorial.info/processing-logs-in-hive/  
+- https://blog.csdn.net/s530723542/article/details/38437257
+- https://www.cnblogs.com/java20130722/archive/2013/06/09/3206794.html

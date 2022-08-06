@@ -161,7 +161,3 @@ Time taken: 0.123 seconds, Fetched: 1 row(s)
 hive>
 ```
 现在我们完成了 Hive 安装与配置。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)

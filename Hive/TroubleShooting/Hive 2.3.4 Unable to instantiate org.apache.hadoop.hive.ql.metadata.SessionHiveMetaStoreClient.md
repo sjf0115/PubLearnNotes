@@ -1,5 +1,8 @@
 
-```
+## 1. 现象
+
+在启动 Hive 运行 SQL 时抛出如下异常：
+```java
 Exception in thread "main" java.lang.RuntimeException: org.apache.hadoop.hive.ql.metadata.HiveException: java.lang.RuntimeException: Unable to instantiate org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient
 	at org.apache.hadoop.hive.ql.session.SessionState.setupAuth(SessionState.java:885)
 	at org.apache.hadoop.hive.ql.session.SessionState.getAuthorizationMode(SessionState.java:1617)
@@ -106,6 +109,15 @@ Caused by: java.net.ConnectException: Connection refused (Connection refused)
 	... 36 more
 ```
 
+## 2. 分析
+
+从上面的异常信息 Could not connect to meta store using any of the URIs provided，我们可以知道 Hive 连接 MetaStore 失败，所以需要判断一下 Metadata 服务是否在运行。
+
+## 3. 解决方案
+
+
+
+https://smartsi.blog.csdn.net/article/details/124440004
 
 
 参考：https://blog.csdn.net/weixin_44318830/article/details/104360913

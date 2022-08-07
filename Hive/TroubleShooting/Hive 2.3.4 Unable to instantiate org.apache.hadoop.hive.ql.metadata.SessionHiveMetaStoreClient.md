@@ -111,13 +111,17 @@ Caused by: java.net.ConnectException: Connection refused (Connection refused)
 
 ## 2. 分析
 
-从上面的异常信息 Could not connect to meta store using any of the URIs provided，我们可以知道 Hive 连接 MetaStore 失败，所以需要判断一下 Metadata 服务是否在运行。
+从上面的异常信息 Could not connect to meta store using any of the URIs provided，我们可以知道 Hive 连接 MetaStore 失败，所以需要判断一下 Metadata 服务是否在运行。使用如下命令查看 MetaStore 服务是否在运行：
+```
+localhost:script wy$ ps -ef | grep HiveMetaStore
+  501  4796   947   0  2:09下午 ttys001    0:00.00 grep HiveMetaStore
+```
+确实发现 MetaStore 服务没有在运行。
 
 ## 3. 解决方案
 
-
-
-https://smartsi.blog.csdn.net/article/details/124440004
-
-
-参考：https://blog.csdn.net/weixin_44318830/article/details/104360913
+需要用户自己分析 MetaStore 服务是因为异常退出还是因为没有启动。在这我们是没有启动，所以需要使用如下启动 MetaStore 服务：
+```
+hive --service metastore -p 9083 &
+```
+> 有关 MetaStore 服务的详细信息，可以查阅[Hive 元数据服务 MetaStore](https://smartsi.blog.csdn.net/article/details/124440004)

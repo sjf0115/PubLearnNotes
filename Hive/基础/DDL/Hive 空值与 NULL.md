@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hive 空值与NULL
+title: Hive 空值与 NULL
 date: 2017-12-01 19:16:01
 tags:
   - Hive

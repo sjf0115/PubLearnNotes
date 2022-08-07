@@ -9,3 +9,5 @@
 
 参考：
 - https://my.oschina.net/cjun/blog/494692
+- https://chetnachaudhari.github.io/2016-02-16/how-to-add-auxiliary-jars-in-hive/
+- https://www.cnblogs.com/Dhouse/p/7228557.html

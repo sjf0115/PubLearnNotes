@@ -1,2 +1,2 @@
 - [Hive 2.3.4 Name node is in safe mode. The reported blocks xxx has reached the threshold 0.9990 of to](https://blog.csdn.net/SunnyYoona/article/details/126206405?spm=1001.2014.3001.5501)
-- []()
+- [Hive 2.3.4 Unable to instantiate org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient](https://blog.csdn.net/SunnyYoona/article/details/126210823?spm=1001.2014.3001.5501)

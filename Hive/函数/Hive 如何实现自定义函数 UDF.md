@@ -4,8 +4,7 @@
 
 ## 2. 依赖
 
-开发 Hive UDF 之前，我们需要引入一个 jar，这个 jar 就是 hive-exec，里面定义了各种我们自定义的 UDF 函数的类型：UDF、GenericUDF、GenericUDTF 等。
-
+开发 Hive UDF 之前，我们需要引入如下依赖，里面定义了各种我们自定义 UDF 函数的类型：UDF、GenericUDF、GenericUDTF：
 ```xml
 <dependency>
     <groupId>org.apache.hive</groupId>

@@ -10,6 +10,8 @@ categories: Hive
 permalink: hive-base-grouping-sets
 ---
 
+> Hive 版本：2.3.4
+
 这篇文章描述了 SELECT 语句 GROUP BY 子句的增强聚合功能 GROUPING SETS。GROUPING SETS 子句是 SELECT 语句的 GROUP BY 子句的扩展。通过 GROUPING SETS 子句，你可采用多种方式对结果分组，而不必使用多个 SELECT 语句来实现这一目的。这就意味着，能够减少响应时间并提高性能。
 
 > 在Hive 0.10.0版本中添加了 Grouping sets，CUBE 和 ROLLUP 运算符以及 GROUPING__ID 函数。参见[HIVE-2397](https://issues.apache.org/jira/browse/HIVE-2397)，[HIVE-3433](https://issues.apache.org/jira/browse/HIVE-3433)，[HIVE-3471](https://issues.apache.org/jira/browse/HIVE-3471)和 [HIVE-3613](https://issues.apache.org/jira/browse/HIVE-3613)。另外在Hive 0.11.0版本进行的优化 [HIVE-3552](https://issues.apache.org/jira/browse/HIVE-3552)。
@@ -133,7 +135,7 @@ GROUPING SETS (
 
 从上面的输出结果中可以看出虽然都是 NULL，有可能表示的是本身值是 NULL，或者可能表示没有参数 GROUP BY 计算而置为 NULL。虽然从字面上没有办法看出其表示的含义，但是我们可以通过 GROUPING__ID 进行判断。以 Hive 大于 2.3.0 输出为例，蓝色的第一行中 dt 和 os 都是 NULL，但是通过 GROUPING__ID 等于 2（二进制位为 10）判断出 os 参与了 GROUP BY 计算，即 os 的 NULL 是本身值为 NULL，而 dt 的 NULL 是没有参与计算而置为 NULL。
 
-如果希望没有参与 GROUP BY 计算的列不显示 `NULL` 而是显示一个自定义值，例如 `全部`，这样不至于混淆两种含义的 NULL，从而便于理解。如果对于列本身值没有为 `NULL` 的情况，可以使用如下简单方式来实现：
+如果希望没有参与 GROUP BY 计算的列不显示 `NULL` 而是显示一个有实际意义的值，例如 `全部`，这样不至于混淆两种含义的 NULL，从而便于理解。如果对于列本身值没有为 `NULL` 的情况，可以使用如下简单方式来实现：
 ```sql
 SELECT
   (CASE WHEN dt IS NULL THEN '全部' ELSE dt END) AS dt,

@@ -13,7 +13,7 @@
 ## 2. Spark SQL
 
 - [ ] [Spark SQL 中 Broadcast Join 一定比 Shuffle Join 快？那你就错了](https://mp.weixin.qq.com/s/5OBHLjRjOykuuaCqEthD4g)
-
+- [ ] [深入理解 SQL 中的 Grouping Sets 语句](https://bbs.huaweicloud.com/blogs/363546)
 
 ## 3. Spark Streaming
 

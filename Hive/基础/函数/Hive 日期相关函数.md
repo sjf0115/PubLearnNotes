@@ -10,7 +10,7 @@ categories: Hive
 permalink: hive-common-date-function
 ---
 
-下面介绍一下常用的Hive日期处理相关函数。
+下面介绍一下常用的 Hive 日期处理相关函数。
 
 ### 1. to_date 日期时间转日期函数
 
@@ -28,7 +28,7 @@ string
 ```
 举例：
 ```
-select to_date('2011-12-08 10:03:01') from dual;
+select to_date('2011-12-08 10:03:01');
 2011-12-08
 ```
 
@@ -48,7 +48,7 @@ int
 ```
 举例：
 ```
-select year('2011-12-08 10:03:01') from dual;
+select year('2011-12-08 10:03:01');
 2011
 ```
 
@@ -56,7 +56,7 @@ select year('2011-12-08 10:03:01') from dual;
 
 语法:
 ```
-month   (string date)
+month (string date)
 ```
 返回值:
 ```
@@ -68,7 +68,7 @@ int
 ```
 举例：
 ```
-select month('2011-12-08 10:03:01') from dual;
+select month('2011-12-08 10:03:01');
 12
 ```
 
@@ -76,7 +76,7 @@ select month('2011-12-08 10:03:01') from dual;
 
 语法:
 ```
-day   (string date)
+day (string date)
 ```
 返回值:
 ```
@@ -88,14 +88,14 @@ int
 ```
 举例：
 ```
-select day('2011-12-08 10:03:01') from dual;
+select day('2011-12-08 10:03:01');
 ```
 
 ### 5. hour 日期转小时函数
 
 语法:
 ```
-hour   (string date)
+hour (string date)
 ```
 返回值:
 ```
@@ -107,7 +107,7 @@ int
 ```
 举例：
 ```
-select hour('2011-12-08 10:03:01') from dual;
+select hour('2011-12-08 10:03:01');
 10
 ```
 
@@ -115,7 +115,7 @@ select hour('2011-12-08 10:03:01') from dual;
 
 语法:
 ```
-minute   (string date)
+minute (string date)
 ```
 返回值:
 ```
@@ -127,7 +127,7 @@ int
 ```
 举例：
 ```
-select minute('2011-12-08 10:03:01') from dual;
+select minute('2011-12-08 10:03:01');
 3
 ```
 
@@ -135,7 +135,7 @@ select minute('2011-12-08 10:03:01') from dual;
 
 语法:
 ```
-second   (string date)
+second (string date)
 ```
 返回值:
 ```
@@ -147,7 +147,7 @@ int
 ```
 举例：
 ```
-select second('2011-12-08 10:03:01') from dual;
+select second('2011-12-08 10:03:01');
 1
 ```
 
@@ -167,7 +167,7 @@ int
 ```
 举例：
 ```
-select weekofyear('2011-12-08 10:03:01') from dual;
+select weekofyear('2011-12-08 10:03:01');
 49
 ```
 
@@ -187,9 +187,9 @@ int
 ```
 举例：
 ```
-select datediff('2012-12-08','2012-05-09') from dual;
+select datediff('2012-12-08','2012-05-09');
 213
-select datediff("2016-10-28 07:23:45", "2016-10-20 12:23:10") from dual;
+select datediff("2016-10-28 07:23:45", "2016-10-20 12:23:10");
 8
 ```
 
@@ -209,7 +209,7 @@ string
 ```
 举例：
 ```
-select date_add('2012-12-08',10) from dual;
+select date_add('2012-12-08',10);
 2012-12-18
 ```
 
@@ -229,7 +229,7 @@ string
 ```
 举例：
 ```
-select date_sub('2012-12-08',10) from dual;
+select date_sub('2012-12-08',10);
 2012-11-28
 ```
 
@@ -249,11 +249,11 @@ string
 ```
 举例：
 ```
-select from_unixtime(1323308943,'yyyyMMdd') from dual;
+select from_unixtime(1323308943,'yyyyMMdd');
 20111208
 ```
 
-### 13 . unix_timestamp 获取当前UNIX时间戳函数
+### 13. unix_timestamp 获取当前UNIX时间戳函数
 
 语法:   
 ```
@@ -269,7 +269,7 @@ bigint
 ```
 举例：
 ```
-select unix_timestamp() from dual;
+select unix_timestamp();
 1323309615
 ```
 
@@ -289,7 +289,7 @@ bigint
 ```
 举例：
 ```
-select unix_timestamp('2011-12-07 13:01:03') from dual;
+select unix_timestamp('2011-12-07 13:01:03');
 1323234063
 ```
 
@@ -309,7 +309,7 @@ bigint
 ```
 举例：
 ```
-select unix_timestamp('20111207 13:01:03','yyyyMMdd HH:mm:ss') from dual;
+select unix_timestamp('20111207 13:01:03','yyyyMMdd HH:mm:ss');
 1323234063
 ```
 
@@ -329,6 +329,6 @@ string
 ```
 举例：
 ```
-select next_day("2016-10-31", 'FRIDAY') from dual;
+select next_day("2016-10-31", 'FRIDAY');
 2016-11-04
 ```

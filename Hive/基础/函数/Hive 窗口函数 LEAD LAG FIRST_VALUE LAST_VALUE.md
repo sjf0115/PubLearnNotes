@@ -19,9 +19,9 @@ permalink: hive-base-window-functions
 窗口函数 | 描述
 ---|---
 LAG() | 取当前行往前（朝分区头部方向）第 N 行数据的值
-LEAD() | 返回分区中当前行后面行（可以指定第几行）的值。 如果没有行，则返回null。
-FIRST_VALUE | 返回相对于窗口中第一行的指定列的值。
-LAST_VALUE | 返回相对于窗口中最后一行的指定列的值。
+LEAD() | 取当前行往后（朝分区尾部方向）第 N 行数据的值
+FIRST_VALUE | 取当前行所对应窗口的第一条数据的值
+LAST_VALUE | 取当前行所对应窗口的最后一条数据的值
 
 ## 2. LAG
 
@@ -92,20 +92,120 @@ FROM (
 
 ## 4. FIRST_VALUE
 
-为了比较每个用户浏览次数与第一天浏览次数进行比较，查询返回当前浏览次数以及第一天浏览次数。第一个用户第一天浏览次数为1，第二个用户第一天浏览次数为2。
+取当前行所对应窗口的第一条数据的值。
 
-**备注**
+### 4.1 命令格式
 
-上面例子窗口为第一行到当前行(缺失window子句有order by ，默认为rows between unbounded preceding and current row)。所以，first_value返回窗口的第一行，即第一天浏览次数。
+```
+first_value(<expr>[, <ignore_nulls>]) over ([partition_clause] [orderby_clause])
+```
+上述命令返回表达式 expr 在窗口的第一条数据上进行运算的结果。第一个参数 expr 表达式为待计算返回结果的表达式，必须填写；第二个参数 ignore_nulls 表示是否忽略 NULL 值，是一个可选参数，默认值为 false。当参数的值为 true 时，返回窗口中第一条非 NULL 的 expr 值；
+
+### 4.2 示例
+
+假设要计算每个用户当天获取的积分(score)与第一天获取的积分来做对比，即根据用户分组(作为开窗列)，日期升序排序，返回每组中的第一行数据作为第一天的获取积分。命令示例如下：
+```sql
+SELECT
+  uid, dt, score,
+  FIRST_VALUE(score) OVER (PARTITION BY uid ORDER BY dt) AS first_score
+FROM (
+    SELECT 'a' AS uid, '20220811' AS dt, 10 AS score
+    UNION ALL
+    SELECT 'a' AS uid, '20220812' AS dt, 18 AS score
+    UNION ALL
+    SELECT 'a' AS uid, '20220813' AS dt, 15 AS score
+    UNION ALL
+    SELECT 'b' AS uid, '20220811' AS dt, 1 AS score
+    UNION ALL
+    SELECT 'b' AS uid, '20220812' AS dt, 6 AS score
+    UNION ALL
+    SELECT 'b' AS uid, '20220813' AS dt, 10 AS score
+) AS a;
+```
+
+![]()
+
+```sql
+SELECT
+  uid, dt, score,
+  FIRST_VALUE(score, true) OVER (PARTITION BY uid ORDER BY dt) AS first_score
+FROM (
+    SELECT 'a' AS uid, '20220811' AS dt, NULL AS score
+    UNION ALL
+    SELECT 'a' AS uid, '20220812' AS dt, 18 AS score
+    UNION ALL
+    SELECT 'a' AS uid, '20220813' AS dt, 15 AS score
+) AS a;
+```
 
 ## 5. LAST_VALUE()
 
-为了比较每个用户浏览次数与最新一天浏览次数进行比较，查询返回当前浏览次数以及最新一天浏览次数。第一个用户最新一天（2017-02-16）浏览次数为4，第二个用户最新一天（2017-02-16）浏览次数为2。
+LAST_VALUE() 函数取当前行所对应窗口的最后一条数据的值。
+
+### 5.1 命令格式
+
+```
+last_value(<expr>[, <ignore_nulls>]) over([partition_clause] [orderby_clause] [frame_clause])
+```
+上述命令返回表达式 expr 在窗口的最后一条数据上进行运算的结果。第一个参数 expr 表达式为待计算返回结果的表达式，必须填写；第二个参数 ignore_nulls 表示是否忽略 NULL 值，是一个可选参数，默认值为 false。当参数的值为 true 时，返回窗口中最后一条非 NULL 的 expr 值；
+
+### 5.2 示例2
+
+假设要计算每个用户每天获取的积分(score)与最后一天获取的积分来做对比，即根据用户分组(作为开窗列)，日期升序排序，返回每组中的最后一行数据作为最后一天的获取积分。命令示例如下：
+
+如果不指定 ORDER BY，当前窗口为第一行到最后一行的范围，返回当前窗口的最后一行的值：
+```sql
+SELECT
+  uid, dt, score,
+  LAST_VALUE(score) OVER (PARTITION BY uid) AS last_score
+FROM (
+    SELECT 'a' AS uid, '20220811' AS dt, 10 AS score
+    UNION ALL
+    SELECT 'a' AS uid, '20220812' AS dt, 18 AS score
+    UNION ALL
+    SELECT 'a' AS uid, '20220813' AS dt, 15 AS score
+    UNION ALL
+    SELECT 'b' AS uid, '20220813' AS dt, 10 AS score
+    UNION ALL
+    SELECT 'b' AS uid, '20220812' AS dt, 6 AS score
+    UNION ALL
+    SELECT 'b' AS uid, '20220811' AS dt, 1 AS score
+) AS a;
+```
 
 
-**备注**
+如果指定 ORDER BY，当前窗口为第一行到当前行的范围，返回当前窗口的最后一行的值：
+```sql
+SELECT
+  uid, dt, score,
+  LAST_VALUE(score) OVER (PARTITION BY uid ORDER BY dt) AS last_score
+FROM (
+    SELECT 'a' AS uid, '20220811' AS dt, 10 AS score
+    UNION ALL
+    SELECT 'a' AS uid, '20220812' AS dt, 18 AS score
+    UNION ALL
+    SELECT 'a' AS uid, '20220813' AS dt, 15 AS score
+    UNION ALL
+    SELECT 'b' AS uid, '20220813' AS dt, 10 AS score
+    UNION ALL
+    SELECT 'b' AS uid, '20220812' AS dt, 6 AS score
+    UNION ALL
+    SELECT 'b' AS uid, '20220811' AS dt, 1 AS score
+) AS a;
+```
 
-上面例子的窗口为当前行到最后一行（rows between current row and unbounded following）。last_value返回的是窗口最后一行，即最新一天的浏览次数。
 
+```sql
+SELECT
+  uid, dt, score,
+  LAST_VALUE(score, true) OVER (PARTITION BY uid ORDER BY dt) AS last_score
+FROM (
+    SELECT 'a' AS uid, '20220811' AS dt, 20 AS score
+    UNION ALL
+    SELECT 'a' AS uid, '20220812' AS dt, 18 AS score
+    UNION ALL
+    SELECT 'a' AS uid, '20220813' AS dt, NULL AS score
+) AS a;
+```
 
 https://help.aliyun.com/document_detail/34994.html#section-aac-ocr-pay

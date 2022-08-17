@@ -131,3 +131,7 @@
 - [Flink 单元测试指南]()
 - [Flink 1.11 JobManager 内存管理优化]()
 - [Flink 1.10 TaskManager 内存管理优化]()
+
+## 7. CDC
+
+- [x] [为什么选择基于日志的 CDC](https://smartsi.blog.csdn.net/article/details/120675143)

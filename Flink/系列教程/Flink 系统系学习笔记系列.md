@@ -34,7 +34,7 @@
 ### 2.3 Function
 
 - [Flink DataStream 类型系统 TypeInformation](https://smartsi.blog.csdn.net/article/details/124333830)
-- [Flink 算子如何使用]()
+- [Flink 如何使用算子]()
 - [Flink 如何使用 ProcessFunction]()
 - [Flink 如何使用 ProcessFunction]()
 - [Flink SourceFunction 初了解](https://smartsi.blog.csdn.net/article/details/123342142)
@@ -135,3 +135,4 @@
 ## 7. CDC
 
 - [x] [为什么选择基于日志的 CDC](https://smartsi.blog.csdn.net/article/details/120675143)
+- [x] [Flink CDC 原理、实践和优化](https://blog.csdn.net/SunnyYoona/article/details/126377748?spm=1001.2014.3001.5501)

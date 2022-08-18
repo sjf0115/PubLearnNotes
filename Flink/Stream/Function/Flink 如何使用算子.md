@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Flink算子如何使用
+title: Flink 如何使用算子
 date: 2018-02-28 10:25:17
 tags:
   - Flink
@@ -12,7 +12,7 @@ permalink: flink-stream-operators-overall
 
 > Flink版本：1.11
 
-算子(`Operator`)将一个或多个 DataStream 转换为一个新的 DataStream。程序可以将多个转换组合成复杂的数据流拓扑。
+算子(`Operator`)可以将一个或多个 DataStream 转换为一个新的 DataStream。程序可以将多个 Transformations 组合成复杂的数据流拓扑。
 
 ### 1. DataStream Transformations
 
@@ -118,7 +118,7 @@ dataStream.keyBy(0) // Key by the first element of a Tuple
 KeyedStream → DataStream
 ```
 
-在 Keyed 数据流的"滚动" Reduce。将当前元素与上一个 Reduce 后的值进行 Reduce，并生成一个新值。如下所示创建求和的 reduce 函数：
+在 Keyed Stream 上的"滚动"Reduce。将当前元素与上一个 Reduce 后的值进行 Reduce，并生成一个新值。如下所示创建求和的 reduce 函数：
 
 Java版本:
 ```java
@@ -141,7 +141,7 @@ keyedStream.reduce { _ + _ }
 ```
 KeyedStream → DataStream
 ```
-在 Keyded 数据流上滚动聚合。min 和 minBy 的区别是 min 返回最小值，而 minBy 返回在该字段上具有最小值的元素（max 和 maxBy 同理）。
+在 Keyded Stream 上滚动聚合。min 和 minBy 的区别是 min 返回最小值，而 minBy 返回在该字段上具有最小值的元素（max 和 maxBy 同理）。
 
 Java版本:
 ```java

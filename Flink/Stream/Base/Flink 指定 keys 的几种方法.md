@@ -10,6 +10,8 @@ categories: Flink
 permalink: flink-how-to-specifying-keys
 ---
 
+> Flink 版本：1.13.6
+
 一些转换(例如，`join`，`coGroup`，`keyBy`，`groupBy`)可以在一组元素上定义一个 key，其他转换(`Reduce`，`GroupReduce`，`Aggregate`，`Windows`)就可以在使用这些函数之前根据指定的 key 对数据进行分组。
 
 一个 DataSet 进行如下分组:
@@ -61,7 +63,7 @@ KeyedStream<Tuple3<Tuple2<Integer, Float>, String, Long>, Tuple> keyedStream = d
 ```
 如果指定 keyBy(0)，则使用整个 Tuple2 作为分组 Key，即以 Integer 和 Float 的两个字段为 key。如果要使用嵌套中 Tuple2 的某个字段，则必须使用下面介绍的字段表达式指定 key。
 
-> 目前 2.13.6 版本已经标注为 `@Deprecated`，推荐使用第三种方式 KeySelector
+> 目前 1.13.6 版本已经标注为 `@Deprecated`，推荐使用第三种方式 KeySelector
 
 ### 2. 使用字段表达式指定 Key
 
@@ -125,7 +127,7 @@ public static class ComplexNestedClass {
 }
 ```
 
-> 目前 2.13.6 版本已经标注为 `@Deprecated`，推荐使用第三种方式 KeySelector
+> 目前 1.13.6 版本已经标注为 `@Deprecated`，推荐使用第三种方式 KeySelector
 
 ### 3. 使用 KeySelector 函数指定 Key
 

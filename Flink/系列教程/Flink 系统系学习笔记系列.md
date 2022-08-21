@@ -9,7 +9,7 @@
 - [ ] [Flink 如何指定并发]()
 - [ ] [4个步骤让 Flink 应用程序达到生产状态]()
 - [ ] [Flink 数据交换策略 Partitioner]()
-- [ ] [Flink 任务失败恢复策略]()
+- [x] [Flink 任务失败重启与恢复策略](https://smartsi.blog.csdn.net/article/details/126451162?spm=1001.2014.3001.5502)
 - [ ] [Flink 与 SPI]()
 
 ## 2. DataStream

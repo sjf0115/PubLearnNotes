@@ -18,7 +18,7 @@ permalink: exactly-once-is-not-necessarily-exactly-once
 
 流处理通常也被称之为事件处理，简单来说是指持续不断地处理一系列无穷无尽地数据或事件地过程。流处理或事件处理应用程序大致可以看作一种有向图，大部分情况（但也并非总是如此）下也可以看作有向无环图（Directed acyclic graph，DAG）。在这种图中，每个边（Edge）可代表一个数据或事件流，每个顶点（Vertex）代表使用应用程序定义的逻辑处理来自相邻边的数据或事件的算子（Operator）。有两种特殊类型的顶点，通常称之为 `Source` 和 `Sink`，`Source` 会消耗外部数据/事件并将其注入应用程序，而`Sink`通常负责收集应用程序生成的结果。图1展示了这样的一个流应用程序范例。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Stream/Exactly%20once%E6%9C%AA%E5%BF%85%E4%B8%A5%E6%A0%BC%E4%B8%80%E8%87%B4-1.png?raw=true)
+https://github.com/sjf0115/ImageBucket/blob/main/Stream/exactly-once-is-not-necessarily-exactly-once-1.png?raw=true
 
 执行流/事件处理应用程序的 SPE 通常可供用户指定可靠性模式或处理语义，这代表了在跨越整个应用程序图处理数据时所能提供的保证。这些保证是有一定意义的，因为我们始终可以假设由于网络、计算机等原因遇到失败进而导致数据丢失的概率。在描述 SPE 能为应用程序提供的数据处理语义时，通常会使用三种模式 / 标签：`最多一次`（At-most-once）、`最少一次`（At-least-once），以及`严格一次`（Exactly-once）。
 这些不同处理语义可粗略理解如下：
@@ -27,13 +27,13 @@ permalink: exactly-once-is-not-necessarily-exactly-once
 
 这其实是一种"尽力而为"的方法。数据或事件可以保证被应用程序中的所有算子最多处理一次。这意味着如果在流应用程序最终成功处理之前就已丢失，则不会额外试图重试或重新传输事件。图2列举了一个范例。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Stream/Exactly%20once%E6%9C%AA%E5%BF%85%E4%B8%A5%E6%A0%BC%E4%B8%80%E8%87%B4-2.png?raw=true)
+https://github.com/sjf0115/ImageBucket/blob/main/Stream/exactly-once-is-not-necessarily-exactly-once-2.png?raw=true
 
 ### 3. 最少一次
 
 数据或事件可保证被应用程序图中的所有算子最少处理一次。这通常意味着如果在流应用程序最终成功处理之前就已丢失，那么事件将从来源重播（Replayed）或重新传输。然而因为可以重新传输，有时候一个事件可能被多次处理，因此这种方式被称之为"最少一次"。图3展示了一个范例。在本例中，第一个算子最初处理事件时失败了，随后重试并成功，然后第二次重试并再次成功，然而第二次重试实际上是不必要的。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Stream/Exactly%20once%E6%9C%AA%E5%BF%85%E4%B8%A5%E6%A0%BC%E4%B8%80%E8%87%B4-3.png?raw=true)
+https://github.com/sjf0115/ImageBucket/blob/main/Stream/exactly-once-is-not-necessarily-exactly-once-3.png?raw=true
 
 ### 3. 严格一次
 
@@ -44,13 +44,13 @@ permalink: exactly-once-is-not-necessarily-exactly-once
 
 通过分布式快照/状态检查点方法实现的`exactly-once`是由 [Chandy-Lamport 分布式快照算法](http://lamport.azurewebsites.net/pubs/chandy.pdf)启发而来的。在这种机制中，会定期为流应用程序中每个算子的所有状态创建检查点，一旦系统中任何位置出现失败，每个算子的所有状态会回滚至最新的全局一致检查点。回滚过程中所有处理工作会暂停。随后源也会重置为与最新检查点相符的偏移量。整个流应用程序基本上会被回退到最新一致状态，并从该状态开始重新处理。图4展示了这种机制的一些基本概念。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Stream/Exactly%20once%E6%9C%AA%E5%BF%85%E4%B8%A5%E6%A0%BC%E4%B8%80%E8%87%B4-4.png?raw=true)
+https://github.com/sjf0115/ImageBucket/blob/main/Stream/exactly-once-is-not-necessarily-exactly-once-4.png?raw=true
 
 在图4中，流应用程序在 T1 时正在正常运行，并创建了状态检查点。然而在 T2 时，算子在处理传入的数据时失败了。此时 `S = 4` 这个状态值已经被保存到持久存储中，而 `S = 12` 状态值正位于算子的内存中。为了解决这种差异，在 T3 时处理图将状态回退至 `S = 4`，并"重播"流中每个连续状态直到最新状态，并处理每个数据。最终结果是有些数据被处理了多次，但这也没问题，因为无论回滚多少次，结果状态都是相同的。
 
 实现`exactly-once`的另一种方法是在实现至少一次事件交付的同时在每个算子一端进行事件去重。使用这种方法的 SPE 会重播失败的事件并再次尝试处理，并从每个算子中移除重复的事件，随后才将结果事件发送给用户在算子中定义的逻辑。这种机制要求为每个算子保存事务日志，借此才能追踪哪些事件已经处理过了。为此 SPE 通常会使用诸如 Google 的 MillWheel 以及 Apache Kafka Streams 等机制。图 5 展示了这种机制的概况。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Stream/Exactly%20once%E6%9C%AA%E5%BF%85%E4%B8%A5%E6%A0%BC%E4%B8%80%E8%87%B4-5.png?raw=true)
+https://github.com/sjf0115/ImageBucket/blob/main/Stream/exactly-once-is-not-necessarily-exactly-once-5.png?raw=true
 
 ### 4. 严格一次真的就一次吗？
 

@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Flink 任务失败恢复策略
+title: Flink 任务失败重启与恢复策略
 date: 2021-01-02 17:22:01
 tags:
   - Flink
@@ -24,7 +24,7 @@ Flink 支持不同的重启策略，在作业没有特别指定重启策略时�
 
 重启策略|值
 ---|---
-固定间隔重启策略| fixeddelay, fixed-delay 
+固定间隔重启策略| fixeddelay, fixed-delay
 失败率重启策略| failurerate, failure-rate
 不重启策略| none, off, disable
 
@@ -41,7 +41,7 @@ env.setRestartStrategy(RestartStrategies.fixedDelayRestart(
 
 ### 1.1 固定间隔重启策略
 
-固定间隔重启策略尝试重新启动作业指定次数。如果超过最大尝试次数，那么作业最终会失败。每次重启之后都会等待一段固定间隔时间。通过在 flink-conf.yaml 中配置如下参数，可以将重启策略默认为固定间隔重启策略：
+固定间隔重启策略会一直尝试重新启动作业直到到达指定次数。如果超过最大尝试次数，那么作业最终会失败。每次重启之后都会等待一段固定间隔时间。通过在 flink-conf.yaml 中配置如下参数，可以将重启策略默认为固定间隔重启策略：
 ```
 restart-strategy: fixed-delay
 ```
@@ -68,7 +68,7 @@ env.setRestartStrategy(RestartStrategies.fixedDelayRestart(
 
 ### 1.2 失败率重启策略
 
-失败率重启策略在作业失败后会重新启动作业，只有当每个时间区间内失败次数超过指定次数时，作业才最终会失败。失败率重启策略跟固定间隔重启策略一样，每次重启之后都会等待一段固定间隔时间，不同的是失败率重启策略阈值设置了一个时间区间，只有当时间区间内超过指定次数时才失败。通过在 flink-conf.yaml 中配置如下参数，可以将失败率重启策略设置为默认重启策略:
+失败率重启策略在作业失败后会重新启动作业，只有当每个时间区间内失败次数超过指定次数时，作业才最终会失败。失败率重启策略跟固定间隔重启策略一样，每次重启之后都会等待一段固定间隔时。不同的是失败率重启策略阈值设置了一个时间区间，只有当时间区间内超过指定次数时才失败。通过在 flink-conf.yaml 中配置如下参数，可以将失败率重启策略设置为默认重启策略:
 ```
 restart-strategy: failure-rate
 ```
@@ -117,12 +117,15 @@ jobmanager.execution.failover-strategy: region
 
 Failover策略 | 默认值
 ---|---
-Restart all | full
-Restart pipelined region | region
+重启所有故障恢复策略 | full
+重启流水线区域故障恢复策略 | region
 
 ### 2.1 重启所有故障恢复策略
 
-此策略会重新启动作业中所有任务以从失败任务中恢复。
+此策略会重新启动作业中所有任务以从失败任务中恢复：
+```
+jobmanager.execution.failover-strategy: full
+```
 
 ### 2.2 重启流水线区域故障恢复策略
 
@@ -137,9 +140,5 @@ Region 是指以 Pipelined 形式进行数据交换的 Task 集合。也就是�
 - 出错 Task 所在 Region 需要重启。
 - 如果要重启的 Region 需要消费的数据有部分无法访问（丢失或损坏），产出该部分数据的 Region 也需要重启。
 - 需要重启的 Region 的下游 Region 也需要重启。这是出于保障数据一致性的考虑，因为一些非确定性的计算或者分发会导致同一个 Result Partition 每次产生时包含的数据都不相同。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 原文:[Task Failure Recovery](https://ci.apache.org/projects/flink/flink-docs-release-1.11/dev/task_failure_recovery.html)

@@ -12,7 +12,7 @@ permalink: flink-parallel-execute
 
 > Flink 1.11
 
-本节介绍如何在 Flink 中配置程序的并发执行。一个 Flink 程序由多个 Task (transformations/operators，data sources 以及 sinks)组成。一个 Task 可以分成多个并发实例来执行，每个并发实例只处理输入数据的一个子集。一个 Task 的并发实例的个数称为并发度(parallelism)。
+本节介绍如何在 Flink 中配置程序并发执行。一个 Flink 程序由多个 Task (transformations/operators，data sources 以及 sinks)组成。一个 Task 可以分成多个并发实例来执行，每个并发实例只处理输入数据的一个子集。一个 Task 的并发实例的个数称为并发度(parallelism)。
 
 如果你想使用[保存点](http://smartsi.club/flink-stream-deployment-savepoints.html)，也应该考虑设置最大并发度。从保存点恢复时，可以更改指定算子或整个程序的并发度，并且此配置指定了并发的上限。
 
@@ -54,7 +54,7 @@ env.execute("Word Count Example")
 
 #### 1.2 执行环境级别
 
-如[Flink程序剖析](http://smartsi.club/flink-anatomy-of-a-flink-program.html) 博文所述，Flink 程序是在执行环境的上下文中执行的。执行环境为它执行的所有算子，数据源和 Sink 提供了默认的并发度。执行环境的并发度可以通过显式配置一个算子的并发度来覆盖。
+如[Flink 程序剖析](http://smartsi.club/flink-anatomy-of-a-flink-program.html) 博文所述，Flink 程序是在执行环境的上下文中执行的。执行环境为它执行的所有算子，数据源和 Sink 提供了默认的并发度。执行环境的并发度可以通过显式配置一个算子的并发度来覆盖。
 
 执行环境的默认并发度可以通过调用 `setParallelism()` 方法来指定。要为执行的所有算子，数据源和 Sink 设置并发度为3，可以按如下代码所示设置执行环境的默认并发度：
 

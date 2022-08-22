@@ -97,8 +97,8 @@
 
 ### 5.3 Savepoint & Checkpoint
 
-- [ ] [Flink Savepoint机制]()
-- [ ] [Flink 保存点之回溯时间]()
+- [ ] [Flink Savepoint 机制]()
+- [ ] [Flink 保存点之回溯时间](https://smartsi.blog.csdn.net/article/details/126474904?spm=1001.2014.3001.5502)
 - [ ] [Flink 如何实现新的流处理应用第二部分:版本化状态]()
 - [ ] [Flink 检查点启用与配置]()
 - [ ] [Flink Savepoints和Checkpoints的3个不同点]()

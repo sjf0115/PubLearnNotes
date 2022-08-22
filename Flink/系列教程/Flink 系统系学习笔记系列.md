@@ -116,7 +116,7 @@
 
 - [ ] [Flink HDFS Connector]()
 - [ ] [Flink Kafka Connector]()
-- [ ] [Flink 如何管理 Kafka 的消费偏移量]()
+- [x] [Flink 如何管理 Kafka 的消费偏移量](https://smartsi.blog.csdn.net/article/details/126475307?spm=1001.2014.3001.5502)
 
 ### 6.2 Table & SQL
 

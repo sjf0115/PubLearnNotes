@@ -123,7 +123,7 @@
 - [ ] [Apache Kafka在京东的演进和实践](https://www.bilibili.com/video/BV17441177cG?p=3)
 - [ ] [美团数据平台Apache Kafka系统实践](https://www.bilibili.com/video/BV17441177cG?p=4)
 - [ ] [Apache Kafka在字节跳动的实践和灾备方案](https://www.bilibili.com/video/BV17441177cG?p=5)
-- [ ] [Apache Flink结合Apache Kafka实现端到端的一致性语义](https://www.bilibili.com/video/BV17441177cG?p=6)
+- [x] [Apache Flink结合Apache Kafka实现端到端的一致性语义](https://www.bilibili.com/video/BV17441177cG?p=6)
 
 ### 4.11 20190629-北京
 

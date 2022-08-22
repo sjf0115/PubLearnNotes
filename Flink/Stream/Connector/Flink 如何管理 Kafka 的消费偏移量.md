@@ -62,8 +62,4 @@ Flink 中的 Kafka 消费者是一个有状态的算子并集成了 Flink 的检
 
 Kafka Source 分别从偏移量 2 和 1 重新开始读取消息（因为这是最近一次成功的 checkpoint 中的偏移量）。当作业重启后，我们可以期待正常的系统操作，就好像之前没有发生故障一样。
 
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
-
 原文:[How Apache Flink manages Kafka consumer offsets](https://www.ververica.com/blog/how-apache-flink-manages-kafka-consumer-offsets)

@@ -91,17 +91,17 @@
 ### 5.2 StateBackend
 
 - [ ] [有状态流处理:Flink 状态后端]()
-- [ ] [Flink 1.13 StateBackend 与 CheckpointStorage 拆分](https://smartsi.blog.csdn.net/article/details/123057769)
+- [x] [Flink 1.13 StateBackend 与 CheckpointStorage 拆分](https://smartsi.blog.csdn.net/article/details/123057769)
 - [ ] [Flink 如何管理 RocksDB 内存大小]()
 - [ ] [Flink 何时以及如何使用 RocksDB 状态后端]()
 
 ### 5.3 Savepoint & Checkpoint
 
 - [ ] [Flink Savepoint 机制]()
-- [ ] [Flink 保存点之回溯时间](https://smartsi.blog.csdn.net/article/details/126474904?spm=1001.2014.3001.5502)
+- [x] [Flink 保存点之回溯时间](https://smartsi.blog.csdn.net/article/details/126474904?spm=1001.2014.3001.5502)
 - [ ] [Flink 如何实现新的流处理应用第二部分:版本化状态]()
 - [ ] [Flink 检查点启用与配置]()
-- [ ] [Flink Savepoints和Checkpoints的3个不同点]()
+- [x] [Flink Savepoints 和 Checkpoints 的 3 个不同点](https://smartsi.blog.csdn.net/article/details/126475549?spm=1001.2014.3001.5502)
 - [ ] [Flink 管理大型状态之增量 Checkpoint]()
 - [ ] [Flink 从Checkpoint中恢复作业]()
 - [ ] [Flink 监控检查点]()

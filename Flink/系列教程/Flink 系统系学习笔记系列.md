@@ -108,6 +108,7 @@
 
 ### 5.4 一致性保障
 
+- [x] [Flink Exactly-Once 投递实现浅析](https://smartsi.blog.csdn.net/article/details/126494280?spm=1001.2014.3001.5502)
 - [ ] [Flink 如何实现端到端的 Exactly-Once 处理语义]()
 
 ## 6. Connector

@@ -48,3 +48,5 @@ Caused by: org.apache.kafka.common.KafkaException: Unexpected error in InitProdu
 ```
 producerProps.put("transaction.timeout.ms", "5000");
 ```
+
+https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/connectors/datastream/kafka/#kafka-producers-and-fault-tolerance

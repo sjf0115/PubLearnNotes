@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Flink中如何解析与传递参数
+title: Flink 如何解析与传递参数
 date: 2020-10-31 18:53:01
 tags:
   - Flink
@@ -28,7 +28,7 @@ ParameterTool parameter = ParameterTool.fromPropertiesFile(propertiesFile);
 
 #### 1.2 读取命令行参数
 
-下面会从命令行中获取像 --input hdfs:///mydata --elements 42 这种形式的参数：
+下面会从命令行中获取像 `--input hdfs:///mydata --elements 42` 这种形式的参数：
 ```java
 public static void main(String[] args) {
     ParameterTool parameter = ParameterTool.fromArgs(args);
@@ -37,7 +37,7 @@ public static void main(String[] args) {
 
 #### 1.3 从系统属性中获取参数
 
-当启动一个 JVM 时，你可以将系统属性传递给它：-Dinput=hdfs:///mydata，你还可以用这些系统属性来初始化 ParameterTool：
+当启动一个 JVM 时，你可以将系统属性传递给它：`-Dinput=hdfs:///mydata`，你还可以用这些系统属性来初始化 ParameterTool：
 ```java
 ParameterTool parameter = ParameterTool.fromSystemProperties();
 ```
@@ -109,9 +109,3 @@ public static final class Tokenizer extends RichFlatMapFunction<String, Tuple2<S
     }
 }
 ```
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
-
-参考：[Best Practices](https://ci.apache.org/projects/flink/flink-docs-release-1.2/monitoring/best_practices.html)

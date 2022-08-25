@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Flink Savepoint 机制
+title: Flink Savepoint 工作机制
 date: 2021-01-01 18:13:17
 tags:
   - Flink
@@ -14,14 +14,13 @@ permalink: flink-stream-deployment-savepoints
 
 Savepoint 是 Checkpoint 的一种特殊实现，底层其实也是使用 Checkpoint 的机制。Savepoint 是用户以手工命令的方式触发 Checkpoint，并将结果持久化到指定的存储路径中，其主要目的是帮助用户在升级和维护集群过程中保存系统中的状态数据，避免因为停机维护或者升级应用等正常终止应用的操作导致系统无法恢复到原有的计算状态的情况，从而无法实现端到端的 Exactly-Once 语义保证。
 
-> Savepoint 与 Checkpoint 的具体区别，可以参阅[Flink Savepoints和Checkpoints的3个不同点](http://smartsi.club/differences-between-savepoints-and-checkpoints-in-flink.html)
+> Savepoint 与 Checkpoint 的具体区别，可以参阅[Flink Savepoints 和 Checkpoints 的 3 个不同点](https://smartsi.blog.csdn.net/article/details/126475549?spm=1001.2014.3001.5502)
 
-### 2. 分配算子ID
+### 2. 分配算子 ID
 
 当使用 Savepoint 对整个集群进行升级或者运维操作的时候，需要停止整个 Flink 应用程序，此时用户可能会对应用的代码逻辑进行修改，即使 Flink 能够通过 Savepoint 将应用中的状态数据同步到磁盘然后恢复任务，但由于代码逻辑发生变化，在升级过程中有可能导致算子的状态无法通过 Savepoint 中的数据进行恢复。在这种情况下就需要通过唯一的ID标记算子。
 
 在 Flink 中默认支持自动生成算子ID，但是这种方式不利于对代码层面的维护和升级，建议用户尽可能的使用手工的方式对算子进行唯一ID标记。如下所示可以通过 `uid()` 方法指定唯一ID：
-
 ```java
 env.addSource(new SimpleCustomSource()).uid("source-uid") // 为Source指定ID
 .keyBy(new KeySelector<Tuple2<String, Integer>, String>() {
@@ -52,7 +51,7 @@ map-uid      | State of StatefulMapper
 
 Savepoint 可以使用命令行来操作，命令行提供了触发 Savepoint、取消作业时生成 Savepoint、从 Savepoint 中恢复作业以及释放 Savepoint 等操作。在 Flink 1.2.0 版本之后也可以使用 Web 页面从 Savepoint 中恢复作业。
 
-#### 3.1 手动触发Savepoint
+#### 3.1 手动触发 Savepoint
 
 使用如下命令来触发 Savepoint，同时需要在命令行中指定 jobId 以及可选的 targetDirectory 两个参数，jobId 是需要触发 Savepoint 操作的作业Id，targetDirectory 是 Savepoint 数据的存储路径：
 ```
@@ -67,7 +66,7 @@ bin/flink savepoint :jobId [:targetDirectory]
 bin/flink savepoint :jobId [:targetDirectory] -yid :yarnAppId
 ```
 
-##### 3.2 取消作业并触发Savepoint
+##### 3.2 取消作业并触发 Savepoint
 
 可以使用如下 cancel 命令在取消作业时并自动触发 Savepoint：
 ```
@@ -77,7 +76,7 @@ bin/flink cancel -s [:targetDirectory] :jobId
 
 此外，您可以指定 targetDirectory 来存储 Savepoint，但是 JobManager 和 TaskManager 必须有访问该目录的权限。
 
-#### 3.3 从Savepoint恢复作业
+#### 3.3 从 Savepoint 恢复作业
 
 可以使用如下 run 命令从 Savepoint 中恢复作业，其中 -s 参数指定了 Savepoint 数据的存储路径：
 ```
@@ -90,7 +89,7 @@ bin/flink run -s :savepointPath [:runArgs]
 bin/flink run -s :savepointPath -n [:runArgs]
 ```
 
-#### 3.4 释放Savepoint
+#### 3.4 释放 Savepoint
 
 可以使用如下命令释放保存在 savepointPath 中的 Savepoint 数据：
 ```
@@ -99,7 +98,7 @@ bin/flink savepoint --dispose :savepointPath
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-deployment-savepoints-4.jpg?raw=true)
 
-官方文档给出如下也可以释放Savepoint：
+官方文档给出如下也可以释放 Savepoint：
 ```
 bin/flink savepoint -d :savepointPath
 ```
@@ -164,9 +163,5 @@ flink run -s :savepointPath -n [:runArgs]
 如果 Savepoint 是在 Flink 大于 1.2.0 版本下被触发的，并且没有使用已经弃用的状态API（如 Checkpointed），那么是可以从 Savepoint 恢复程序并指定新的并行度。但是如果小于 1.2.0 版本 或者使用了已经弃用的状态API，那么必须先将作业和 Savepoint 迁移到大于等于 1.2.0 版本上，然后才能更改并行度。
 
 > 请参考[升级作业和Flink版本指南](https://ci.apache.org/projects/flink/flink-docs-release-1.12/ops/upgrading.html)。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 原文:[Savepoints](https://ci.apache.org/projects/flink/flink-docs-release-1.12/ops/state/savepoints.html)

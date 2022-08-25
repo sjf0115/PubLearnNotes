@@ -9,7 +9,7 @@
 
 - [x] [Flink 安装与启动](https://blog.csdn.net/SunnyYoona/article/details/78276595)
 - [x] [构建 Flink 第一个应用程序](https://blog.csdn.net/SunnyYoona/article/details/126087865)
-- [ ] [Flink 中如何解析与传递参数]()
+- [x] [Flink 中如何解析与传递参数](https://smartsi.blog.csdn.net/article/details/126534721?spm=1001.2014.3001.5502)
 - [x] [Flink 程序剖析](https://smartsi.blog.csdn.net/article/details/126088002)
 - [ ] [Flink 如何指定并发]()
 - [ ] [4个步骤让 Flink 应用程序达到生产状态]()
@@ -97,7 +97,7 @@
 
 ### 5.3 Savepoint & Checkpoint
 
-- [ ] [Flink Savepoint 机制]()
+- [x] [Flink Savepoint 机制](https://smartsi.blog.csdn.net/article/details/126534751)
 - [x] [Flink 保存点之回溯时间](https://smartsi.blog.csdn.net/article/details/126474904?spm=1001.2014.3001.5502)
 - [ ] [Flink 如何实现新的流处理应用第二部分:版本化状态]()
 - [ ] [Flink 检查点启用与配置]()

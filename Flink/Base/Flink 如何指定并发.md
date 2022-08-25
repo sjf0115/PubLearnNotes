@@ -54,7 +54,7 @@ env.execute("Word Count Example")
 
 #### 1.2 执行环境级别
 
-如[Flink 程序剖析](http://smartsi.club/flink-anatomy-of-a-flink-program.html) 博文所述，Flink 程序是在执行环境的上下文中执行的。执行环境为它执行的所有算子，数据源和 Sink 提供了默认的并发度。执行环境的并发度可以通过显式配置一个算子的并发度来覆盖。
+如[Flink 程序剖析](https://smartsi.blog.csdn.net/article/details/126088002) 博文所述，Flink 程序是在执行环境的上下文中执行的。执行环境为它执行的所有算子，数据源和 Sink 提供了默认的并发度。执行环境的并发度可以通过显式配置一个算子的并发度来覆盖。
 
 执行环境的默认并发度可以通过调用 `setParallelism()` 方法来指定。要为执行的所有算子，数据源和 Sink 设置并发度为3，可以按如下代码所示设置执行环境的默认并发度：
 
@@ -136,10 +136,6 @@ try {
 最大并发度可以在可以设置并发度的地方设置(客户端级别和系统级别除外)。你可以调用 `setMaxParallelism()` 方法来设置最大并发度。最大并发度的默认设置大致为：算子并发度 +（算子并发度 / 2），下限为 127，上限为 32768。
 
 将最大并发度设置为一个非常大的数可能会对性能造成不利影响，这是因为某些状态后端必须保持内部数据结构与 KeyGroup 的数量成比例（这也是可伸缩状态的内部实现机制）。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 推荐订阅：
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jk.jpeg?raw=true)

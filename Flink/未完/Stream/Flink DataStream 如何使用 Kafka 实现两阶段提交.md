@@ -1,6 +1,15 @@
 ## 1. 配置适用的 Kafka 事务超时时间
 
-如果您为 Flink Kafka Producer 配置端到端的 Exactly-Once 语义，强烈建议将 Kafka 事务超时时间配置比最大检查点时间加上最大预期 Flink 作业停机时间更大的一个时间。另请注意，您可能希望在夜间或周末失败后恢复 Flink 作业。需要要配置 Kafka 事务超时：
+如果 Flink 应用程序崩溃和完成重启之间的时间大于 Kafka 的事务超时时间，Kafka 会自动中止超过超时时间的事务，则有可能会出现数据丢失。 考虑到这一点，请根据您的预期停机时间适当地配置您的事务超时时间。如果您为 Flink Kafka Producer 配置端到端的 Exactly-Once 语义，强烈建议将 Kafka 事务超时时间配置的要比最大检查点时间加上最大预期 Flink 作业停机时间更大的一个时间。
+
+Kafka Broker 默认将 transaction.max.timeout.ms 设置为 15 分钟。FlinkKafkaProducer 默认将 transaction.timeout.ms 属性设置为 1 小时。但是 transaction.max.timeout.ms 参数不允许 transaction.timeout.ms 参数设置的比其还要大。因此在使用 Exactly-Once 语义之前应增加 transaction.max.timeout.ms 值的大小。
+
+
+
+
+
+
+另请注意，您可能希望在夜间或周末失败后恢复 Flink 作业。需要要配置 Kafka 事务超时：
 - 为 Kafka Broker 配置 transaction.max.timeout.ms，默认为 15 分钟
 - 为 Kafka Producer 配置 transaction.max.timeout.ms，默认为 1 小时，实际上被 Kafka Broker 的上述 transaction.max.timeout.ms 配置所限制。
 

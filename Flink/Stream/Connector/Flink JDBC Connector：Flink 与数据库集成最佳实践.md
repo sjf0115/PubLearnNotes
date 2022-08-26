@@ -20,15 +20,15 @@ Flink 1.11 引入了 CDC，在此基础上， JDBC Connector 也发生比较大�
 
 JDBC Connector 在 Flink 1.11 版本发生了比较大的变化，我们先从以下几个 Feature 来具体了解一下 Flink 社区在这个版本上对 JDBC 所做的改进。
 
-- FLINK-15782 ：Rework JDBC Sinks[1] （重写 JDBC Sink）
+- [FLINK-15782 ：Rework JDBC Sinks](https://issues.apache.org/jira/browse/FLINK-15782) 重写 JDBC Sink
 
 这个 issue 主要为 DataStream API 新增了 JdbcSink，对于使用 DataStream 编程的用户会更加方便地把数据写入到 JDBC；并且规范了一些命名规则，以前命名使用的是 JDBC 加上连接器名称，目前命名规范为 Jdbc+ 连接器名称
 
-- FLINK-17537：Refactor flink-jdbc connector structure[2] （重构 flink-jdbc 连接器的结构）
+- [FLINK-17537：Refactor flink-jdbc connector structure](https://issues.apache.org/jira/browse/FLINK-17537) 重构 flink-jdbc 连接器的结构
 
 这个 issue 将 flink-jdbc 包名重命名为 flink-connector-jdbc，与 Flink 的其他 connector 统一，将所有接口和类从 org.apache.flink.java.io.jdbc（旧包）规范为新包路径 org.apache.flink.connector.jdbc（新包），通过这种重命名用户在对底层源代码的阅读上面会更加容易的理解和统一。
 
-- FLIP-95: New TableSource and TableSink interfaces[3] （新的 TableSource 和 TableSink 接口）
+- [FLIP-95: New TableSource and TableSink interfaces](https://cwiki.apache.org/confluence/display/FLINK/FLIP-95%3A+New+TableSource+and+TableSink+interfaces) 新的 TableSource 和 TableSink 接口
 
 由于早期数据类型系统并不是很完善，导致了比较多的 Connector 在使用上会经常报数据类型相关的异常，例如 DECIMAL 精度类型，在以往的 Flink 1.10 版本中有可能出现下图问题：
 
@@ -36,7 +36,7 @@ JDBC Connector 在 Flink 1.11 版本发生了比较大的变化，我们先从�
 
 基于 FLIP-95 新的 TableSource 和 TableSink 在精度支持方面做了重构，目前数据精度方面的支持已经很完善了。
 
-- FLIP-122：New Connector Property Keys for New Factory[4]（新的连接器参数）
+- [FLIP-122：New Connector Property Keys for New Factory](https://cwiki.apache.org/confluence/display/FLINK/FLIP-122%3A+New+Connector+Property+Keys+for+New+Factory) 新的连接器参数
 
 在 Flink 1.11 版本中，我们对 DDL 的 WITH 参数相对于 1.10 版本做了简化，从用户视角看上就是简化和规范了参数，如表格所示：
 
@@ -44,7 +44,7 @@ JDBC Connector 在 Flink 1.11 版本发生了比较大的变化，我们先从�
 
 大家可以看到表格中有 3 个标红的地方，这个是相对于 1.10 有发生变化比较多的地方。这次 FLIP 希望进一步简化连接器属性，以便使属性更加简洁和可读，并更好地与 FLIP-107 协作。如果需要了解更多的 Connector 参数可以进一步参考官方文档和 FLIP-122 中提到的改变，这样有助于从旧版本迁移到新版本并了解参数的变化。
 
-- FLIP-87：Primary key Constraints in Table API[5] (Table API 接口中的主键约束问题)
+- [FLIP-87：Primary key Constraints in Table API](https://cwiki.apache.org/confluence/display/FLINK/FLIP+87%3A+Primary+key+constraints+in+Table+API) Table API 接口中的主键约束问题
 
 Flink 1.10 存在某些 Query 无法推断出主键导致无法进行 Upsert 更新操作（如下图所示错误）。所以在 FLIP-87 中为 Flink SQL 引入的 Primary Key 约束。Flink 的主键约束遵循 SQL 标准，主键约束分为 PRIMARY KEY NOT ENFORCED 和 PRIMARY KEY ENFORCED， ENFORCED 表示是否对数据进行校验。我们常见数据库的主键约束属于 PRIMARY KEY ENFORCED，会对数据进行校验。因为 Flink 并不持有数据，因此 Flink 支持的主键模式是 PRIMARY KEY NOT ENFORCED,  这意味着 Flink 不会校验数据，而是由用户确保主键的完整性。例如 HBase 里面对应的主键应该是 RowKey，在 MySQL 中对应的主键是在用户数据库的表中对应的主键。
 
@@ -112,9 +112,5 @@ Flink 目前支持三种 Dialect: Derby、MySQL、PostgreSQL，Derby 主要用�
 ### 4. 总结
 
 本文从 JDBC Connector 的重构、数据精度、主键约束、命名规范等方面详细介绍，分享了社区目前实现的 Postgres Catalog 功能点；介绍了 Flink 如何实现 JDBC Dialect 的统一以及目前社区对 Dialect 做的一些计划；最后的实践 Demo 环节演示了通过 SQL Client 进行维表 JOIN 和 ETL 操作以及解答了大家在实际生产中所遇到的问题，希望对大家进一步了解 Flink CDC 新功能有所帮助。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文：[Flink JDBC Connector：Flink 与数据库集成最佳实践](https://mp.weixin.qq.com/s/guHl9hnNgD22sBseiGDZ2g)

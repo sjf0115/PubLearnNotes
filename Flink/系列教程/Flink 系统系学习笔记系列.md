@@ -11,8 +11,8 @@
 - [x] [构建 Flink 第一个应用程序](https://blog.csdn.net/SunnyYoona/article/details/126087865)
 - [x] [Flink 中如何解析与传递参数](https://smartsi.blog.csdn.net/article/details/126534721?spm=1001.2014.3001.5502)
 - [x] [Flink 程序剖析](https://smartsi.blog.csdn.net/article/details/126088002)
-- [ ] [Flink 如何指定并发]()
-- [ ] [4个步骤让 Flink 应用程序达到生产状态]()
+- [x] [Flink 如何指定并发](https://smartsi.blog.csdn.net/article/details/126535786?spm=1001.2014.3001.5502)
+- [ ] [4 个步骤让 Flink 应用程序达到生产状态]()
 - [ ] [Flink 数据交换策略 Partitioner]()
 - [x] [Flink 任务失败重启与恢复策略](https://smartsi.blog.csdn.net/article/details/126451162?spm=1001.2014.3001.5502)
 - [ ] [Flink 与 SPI]()
@@ -122,6 +122,7 @@
 ### 6.2 Table & SQL
 
 - [ ] [Flink SQL Kafka Connector]()
+- [x] [Flink JDBC Connector：Flink 与数据库集成最佳实践](https://smartsi.blog.csdn.net/article/details/126535909)
 - [x] [Flink SQL Print Connector](https://smartsi.blog.csdn.net/article/details/124086562)
 - [x] [Flink SQL 1.11 流批一体 Hive 数仓](https://smartsi.blog.csdn.net/article/details/121061979)
 

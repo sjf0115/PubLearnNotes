@@ -57,8 +57,4 @@ https://issues.apache.org/jira/browse/FLINK-9749
 - 行式编码格式：row-wise encoding formats
 - 批量编码格式：bulk-encoding encoding formats
 
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
-
 原文:[Streaming File Sink](https://ci.apache.org/projects/flink/flink-docs-stable/dev/connectors/streamfile_sink.html)

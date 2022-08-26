@@ -22,7 +22,7 @@
 ### 3.1 时间概念与 Watermark
 
 - [ ] [Flink 事件时间与处理时间]()
-- [x] [Flink 如何现实新的流处理应用第一部分:事件时间与无序处理](https://smartsi.blog.csdn.net/article/details/122513198)
+- [x] [Flink 如何现实新的流处理应用第一部分:事件时间与无序处理](https://smartsi.blog.csdn.net/article/details/126551181)
 - [ ] [Flink 轻松理解 Watermark]()
 - [ ] [Flink Watermark 机制]()
 - [ ] [Flink 在1.10版本之前如何生成 Watermark]()
@@ -46,7 +46,7 @@
 - [x] [Flink SourceFunction 初了解](https://smartsi.blog.csdn.net/article/details/123342142)
 - [ ] [Flink DataStream 如何实现双流Join]()
 - [x] [Flink DataStream Java Lambda 表达式的限制](https://smartsi.blog.csdn.net/article/details/120661028)
-- [ ] [影响 Flink 有状态函数和算子性能的3个重要因素]()
+- [x] [影响 Flink 有状态函数和算子性能的 3 个重要因素](影响 Flink 有状态函数和算子性能的 3 个重要因素)
 
 ## 4. Table & SQL
 
@@ -99,7 +99,7 @@
 
 - [x] [Flink Savepoint 机制](https://smartsi.blog.csdn.net/article/details/126534751)
 - [x] [Flink 保存点之回溯时间](https://smartsi.blog.csdn.net/article/details/126474904?spm=1001.2014.3001.5502)
-- [ ] [Flink 如何实现新的流处理应用第二部分:版本化状态]()
+- [x] [Flink 如何实现新的流处理应用第二部分:版本化状态](https://smartsi.blog.csdn.net/article/details/126551289)
 - [ ] [Flink 检查点启用与配置]()
 - [x] [Flink Savepoints 和 Checkpoints 的 3 个不同点](https://smartsi.blog.csdn.net/article/details/126475549?spm=1001.2014.3001.5502)
 - [ ] [Flink 管理大型状态之增量 Checkpoint]()

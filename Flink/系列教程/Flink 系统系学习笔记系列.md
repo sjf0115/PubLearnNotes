@@ -46,7 +46,7 @@
 - [x] [Flink SourceFunction 初了解](https://smartsi.blog.csdn.net/article/details/123342142)
 - [ ] [Flink DataStream 如何实现双流Join]()
 - [x] [Flink DataStream Java Lambda 表达式的限制](https://smartsi.blog.csdn.net/article/details/120661028)
-- [x] [影响 Flink 有状态函数和算子性能的 3 个重要因素](影响 Flink 有状态函数和算子性能的 3 个重要因素)
+- [x] [影响 Flink 有状态函数和算子性能的 3 个重要因素](https://smartsi.blog.csdn.net/article/details/126550984)
 
 ## 4. Table & SQL
 
@@ -79,18 +79,19 @@
 ### 5.1 状态
 
 - [x] [Flink 状态分类](https://smartsi.blog.csdn.net/article/details/123296073)
-- [ ] [Flink 使用 Broadcast State 的4个注意事项]()
-- [ ] [Flink Broadcast State 实战指南]()
-- [ ] [Flink 状态TTL如何限制状态的生命周期]()
+- [x] [Flink 状态管理和容错机制介绍](https://smartsi.blog.csdn.net/article/details/126551467?spm=1001.2014.3001.5502)
+- [ ] [Flink 状态 TTL 如何限制状态的生命周期]()
 - [x] [Flink State TTL 详解](https://smartsi.blog.csdn.net/article/details/123221583)
+- [ ] [Flink 使用 Broadcast State 的 4 个注意事项]()
+- [ ] [Flink Broadcast State 实战指南]()
 - [ ] [Flink 中可查询状态是如何工作的]()
 - [x] [State Processor API：如何读写和修改 Flink 应用程序的状态](https://smartsi.blog.csdn.net/article/details/123265728)
-- [x] [Flink 1.13 State Backend 优化及生产实践](https://smartsi.blog.csdn.net/article/details/123057769)
 - [x] [深入了解 Flink 的可扩展性状态](https://smartsi.blog.csdn.net/article/details/121006448)
 
 ### 5.2 StateBackend
 
 - [ ] [有状态流处理:Flink 状态后端]()
+- [x] [Flink 1.13 State Backend 优化及生产实践](https://smartsi.blog.csdn.net/article/details/123057769)
 - [x] [Flink 1.13 StateBackend 与 CheckpointStorage 拆分](https://smartsi.blog.csdn.net/article/details/123057769)
 - [ ] [Flink 如何管理 RocksDB 内存大小]()
 - [ ] [Flink 何时以及如何使用 RocksDB 状态后端]()

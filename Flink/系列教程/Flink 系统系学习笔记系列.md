@@ -21,7 +21,7 @@
 
 ### 3.1 时间概念与 Watermark
 
-- [ ] [Flink 事件时间与处理时间]()
+- [x] [Flink 事件时间与处理时间](https://smartsi.blog.csdn.net/article/details/126554454)
 - [x] [Flink 如何现实新的流处理应用第一部分:事件时间与无序处理](https://smartsi.blog.csdn.net/article/details/126551181)
 - [ ] [Flink 轻松理解 Watermark]()
 - [ ] [Flink Watermark 机制]()
@@ -32,9 +32,10 @@
 
 - [ ] [Flink 窗口 Window 机制]()
 - [ ] [Flink 窗口如何使用]()
-- [ ] [Flink 窗口剔除器 Evictor]()
-- [ ] [Flink 窗口触发器 Trigger]()
 - [ ] [Flink 窗口函数 WindowFunction]()
+- [ ] [Flink 窗口触发器 Trigger]()
+- [ ] [Flink 窗口剔除器 Evictor]()
+
 - [ ] [Flink 定时器的4个特性]()
 
 ### 3.3 Function

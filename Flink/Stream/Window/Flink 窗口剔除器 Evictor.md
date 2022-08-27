@@ -12,17 +12,15 @@ permalink: flink-stream-windows-evictor
 
 ### 1. 简介
 
-除了 [WindowAssigner]() 和 [Trigger]() 之外，Flink 的窗口模型还允许指定一个可选的 Evictor。Evictor 提供了在使用 [WindowFunction]() 之前或者之后从窗口中删除元素的能力。为此，Evictor 接口提供了两个方法：
+除了 [WindowAssigner]() 和 [Trigger]() 之外，Flink 的窗口模型还允许指定一个可选的剔除器 Evictor。Evictor 提供了在使用 [WindowFunction]() 之前或者之后从窗口中删除元素的能力。为此，Evictor 接口提供了两个方法：
 ```java
 public interface Evictor<T, W extends Window> extends Serializable {
-  // 可选的删除元素，在窗口函数之前调用
+  // 在窗口函数调用之前删除元素
   void evictBefore(Iterable<TimestampedValue<T>> elements,
       int size, W window, EvictorContext evictorContext);
-
-  // 可选的删除元素，在窗口函数之后调用
+  // 在窗口函数调用之后删除元素
   void evictAfter(Iterable<TimestampedValue<T>> elements,
       int size, W window, EvictorContext evictorContext);
-
   interface EvictorContext {
       // 当前处理时间
       long getCurrentProcessingTime();
@@ -334,16 +332,6 @@ A,9,2021-08-30 12:09:30
 ```
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-evictor-3.png?raw=true)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
-
-相关推荐：
-- [Flink 窗口之Window机制](http://smartsi.club/introducing-stream-windows-in-apache-flink.html)
-- [Flink 窗口分配器 WindowAssigner](http://smartsi.club/flink-stream-windows-overall.html)
-- [Flink 窗口处理函数 WindowFunction](http://smartsi.club/flink-stream-windows-function.html)
-- [Flink 窗口触发器 Trigger](http://smartsi.club/flink-stream-windows-trigger.html)
 
 参考：
 - [Evictors](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/dev/datastream/operators/windows/#evictors)

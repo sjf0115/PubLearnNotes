@@ -17,7 +17,7 @@ Flink 在数据流中支持几种不同概念的时间。
 
 ### 1. 处理时间
 
-`Processing Time`(处理时间)是指执行相应操作的机器系统时间，是操作算子在计算过程中获取到的所在主机的系统时间。当用户选择使用处理时间时，所有和时间相关的算子，例如 Windows 计算，在当前任务中所有的算子直接使用所在主机的系统时间。例如，一个基于处理时间按每小时进行处理的时间窗口将处理一个小时内（以系统时间为标准）到达指定算子的所有的记录。
+`Processing Time`(处理时间)是指执行相应操作的机器系统时间，是操作算子在计算过程中获取所在主机的系统时间。当用户选择使用处理时间时，所有和时间相关的算子，例如 Windows 计算，在当前任务中所有的算子直接使用所在主机的系统时间。例如，一个基于处理时间按小时进行处理的时间窗口将处理一个小时内（以系统时间为标准）到达指定算子的所有的记录。
 
 处理时间是最简单的一个时间概念，不需要在数据流和机器之间进行协调。具有最好的性能和最低的延迟。然而，在分布式或者异步环境中，处理时间具有不确定性，因为容易受到记录到达系统速度的影响(例如，从消息队列到达的记录)，还会受到系统内记录在不同算子之间的流动速度的影响。对数据乱序的处理，处理时间不是一种最优的选择。
 
@@ -41,13 +41,11 @@ Flink 在数据流中支持几种不同概念的时间。
 
 在内部，摄入时间与事件时间非常相似，但事件时间会自动分配时间戳以及自动生成`watermark`。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/Flink1.4%20%E4%BA%8B%E4%BB%B6%E6%97%B6%E9%97%B4%E4%B8%8E%E5%A4%84%E7%90%86%E6%97%B6%E9%97%B4.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-event-time-and-processing-time.png?raw=true)
 
 ### 4. 选择时间特性
 
-Flink DataStream 程序的第一部分通常设置基本的时间特性。该设置定义数据流源的行为方式(例如，它们是否产生时间戳)，以及窗口操作如`KeyedStream.timeWindow(Time.seconds(30))`应使用哪一类型的时间，是事件时间还是处理时间等。
-
-以下示例展示了一个聚合每小时时间窗口内的事件的 Flink 程序。窗口的行为会与时间特性相匹配：
+Flink DataStream 程序的第一部分通常设置基本的时间特性。该设置定义数据流源的行为方式(例如，它们是否产生时间戳)，以及窗口操作如`KeyedStream.timeWindow(Time.seconds(30))`应使用哪一类型的时间，是事件时间还是处理时间等。以下示例展示了一个聚合每小时时间窗口内的事件的 Flink 程序。窗口的行为会与时间特性相匹配：
 
 Java版本:
 ```java
@@ -87,9 +85,5 @@ stream
 ```
 
 > 备注：为了以事件时间运行此示例，程序需要使用定义了事件时间并自动产生watermarks的 Source，或者程序必须在 Source 之后设置时间戳分配器和 watermarks 生成器。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 原文:[Timely Stream Processing](https://ci.apache.org/projects/flink/flink-docs-release-1.11/concepts/timely-stream-processing.html)

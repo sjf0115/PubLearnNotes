@@ -30,8 +30,8 @@
 
 ### 3.2 Window 窗口
 
-- [ ] [Flink 窗口 Window 机制]()
-- [ ] [Flink 窗口如何使用]()
+- [ ] [Flink 窗口 Window 介绍](https://smartsi.blog.csdn.net/article/details/126554021?spm=1001.2014.3001.5502)
+- [ ] [Flink 窗口分配器 WindowAssigner]()
 - [ ] [Flink 窗口函数 WindowFunction]()
 - [ ] [Flink 窗口触发器 Trigger]()
 - [ ] [Flink 窗口剔除器 Evictor]()

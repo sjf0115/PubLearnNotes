@@ -48,13 +48,14 @@ stream
 
 ## 1. 滚动窗口
 
-滚动窗口分配器将每个元素分配给固定大小的窗口。滚动窗口有固定的大小且不重叠。例如，如果指定大小为5分钟的滚动窗口，每五分钟都会启动一个新窗口，如下图所示:
+滚动窗口分配器将每个元素分配给固定大小且不重叠的窗口。例如，如果指定大小为 10 分钟的滚动窗口，那么每 10 分钟都会启动一个新窗口，如下图所示:
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-overall-1.png?raw=true)
 
-以下代码显示如何使用滚动窗口：
+DataStream 针对事件时间和处理时间的滚动窗口分别提供了对应的分配器 TumblingEventTimeWindows 和 TumblingProcessingTimeWindows。
 
-Java版本:
+
+以下代码显示如何使用滚动窗口：
 ```java
 DataStream<T> input = ...;
 
@@ -77,34 +78,11 @@ input
     .<windowed transformation>(<window function>);
 ```
 
-Scala版本:
-```scala
-val input: DataStream[T] = ...
-
-// tumbling event-time windows
-input
-    .keyBy(<key selector>)
-    .window(TumblingEventTimeWindows.of(Time.seconds(5)))
-    .<windowed transformation>(<window function>)
-
-// tumbling processing-time windows
-input
-    .keyBy(<key selector>)
-    .window(TumblingProcessingTimeWindows.of(Time.seconds(5)))
-    .<windowed transformation>(<window function>)
-
-// daily tumbling event-time windows offset by -8 hours.
-input
-    .keyBy(<key selector>)
-    .window(TumblingEventTimeWindows.of(Time.days(1), Time.hours(-8)))
-    .<windowed transformation>(<window function>)
-```
-
 也可以通过使用 `Time.milliseconds(x)`， `Time.seconds(x)`， `Time.minutes(x)` 来指定时间间隔。
 
 如上面例子中所示，滚动窗口分配器还可以使用一个可选的偏移量参数，用来改变窗口的对齐方式。例如，没有偏移量的情况下，窗口大小为1小时的滚动窗口与 `epoch` （指的是一个特定的时间：`1970-01-01 00:00:00 UTC`）对齐，那么你将获得如`1:00:00.000 - 1:59:59.999`，`2:00:00.000 - 2:59:59.999` 之类的窗口。如果你想改变，可以给一个偏移量。以15分钟的偏移量为例，那么你将获得`1:15:00.000 - 2:14:59.999`，`2:15:00.000 - 3:14:59.999` 之类的窗口。偏移量的一个重要应用是将窗口调整为 `timezones` 而不是 `UTC-0`。例如，在中国，你必须指定 `Time.hours(-8)` 的偏移量。
 
-#### 3.2 滑动窗口
+## 2. 滑动窗口
 
 滑动窗口分配器将每个元素分配给固定窗口大小的窗口。与滚动窗口分配器类似，窗口的大小由 `window size` 参数配置。还有一个`window slide`参数用来控制滑动窗口的滑动大小。因此，如果滑动大小小于窗口大小，则滑动窗口会重叠。在这种情况下，一个元素会被分配到多个窗口中。
 
@@ -158,7 +136,7 @@ input
     .<windowed transformation>(<window function>)
 ```
 
-#### 3.3 会话窗口
+## 3. 会话窗口
 
 会话窗口分配器通过活动会话对元素进行分组。与滚动窗口和滑动窗口相比，会话窗口不会重叠，也没有固定的开始和结束时间。当会话窗口在一段时间内没有接收到元素时会关闭。会话窗口分配器需要配置一个会话间隙，定义了所需的不活动时长。当此时间段到期时，当前会话关闭，后续元素被分配到新的会话窗口。
 
@@ -200,7 +178,7 @@ input
 
 由于会话窗口没有固定的开始时间和结束时间，因此它们的执行与滚动窗口和滑动窗口不同。在内部，会话窗口算子为每个到达记录创建一个新窗口，如果它们之间的距离比定义的间隙要小，那么窗口会合并在一起。为了能合并，会话窗口算子需要一个合并触发器和合并窗口函数，例如，ReduceFunction 、AggregateFunction 或 ProcessWindowFunction。
 
-#### 3.4 全局窗口
+## 4. 全局窗口
 
 全局窗口分配器将具有相同 key 的所有元素分配给同一个全局窗口。仅当我们指定自定义触发器时，窗口才起作用。否则，不会执行任何计算，因为全局窗口没有我们可以处理聚合元素的自然结束的点（译者注：即本身自己不知道窗口的大小，计算多长时间的元素）。
 

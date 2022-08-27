@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Flink 在1.10版本之前如何生成Watermark
+title: Flink 1.10 版本之前如何生成 Watermark
 date: 2021-01-30 12:06:17
 tags:
   - Flink
@@ -17,17 +17,17 @@ permalink: flink-stream-event-timestamp-and-extractors
 final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 ```
-除了在 StreamExecutionEnvironment 中指定 TimeCharacteristic 外，Flink 还需要知道事件的时间戳，这意味着需要为流中的每个元素分配事件时间戳。通常，这可以通过元素的某个字段来提取时间戳来完成的。通过指定字段提取事件时间的过程，我们一般叫做 Timestamp Assigning。简单来讲，就是告诉系统需要通过哪个字段作为事件时间的数据源来。Timestamp 指定完毕之后，下面就需要创建相应的 Watermark。需要用户根据 Timestamp 计算出 Watermark 的生成策略。
+除了在 StreamExecutionEnvironment 中指定 TimeCharacteristic 外，Flink 还需要知道事件的时间戳，这意味着需要为流中的每个元素分配事件时间戳。通常，这可以通过元素的某个字段来提取时间戳来完成。通过指定字段提取事件时间的过程，我们一般叫做 Timestamp Assigning。简单来讲，就是告诉系统需要通过哪个字段作为事件时间的数据来源。Timestamp 指定完毕之后，下面就需要创建相应的 Watermark。需要用户根据 Timestamp 计算出 Watermark 的生成策略。
 
-目前 Flink 支持两种方式生成 Watermark（指定 Timestamp）：
+目前 Flink 支持两种方式生成 Watermark（以及指定 Timestamp）：
 - 直接在 DataStream Source 算子接口的 SourceFunction 中定义。
 - 通过定义 Timestamp Assigner 与 Watermark Generator 来生成。
 
-## 1. Source Functions中定义Watermark
+## 1. Source Functions 中定义 Watermark
 
-在 Source Functions 中定义 Timestamp 和 Watermark，也就是说数据源可以将时间戳直接分配给它们产生的元素，并且还可以直接输出 Watermark。这就意味着不再需要 Timestamp Assigner。如果在后续流程中使用了 Timestamp Assigner，那么数据源提供的 Timestamp 和 Watermark 将会被覆盖。
+在 Source Functions 中定义 Timestamp 和 Watermark，也就是说数据源可以将时间戳直接分配给它们产生的元素，并且还可以直接输出 Watermark。这就意味着不再需要指定 Timestamp Assigner。如果在后续流程中使用了 Timestamp Assigner，那么数据源提供的 Timestamp 和 Watermark 将会被覆盖。
 
-用户需要重写 SourceFunction 接口中的 run() 方法实现数据生成逻辑，同时需要调用 SourceContext 上的 collectWithTimestamp() 方法生成事件时间戳。要生成 Watermark，则必须调用 emitWatermark() 方法。
+用户需要重写 SourceFunction 接口中的 run() 方法实现数据生成逻辑，同时需要调用 SourceContext 上的 collectWithTimestamp() 方法生成事件时间戳以及要调用 emitWatermark() 方法来生成 Watermark。
 
 如下代码是一个简单的示例数据源，在该数据源中分配时间戳并生成 Watermark：
 ```java
@@ -53,8 +53,10 @@ public class WatermarkSimpleSource extends RichParallelSourceFunction<WBehavior>
     }
 }
 ```
+> []()
 
-## 2. 指定Timestamp Assigner 与 Watermark Generator
+
+## 2. 指定 Timestamp Assigner 与 Watermark Generator
 
 如果用户使用了 Flink 已经定义好的外部数据源连接器，就不能再实现 SourceFunction 接口来生成流式数据以及相应的 Timestamp 和 Watermark，这种情况下就需要借助 Timestamp Assigner 来管理数据流中的 Timestamp 和 Watermark。Timestamp Assigner 一般是跟在 Source 算子后面，也可以在后续的算子中指定，只要保证 Timestamp Assigner 在第一个时间相关的算子之前即可。例如，一种常见的模式就是在解析（MapFunction）和过滤（FilterFunction）之后使用 Timestamp Assigner。
 
@@ -65,7 +67,7 @@ Flink 根据 Watermark 的生成形式分为两种类型，分别是 Periodic Wa
 public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(AssignerWithPeriodicWatermarks<T> timestampAndWatermarkAssigner)
 public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(AssignerWithPunctuatedWatermarks<T> timestampAndWatermarkAssigner)
 ```
-> 1.10版本之后使用 assignTimestampsAndWatermarks(WatermarkStrategy<T> watermarkStrategy) 接口。
+> 1.10 版本之后使用 assignTimestampsAndWatermarks(WatermarkStrategy<T> watermarkStrategy) 接口。
 
 ### 2.1 Periodic Watermark
 
@@ -303,10 +305,6 @@ C,2021-01-05 12:09:01
 C,2021-01-05 12:15:01
 A,2021-01-05 12:08:01
 ```
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 参考:
 - [Generating Timestamps / Watermarks](https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/event_timestamps_watermarks.html)

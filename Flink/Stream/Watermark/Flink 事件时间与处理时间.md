@@ -45,45 +45,72 @@ Flink 在数据流中支持几种不同概念的时间。
 
 ### 4. 选择时间特性
 
-Flink DataStream 程序的第一部分通常设置基本的时间特性。该设置定义数据流源的行为方式(例如，它们是否产生时间戳)，以及窗口操作如`KeyedStream.timeWindow(Time.seconds(30))`应使用哪一类型的时间，是事件时间还是处理时间等。以下示例展示了一个聚合每小时时间窗口内的事件的 Flink 程序。窗口的行为会与时间特性相匹配：
+当你指定一个窗口来收集每分钟的记录时，如何判定每个窗口中需要包含哪些事件呢？在 Flink DataStream API 中，你可以使用时间特性来告知 Flink 在创建窗口时如何定义时间。时间特性是 StreamExecutionEnvironment 的一个属性，目前可以接收如下三种值，分别对应上述三种类型的时间类型：
+```java
+public enum TimeCharacteristic {
+    // 处理时间
+    ProcessingTime,
+    // 摄入时间
+    IngestionTime,
+    // 事件时间
+    EventTime
+}
+```
+可以通过 StreamExecutionEnvironment 的 setStreamTimeCharacteristic 方法来设置时间特性：
+```java
+public void setStreamTimeCharacteristic(TimeCharacteristic characteristic) {
+    this.timeCharacteristic = Preconditions.checkNotNull(characteristic);
+    if (characteristic == TimeCharacteristic.ProcessingTime) {
+        getConfig().setAutoWatermarkInterval(0);
+    } else {
+        getConfig().setAutoWatermarkInterval(200);
+    }
+}
+```
+通过上述代码可以看到设置时间特性其本质是设置 Watermark 的时间间隔。如果设置的是 ProcessingTime 则 Watermark 的时间间隔为 0；如果设置的是 EventTime 和 IngestionTime，则设置为 200 毫秒。当然这是一个默认值，如果默认值不适用于您的应用程序，可以通过 ExecutionConfig 的 setAutoWatermarkInterval(long) 方法重新修改。
 
-Java版本:
+如下展示了一个使用处理时间计算每分钟单词个数的示例，注意的是窗口的行为会与时间特性相匹配：
 ```java
 final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
+// 设置Checkpoint
+env.enableCheckpointing(1000L);
+// 设置事件时间特性 处理时间
 env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime);
 
-// alternatively:
-// env.setStreamTimeCharacteristic(TimeCharacteristic.IngestionTime);
-// env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+DataStream<String> source = env.socketTextStream("localhost", 9100, "\n");
 
-DataStream<MyEvent> stream = env.addSource(new FlinkKafkaConsumer09<MyEvent>(topic, schema, props));
+// Stream of (word, count)
+DataStream<Tuple2<String, Long>> words = source
+        .flatMap(new FlatMapFunction<String, Tuple2<String, Long>>() {
+            @Override
+            public void flatMap(String str, Collector<Tuple2<String, Long>> collector) throws Exception {
+                String[] words = str.split("\\s+");
+                for (String word : words) {
+                    collector.collect(Tuple2.of(word, 1L));
+                }
+            }
+        });
 
-stream
-    .keyBy( (event) -> event.getUser() )
-    .timeWindow(Time.hours(1))
-    .reduce( (a, b) -> a.add(b) )
-    .addSink(...);
-```
-Scala版本:
-```
-val env = StreamExecutionEnvironment.getExecutionEnvironment
-
-env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime)
-
-// alternatively:
-// env.setStreamTimeCharacteristic(TimeCharacteristic.IngestionTime)
-// env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
-
-val stream: DataStream[MyEvent] = env.addSource(new FlinkKafkaConsumer09[MyEvent](topic, schema, props))
-
-stream
-    .keyBy( _.getUser )
-    .timeWindow(Time.hours(1))
-    .reduce( (a, b) => a.add(b) )
-    .addSink(...)
+// 滚动窗口
+DataStream<Tuple2<String, Long>> tumblingTimeWindowStream = words
+        // 根据单词分组
+        .keyBy(new KeySelector<Tuple2<String,Long>, String>() {
+            @Override
+            public String getKey(Tuple2<String, Long> tuple2) throws Exception {
+                return tuple2.f0;
+            }
+        })
+        // 窗口大小为1分钟的滚动窗口
+        .timeWindow(Time.minutes(1))
+        // 求和
+        .sum(1);
 ```
 
-> 备注：为了以事件时间运行此示例，程序需要使用定义了事件时间并自动产生watermarks的 Source，或者程序必须在 Source 之后设置时间戳分配器和 watermarks 生成器。
+
+在 Flink 1.12 中，默认的时间特性已更改为 `EventTime`，因此您不再需要调用此方法来启用事件时间支持。 显式使用处理时间窗口和计时器在事件时间模式下工作。 如果您需要禁用水印，请使用 `ExecutionConfig.setAutoWatermarkInterval(long)`。 如果您使用的是 `IngestionTime`，请手动设置适当的 `WatermarkStrategy`。 如果您正在使用通用的“时间窗口”操作（例如基于时间特征改变行为的 `KeyedStream.timeWindow()`，请使用明确指定处理时间或事件时间的等效操作。
+
+
+
+
 
 原文:[Timely Stream Processing](https://ci.apache.org/projects/flink/flink-docs-release-1.11/concepts/timely-stream-processing.html)

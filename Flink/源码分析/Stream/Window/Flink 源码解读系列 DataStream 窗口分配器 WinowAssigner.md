@@ -1,6 +1,8 @@
+在前一篇文章 [Flink 源码解读系列 DataStream 窗口 Window 实现](https://smartsi.blog.csdn.net/article/details/126574164) 中，我们了解到 Flink 窗口 Window 有两种具体实现，一个是 TimeWindow，一个是 GlobalWindow。有了窗口之后，我们如何将元素分配给窗口呢？在这篇文章中我们重点了解一下窗口分配器 WindowAssigner 是如何将输入流中的元素划分给窗口的。
+
 ## 1. 如何指定窗口分配器
 
-在指定窗口分配器时，Flink 为我们提供了如下几种选择。如果是在 KeyedStream 上使用窗口，我们可以使用如下三个方法指定窗口分配器：
+在了解窗口分配器 WindowAssigner 内部实现之前，我们先看一下如何为窗口算子指定窗口分配器的。Flink 为我们提供了几种指定窗口分配器的方式，这还需要取决于输入流是不是 KeyedStream。如果是在 KeyedStream 上使用窗口，我们可以使用如下三个方法指定窗口分配器：
 - window()
 - timeWindow()
 - countWindow()
@@ -10,16 +12,16 @@
 - timeWindowAll()
 - countWindowAll()
 
+无论是 KeyedStream 还是 DataStream，实现的基本原理基本一致。
+
 ### 1.1 window
 
-使用窗口我们要做的第一件事就是你的数据流是否根据 key 进行分流（分区）。这必须在定义窗口之前使用 keyBy() 进行分流。在确定数据流是否根据 key 分流之后，下一步就是定义窗口分配器（WindowAssigners）。窗口分配器依赖于我们上面做的第一件事，如果在使用 keyBy() 的数据流上使用窗口，则调用 window() 函数，否则使用 windowAll() 函数：
-
+对于 KeyedStream，可以通过 window 方法指定你选择的窗口分配器，而对于 DataStream 则需要使用 windowAll 方法指定：
 ```java
 // KeyedStream 上使用
 public <W extends Window> WindowedStream<T, KEY, W> window(WindowAssigner<? super T, W> assigner) {
     return new WindowedStream<>(this, assigner);
 }
-
 // DataStream 上使用
 public <W extends Window> AllWindowedStream<T, W> windowAll(WindowAssigner<? super T, W> assigner) {
 	return new AllWindowedStream<>(this, assigner);
@@ -28,16 +30,11 @@ public <W extends Window> AllWindowedStream<T, W> windowAll(WindowAssigner<? sup
 
 ### 1.2 timeWindow
 
+> Flink 1.12 版本中标记为弃用，推荐使用 window 方法
 
-
-上述第一个函数是窗口化 `KeyedStream` 数据流为滚动窗口（只有一个参数，窗口大小），第二个函数窗口化为滑动窗口（有两个参数，窗口大小以及滑动大小）。具体是基于事件时间的窗口还是基于处理时间的窗口，取决于你你设置的　`TimeCharacteristic`。例如下面设置为基于事件时间：
+除了使用 window(或者 windowAll) 方法来指定窗口分配器之外，也可以使用 timeWindow(或者 timeWindowAll) 来指定窗口分配器。这种方式需要与时间特性配合使用，具体是基于事件时间的窗口还是基于处理时间的窗口，取决于你设置的 TimeCharacteristic：
 ```java
-environment.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
-```
-
-滚动时间窗口：
-```java
-// KeyedStream
+// KeyedStream 滚动时间窗口
 public WindowedStream<T, KEY, TimeWindow> timeWindow(Time size) {
     if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
         return window(TumblingProcessingTimeWindows.of(size));
@@ -45,19 +42,7 @@ public WindowedStream<T, KEY, TimeWindow> timeWindow(Time size) {
         return window(TumblingEventTimeWindows.of(size));
     }
 }
-// DataStream
-public AllWindowedStream<T, TimeWindow> timeWindowAll(Time size) {
-	if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
-		return windowAll(TumblingProcessingTimeWindows.of(size));
-	} else {
-		return windowAll(TumblingEventTimeWindows.of(size));
-	}
-}
-```
-
-滑动时间窗口：
-```java
-// KeyedStream
+// KeyedStream 滑动时间窗口
 public WindowedStream<T, KEY, TimeWindow> timeWindow(Time size, Time slide) {
     if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
         return window(SlidingProcessingTimeWindows.of(size, slide));
@@ -65,7 +50,16 @@ public WindowedStream<T, KEY, TimeWindow> timeWindow(Time size, Time slide) {
         return window(SlidingEventTimeWindows.of(size, slide));
     }
 }
-// DataStream
+
+// DataStream 滚动时间窗口
+public AllWindowedStream<T, TimeWindow> timeWindowAll(Time size) {
+	if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
+		return windowAll(TumblingProcessingTimeWindows.of(size));
+	} else {
+		return windowAll(TumblingEventTimeWindows.of(size));
+	}
+}
+// DataStream 滑动时间窗口
 public AllWindowedStream<T, TimeWindow> timeWindowAll(Time size, Time slide) {
     if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
     	return windowAll(SlidingProcessingTimeWindows.of(size, slide));
@@ -76,6 +70,10 @@ public AllWindowedStream<T, TimeWindow> timeWindowAll(Time size, Time slide) {
 ```
 从上面代码中可以看到 timeWindow 函数只是对 window 函数的一次封装，封装之后我们不用关心到底是使用滚动事件时间窗口分配器 TumblingEventTimeWindows、滚动处理时间窗口分配器 TumblingProcessingTimeWindows、滑动事件时间窗口分配器 SlidingEventTimeWindows 还是滑动处理时间窗口分配器 SlidingProcessingTimeWindows。timeWindow 会根据你设置的时间特性 TimeCharacteristic 以及是否有滑动步长来自选选择对应的窗口分配器。例如时间特性为事件时间 EventTime，只有窗口大小没有滑动步长，timeWindow 会你提供滚动事件时间窗口分配器 TumblingEventTimeWindows。这样方式更简洁一些，出错的可能性也更低，不需要记住各种不同的窗口分配器。
 
+需要注意的是在 Flink 1.12 版本中，DataStream API 中的 timeWindow() 方法已经标注为 `@Deprecated`。Flink 社区推荐使用带 TumblingEventTimeWindows、SlidingEventTimeWindows、TumblingProcessingTimeWindows 或 SlidingProcessingTimeWindows 的 window(WindowAssigner) 方法。主要原因是在这个版本中弃用了 DataStream API 中的时间特性，从而导致无法继续基于时间特性来判断是基于处理时间的窗口还是基于事件时间的窗口，有关详细信息，请参阅 []()。
+
+> [FLINK-19318](FLINK-19318)
+
 ### 1.3 countWindow
 
 ```java
@@ -83,7 +81,6 @@ public AllWindowedStream<T, TimeWindow> timeWindowAll(Time size, Time slide) {
 public WindowedStream<T, KEY, GlobalWindow> countWindow(long size) {
 	return window(GlobalWindows.create()).trigger(PurgingTrigger.of(CountTrigger.of(size)));
 }
-
 public WindowedStream<T, KEY, GlobalWindow> countWindow(long size, long slide) {
 	return window(GlobalWindows.create())
 			.evictor(CountEvictor.of(size))
@@ -94,7 +91,6 @@ public WindowedStream<T, KEY, GlobalWindow> countWindow(long size, long slide) {
 public AllWindowedStream<T, GlobalWindow> countWindowAll(long size) {
 	return windowAll(GlobalWindows.create()).trigger(PurgingTrigger.of(CountTrigger.of(size)));
 }
-
 public AllWindowedStream<T, GlobalWindow> countWindowAll(long size, long slide) {
 	return windowAll(GlobalWindows.create())
 			.evictor(CountEvictor.of(size))

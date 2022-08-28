@@ -99,7 +99,7 @@ if (buffer.length() > 0) {
 }
 ```
 While 循环中是从 Socket 中读取数据，并按照指定的分隔符切分字符串输出的逻辑。此外，还增加了重试能力，如果处于运行状态并且重试的次数没有超过最大重试次数，间隔 delayBetweenRetries 毫秒之后再次重试连接 Socket 读取数据。下面详细看一下如何连接 Socket 分割读取数据：
-```
+```java
 try (Socket socket = new Socket()) {
     currentSocket = socket;
     // 连接 Socket

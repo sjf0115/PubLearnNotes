@@ -79,7 +79,8 @@ public AllWindowedStream<T, TimeWindow> timeWindowAll(Time size, Time slide) {
 ```java
 // KeyedStream
 public WindowedStream<T, KEY, GlobalWindow> countWindow(long size) {
-	return window(GlobalWindows.create()).trigger(PurgingTrigger.of(CountTrigger.of(size)));
+	return window(GlobalWindows.create())
+      .trigger(PurgingTrigger.of(CountTrigger.of(size)));
 }
 public WindowedStream<T, KEY, GlobalWindow> countWindow(long size, long slide) {
 	return window(GlobalWindows.create())
@@ -100,57 +101,170 @@ public AllWindowedStream<T, GlobalWindow> countWindowAll(long size, long slide) 
 
 ## 2. 窗口分配器实现
 
+上面我们了解了指定窗口分配器 WindowAssigner 的几种方式，那 WindowAssigner 具体是如何实现的呢？Flink 提供了一个 WindowAssigner 抽象类，抽象了几个实现 WindowAssigner 必须要实现的几个方法：
+```java
+public abstract class WindowAssigner<T, W extends Window> implements Serializable {
+    public abstract Collection<W> assignWindows(T element, long timestamp, WindowAssignerContext context);
+    public abstract Trigger<T, W> getDefaultTrigger(StreamExecutionEnvironment env);
+    public abstract TypeSerializer<W> getWindowSerializer(ExecutionConfig executionConfig);
+    public abstract boolean isEventTime();
+    public abstract static class WindowAssignerContext {
+        public abstract long getCurrentProcessingTime();
+    }
+}
+```
+抽象类有 4 个方法：
+- assignWindows：将带有时间戳 timestamp 的元素 element 分配给一个或多个窗口，并返回分配的窗口集合
+- getDefaultTrigger：窗口分配器默认的触发器 Trigger
+- getWindowSerializer 窗口分配器的序列化器，用来序列化窗口
+- isEventTime：是否是基于 EventTime 来分配窗口
+
+Flink 针对生产环境使用比较多的场景内置实现了几种窗口分配器：
+
+![]()
+
+> 当然，如果内置的窗口分配器不能满足你的需求，可以自己实现自定义的窗口分配器
+
+下面我们会重点介绍我们比较常用的 TumblingEventTimeWindows、TumblingProcessingTimeWindows、SlidingEventTimeWindows、SlidingProcessingTimeWindows、GlobalWindows。
+
 ### 2.1 TumblingEventTimeWindows
 
+滚动事件时间窗口分配器 TumblingEventTimeWindows 根据元素的事件时间戳将元素分配到滚动窗口中。创建 TumblingEventTimeWindows 需要提供窗口大小 size、窗口偏移量 offset 以及窗口错峰策略 windowStagger 三个参数：
+```java
+public class TumblingEventTimeWindows extends WindowAssigner<Object, TimeWindow> {
+    // 窗口大小
+    private final long size;
+    // 窗口偏移量
+    private final long globalOffset;
+    // 窗口错峰策略
+    private final WindowStagger windowStagger;
+    protected TumblingEventTimeWindows(long size, long offset, WindowStagger windowStagger) {
+        if (Math.abs(offset) >= size) {
+            throw new IllegalArgumentException(xxx);
+        }
+        this.size = size;
+        this.globalOffset = offset;
+        this.windowStagger = windowStagger;
+    }
+    ...
+}
+```
+Flink 为我们提供了三个便捷方法 of 来创建滚动事件时间窗口分配器，一个只需要指定窗口大小，一个只需要指定窗口大小和窗口偏移量 offset(时间偏移量可以更好的控制窗口的开始时间)，另一个指定窗口大小和时间偏移量之外还需要指定窗口错峰策略：
+```java
+// 创建一个滚动事件时间窗口分配器 只指定窗口大小
+public static TumblingEventTimeWindows of(Time size) {
+    return new TumblingEventTimeWindows(size.toMilliseconds(), 0, WindowStagger.ALIGNED);
+}
+// 创建一个滚动事件时间窗口分配器 指定窗口大小和时间偏移量
+public static TumblingEventTimeWindows of(Time size, Time offset) {
+    return new TumblingEventTimeWindows(
+            size.toMilliseconds(), offset.toMilliseconds(), WindowStagger.ALIGNED);
+}
+// 创建一个滚动事件时间窗口分配器 指定窗口大小、时间偏移量以及窗口错峰策略
+public static TumblingEventTimeWindows of(Time size, Time offset, WindowStagger windowStagger) {
+    return new TumblingEventTimeWindows(
+            size.toMilliseconds(), offset.toMilliseconds(), windowStagger);
+}
+```
+> WindowStagger 是 Flink 1.12 版本新添加的一个新特性，为了解决同一时间触发大量的窗口计算造成的性能问题，具体可以查阅 [FLINK-12855](https://issues.apache.org/jira/browse/FLINK-12855)
 
+了解了滚动事件时间窗口分配器如何创建之后，我们一起看一下窗口分配器是如何将元素分配到窗口中的。具体分配到哪个窗口需要通过 assignWindows 方法实现：
+```java
+public Collection<TimeWindow> assignWindows(Object element, long timestamp, WindowAssignerContext context) {
+    if (timestamp > Long.MIN_VALUE) {
+        // 设置窗口错峰策略偏移量 错峰触发窗口
+        if (staggerOffset == null) {
+            staggerOffset = windowStagger.getStaggerOffset(context.getCurrentProcessingTime(), size);
+        }
+        // 窗口开始时间
+        long start = TimeWindow.getWindowStartWithOffset(
+              timestamp, (globalOffset + staggerOffset) % size, size
+        );
+        // 分配到的具体窗口
+        return Collections.singletonList(new TimeWindow(start, start + size));
+    } else {
+        // 没有指定时间戳提取器
+        throw new RuntimeException(xxx);
+    }
+}
+```
+如果你使用的是事件时间并指定了时间戳提取 assignTimestampsAndWatermarks，元素的时间戳肯定是大于 Long.MIN_VALUE，否则需要检查你写的代码是否有问题。staggerOffset 默认值是空的，会根据选择的窗口错峰策略 WindowStagger 设置偏移量，然后根据 timestamp 和 size 计算出窗口的开始时间，最后返回一个存储 TimeWindow 的单例集合。计算窗口开始时间的详细逻辑可以参阅 [Flink 源码解读系列 DataStream 窗口 Window 实现](https://smartsi.blog.csdn.net/article/details/126574164?spm=1001.2014.3001.5502)。
+
+> 滚动窗口分配器在一个时间点只能将一个元素分配到一个窗口中
+
+如果没有指定窗口错峰策略 WindowStagger，默认为 WindowStagger.ALIGNED，那么 staggerOffset 为 0，窗口计算开始时间与如下代码等价：
+```java
+TimeWindow.getWindowStartWithOffset(now, globalOffset, size);
+```
+
+此外窗口分配器还提供了默认的触发器 EventTimeTrigger 来决定窗口计算的触发时机：
+```java
+public Trigger<Object, TimeWindow> getDefaultTrigger(StreamExecutionEnvironment env) {
+    return EventTimeTrigger.create();
+}
+```
 
 ### 2.2 TumblingProcessingTimeWindows
 
-滚动处理时间窗口分配器 TumblingProcessingTimeWindows 根据当前系统时间将元素分配到滚动窗口中。Flink 为我们提供了两个便捷方法 of 来创建滚动处理时间窗口分配器，其中一个只指定窗口大小，另一个指定窗口大小和时间偏移量(时间偏移量可以更好的控制窗口的开始时间)：
+滚动处理时间窗口分配器 TumblingProcessingTimeWindows 根据当前系统时间将元素分配到滚动窗口中。创建 TumblingProcessingTimeWindows 需要提供窗口大小 size、窗口偏移量 offset 以及窗口错峰策略 windowStagger 三个参数：
 ```java
 public class TumblingProcessingTimeWindows extends WindowAssigner<Object, TimeWindow> {
     // 窗口大小
     private final long size;
     // 窗口偏移量
-    private final long offset;
-    private TumblingProcessingTimeWindows(long size, long offset) {
+    private final long globalOffset;
+    // 窗口错峰策略
+    private final WindowStagger windowStagger;
+    private TumblingProcessingTimeWindows(long size, long offset, WindowStagger windowStagger) {
         if (Math.abs(offset) >= size) {
-            // 偏移量不能大于窗口的大小
             throw new IllegalArgumentException(xxx);
         }
         this.size = size;
-        this.offset = offset;
+        this.globalOffset = offset;
+        this.windowStagger = windowStagger;
     }
     ...
 }
+```
+Flink 为我们提供了三个便捷方法 of 来创建滚动事件时间窗口分配器，一个只需要指定窗口大小，一个只需要指定窗口大小和窗口偏移量 offset(时间偏移量可以更好的控制窗口的开始时间)，另一个指定窗口大小和时间偏移量之外还需要指定窗口错峰策略：
+```java
 // 创建一个滚动处理时间窗口分配器 只指定窗口大小
 public static TumblingProcessingTimeWindows of(Time size) {
-    return new TumblingProcessingTimeWindows(size.toMilliseconds(), 0);
+    return new TumblingProcessingTimeWindows(size.toMilliseconds(), 0, WindowStagger.ALIGNED);
 }
 // 创建一个滚动处理时间窗口分配器 指定窗口大小和时间偏移量
 public static TumblingProcessingTimeWindows of(Time size, Time offset) {
-    return new TumblingProcessingTimeWindows(size.toMilliseconds(), offset.toMilliseconds());
+    return new TumblingProcessingTimeWindows(
+            size.toMilliseconds(), offset.toMilliseconds(), WindowStagger.ALIGNED);
+}
+// 创建一个滚动处理时间窗口分配器 指定窗口大小、时间偏移量以及窗口错峰策略
+public static TumblingProcessingTimeWindows of(
+        Time size, Time offset, WindowStagger windowStagger) {
+    return new TumblingProcessingTimeWindows(
+            size.toMilliseconds(), offset.toMilliseconds(), windowStagger);
 }
 ```
-如果您希望创建一个每小时的窗口，但窗口必须从每小时的第 15 分钟开始，那您可以使用 of(Time.hours(1), Time.minutes(15)) 来分配创建窗口，那么您将获取从 0:15:00、1:15:00、2:15:00 等开始的时间窗口。此外，如果您住在不使用 UTC±00:00 时间的地方，例如使用 UTC+08:00 的中国，你想要一个大小为一天的时间窗口，并且窗口从当地时间的每 00:00:00 开始，您可以使用 of(Time.days(1),Time.hours(-8))。offset 的参数是 Time.hours(-8) 因为 UTC+08:00 比 UTC+08:00 早 8 小时 UTC 时间。
-
-窗口分配器最核心的目标就是将元素分配到窗口中，具体分配到哪个窗口需要通过 assignWindows 方法实现：
+了解了滚动处理时间窗口分配器如何创建之后，我们一起看一下窗口分配器是如何将元素分配到窗口中的。具体分配到哪个窗口需要通过 assignWindows 方法实现：
 ```java
 public Collection<TimeWindow> assignWindows(Object element, long timestamp, WindowAssignerContext context) {
     // 当前处理时间
     final long now = context.getCurrentProcessingTime();
+    // 窗口错峰偏移量
+    if (staggerOffset == null) {
+        staggerOffset = windowStagger.getStaggerOffset(context.getCurrentProcessingTime(), size);
+    }
     // 窗口的开始时间
-    long start = TimeWindow.getWindowStartWithOffset(now, offset, size);
+    long start = TimeWindow.getWindowStartWithOffset(now, (globalOffset + staggerOffset) % size, size);
     // 分配到的具体窗口
     return Collections.singletonList(new TimeWindow(start, start + size));
 }
-
-// 计算窗口的开始时间
-public static long getWindowStartWithOffset(long timestamp, long offset, long windowSize) {
-    return timestamp - (timestamp - offset + windowSize) % windowSize;
-}
 ```
-> 滚动窗口分配器在一个时间点只能将一个元素分配到一个窗口中
+staggerOffset 默认值是空的，会根据选择的窗口错峰策略 WindowStagger 设置偏移量，然后根据 timestamp 和 size 计算出窗口的开始时间，最后返回一个存储 TimeWindow 的单例集合。跟滚动事件处理时间不同的是，计算窗口开始时间的时间戳不是元素本身的事件时间戳 timestamp，而是当前处理时间 now。滚动处理时间窗口分配器会根据当前处理时间将元素分配到滚动窗口中。
+
+如果没有指定窗口错峰策略，默认为 WindowStagger.ALIGNED，staggerOffset 为 0，窗口计算开始时间与如下代码等价：
+```java
+TimeWindow.getWindowStartWithOffset(now, globalOffset, size);
+```
 
 此外窗口分配器还提供了默认的触发器 ProcessingTimeTrigger 来决定窗口计算的触发时机：
 ```java
@@ -161,7 +275,52 @@ public Trigger<Object, TimeWindow> getDefaultTrigger(StreamExecutionEnvironment 
 
 ### 2.3 SlidingEventTimeWindows
 
-
+滑动处理时间窗口分配器 SlidingEventTimeWindows 根据元素的事件时间戳将元素分配到滑动窗口中。创建 SlidingEventTimeWindows 需要提供窗口大小 size、窗口滑动步长 slide 以及窗口偏移量 offset 三个参数：
+```java
+public class SlidingEventTimeWindows extends WindowAssigner<Object, TimeWindow> {
+    // 窗口大小
+    private final long size;
+    // 滑动步长
+    private final long slide;
+    // 窗口偏移量
+    private final long offset;
+    protected SlidingEventTimeWindows(long size, long slide, long offset) {
+        if (Math.abs(offset) >= slide || size <= 0) {
+            throw new IllegalArgumentException(xxx);
+        }
+        this.size = size;
+        this.slide = slide;
+        this.offset = offset;
+    }
+}
+```
+Flink 为我们提供了两个便捷方法 of 来创建滑动事件时间窗口分配器，其中一个只指定窗口大小，另一个指定窗口大小和时间偏移量(时间偏移量可以更好的控制窗口的开始时间)：
+```java
+// 创建一个滑动事件时间窗口分配器 指定窗口大小和滑动步长
+public static SlidingEventTimeWindows of(Time size, Time slide) {
+    return new SlidingEventTimeWindows(size.toMilliseconds(), slide.toMilliseconds(), 0);
+}
+// 创建一个滑动事件时间窗口分配器 指定窗口大小滑动步长以及时间偏移量
+public static SlidingEventTimeWindows of(Time size, Time slide, Time offset) {
+    return new SlidingEventTimeWindows(
+            size.toMilliseconds(), slide.toMilliseconds(), offset.toMilliseconds());
+}
+```
+了解了滑动事件时间窗口分配器如何创建之后，我们一起看一下窗口分配器是如何将元素分配到窗口中的。具体分配到哪个窗口需要通过 assignWindows 方法实现：
+```java
+public Collection<TimeWindow> assignWindows(Object element, long timestamp, WindowAssignerContext context) {
+    if (timestamp > Long.MIN_VALUE) {
+        List<TimeWindow> windows = new ArrayList<>((int) (size / slide));
+        long lastStart = TimeWindow.getWindowStartWithOffset(timestamp, offset, slide);
+        for (long start = lastStart; start > timestamp - size; start -= slide) {
+            windows.add(new TimeWindow(start, start + size));
+        }
+        return windows;
+    } else {
+        throw new RuntimeException(xxx);
+    }
+}
+```
 
 ### 2.4 SlidingProcessingTimeWindows
 

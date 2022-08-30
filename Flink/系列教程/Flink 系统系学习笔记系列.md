@@ -30,14 +30,16 @@
 
 ### 3.2 Window 窗口
 
-- [ ] [Flink 窗口 Window 介绍](https://smartsi.blog.csdn.net/article/details/126554021?spm=1001.2014.3001.5502)
+- [x] [Flink 窗口 Window 介绍](https://smartsi.blog.csdn.net/article/details/126554021?spm=1001.2014.3001.5502)
 - [ ] [Flink 窗口开始时间如何计算]()
 - [ ] [Flink 窗口分配器 WindowAssigner]()
+- [x] [Flink 原理与实现：Session Window](https://smartsi.blog.csdn.net/article/details/126614957?spm=1001.2014.3001.5502)
 - [ ] [Flink 窗口函数 WindowFunction]()
 - [ ] [Flink 窗口触发器 Trigger]()
 - [ ] [Flink 窗口剔除器 Evictor]()
 - [ ] [Flink 定时器的4个特性]()
-- [ ] [Flink 源码解读系列 DataStream 窗口 Winow 实现](https://smartsi.blog.csdn.net/article/details/126574164)
+- [x] [Flink 源码解读系列 DataStream 窗口 Winow 实现](https://smartsi.blog.csdn.net/article/details/126574164)
+- [x] [Flink 源码解读系列 DataStream 窗口分配器 WinowAssigner](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502)
 
 ### 3.3 Function
 

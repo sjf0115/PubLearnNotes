@@ -109,12 +109,12 @@
 - [ ] [数仓系列 | Flink 窗口的应用与实现](https://mp.weixin.qq.com/s/xZTGeFaaVW4VDDVgp3jwqg)
 - [ ] [Flink 消息聚合处理方案](https://mp.weixin.qq.com/s/PTQiwzP78WI-uRxwTWv6CQ)
 - [ ] [Flink 滑动窗口优化](https://mp.weixin.qq.com/s/jBvNM_qMtzuPOTYnI00EJw)
-- [ ] [Introducing Stream Windows in Apache Flink](https://flink.apache.org/news/2015/12/04/Introducing-windows.html)
-- [ ] [Session Windows in Flink](https://data-artisans.com/blog/session-windowing-in-flink)
+- [x] [Introducing Stream Windows in Apache Flink](https://flink.apache.org/news/2015/12/04/Introducing-windows.html)
 - [ ] [Introduction to Flink Streaming - Part 5 : Window API in Flink](http://blog.madhukaraphatak.com/introduction-to-flink-streaming-part-5/)
 - [ ] [Advanced Flink Application Patterns Vol.3: Custom Window Processing](https://flink.apache.org/news/2020/07/30/demo-fraud-detection-3.html)
 - [ ] [Flink 双流 Join 的3种操作示例](https://mp.weixin.qq.com/s/vTAkUrPfO4DW1qOzJ-Zs4A)
 - [ ] [Flink Interval Join 使用和原理分析](https://mp.weixin.qq.com/s/_I1oE_pQXonQ9IoMsWIUzg)
+- [ ] [How Apache Flink™ Enables New Streaming Applications, Part 3](https://www.ververica.com/blog/session-windowing-in-flink)
 
 ### 7. Wartermark
 

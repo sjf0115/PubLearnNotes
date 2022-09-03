@@ -10,6 +10,8 @@ categories: Flink
 permalink: stateful-stream-processing-apache-flink-state-backends
 ---
 
+> Flink 1.12.0
+
 这篇文章我们将深入探讨有状态流处理，更确切地说是 Flink 中可用的不同状态后端。在以下部分，我们将介绍 Flink 的3个状态后端，看一下它们的局限性以及如何根据具体案例需求选择最合适的状态后端。
 
 在有状态的流处理中，当启用了 Flink 的检查点功能时，状态会持久化存储以防止数据的丢失并确保发生故障时能够完全恢复。为应用程序选择何种状态后端，取决于状态持久化的方式和位置。
@@ -20,7 +22,7 @@ Flink 提供了三种可用的状态后端：MemoryStateBackend，FsStateBackend
 
 ### 1. MemoryStateBackend
 
-MemoryStateBackend 是将状态维护在 Java 堆上的一个内部状态后端。键值状态以及窗口算子都使用哈希表来存储数据值和定时器。当应用程序 checkpoint 时，状态后端会在将状态发给 JobManager 之前对状态进行快照，JobManager 会将状态存储在 Java 堆上。MemoryStateBackend 默认支持异步快照。异步快照可以避免阻塞数据流处理，从而避免发生反压。
+MemoryStateBackend 是将状态维护在 Java 堆上的一个内部状态后端。KeyedState 以及窗口算子都使用哈希表来存储数据值以及定时器。当应用程序进行 Checkpoint 时，状态后端会在将状态发给 JobManager 之前对状态进行快照，JobManager 会将状态存储在 Java 堆上。MemoryStateBackend 默认支持异步快照。异步快照可以避免阻塞数据流处理，从而避免发生反压。
 
 使用 MemoryStateBackend 时的注意点：
 - 默认情况下，每一个单独状态最大为 5 MB。可以通过 MemoryStateBackend 的构造函数修改最大值。
@@ -29,7 +31,7 @@ MemoryStateBackend 是将状态维护在 Java 堆上的一个内部状态后端�
 
 什么时候使用 MemoryStateBackend：
 - 本地开发或调试时建议使用 MemoryStateBackend，因为这种场景的状态不会很大。
-- MemoryStateBackend 非常适合状态比较小的用例和流处理程序。例如一次仅处理一条记录的函数（Map, FlatMap，或 Filter）或者 [Kafka consumer](http://smartsi.club/how-flink-manages-kafka-consumer-offsets.html)。
+- MemoryStateBackend 非常适合状态比较小的用例和流处理程序。例如一次仅处理一条记录的函数（Map, FlatMap，或 Filter）或者 [Kafka consumer](https://smartsi.blog.csdn.net/article/details/126475307?spm=1001.2014.3001.5502)。
 
 ### 2. FsStateBackend
 
@@ -67,9 +69,5 @@ RocksDBStateBackend 将正在处理的数据使用 RocksDB 存储在本地磁盘
 - RocksDBStateBackend 是目前唯一支持在有状态流处理应用程序中增量 Checkpoint 的状态后端。
 
 在使用 RocksDB 时，状态大小只受限于磁盘可用空间的大小。这也使得 RocksDBStateBackend 成为管理超大状态的比较好的选择。使用 RocksDB 的权衡点在于所有状态的访问和检索都需要序列化（或反序列化）才能跨越 JNI 边界。与上面提到的堆上后端相比，这可能会影响应用程序的吞吐量。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文:[Stateful Stream Processing: Apache Flink State Backends](https://www.ververica.com/blog/stateful-stream-processing-apache-flink-state-backends)

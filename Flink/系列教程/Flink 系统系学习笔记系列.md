@@ -12,7 +12,7 @@
 - [x] [Flink 中如何解析与传递参数](https://smartsi.blog.csdn.net/article/details/126534721?spm=1001.2014.3001.5502)
 - [x] [Flink 程序剖析](https://smartsi.blog.csdn.net/article/details/126088002)
 - [x] [Flink 如何指定并发](https://smartsi.blog.csdn.net/article/details/126535786?spm=1001.2014.3001.5502)
-- [ ] [4 个步骤让 Flink 应用程序达到生产状态]()
+- [x] [4 个步骤让 Flink 应用程序达到生产状态](https://smartsi.blog.csdn.net/article/details/126682174)
 - [ ] [Flink 数据交换策略 Partitioner]()
 - [x] [Flink 任务失败重启与恢复策略](https://smartsi.blog.csdn.net/article/details/126451162?spm=1001.2014.3001.5502)
 - [ ] [Flink 与 SPI]()
@@ -32,9 +32,9 @@
 
 - [x] [Flink 窗口 Window 介绍](https://smartsi.blog.csdn.net/article/details/126554021?spm=1001.2014.3001.5502)
 - [ ] [Flink 窗口开始时间如何计算]()
-- [ ] [Flink 窗口分配器 WindowAssigner]()
+- [x] [Flink 窗口分配器 WindowAssigner](https://smartsi.blog.csdn.net/article/details/126652876?spm=1001.2014.3001.5502)
 - [x] [Flink 原理与实现：Session Window](https://smartsi.blog.csdn.net/article/details/126614957?spm=1001.2014.3001.5502)
-- [ ] [Flink 窗口函数 WindowFunction]()
+- [x] [Flink 窗口函数 WindowFunction](https://smartsi.blog.csdn.net/article/details/126681922?spm=1001.2014.3001.5502)
 - [ ] [Flink 窗口触发器 Trigger]()
 - [ ] [Flink 窗口剔除器 Evictor]()
 - [ ] [Flink 定时器的4个特性]()
@@ -94,7 +94,7 @@
 
 ### 5.2 StateBackend
 
-- [ ] [有状态流处理:Flink 状态后端]()
+- [x] [有状态流处理:Flink 状态后端](https://smartsi.blog.csdn.net/article/details/126682122)
 - [x] [Flink 1.13 State Backend 优化及生产实践](https://smartsi.blog.csdn.net/article/details/123057769)
 - [x] [Flink 1.13 StateBackend 与 CheckpointStorage 拆分](https://smartsi.blog.csdn.net/article/details/123057769)
 - [ ] [Flink 如何管理 RocksDB 内存大小]()

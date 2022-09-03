@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Flink 轻松理解Watermark
+title: Flink 轻松理解 Watermark
 date: 2019-03-20 12:17:21
 tags:
   - Flink
@@ -15,11 +15,11 @@ permalink: watermarks-in-apache-flink-made-easy
 
 在下文中的例子中，我们有一个带有时间戳的事件流，这些事件并不是按顺序到达的。图中的数字表示事件发生的时间戳。第一个事件在时间 4 到达，后面跟着一个发生更早时间的事件（时间 2），以此类推：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/watermarks-in-apache-flink-made-easy-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/watermarks-in-apache-flink-made-easy-1.png)
 
 注意这是一个基于事件时间处理的例子，这意味着时间戳反映的是事件发生的时间，而不是事件处理的时间。基于事件时间处理的强大之处在于创建流处理程序无论是处理实时的数据还是重新处理历史的数据，都能保证结果的一致。
 
-> 关于不同概念时间（例如事件时间，处理时间或摄入时间）的更多信息可以参考[Flink1.4 事件时间与处理时间](http://smartsi.club/flink-stream-event-time-and-processing-time.html)。
+> 关于不同概念时间（例如事件时间，处理时间或摄入时间）的更多信息可以参考[Flink 事件时间与处理时间](https://smartsi.blog.csdn.net/article/details/126554454)。
 
 现在假设我们正在创建一个排序的数据流。这意味着应用程序处理流中的乱序到达的事件，并生成同样事件但按时间戳（事件时间）排序的新数据流。
 
@@ -37,7 +37,7 @@ permalink: watermarks-in-apache-flink-made-easy
 
 ### 3. 理解三
 
-我们需要定义某种策略来决定什么时候不再去停止等待更早数据的到来。
+我们需要定义某种策略来决定什么时候停止等待更早数据的到来。
 
 > 这就是 Watermark 的作用，定义了什么时候不再等待更早的数据。
 
@@ -52,9 +52,5 @@ Flink 中基于事件时间的处理依赖于一种特殊的带时间戳的元�
 我们都知道每个事件都会在延迟一段时间后到达，而不同事件的延迟会不一样，所以会有些事件比其他事件延迟更多。一种简单的方法是假设这些延迟不会超过某个最大值延迟时间。Flink 把这种策略称之为有界无序 Watermark（bounded-out-of-orderness）。当然也有很多更复杂的方法来生成 Watermark，但是对于大多数应用来说，固定延迟的方法已经足够了。
 
 如果想要创建一个类似排序的流应用程序，可以使用 Flink 的 `ProcessFunction`。它提供了对事件时间计时器（即，基于 Watermark 到达触发的回调）的访问，还提供了管理状态的接口（缓存事件直到它们发送到下游）。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 原文:[Watermarks in Apache Flink Made Easy](https://www.ververica.com/blog/watermarks-in-apache-flink-made-easy)

@@ -1,3 +1,14 @@
+---
+layout: post
+author: smartsi
+title: Flink 源码解读系列 DataStream 时间戳和 Watermark 生成器
+date: 2022-08-31 12:06:17
+tags:
+  - Flink
+
+categories: Flink
+permalink: flink-stream-code-event-timestamp-and-extractors
+---
 
 TimestampAssigner 目的只有一个就是从记录元素中提取元素的时间戳：
 ```java
@@ -151,6 +162,7 @@ public final long extractTimestamp(T element, long previousElementTimestamp) {
 #### 1.2.2 Watermark 生成
 
 ```java
+private long lastEmittedWatermark = Long.MIN_VALUE;
 public final Watermark getCurrentWatermark() {
   	// this guarantees that the watermark never goes backwards.
   	long potentialWM = currentMaxTimestamp - maxOutOfOrderness;
@@ -162,6 +174,8 @@ public final Watermark getCurrentWatermark() {
 ```
 
 ## 2. AssignerWithPunctuatedWatermarks
+
+除了根据时间周期性生成 Periodic Watermark，用户也可以根据某些特殊条件生成 Punctuated Watermark，例如判断某个数据元素为某个事件时，就会触发生成 Watermark，如果不为某个事件，就不会触发生成 Watermark。我们需要自定义实现 AssignerWithPunctuatedWatermarks 接口来实现 Punctuated Watermark。如下代码所示，通过重写 extractTimestamp 和 checkAndGetNextWatermark 方法来分别定义时间戳抽取逻辑和生成 Watermark 的逻辑：
 
 AssignerWithPunctuatedWatermarks 跟 AssignerWithPeriodicWatermarks 一样，也是增加了生成 Watermark 的逻辑：
 ```java

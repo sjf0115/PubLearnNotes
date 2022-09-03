@@ -54,7 +54,6 @@ stream
 
 DataStream 针对事件时间和处理时间的滚动窗口分别提供了对应的分配器 TumblingEventTimeWindows 和 TumblingProcessingTimeWindows。
 
-
 以下代码显示如何使用滚动窗口：
 ```java
 DataStream<T> input = ...;
@@ -82,6 +81,8 @@ input
 
 如上面例子中所示，滚动窗口分配器还可以使用一个可选的偏移量参数，用来改变窗口的对齐方式。例如，没有偏移量的情况下，窗口大小为1小时的滚动窗口与 `epoch` （指的是一个特定的时间：`1970-01-01 00:00:00 UTC`）对齐，那么你将获得如`1:00:00.000 - 1:59:59.999`，`2:00:00.000 - 2:59:59.999` 之类的窗口。如果你想改变，可以给一个偏移量。以15分钟的偏移量为例，那么你将获得`1:15:00.000 - 2:14:59.999`，`2:15:00.000 - 3:14:59.999` 之类的窗口。偏移量的一个重要应用是将窗口调整为 `timezones` 而不是 `UTC-0`。例如，在中国，你必须指定 `Time.hours(-8)` 的偏移量。
 
+> 滚动窗口分配器的内部实现细节，可以参阅[TumblingEventTimeWindows](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502) 和 [TumblingProcessingTimeWindows](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502)
+
 ## 2. 滑动窗口
 
 滑动窗口分配器将每个元素分配给固定窗口大小的窗口。与滚动窗口分配器类似，窗口的大小由 `window size` 参数配置。还有一个`window slide`参数用来控制滑动窗口的滑动大小。因此，如果滑动大小小于窗口大小，则滑动窗口会重叠。在这种情况下，一个元素会被分配到多个窗口中。
@@ -90,7 +91,6 @@ input
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-overall-2.png?raw=true)
 
-Java版本:
 ```java
 DataStream<T> input = ...;
 
@@ -113,28 +113,7 @@ input
     .<windowed transformation>(<window function>);
 ```
 
-Scala版本:
-```scala
-val input: DataStream[T] = ...
-
-// sliding event-time windows
-input
-    .keyBy(<key selector>)
-    .window(SlidingEventTimeWindows.of(Time.seconds(10), Time.seconds(5)))
-    .<windowed transformation>(<window function>)
-
-// sliding processing-time windows
-input
-    .keyBy(<key selector>)
-    .window(SlidingProcessingTimeWindows.of(Time.seconds(10), Time.seconds(5)))
-    .<windowed transformation>(<window function>)
-
-// sliding processing-time windows offset by -8 hours
-input
-    .keyBy(<key selector>)
-    .window(SlidingProcessingTimeWindows.of(Time.hours(12), Time.hours(1), Time.hours(-8)))
-    .<windowed transformation>(<window function>)
-```
+> 滑动窗口分配器的内部实现细节，可以参阅[SlidingEventTimeWindows](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502) 和 [SlidingProcessingTimeWindows](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502)
 
 ## 3. 会话窗口
 
@@ -142,7 +121,6 @@ input
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-overall-3.png?raw=true)
 
-Java版本:
 ```java
 DataStream<T> input = ...;
 
@@ -159,23 +137,6 @@ input
     .<windowed transformation>(<window function>);
 ```
 
-Scala版本:
-```scala
-val input: DataStream[T] = ...
-
-// event-time session windows
-input
-    .keyBy(<key selector>)
-    .window(EventTimeSessionWindows.withGap(Time.minutes(10)))
-    .<windowed transformation>(<window function>)
-
-// processing-time session windows
-input
-    .keyBy(<key selector>)
-    .window(ProcessingTimeSessionWindows.withGap(Time.minutes(10)))
-    .<windowed transformation>(<window function>)
-```
-
 由于会话窗口没有固定的开始时间和结束时间，因此它们的执行与滚动窗口和滑动窗口不同。在内部，会话窗口算子为每个到达记录创建一个新窗口，如果它们之间的距离比定义的间隙要小，那么窗口会合并在一起。为了能合并，会话窗口算子需要一个合并触发器和合并窗口函数，例如，ReduceFunction 、AggregateFunction 或 ProcessWindowFunction。
 
 ## 4. 全局窗口
@@ -184,7 +145,6 @@ input
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-overall-4.png?raw=true)
 
-Java版本:
 ```java
 DataStream<T> input = ...;
 
@@ -194,31 +154,4 @@ input
     .<windowed transformation>(<window function>);
 ```
 
-Scala版本:
-```scala
-val input: DataStream[T] = ...
-
-input
-    .keyBy(<key selector>)
-    .window(GlobalWindows.create())
-    .<windowed transformation>(<window function>)
-```
-
-### 1. 窗口生命周期
-
-一旦属于这个窗口的第一个元素到达，就会创建该窗口，当时间(事件时间或处理时间)到达规定结束时间加上用户指定的可允许延迟的时间后，窗口将会被删除。举个例子，使用基于事件时间的窗口策略，每隔5分钟创建一个滚动窗口，并且允许可以有1分钟的延迟时间。当第一个带有时间戳的元素位于 12:00 至 12:05 之间时，Flink 创建一个 12:00 至 12:05 的新窗口，当时间戳到达 12:06 时，窗口将被删除。Flink 仅保证对基于时间的窗口进行删除，并不适用于其他类型的窗口，例如，全局窗口。
-
-除此之外，每个窗口都有一个触发器(Trigger)和一个函数(例如 `WindowFunction`， `ReduceFunction` 或 `FoldFunction`)。函数用于窗口的计算，而触发器决定了窗口什么时候调用该函数。触发策略可能类似于"当窗口中元素个数大于4时" 或 "当 `watermark` 到达窗口末尾时"。触发器还可以决定在什么时候清除窗口内容（创建窗口以及删除窗口之间的任何时间点）。在这里，清除仅指清除窗口中的元素，而不是窗口（窗口元数据）。这意味着新数据仍然可以添加到窗口中。
-
-除此之外，你还可以指定一个 Evictor 来删除窗口中的元素（在触发器触发之后以及在使用该函数之前或之后）。
-
-
-
-
-
-
-
-
-
-
-原文：[Windows](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/stream/operators/windows.html#windows)
+> 全局窗口分配器的内部实现细节，可以参阅[GlobalWindows](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502)

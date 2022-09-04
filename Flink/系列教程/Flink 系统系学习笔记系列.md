@@ -24,6 +24,7 @@
 - [x] [Flink 事件时间与处理时间](https://smartsi.blog.csdn.net/article/details/126554454)
 - [x] [Flink 如何现实新的流处理应用第一部分:事件时间与无序处理](https://smartsi.blog.csdn.net/article/details/126551181)
 - [x] [Flink 轻松理解 Watermark](https://smartsi.blog.csdn.net/article/details/126684369)
+- [x] [Flink 图解 Watermark](https://smartsi.blog.csdn.net/article/details/126688873?spm=1001.2014.3001.5502)
 - [ ] [Flink Watermark 机制]()
 - [x] [Flink 1.10 版本之前如何生成 Watermark](https://smartsi.blog.csdn.net/article/details/126563487)
 - [ ] [Flink 1.11 版本如何生成 Watermark]()

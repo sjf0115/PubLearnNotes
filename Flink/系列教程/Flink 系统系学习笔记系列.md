@@ -3,18 +3,18 @@
 
 - [x] [Streaming 101:批处理之外的流式世界第一部分](https://smartsi.blog.csdn.net/article/details/122692636)
 - [x] [Streaming 102:批处理之外的流式世界第二部分](https://smartsi.blog.csdn.net/article/details/122913457)
-- [x] [Exactly once 未必严格一次](https://smartsi.blog.csdn.net/article/details/126456735?spm=1001.2014.3001.5502)
+- [x] [Exactly once 未必严格一次](https://smartsi.blog.csdn.net/article/details/126456735)
 
 ## 2. 基础
 
 - [x] [Flink 安装与启动](https://blog.csdn.net/SunnyYoona/article/details/78276595)
 - [x] [构建 Flink 第一个应用程序](https://blog.csdn.net/SunnyYoona/article/details/126087865)
-- [x] [Flink 中如何解析与传递参数](https://smartsi.blog.csdn.net/article/details/126534721?spm=1001.2014.3001.5502)
+- [x] [Flink 中如何解析与传递参数](https://smartsi.blog.csdn.net/article/details/126534721)
 - [x] [Flink 程序剖析](https://smartsi.blog.csdn.net/article/details/126088002)
-- [x] [Flink 如何指定并发](https://smartsi.blog.csdn.net/article/details/126535786?spm=1001.2014.3001.5502)
+- [x] [Flink 如何指定并发](https://smartsi.blog.csdn.net/article/details/126535786)
 - [x] [4 个步骤让 Flink 应用程序达到生产状态](https://smartsi.blog.csdn.net/article/details/126682174)
 - [ ] [Flink 数据交换策略 Partitioner]()
-- [x] [Flink 任务失败重启与恢复策略](https://smartsi.blog.csdn.net/article/details/126451162?spm=1001.2014.3001.5502)
+- [x] [Flink 任务失败重启与恢复策略](https://smartsi.blog.csdn.net/article/details/126451162)
 - [ ] [Flink 与 SPI]()
 
 ## 3. DataStream
@@ -24,28 +24,28 @@
 - [x] [Flink 事件时间与处理时间](https://smartsi.blog.csdn.net/article/details/126554454)
 - [x] [Flink 如何现实新的流处理应用第一部分:事件时间与无序处理](https://smartsi.blog.csdn.net/article/details/126551181)
 - [x] [Flink 轻松理解 Watermark](https://smartsi.blog.csdn.net/article/details/126684369)
-- [x] [Flink 图解 Watermark](https://smartsi.blog.csdn.net/article/details/126688873?spm=1001.2014.3001.5502)
-- [ ] [Flink Watermark 机制]()
+- [x] [Flink 图解 Watermark](https://smartsi.blog.csdn.net/article/details/126688873)
+- [x] [Flink Watermark 机制](https://smartsi.blog.csdn.net/article/details/126689246)
 - [x] [Flink 1.10 版本之前如何生成 Watermark](https://smartsi.blog.csdn.net/article/details/126563487)
 - [ ] [Flink 1.11 版本如何生成 Watermark]()
 
 ### 3.2 Window 窗口
 
-- [x] [Flink 窗口 Window 介绍](https://smartsi.blog.csdn.net/article/details/126554021?spm=1001.2014.3001.5502)
+- [x] [Flink 窗口 Window 介绍](https://smartsi.blog.csdn.net/article/details/126554021)
 - [ ] [Flink 窗口开始时间如何计算]()
-- [x] [Flink 窗口分配器 WindowAssigner](https://smartsi.blog.csdn.net/article/details/126652876?spm=1001.2014.3001.5502)
-- [x] [Flink 原理与实现：Session Window](https://smartsi.blog.csdn.net/article/details/126614957?spm=1001.2014.3001.5502)
-- [x] [Flink 窗口函数 WindowFunction](https://smartsi.blog.csdn.net/article/details/126681922?spm=1001.2014.3001.5502)
+- [x] [Flink 窗口分配器 WindowAssigner](https://smartsi.blog.csdn.net/article/details/126652876)
+- [x] [Flink 原理与实现：Session Window](https://smartsi.blog.csdn.net/article/details/126614957)
+- [x] [Flink 窗口函数 WindowFunction](https://smartsi.blog.csdn.net/article/details/126681922)
 - [ ] [Flink 窗口触发器 Trigger]()
 - [ ] [Flink 窗口剔除器 Evictor]()
 - [ ] [Flink 定时器的4个特性]()
 - [x] [Flink 源码解读系列 DataStream 窗口 Winow 实现](https://smartsi.blog.csdn.net/article/details/126574164)
-- [x] [Flink 源码解读系列 DataStream 窗口分配器 WinowAssigner](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502)
+- [x] [Flink 源码解读系列 DataStream 窗口分配器 WinowAssigner](https://smartsi.blog.csdn.net/article/details/126594720)
 
 ### 3.3 Function
 
 - [x] [Flink DataStream 类型系统 TypeInformation](https://smartsi.blog.csdn.net/article/details/124333830)
-- [x] [Flink 指定 keys 的几种方法](https://smartsi.blog.csdn.net/article/details/126417116?spm=1001.2014.3001.5502)
+- [x] [Flink 指定 keys 的几种方法](https://smartsi.blog.csdn.net/article/details/126417116)
 - [ ] [Flink 如何使用算子]()
 - [ ] [Flink 如何使用 ProcessFunction]()
 - [x] [Flink SourceFunction 初了解](https://smartsi.blog.csdn.net/article/details/123342142)
@@ -84,7 +84,7 @@
 ### 5.1 状态
 
 - [x] [Flink 状态分类](https://smartsi.blog.csdn.net/article/details/123296073)
-- [x] [Flink 状态管理和容错机制介绍](https://smartsi.blog.csdn.net/article/details/126551467?spm=1001.2014.3001.5502)
+- [x] [Flink 状态管理和容错机制介绍](https://smartsi.blog.csdn.net/article/details/126551467)
 - [ ] [Flink 状态 TTL 如何限制状态的生命周期]()
 - [x] [Flink State TTL 详解](https://smartsi.blog.csdn.net/article/details/123221583)
 - [ ] [Flink 使用 Broadcast State 的 4 个注意事项]()
@@ -104,17 +104,17 @@
 ### 5.3 Savepoint & Checkpoint
 
 - [x] [Flink Savepoint 机制](https://smartsi.blog.csdn.net/article/details/126534751)
-- [x] [Flink 保存点之回溯时间](https://smartsi.blog.csdn.net/article/details/126474904?spm=1001.2014.3001.5502)
+- [x] [Flink 保存点之回溯时间](https://smartsi.blog.csdn.net/article/details/126474904)
 - [x] [Flink 如何实现新的流处理应用第二部分:版本化状态](https://smartsi.blog.csdn.net/article/details/126551289)
 - [ ] [Flink 检查点启用与配置]()
-- [x] [Flink Savepoints 和 Checkpoints 的 3 个不同点](https://smartsi.blog.csdn.net/article/details/126475549?spm=1001.2014.3001.5502)
+- [x] [Flink Savepoints 和 Checkpoints 的 3 个不同点](https://smartsi.blog.csdn.net/article/details/126475549)
 - [ ] [Flink 管理大型状态之增量 Checkpoint]()
 - [ ] [Flink 从Checkpoint中恢复作业]()
 - [ ] [Flink 监控检查点]()
 
 ### 5.4 一致性保障
 
-- [x] [Flink Exactly-Once 投递实现浅析](https://smartsi.blog.csdn.net/article/details/126494280?spm=1001.2014.3001.5502)
+- [x] [Flink Exactly-Once 投递实现浅析](https://smartsi.blog.csdn.net/article/details/126494280)
 - [ ] [Flink 如何实现端到端的 Exactly-Once 处理语义]()
 
 ## 6. Connector
@@ -123,7 +123,7 @@
 
 - [ ] [Flink HDFS Connector]()
 - [ ] [Flink Kafka Connector]()
-- [x] [Flink 如何管理 Kafka 的消费偏移量](https://smartsi.blog.csdn.net/article/details/126475307?spm=1001.2014.3001.5502)
+- [x] [Flink 如何管理 Kafka 的消费偏移量](https://smartsi.blog.csdn.net/article/details/126475307)
 
 ### 6.2 Table & SQL
 

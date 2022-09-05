@@ -227,6 +227,96 @@ DataStream<Tuple3<String, Long, Integer>> withTimestampsAndWatermarks =
     }
 });
 ```
+实际效果如下：
+```
+2022-09-05 08:54:56,157 Source    [] - id: 1, word: a, count: 2, eventTime: 1662303772840|2022-09-04 23:02:52
+2022-09-05 08:54:56,361 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
+2022-09-05 08:54:56,565 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
+2022-09-05 08:54:56,770 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
+2022-09-05 08:54:56,974 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
+2022-09-05 08:54:57,161 Source    [] - id: 2, word: a, count: 1, eventTime: 1662303770844|2022-09-04 23:02:50
+2022-09-05 08:54:57,180 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
+2022-09-05 08:54:57,386 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
+2022-09-05 08:54:57,590 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
+2022-09-05 08:54:57,795 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
+2022-09-05 08:54:58,000 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
+2022-09-05 08:54:58,165 Source    [] - id: 3, word: a, count: 3, eventTime: 1662303773848|2022-09-04 23:02:53
+2022-09-05 08:54:58,205 Extractor [] - currentMaxTimestamp: 1662303773848, currentWatermark: 1662303768848
+2022-09-05 08:54:58,411 Extractor [] - currentMaxTimestamp: 1662303773848, currentWatermark: 1662303768848
+2022-09-05 08:54:58,615 Extractor [] - currentMaxTimestamp: 1662303773848, currentWatermark: 1662303768848
+2022-09-05 08:54:58,820 Extractor [] - currentMaxTimestamp: 1662303773848, currentWatermark: 1662303768848
+2022-09-05 08:54:59,026 Extractor [] - currentMaxTimestamp: 1662303773848, currentWatermark: 1662303768848
+2022-09-05 08:54:59,170 Source    [] - id: 4, word: a, count: 2, eventTime: 1662303774866|2022-09-04 23:02:54
+2022-09-05 08:54:59,232 Extractor [] - currentMaxTimestamp: 1662303774866, currentWatermark: 1662303769866
+2022-09-05 08:54:59,434 Extractor [] - currentMaxTimestamp: 1662303774866, currentWatermark: 1662303769866
+2022-09-05 08:54:59,638 Extractor [] - currentMaxTimestamp: 1662303774866, currentWatermark: 1662303769866
+2022-09-05 08:54:59,839 Extractor [] - currentMaxTimestamp: 1662303774866, currentWatermark: 1662303769866
+2022-09-05 08:55:00,045 Extractor [] - currentMaxTimestamp: 1662303774866, currentWatermark: 1662303769866
+2022-09-05 08:55:00,171 Source    [] - id: 5, word: a, count: 1, eventTime: 1662303777839|2022-09-04 23:02:57
+2022-09-05 08:55:00,249 Extractor [] - currentMaxTimestamp: 1662303777839, currentWatermark: 1662303772839
+2022-09-05 08:55:00,454 Extractor [] - currentMaxTimestamp: 1662303777839, currentWatermark: 1662303772839
+2022-09-05 08:55:00,659 Extractor [] - currentMaxTimestamp: 1662303777839, currentWatermark: 1662303772839
+2022-09-05 08:55:00,863 Extractor [] - currentMaxTimestamp: 1662303777839, currentWatermark: 1662303772839
+2022-09-05 08:55:01,065 Extractor [] - currentMaxTimestamp: 1662303777839, currentWatermark: 1662303772839
+2022-09-05 08:55:01,174 Source    [] - id: 6, word: a, count: 2, eventTime: 1662303784887|2022-09-04 23:03:04
+2022-09-05 08:55:01,270 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
+2022-09-05 08:55:01,476 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
+2022-09-05 08:55:01,681 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
+2022-09-05 08:55:01,885 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
+2022-09-05 08:55:02,091 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
+2022-09-05 08:55:02,178 Source    [] - id: 7, word: a, count: 3, eventTime: 1662303776894|2022-09-04 23:02:56
+2022-09-05 08:55:02,294 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
+2022-09-05 08:55:02,498 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
+2022-09-05 08:55:02,704 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
+2022-09-05 08:55:02,910 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
+2022-09-05 08:55:03,113 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
+2022-09-05 08:55:03,182 Source    [] - id: 8, word: a, count: 1, eventTime: 1662303786891|2022-09-04 23:03:06
+2022-09-05 08:55:03,314 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
+2022-09-05 08:55:03,396 Sum       [] - word: a, count: 12, ids: [1, 2, 3, 4, 5, 7], watermark: 1662303781891,
+                                       windowStart: 1662303720000|2022-09-04 23:02:00, windowEnd: 1662303780000|2022-09-04 23:03:00
+2022-09-05 08:55:03,396 Print     [] - (a,12,[1, 2, 3, 4, 5, 7])
+2022-09-05 08:55:03,519 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
+2022-09-05 08:55:03,722 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
+2022-09-05 08:55:03,924 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
+2022-09-05 08:55:04,128 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
+2022-09-05 08:55:04,187 Source    [] - id: 9, word: a, count: 5, eventTime: 1662303778877|2022-09-04 23:02:58
+2022-09-05 08:55:04,332 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
+2022-09-05 08:55:04,535 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
+2022-09-05 08:55:04,741 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
+2022-09-05 08:55:04,945 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
+2022-09-05 08:55:05,150 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
+2022-09-05 08:55:05,191 Source    [] - id: 10, word: a, count: 4, eventTime: 1662303791904|2022-09-04 23:03:11
+2022-09-05 08:55:05,354 Extractor [] - currentMaxTimestamp: 1662303791904, currentWatermark: 1662303786904
+2022-09-05 08:55:05,557 Extractor [] - currentMaxTimestamp: 1662303791904, currentWatermark: 1662303786904
+2022-09-05 08:55:05,761 Extractor [] - currentMaxTimestamp: 1662303791904, currentWatermark: 1662303786904
+2022-09-05 08:55:05,962 Extractor [] - currentMaxTimestamp: 1662303791904, currentWatermark: 1662303786904
+2022-09-05 08:55:06,167 Extractor [] - currentMaxTimestamp: 1662303791904, currentWatermark: 1662303786904
+2022-09-05 08:55:06,192 Source    [] - id: 11, word: a, count: 1, eventTime: 1662303795918|2022-09-04 23:03:15
+2022-09-05 08:55:06,373 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
+2022-09-05 08:55:06,578 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
+2022-09-05 08:55:06,785 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
+2022-09-05 08:55:06,991 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
+2022-09-05 08:55:07,196 Source    [] - id: 12, word: a, count: 6, eventTime: 1662303779883|2022-09-04 23:02:59
+2022-09-05 08:55:07,198 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
+2022-09-05 08:55:07,403 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
+2022-09-05 08:55:07,605 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
+2022-09-05 08:55:07,808 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
+2022-09-05 08:55:08,014 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
+2022-09-05 08:55:08,203 Source    [] - id: 13, word: a, count: 2, eventTime: 1662303846254|2022-09-04 23:04:06
+2022-09-05 08:55:08,220 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
+2022-09-05 08:55:08,242 Sum       [] - word: a, count: 8, ids: [6, 8, 10, 11], watermark: 1662303841254,
+                                       windowStart: 1662303780000|2022-09-04 23:03:00, windowEnd: 1662303840000|2022-09-04 23:04:00
+2022-09-05 08:55:08,243 Print     [] - (a,8,[6, 8, 10, 11])
+2022-09-05 08:55:08,422 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
+2022-09-05 08:55:08,628 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
+2022-09-05 08:55:08,829 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
+2022-09-05 08:55:09,034 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
+2022-09-05 08:55:09,209 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
+2022-09-05 08:55:09,210 Sum       [] - word: a, count: 2, ids: [13], watermark: 9223372036854775807, windowStart: 1662303840000|2022-09-04 23:04:00, windowEnd: 1662303900000|2022-09-04 23:05:00
+2022-09-05 08:55:09,211 Print     [] - (a,2,[13])
+```
+
+
 #### 2.1.3 自定义 Periodic Watermark
 
 除了上述两种内置的 Periodic Watermark Assigner，我们还可以自定义实现 AssignerWithPeriodicWatermarks 接口来实现 Periodic Watermark。如下代码所示，通过重写 getCurrentWatermark 和 extractTimestamp 方法来分别定义生成 Watermark 逻辑和时间戳抽取逻辑。其中 getCurrentWatermark 生成 Watermark 逻辑需要依赖于 currentMaxTimeStamp，该方法每次被调用时，如果产生的 Watermark 比现在的大，就会覆盖现在的 Watermark，从而实现 Watermark 的更新，即每当有新的最大时间戳出现时，可能就会产生新的 Watermark：

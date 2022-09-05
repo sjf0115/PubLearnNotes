@@ -15,17 +15,17 @@ permalink: 4-characteristics-of-timers-in-apache-flink
 - 状态（容错，一致性，仅在 KeyedStream 上应用）
 - 定时器（事件时间和处理时间，仅在 KeyedStream 上应用）
 
-有关 Flink ProcessFunction 的更多信息，请参考 [Flink 如何使用ProcessFunction](http://smartsi.club/how-to-user-process-function-of-flink.html)。
+有关 Flink ProcessFunction 的更多信息，请参考 [Flink 如何使用 ProcessFunction](http://smartsi.club/how-to-user-process-function-of-flink.html)。
 
 ### 1. 什么是定时器
 
-定时器可以让 Flink 流处理程序对处理时间和事件时间的变化作出反应。我们之前的一篇[文章](http://smartsi.club/flink-stream-event-time-and-processing-time.html)比较详细地介绍了 Flink 中不同概念的时间以及说明了处理时间、事件时间以及摄入时间之间的差异。在使用定时器处理事件流，每次调用 processElement() 时，我们可以借助 Context 对象访问元素的事件时间戳和 TimerService。然后我们使用 TimerService 为将来的事件时间/处理时间实例注册回调。这样之后，一旦到达定时器的指定时刻，就会调用 onTimer() 方法。
+定时器可以让 Flink 流处理程序对处理时间和事件时间的变化作出反应。我们之前的一篇[文章](https://smartsi.blog.csdn.net/article/details/126554454)比较详细地介绍了 Flink 中不同概念的时间以及说明了处理时间、事件时间以及摄入时间之间的差异。在使用定时器处理事件流，每次调用 processElement() 时，我们可以借助 Context 对象访问元素的事件时间戳和 TimerService。然后我们使用 TimerService 为将来的事件时间/处理时间实例注册回调。这样之后，一旦到达定时器的指定时刻，就会调用 onTimer() 方法。
 
 onTimer() 回调函数可能会在不同时间点被调用，这首先取决于使用处理时间还是事件时间来注册定时器。特别是：
 - 使用处理时间注册定时器时，当服务器的系统时间到达定时器的时间戳时，就会调用 onTimer() 方法。
 - 使用事件时间注册定时器时，当算子的 Watermark 到达或超过定时器的时间戳时，就会调用 onTimer() 方法。
 
-与 processElement() 方法类似，onTimer() 回调函数中对状态的访问也仅局限于当前 key（即注册定时器的 那个 key）。值得注意的是，onTimer() 和 processElement() 调用都是同步调用，因此同时在 onTimer() 和 processElement() 方法中访问状态以及进行修改都是安全的。
+与 processElement() 方法类似，onTimer() 回调函数中对状态的访问也仅局限于当前 key（即注册定时器的那个 key）。值得注意的是，onTimer() 和 processElement() 调用都是同步调用，因此同时在 onTimer() 和 processElement() 方法中访问状态以及进行修改都是安全的。
 
 ### 2. 四个基本特征
 
@@ -43,7 +43,7 @@ TimerService 会自动对定时器进行重复数据的删除，因此每个 key
 
 定时器也会进行Checkpoint，就像任何其他 Managed State 一样。从 Flink 检查点或保存点恢复作业时，在状态恢复之前就应该触发的定时器会被立即触发。
 
-#### 2.4 删除计时器
+#### 2.4 删除定时器
 
 从 Flink 1.6 开始，就可以对定时器进行暂停以及删除。如果你使用的是比 Flink 1.5 更早的 Flink 版本，那么由于有许多定时器无法删除或停止，所以可能会遇到检查点性能不佳的问题。
 
@@ -67,9 +67,5 @@ ctx.timerService().deleteEventTimeTimer(timestampOfTimerToStop);
 - 摄入时间: Ingestion Time
 - 检查点: checkpoint
 - 保存点: savepoint
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文:[4 characteristics of Timers in Apache Flink to keep in mind](https://www.ververica.com/blog/4-characteristics-of-timers-in-apache-flink)

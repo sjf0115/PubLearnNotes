@@ -28,6 +28,7 @@
 - [x] [Flink Watermark 机制](https://smartsi.blog.csdn.net/article/details/126689246)
 - [x] [Flink 1.10 版本之前如何生成 Watermark](https://smartsi.blog.csdn.net/article/details/126563487)
 - [ ] [Flink 1.11 版本如何生成 Watermark]()
+- [ ] [Flink 定时器的4个特性](https://smartsi.blog.csdn.net/article/details/126714638)
 
 ### 3.2 Window 窗口
 
@@ -38,7 +39,6 @@
 - [x] [Flink 窗口函数 WindowFunction](https://smartsi.blog.csdn.net/article/details/126681922)
 - [ ] [Flink 窗口触发器 Trigger]()
 - [ ] [Flink 窗口剔除器 Evictor]()
-- [ ] [Flink 定时器的4个特性]()
 - [x] [Flink 源码解读系列 DataStream 窗口 Winow 实现](https://smartsi.blog.csdn.net/article/details/126574164)
 - [x] [Flink 源码解读系列 DataStream 窗口分配器 WinowAssigner](https://smartsi.blog.csdn.net/article/details/126594720)
 

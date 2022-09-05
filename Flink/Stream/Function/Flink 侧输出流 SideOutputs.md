@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Flink 旁路输出 SideOutputs
+title: Flink 侧输出流 SideOutputs
 date: 2021-06-20 11:30:17
 tags:
   - Flink
@@ -9,6 +9,9 @@ tags:
 categories: Flink
 permalink: flink-stream-side-outputs
 ---
+
+
+大多数 DataStream API 都只有一个输出，即只能生成一条某种数据类型的结果流。只有 Split 算子可以将一条流拆成多条类型相同的流。而处理函数提供的侧输出可以允许同一个函数输出多条数据流，并且它们的类型可以不同。
 
 通常我们在处理数据的时候，有时候想对不同情况的数据进行不同的处理，那么就需要把数据流进行分流。
 
@@ -93,6 +96,9 @@ EvenSideOutputStream > 6
 ```
 
 
-
-
+https://nightlies.apache.org/flink/flink-docs-master/docs/dev/datastream/side_output/
+https://www.jianshu.com/p/0b712cef0120
+https://www.anycodings.com/questions/apache-flink-spiltstream-vs-side-outputs
+https://xie.infoq.cn/article/70dec6b0b7957aa011584b823
+https://docherish.com/post/flink-side-output-ce-shu-chu-liu/
 > 原文：[Side Outputs](https://ci.apache.org/projects/flink/flink-docs-stable/dev/stream/side_output.html)

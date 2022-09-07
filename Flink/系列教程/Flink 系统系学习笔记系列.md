@@ -48,6 +48,7 @@
 - [x] [Flink 指定 keys 的几种方法](https://smartsi.blog.csdn.net/article/details/126417116)
 - [ ] [Flink 如何使用算子]()
 - [ ] [Flink 如何使用 ProcessFunction]()
+- [x] [Flink DataStream Split 实现分流](https://smartsi.blog.csdn.net/article/details/126737446)
 - [x] [Flink SourceFunction 初了解](https://smartsi.blog.csdn.net/article/details/123342142)
 - [ ] [Flink DataStream 如何实现双流Join]()
 - [x] [Flink DataStream Java Lambda 表达式的限制](https://smartsi.blog.csdn.net/article/details/120661028)

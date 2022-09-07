@@ -14,13 +14,11 @@ permalink: generating-watermarks-in-flink-1.11
 
 在 Flink 1.11 版本之前，Flink 提供了两种生成 Watermark 的策略，分别是 AssignerWithPunctuatedWatermarks 和 AssignerWithPeriodicWatermarks，这两个接口都继承自 TimestampAssigner 接口。用户想使用不同的 Watermark 生成方式，则需要实现不同的接口。为了实现接口的统一，一个接口可以实现不同的 Watermark 生成策略，在 Flink 1.11 中对 Flink 的 Watermark 生成接口进行了重构：WatermarkStrategy。
 
-> Flink 1.10版本之前是如何生成 Watermark 的，具体可以参阅 [Flink 在1.10版本之前如何生成Watermark](http://smartsi.club/flink-stream-event-timestamp-and-extractors.html)。
+> Flink 1.10 版本之前如何生成 Watermark 具体可以参阅 [Flink 1.10 版本之前如何生成 Watermark](https://smartsi.blog.csdn.net/article/details/126563487?spm=1001.2014.3001.5502)。
 
-### 1. WatermarkStrategy介绍
+### 1. WatermarkStrategy 介绍
 
-为了使用事件时间，Flink 需要知道事件时间戳，这意味着流中的每个元素都需要为其分配事件时间戳。一般都是通过使用 TimestampAssigner 从元素中的某些字段提取时间戳来完成。Watermark 的生成一般与时间戳分配一起进行，Watermark 会告诉系统事件时间的进度。我们可以通过指定 WatermarkGenerator 进行配置。
-
-在新版本中 Flink API 提供了一个同时包含 TimestampAssigner 和 WatermarkGenerator 的 WatermarkStrategy 接口：
+为了使用事件时间，Flink 需要知道事件时间戳，这意味着流中的每个元素都需要为其分配事件时间戳。一般都是通过使用 TimestampAssigner 从元素中的某些字段提取时间戳来完成。Watermark 的生成一般与时间戳提取一起进行设置，通过指定 WatermarkGenerator 进行配置。在新版本中 Flink API 提供了一个同时包含 TimestampAssigner 和 WatermarkGenerator 的 WatermarkStrategy 接口：
 ```java
 public interface WatermarkStrategy<T> extends TimestampAssignerSupplier<T>, WatermarkGeneratorSupplier<T>{
     @Override
@@ -31,27 +29,27 @@ public interface WatermarkStrategy<T> extends TimestampAssignerSupplier<T>, Wate
 ```
 我们通常不用自己实现这个接口，使用 WatermarkStrategy 上的静态方法就可以实现常见的 Watermark 生成策略。除此之外我们也可以自定义 TimestampAssigner 与 WatermarkGenerator 实现自己的 Watermark 生成策略。例如，如下代码所示使用 BoundedOutOfOrderness 生成 Watermark 以及使用 Lambda 函数作为时间戳分配器：
 ```java
-WatermarkStrategy
-        .<Tuple2<Long, String>>forBoundedOutOfOrderness(Duration.ofSeconds(20))
+WatermarkStrategy.<Tuple2<Long, String>>forBoundedOutOfOrderness(Duration.ofSeconds(20))
         .withTimestampAssigner((event, timestamp) -> event.f0);
 ```
-TimestampAssigner 是可选的，在大多数情况下，我们并不需要指定。例如，当使用 Kafka 或 Kinesis 时，我们可以直接从 Kafka/Kinesis 记录中获得时间戳。
+TimestampAssigner 是可选的，在很多情况下并不需要指定。例如，当使用 Kafka 或 Kinesis 时，可以直接从 Kafka/Kinesis 记录中获得时间戳。
 
-### 2. 内置WatermarkStrategy
+### 2. WatermarkStrategy 内置策略
 
-为了简化我们生成 Watermark 的编程工作，Flink 预先内置了一些 Watermark 生成策略，通常不需要我们自己实现上面的接口。我们使用 WatermarkStrategy 上的静态方法就可以实现常见的 Watermark 生成策略。Flink 为我们内置了两种 Watermark 生成策略：单调递增时间戳场景策略，固定时延场景策略：
+为了简化我们生成 Watermark 的编程工作，Flink 预先内置了一些 Watermark 生成策略，只需要使用 WatermarkStrategy 上的静态方法就可以实现常见的 Watermark 生成策略。Flink 为我们内置了两种 Watermark 生成策略：单调递增时间戳场景策略和固定时延场景策略：
 ```java
+// 单调递增时间戳场景策略
 static <T> WatermarkStrategy<T> forMonotonousTimestamps() {
   return (ctx) -> new AscendingTimestampsWatermarks<>();
 }
-
+// 固定时延场景策略
 static <T> WatermarkStrategy<T> forBoundedOutOfOrderness(Duration maxOutOfOrderness) {
   return (ctx) -> new BoundedOutOfOrdernessWatermarks<>(maxOutOfOrderness);
 }
 ```
 #### 2.1 单调递增时间戳场景策略
 
-周期性生成 Watermark 的一个最简单场景就是给定数据源中数据的时间戳升序出现。在这种情况下，根据指定字段提取数据中的时间戳，并始终用当前的时间戳作为 Watermark，因为没有更早的时间戳会到达了。这种方式比较适合于事件按顺序生成，没有乱序的情况。单调递增时间戳场景下生成 Watermark 只需调用 WatermarkStrategy 上的如下静态方法即可：
+单调递增时间戳场景策略适用于给定数据源中数据时间戳以升序出现。在这种情况下，根据指定字段提取数据中的时间戳，并始终用当前的时间戳作为 Watermark，因为没有更早的时间戳会到达了。这种方式比较适合于事件按顺序生成，没有乱序的情况。单调递增时间戳场景下生成 Watermark 只需调用 WatermarkStrategy 上的如下静态方法即可：
 ```java
 WatermarkStrategy.forMonotonousTimestamps();
 ```
@@ -67,9 +65,8 @@ SingleOutputStreamOperator<Tuple3<String, Long, Integer>> watermarkStream = stre
                 })
 );
 ```
-> 完成代码请查阅:[WatermarkStrategyExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/watermark/WatermarkStrategyExample.java)
 
-需要注意的是，只需要保证数据源每个单独并行任务的时间戳递增即可。例如，如果在特定设置下，一个并行数据源实例只读取一个 Kafka 分区，那么只需要每个 Kafka 分区内时间戳递增即可。Flink 的 Watermark 合并机制即使在并行数据流进行 shuffle，union，连接或合并时，也能生成正确的 Watermark。
+需要注意的是，只需要保证数据源每个单独并行任务的时间戳递增即可。例如如果在特定设置下，一个并行数据源实例只读取一个 Kafka 分区，那么只需要每个 Kafka 分区内时间戳递增即可。Flink 的 Watermark 合并机制即使在并行数据流进行 shuffle，union，连接或合并时，也能生成正确的 Watermark。
 
 #### 2.2 固定时延场景策略
 

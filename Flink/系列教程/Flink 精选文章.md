@@ -38,8 +38,8 @@
 
 - [x] [Process Function (Low-level Operations)](https://ci.apache.org/projects/flink/flink-docs-stable/dev/stream/operators/process_function.html)
 - [x] [3 important performance factors for stateful functions and operators in Flink](https://www.ververica.com/blog/performance-factors-stateful-functions-operators-flink)
-- [ ] [Flink 不可以连续 Split(分流)？](https://mp.weixin.qq.com/s/pG-qIAndMUdYLNhoi3ispw)
-- [ ] [Flink 从0到1学习 —— 如何使用 Side Output 来分流？](https://mp.weixin.qq.com/s/56BgsszAsDfkqKrth6CMBQ)
+- [x] [Flink 不可以连续 Split(分流)？](https://mp.weixin.qq.com/s/pG-qIAndMUdYLNhoi3ispw)
+- [x] [Flink 从0到1学习 —— 如何使用 Side Output 来分流？](https://mp.weixin.qq.com/s/56BgsszAsDfkqKrth6CMBQ)
 
 ### 3. Checkpoint
 

@@ -16,9 +16,17 @@ permalink: generating-watermarks-in-flink-1.11
 
 > Flink 1.10 版本之前如何生成 Watermark 具体可以参阅 [Flink 1.10 版本之前如何生成 Watermark](https://smartsi.blog.csdn.net/article/details/126563487?spm=1001.2014.3001.5502)。
 
-### 1. WatermarkStrategy 介绍
+### 1. Watermark 生成策略 WatermarkStrategy
 
-为了使用事件时间，Flink 需要知道事件时间戳，这意味着流中的每个元素都需要为其分配事件时间戳。一般都是通过使用 TimestampAssigner 从元素中的某些字段提取时间戳来完成。Watermark 的生成一般与时间戳提取一起进行设置，通过指定 WatermarkGenerator 进行配置。在新版本中 Flink API 提供了一个同时包含 TimestampAssigner 和 WatermarkGenerator 的 WatermarkStrategy 接口：
+在 Flink 的 DataStream API 中，有一个单独用于生成 Watermark 的方法：assignTimestampsAndWatermarks，主要用来为流中的数据分配时间戳，并生成 Watermark 来指示事件时间：
+```java
+public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(WatermarkStrategy<T> watermarkStrategy)
+```
+具体使用时，直接用 DataStream 调用该方法即可，与普通的 transform 方法完全一样：
+```java
+stream.assignTimestampsAndWatermarks(<watermark strategy>);
+```
+在新版本中 assignTimestampsAndWatermarks 方法需要传入一个 WatermarkStrategy 作为参数，这就是所谓的 Watermark 生成策略。WatermarkStrategy 主要用来创建时间戳分配器 TimestampAssigner 和 Watermark 生成器 WatermarkGenerator。
 ```java
 public interface WatermarkStrategy<T> extends TimestampAssignerSupplier<T>, WatermarkGeneratorSupplier<T>{
     @Override
@@ -27,33 +35,30 @@ public interface WatermarkStrategy<T> extends TimestampAssignerSupplier<T>, Wate
     WatermarkGenerator<T> createWatermarkGenerator(WatermarkGeneratorSupplier.Context context);
 }
 ```
-我们通常不用自己实现这个接口，使用 WatermarkStrategy 上的静态方法就可以实现常见的 Watermark 生成策略。除此之外我们也可以自定义 TimestampAssigner 与 WatermarkGenerator 实现自己的 Watermark 生成策略。例如，如下代码所示使用 BoundedOutOfOrderness 生成 Watermark 以及使用 Lambda 函数作为时间戳分配器：
-```java
-WatermarkStrategy.<Tuple2<Long, String>>forBoundedOutOfOrderness(Duration.ofSeconds(20))
-        .withTimestampAssigner((event, timestamp) -> event.f0);
-```
-TimestampAssigner 是可选的，在很多情况下并不需要指定。例如，当使用 Kafka 或 Kinesis 时，可以直接从 Kafka/Kinesis 记录中获得时间戳。
+createTimestampAssigner 用来创建时间戳分配器 TimestampAssigner，用来提取数据元素的某个字段作为时间戳。时间戳的提取是生成 Watermark 的基础。而 createWatermarkGenerator 用来创建 Watermark 生成器 WatermarkGenerator，根据指定的策略基于时间戳生成 Watermark。
 
-### 2. WatermarkStrategy 内置策略
+> 这里可能会有疑惑：不是说数据里已经有时间戳了吗，为什么这里还要创建时间戳分配器来分配时间戳呢？这是因为原始的时间戳只是写入日志数据的一个字段，如果不提取出来并明确告诉 Flink，Flink 是无法知道数据真正产生的时间的。当然，有些时候数据源本身就提供了时间戳信息，比如读取 Kafka 时，我们就可以从 Kafka 数据中直接获取时间戳，而不需要单独提取字段分配了。
 
-为了简化我们生成 Watermark 的编程工作，Flink 预先内置了一些 Watermark 生成策略，只需要使用 WatermarkStrategy 上的静态方法就可以实现常见的 Watermark 生成策略。Flink 为我们内置了两种 Watermark 生成策略：单调递增时间戳场景策略和固定时延场景策略：
+### 2. 内置 Watermark 生成器
+
+WatermarkStrategy 是一个生成 Watermark 策略的抽象接口，让我们可以灵活地实现自己的需求；但看起来有些复杂，如果想要自己实现应该还是比较麻烦的。为了充分的给用户提供便利，Flink 预先内置了一些 Watermark 生成器 WatermarkGenerator。不仅开箱即用简化了编程，而且也为我们自定义 Watermark 策略提供了模板。这两个生成器均可以通过调用 WatermarkStrategy 的静态辅助方法来创建。它们都是周期性生成 Watermark，分别对应着处理有序流和乱序流的场景：
 ```java
-// 单调递增时间戳场景策略
+// 有序流
 static <T> WatermarkStrategy<T> forMonotonousTimestamps() {
   return (ctx) -> new AscendingTimestampsWatermarks<>();
 }
-// 固定时延场景策略
+// 乱序流
 static <T> WatermarkStrategy<T> forBoundedOutOfOrderness(Duration maxOutOfOrderness) {
   return (ctx) -> new BoundedOutOfOrdernessWatermarks<>(maxOutOfOrderness);
 }
 ```
-#### 2.1 单调递增时间戳场景策略
+#### 2.1 有序流
 
-单调递增时间戳场景策略适用于给定数据源中数据时间戳以升序出现。在这种情况下，根据指定字段提取数据中的时间戳，并始终用当前的时间戳作为 Watermark，因为没有更早的时间戳会到达了。这种方式比较适合于事件按顺序生成，没有乱序的情况。单调递增时间戳场景下生成 Watermark 只需调用 WatermarkStrategy 上的如下静态方法即可：
+对于有序流，主要特点是事件按顺序生成，不会出现乱序。这种情况下，时间戳单调增长，所以永远不会出现迟到数据的问题。这是周期性生成 Watermark 的最简单的场景，根据指定字段提取数据中的时间戳，并始直接使用当前的时间戳作为 Watermark 就可以了，因为没有更早的时间戳会到达了。在这种场景下直接调用 WatermarkStrategy 的 forMonotonousTimestamps 静态方法即可：
 ```java
 WatermarkStrategy.forMonotonousTimestamps();
 ```
-如下代码所示在时间戳单调递增场景下使用上述静态方法周期性生成 Watermark 的示例：
+如下代码所示在有序流场景下使用上述静态方法周期性生成 Watermark 的示例：
 ```java
 SingleOutputStreamOperator<Tuple3<String, Long, Integer>> watermarkStream = stream.assignTimestampsAndWatermarks(
         WatermarkStrategy.<Tuple3<String, Long, Integer>>forMonotonousTimestamps()
@@ -65,33 +70,87 @@ SingleOutputStreamOperator<Tuple3<String, Long, Integer>> watermarkStream = stre
                 })
 );
 ```
+上面代码中我们调用 withTimestampAssigner 方法，将数据中的 f1 字段提取出来作为时间戳分配给数据元素；然后用内置的 Watermark 生成器构造出 Watermark 生成策略。
 
-需要注意的是，只需要保证数据源每个单独并行任务的时间戳递增即可。例如如果在特定设置下，一个并行数据源实例只读取一个 Kafka 分区，那么只需要每个 Kafka 分区内时间戳递增即可。Flink 的 Watermark 合并机制即使在并行数据流进行 shuffle，union，连接或合并时，也能生成正确的 Watermark。
+> 需要注意的是，forMonotonousTimestamps 方法只是创建了 Watermark 生成器，此外还需要我们提供 TimestampAssigner 来提取时间戳，我们可以通过 withTimestampAssigner 提供。
 
-#### 2.2 固定时延场景策略
+#### 2.2 乱序流
 
-周期性生成 Watermark 的另一个示例是 Watermark 滞后于数据流中最大（事件时间）时间戳一个固定的时间量。这种场景下我们事先知道流中可能遇到的最大延迟，例如，在测试场景下我们会创建元素带有时间戳的自定义数据源。对于这种场景，Flink 提供了 BoundedOutOfOrdernessWatermarks 生成器，该生成器有一个 maxOutOfOrderness 参数，表示在计算给定窗口的最终结果时可以允许元素最大延迟时间，如果超过这个时间将会被丢弃。固定时延场景下生成 Watermark 只需调用 WatermarkStrategy 上的如下静态方法即可：
+由于乱序流中需要等待迟到数据到齐，所以必须设置一个固定量的延迟时间。这时生成 Watermark 的时间戳，就是当前数据流中最大的时间戳减去固定延迟时间的
+结果，即 Watermark 滞后于数据流中最大时间戳一个固定的时间量，相当于把表调慢。在这种场景下我们需要事先知道流中可能遇到的最大乱序时间，直接调用 WatermarkStrategy 的 forBoundedOutOfOrderness 静态方法即可：
 ```java
-WatermarkStrategy.forBoundedOutOfOrderness(Duration.ofSeconds(10));
+WatermarkStrategy.forBoundedOutOfOrderness();
 ```
-如下代码所示在固定时延场景下使用上述静态方法周期性生成 Watermark 的示例：
+这个方法需要传入一个 maxOutOfOrderness 参数，表示最大乱序程度，即表示数据流中乱序数据时间戳的最大差值；如果我们能确定乱序程度，那么设置对应时间长度的延迟，就可以等到所有的乱序数据了。
+
+如下代码所示在乱序流下使用上述静态方法周期性生成 Watermark 的示例：
 ```java
-// 分配时间戳与设置Watermark
-SingleOutputStreamOperator<Tuple3<String, Long, Integer>> watermarkStream = stream.assignTimestampsAndWatermarks(
-        WatermarkStrategy.<Tuple3<String, Long, Integer>>forBoundedOutOfOrderness(Duration.ofMinutes(10))
-                .withTimestampAssigner(new SerializableTimestampAssigner<Tuple3<String, Long, Integer>>() {
+DataStreamSource<Tuple4<Integer, String, Integer, Long>> source = env.addSource(new OutOfOrderSource());
+DataStream<Tuple4<Integer, String, Integer, Long>> watermarkStream = source.assignTimestampsAndWatermarks(
+        // 允许最大5s的乱序
+        WatermarkStrategy.<Tuple4<Integer, String, Integer, Long>>forBoundedOutOfOrderness(Duration.ofSeconds(5))
+                .withTimestampAssigner(new SerializableTimestampAssigner<Tuple4<Integer, String, Integer, Long>>() {
                     @Override
-                    public long extractTimestamp(Tuple3<String, Long, Integer> element, long recordTimestamp) {
-                        return element.f1;
+                    public long extractTimestamp(Tuple4<Integer, String, Integer, Long> element, long recordTimestamp) {
+                        return element.f3;
                     }
                 })
 );
+
+// 分组求和
+DataStream<Tuple2<String, Integer>> result = watermarkStream
+        // 分组
+        .keyBy(new KeySelector<Tuple4<Integer,String,Integer,Long>, String>() {
+            @Override
+            public String getKey(Tuple4<Integer, String, Integer, Long> tuple) throws Exception {
+                return tuple.f1;
+            }
+        })
+        // 窗口大小为1分钟的滚动窗口
+        .window(TumblingEventTimeWindows.of(Time.minutes(1)))
+        // 分组求和
+        .process(new ProcessWindowFunction<Tuple4<Integer, String, Integer, Long>, Tuple2<String, Integer>, String, TimeWindow>() {
+            @Override
+            public void process(String key, Context context, Iterable<Tuple4<Integer, String, Integer, Long>> elements, Collector<Tuple2<String, Integer>> out) throws Exception {
+                // 单词个数
+                int count = 0;
+                List<Integer> ids = Lists.newArrayList();
+                for (Tuple4<Integer, String, Integer, Long> element : elements) {
+                    ids.add(element.f0);
+                    count ++;
+                }
+                // 时间窗口元数据
+                TimeWindow window = context.window();
+                long start = window.getStart();
+                long end = window.getEnd();
+                String startTime = DateUtil.timeStamp2Date(start);
+                String endTime = DateUtil.timeStamp2Date(end);
+                // Watermark
+                long watermark = context.currentWatermark();
+                String watermarkTime = DateUtil.timeStamp2Date(watermark);
+                //  输出日志
+                LOG.info("word: {}, count: {}, ids: {}, window: {}, watermark: {}",
+                        key, count, ids,
+                        "[" + startTime + ", " + endTime + "]",
+                        watermark + "|" + watermarkTime
+                );
+                out.collect(Tuple2.of(key, count));
+            }
+        });
 ```
 > 完成代码请查阅:[WatermarkStrategyExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/watermark/WatermarkStrategyExample.java)
 
-### 3. 自定义WatermarkStrategy
+上面代码中，我们同样提取了元组 f3 字段作为时间戳，并允许最大5 秒的乱序时间创建了处理乱序流的 Watermark 生成器。事实上，有序流的 Watermark 生成器本质上和乱序流是一样的，相当于延迟设为 0 的乱序流 Watermark 生成器，两者完全等同：
+```java
+WatermarkStrategy.forMonotonousTimestamps()
+WatermarkStrategy.forBoundedOutOfOrderness(Duration.ofSeconds(0))
+```
+此外最需要注意的是，乱序流中生成的 Watermark 真正的时间戳，其实是`当前最大时间戳 - 最大乱序时间 – 1`(单位毫秒)。为什么要减 1 毫秒呢？我们可以回想一下 Watermark 的特点：时间戳为 t 的水位线，表示时间戳 ≤t 的数据全部到齐，不会再来了。如果考虑有序流，也就是延迟时间为 0 的情况，那么时间戳为 7 秒的数据到来时，之后其实是还有可能继续来 7 秒的数据的；所以生成的水位线不是 7 秒，而是 6 秒 999 毫秒，7 秒的数据还可以继续来。
 
-有时候上述内置 WatermarkStrategy 不满足我们的业务需求，这时候就需要自定义实现 WatermarkStrategy。 自定义 WatermarkStrategy 需要借助 WatermarkGenerator 接口实现事件时间戳提取以及 Watermark 生成。WatermarkGenerator 的编写要相对复杂一些，我们将在接下来的两节中介绍如何实现此这个目标。如下所示是 WatermarkGenerator 接口：
+### 3. 自定义 WatermarkStrategy
+
+一般来说，Flink 内置的 Watermark 生成器就可以满足应用需求了。不过有时我们的业务逻辑可能非常复杂，这时对 Watermark 生成的逻辑也有更高的要求，我们就必须自定义实现 Watermark 策略 WatermarkStrategy 了。在 WatermarkStrategy 中，时间戳分配器 TimestampAssigner 都是大同小异的，指定字段提
+取时间戳就可以了；而不同策略的关键就在于 WatermarkGenerator 接口的实现：
 ```java
 @Public
 public interface WatermarkGenerator<T> {
@@ -99,17 +158,17 @@ public interface WatermarkGenerator<T> {
     void onPeriodicEmit(WatermarkOutput output);
 }
 ```
-这个接口比较简单，主要有两个方法：
+WatermarkGenerator 接口比较简单，主要有两个方法：
 - onEvent：每个元素到达都会调用这个方法。这个方法可以让 WatermarkGenerator 从元素中提取事件时间戳。
 - onPeriodicEmit：这个方法会周期性被调用，可能会产生新的 Watermark，也可能不会产生新的 Watermark。
 
-基于此我们可以实现两种不同的 Watermark Generator：Periodic Generator 和 Punctuated Generator：
-- Periodic Generator：通常通过 onEvent() 方法处理传入的事件获取事件时间戳，然后周期性调用 onPeriodicEmit() 来判断是否产生新的 Watermark。
-- Punctuated Generator：将查看 onEvent() 中的事件数据，等待特殊标记的事件或者携带 Watermark 信息的断点。当获取到一个事件时，它将会立即发出 Watermark。通常情况下，Punctuated Generator 不会通过 onPeriodicEmit() 发出 Watermark。
+整体说来，Flink 有两种不同的生成 Watermark 的方式：一种是周期性的（Periodic），另一种是断点式的（Punctuated）。基于此我们可以实现两种不同的 Watermark 生成器：
+- 周期性 Watermark 生成器：通常通过 onEvent() 方法处理传入的事件获取事件时间戳，然后周期性调用 onPeriodicEmit() 来判断是否产生新的 Watermark。
+- 断点式 Watermark 生成器：将查看 onEvent() 中的事件数据，等待特殊标记的事件或者携带 Watermark 信息的断点。当获取到一个事件时，将会立即发出 Watermark。通常情况下，断点式 Watermark 生成器不会通过 onPeriodicEmit() 发出 Watermark。
 
-#### 3.1 Periodic WatermarkGenerator
+#### 3.1 周期性 Watermark 生成器
 
-Periodic 生成器处理流的每一个元素并周期性地生成 Watermark（可能取决于流元素，或者单纯的基于处理时间）。通过 ExecutionConfig.setAutoWatermarkInterval() 方法定义生成 Watermark 的时间间隔(单位：毫秒)。生成器的 onPeriodicEmit() 方法会周期性调用，如果返回的 Watermark 非空并且大于前一个 Watermark，则会生成一个新的 Watermark。
+周期性 Watermark 生成器一般是通过 onEvent 观察输入的每个事件并周期性地调用 onPeriodicEmit 发送 Watermark（可能取决于流元素，或者单纯的基于处理时间）。通过 ExecutionConfig.setAutoWatermarkInterval() 方法定义周期性地发送 Watermark 的时间间隔(单位：毫秒)。生成器的 onPeriodicEmit 方法会周期性调用，如果返回的 Watermark 非空并且大于前一个 Watermark，则会生成一个新的 Watermark。
 
 如下代码展示了使用 Periodic WatermarkGenerator 的简单示例。请注意，Flink 内置的 BoundedOutOfOrdernessWatermarks 是一个 WatermarkGenerator，其工作原理与下面显示的 BoundedOutOfOrdernessGenerator 相似：
 ```java
@@ -186,7 +245,7 @@ C,2021-02-14 12:30:01,1
 ```
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/generating-watermarks-in-flink-1.11-1.png?raw=true)
 
-#### 4.2 Punctuated WatermarkGenerator
+#### 4.2 断点式 Watermark 生成器
 
 Punctuated 生成器将观察事件流，只要看到带有 Watermark 信息的特殊元素时就会发出 Watermark。如下所示实现了一个 Punctuated 生成器，每当发现带有特殊标记的事件时会发出 Watermark：
 ```java

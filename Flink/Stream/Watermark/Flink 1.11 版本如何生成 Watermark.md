@@ -26,7 +26,7 @@ public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(WatermarkStra
 ```java
 stream.assignTimestampsAndWatermarks(<watermark strategy>);
 ```
-在新版本中 assignTimestampsAndWatermarks 方法需要传入一个 WatermarkStrategy 作为参数，这就是所谓的 Watermark 生成策略。WatermarkStrategy 主要用来创建时间戳分配器 TimestampAssigner 和 Watermark 生成器 WatermarkGenerator。
+在新版本中 assignTimestampsAndWatermarks 方法需要传入一个 WatermarkStrategy 作为参数，这就是所谓的 Watermark 生成策略。WatermarkStrategy 主要用来创建时间戳分配器 TimestampAssigner 和 Watermark 生成器 WatermarkGenerator：
 ```java
 public interface WatermarkStrategy<T> extends TimestampAssignerSupplier<T>, WatermarkGeneratorSupplier<T>{
     @Override
@@ -54,7 +54,7 @@ static <T> WatermarkStrategy<T> forBoundedOutOfOrderness(Duration maxOutOfOrdern
 ```
 #### 2.1 有序流
 
-对于有序流，主要特点是事件按顺序生成，不会出现乱序。这种情况下，时间戳单调增长，所以永远不会出现迟到数据的问题。这是周期性生成 Watermark 的最简单的场景，根据指定字段提取数据中的时间戳，并始直接使用当前的时间戳作为 Watermark 就可以了，因为没有更早的时间戳会到达了。在这种场景下直接调用 WatermarkStrategy 的 forMonotonousTimestamps 静态方法即可：
+对于有序流，主要特点是事件按顺序生成，不会出现乱序。这种情况下，时间戳单调增长，所以永远不会出现迟到数据的问题。这是周期性生成 Watermark 的最简单的场景，根据指定字段提取数据中的时间戳，并直接使用当前的时间戳作为 Watermark 就可以了，因为没有更早的时间戳会到达了。在这种场景下直接调用 WatermarkStrategy 的 forMonotonousTimestamps 静态方法即可：
 ```java
 WatermarkStrategy.forMonotonousTimestamps();
 ```
@@ -247,49 +247,57 @@ C,2021-02-14 12:30:01,1
 
 #### 4.2 断点式 Watermark 生成器
 
-Punctuated 生成器将观察事件流，只要看到带有 Watermark 信息的特殊元素时就会发出 Watermark。如下所示实现了一个 Punctuated 生成器，每当发现带有特殊标记的事件时会发出 Watermark：
+断点式 Watermark 生成器不停的在观察 onEvent 中的事件流，只要发现带有 Watermark 信息的特殊元素时就会发出 Watermark。一般来说，断点式 Watermark 生成器不会通过 onPeriodicEmit 发出 Watermark。如下所示实现了一个断点式 Watermark 生成器，每当发现带有特殊标记的事件时会发出 Watermark：
 ```java
 // 提取时间戳、生成Watermark
-DataStream<MyEvent> watermarkStream = input.assignTimestampsAndWatermarks(
-        new WatermarkStrategy<MyEvent>() {
-            @Override
-            public WatermarkGenerator<MyEvent> createWatermarkGenerator(WatermarkGeneratorSupplier.Context context) {
-                return new MyPunctuatedWatermarkGenerator();
-            }
-        }
-        .withTimestampAssigner(new SerializableTimestampAssigner<MyEvent>() {
-            @Override
-            public long extractTimestamp(MyEvent element, long recordTimestamp) {
-                return element.getTimestamp();
-            }
-        })
-);
+DataStream<MyEvent> watermarkStream = input.assignTimestampsAndWatermarks(new CustomWatermarkStrategy());
 
-/**
- * 自定义 Punctuated WatermarkGenerator
- */
-public static class MyPunctuatedWatermarkGenerator implements WatermarkGenerator<MyEvent> {
+// 自定义 WatermarkStrategy
+public static class CustomWatermarkStrategy implements WatermarkStrategy<MyEvent> {
+    // 创建 Watermark 生成器
+    @Override
+    public WatermarkGenerator<MyEvent> createWatermarkGenerator(WatermarkGeneratorSupplier.Context context) {
+        return new CustomPunctuatedGenerator();
+    }
+    // 创建时间戳分配器
+    @Override
+    public TimestampAssigner<MyEvent> createTimestampAssigner(TimestampAssignerSupplier.Context context) {
+        return new CustomTimestampAssigner();
+    }
+}
+
+// 自定义断点式 Watermark 生成器
+public static class CustomPunctuatedGenerator implements WatermarkGenerator<MyEvent> {
     @Override
     public void onEvent(MyEvent event, long eventTimestamp, WatermarkOutput output) {
         // 遇到特殊标记的元素就输出Watermark
         if (event.hasWatermarkMarker()) {
             Watermark watermark = new Watermark(eventTimestamp);
-            LOG.info("[Watermark] Key: {}, HasWatermarkMarker: {}, EventTimestamp: [{}|{}], Watermark: [{}|{}]",
+            LOG.info("Key: {}, HasWatermarkMarker: {}, EventTimestamp: [{}|{}], Watermark: [{}|{}]",
                     event.getKey(), event.hasWatermarkMarker(), event.getEventTime(), event.getTimestamp(),
                     watermark.getFormattedTimestamp(), watermark.getTimestamp()
             );
             output.emitWatermark(watermark);
         }
     }
+    // 周期性生成 Watermark
     @Override
     public void onPeriodicEmit(WatermarkOutput output) {
-        // 不使用该函数
+        // 不需要
+    }
+}
+
+// 自定义时间戳分配器
+public static class CustomTimestampAssigner implements TimestampAssigner<MyEvent> {
+    @Override
+    public long extractTimestamp(MyEvent element, long recordTimestamp) {
+        return element.getTimestamp();
     }
 }
 ```
-> 完成代码请查阅:[PunctuatedWatermarkGeneratorExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/watermark/PunctuatedWatermarkGeneratorExample.java)
+> 完成代码请查阅:[PunctuatedWatermarkGeneratorExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/watermark/CustomPunctuatedWatermarkStrategyExample.java)
 
-通过如下输入示例数据，我们可以观察输出的Watermark信息：
+通过如下输入示例数据，我们可以观察输出的 Watermark 信息：
 ```
 A,false,2021-02-19 12:07:01
 B,true,2021-02-19 12:08:01
@@ -298,11 +306,18 @@ C,false,2021-02-19 12:09:01
 C,true,2021-02-19 12:15:01
 A,true,2021-02-19 12:08:01
 ```
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/generating-watermarks-in-flink-1.11-2.jpg?raw=true)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+实际效果如下：
+```
+08:27:54,478 Map [] - Key: A, HashWatermark: false, Timestamp: [2021-02-19 12:07:01|1613707621000]
+08:27:58,813 Map [] - Key: B, HashWatermark: true, Timestamp: [2021-02-19 12:08:01|1613707681000]
+08:27:58,839 Map [] - Key: B, HasWatermarkMarker: true, EventTimestamp: [2021-02-19 12:08:01|1613707681000], Watermark: [2021-02-19 12:08:01.000|1613707681000]
+08:29:09,264 Map [] - Key: A, HashWatermark: false, Timestamp: [2021-02-19 12:14:01|1613708041000]
+08:29:13,800 Map [] - Key: C, HashWatermark: false, Timestamp: [2021-02-19 12:09:01|1613707741000]
+08:29:18,137 Map [] - Key: C, HashWatermark: true, Timestamp: [2021-02-19 12:15:01|1613708101000]
+08:29:18,138 Map [] - Key: C, HasWatermarkMarker: true, EventTimestamp: [2021-02-19 12:15:01|1613708101000], Watermark: [2021-02-19 12:15:01.000|1613708101000]
+08:29:21,970 Map [] - Key: A, HashWatermark: true, Timestamp: [2021-02-19 12:08:01|1613707681000]
+08:29:21,970 Map [] - Key: A, HasWatermarkMarker: true, EventTimestamp: [2021-02-19 12:08:01|1613707681000], Watermark: [2021-02-19 12:08:01.000|1613707681000]
+```
 
 推荐订阅：
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jk.jpeg?raw=true)

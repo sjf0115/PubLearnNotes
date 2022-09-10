@@ -29,6 +29,7 @@
 - [x] [Flink 1.10 版本之前如何生成 Watermark](https://smartsi.blog.csdn.net/article/details/126563487)
 - [x] [Flink 1.11+ 版本如何生成 Watermark](https://smartsi.blog.csdn.net/article/details/126791104)
 - [x] [Flink 定时器的4个特性](https://smartsi.blog.csdn.net/article/details/126714638)
+- [x] [Flink 源码解读系列 DataStream 带 Watermark 生成的时间戳分配器](https://smartsi.blog.csdn.net/article/details/126797894)
 
 ### 3.2 Window 窗口
 

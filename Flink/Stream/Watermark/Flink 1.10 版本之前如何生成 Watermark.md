@@ -10,7 +10,7 @@ categories: Flink
 permalink: flink-stream-event-timestamp-and-extractors
 ---
 
-> Flink 1.10
+> Flink 1.9
 
 我们说使用 Watermark，那我们是在基于事件时间处理数据，首先第一步就是设置时间特性：
 ```java
@@ -56,311 +56,242 @@ public class WatermarkSimpleSource extends RichParallelSourceFunction<WBehavior>
 > []()
 
 
-## 2. 指定 Timestamp Assigner 与 Watermark Generator
+## 2. 在用户自定义函数指定
 
-如果用户使用了 Flink 已经定义好的外部数据源连接器，就不能再实现 SourceFunction 接口来生成流式数据以及相应的 Timestamp 和 Watermark，这种情况下就需要借助 Timestamp Assigner 来管理数据流中的 Timestamp 和 Watermark。Timestamp Assigner 一般是跟在 Source 算子后面，也可以在后续的算子中指定，只要保证 Timestamp Assigner 在第一个时间相关的算子之前即可。例如，一种常见的模式就是在解析（MapFunction）和过滤（FilterFunction）之后使用 Timestamp Assigner。
+如果用户使用了 Flink 已经定义好的外部数据源连接器，就不能再实现 SourceFunction 接口来生成流式数据以及相应的 Timestamp 和 Watermark，这种情况下就需要借助时间戳分配器 TimestampAssigner 为元素分配时间戳以及生成 Watermark。TimestampAssigner 一般是跟在 Source 算子后面，也可以在后续的算子中指定，只要保证 TimestampAssigner 在第一个时间相关的算子之前即可。例如一种常见的模式就是在解析（MapFunction）和过滤（FilterFunction）之后使用 Timestamp Assigner。
 
-如果用户已经在 SourceFunction 中定义 Timestamp 和 Watermark 的生成逻辑，同时又使用了 Timestamp Assigner，此时 Assigner 会覆盖 SourceFunction 中定义的逻辑。
+如果用户已经在 SourceFunction 中定义 Timestamp 和 Watermark 的生成逻辑，同时又使用了 TimestampAssigner，此时分配器会覆盖 SourceFunction 中定义的逻辑。
 
-Flink 根据 Watermark 的生成形式分为两种类型，分别是 Periodic Watermark 和 Punctuated Watermark。Periodic Watermark 根据设定的时间间隔周期性的生成 Watermark，Punctuated Watermark 则根据某些特殊条件生成 Watermark，例如，数据流中特定数据量满足条件后触发生成 Watermark。在 Flink 中生成 Watermark 的逻辑需要分别借助如下接口实现：
+Flink 根据 Watermark 的生成形式分时间戳分配器为两种类型，一种是周期性生成 Watermark 时间戳分配器，一种是断点式生成 Watermark 时间戳分配器。周期性生成 Watermark 时间戳分配器根据设定的时间间隔周期性的生成 Watermark，而断点式生成 Watermark 时间戳分配器则根据某些特殊条件生成 Watermark，例如数据流中特定数据量满足条件后触发生成 Watermark。在 Flink 中需要通过 assignTimestampsAndWatermarks 方法来指定不同形式的时间戳分配器：
 ```java
 public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(AssignerWithPeriodicWatermarks<T> timestampAndWatermarkAssigner)
 public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(AssignerWithPunctuatedWatermarks<T> timestampAndWatermarkAssigner)
 ```
 > 1.10 版本之后使用 assignTimestampsAndWatermarks(WatermarkStrategy<T> watermarkStrategy) 接口。
 
-### 2.1 Periodic Watermark
+### 2.1 周期性生成 Watermark 时间戳分配器
 
-Periodic Watermark 根据设定的时间间隔周期性的生成 Watermark。使用 AssignerWithPeriodicWatermarks 接口分配时间戳并定期生成 Watermark。通过 ExecutionConfig.setAutoWatermarkInterval() 配置生成 Watermark 的周期性时间间隔，默认为 200 毫秒。每次都会调用 getCurrentWatermark() 方法，如果返回的 Watermark 非空且大于前一个 Watermark，则将输出新的 Watermark。
-
-在 Flink 中已经内置实现了两种 Periodic Watermark Assigner，除此之外我们还可以自定义实现 Watermark。
-
-#### 2.1.1 Ascending Timestamp Assigner
-
-第一种 Assigner 是升序模式，将数据中的 Timestamp 根据指定字段提取，并用当前的 Timestamp 作为最新的 Watermark，这种 Assigner 比较适合于事件按顺序生成，没有乱序的情况。具体看一下源代码：
+断点式生成 Watermark 时间戳分配器根据设定的时间间隔周期性的生成 Watermark。使用 AssignerWithPeriodicWatermarks 接口分配时间戳并定期生成 Watermark。可以通过如下方式设置生成 Watermark 的时间间隔周期，默认 200 毫秒：
 ```java
-public abstract class AscendingTimestampExtractor<T> implements AssignerWithPeriodicWatermarks<T> {
-
-	private static final long serialVersionUID = 1L;
-
-	/** The current timestamp. */
-	private long currentTimestamp = Long.MIN_VALUE;
-
-	private MonotonyViolationHandler violationHandler = new LoggingHandler();
-
-	public abstract long extractAscendingTimestamp(T element);
-
-  // 提取事件时间戳
-	@Override
-	public final long extractTimestamp(T element, long elementPrevTimestamp) {
-		final long newTimestamp = extractAscendingTimestamp(element);
-		if (newTimestamp >= this.currentTimestamp) {
-			this.currentTimestamp = newTimestamp;
-			return newTimestamp;
-		} else {
-			violationHandler.handleViolation(newTimestamp, this.currentTimestamp);
-			return newTimestamp;
-		}
-	}
-  // 生成 Watermark
-	@Override
-	public final Watermark getCurrentWatermark() {
-		return new Watermark(currentTimestamp == Long.MIN_VALUE ? Long.MIN_VALUE : currentTimestamp - 1);
-	}
-}
+// 设置每 100ms 生成 Watermark
+env.getConfig().setAutoWatermarkInterval(100);
 ```
+每次都会调用 getCurrentWatermark() 方法，如果返回的 Watermark 非空且大于前一个 Watermark，则将输出新的 Watermark。
 
-具体如和使用呢？如下代码所示，通过 AscendingTimestampExtractor 来指定 Timestamp 字段，不需要显示的指定 Watermark，因为已经在系统中默认使用 Timestamp 创建 Watermark：
+在 Flink 中已经内置实现了两种周期性生成 Watermark 的时间戳分配器：
+- AscendingTimestampExtractor
+- BoundedOutOfOrdernessTimestampExtractor
+
+除此之外我们还可以自定义实现 Watermark。
+
+#### 2.1.1 AscendingTimestampExtractor
+
+周期性生成 Watermark 的时间戳分配器第一种内置实现是 AscendingTimestampExtractor。实现了 AssignerWithPeriodicWatermarks 接口，用当前提取的元素时间戳作为最新的 Watermark。这种时间分配器比较适合于事件按顺序生成，没有乱序的情况。具体源码解读可以查看 [AscendingTimestampExtractor](https://smartsi.blog.csdn.net/article/details/126797894?spm=1001.2014.3001.5502)。
+
+AscendingTimestampExtractor 时间戳分配器使用比较简单，通过 assignTimestampsAndWatermarks 方法指定 AscendingTimestampExtractor 时间戳分配器的实现，并且只需要重写 extractAscendingTimestamp 方法来指定时间戳即可：
 ```java
 // <key, timestamp, value>
-DataStream<Tuple3<String, Long, Integer>> input ...
+DataStream<Tuple3<String, Long, Integer>> source ...
 
-DataStream<Tuple3<String, Long, Integer>> result =
-  input.assignTimestampsAndWatermarks(new AscendingTimestampExtractor<Tuple3<String, Long, Integer>>() {
-    @Override
-    public long extractAscendingTimestamp(Tuple3<String, Long, Integer> tuple) {
-        return tuple.f1;
-    }
-});
+// 计算单词出现的次数
+SingleOutputStreamOperator<Tuple4<String, Long, String, String>> stream = source
+    .assignTimestampsAndWatermarks(new AscendingTimestampExtractor<Tuple2<String, Long>>() {
+        @Override
+        public long extractAscendingTimestamp(Tuple2<String, Long> tuple) {
+            // 提取时间戳
+            return tuple.f1;
+        }
+    })
+    .map(new MapFunction<Tuple2<String, Long>, Tuple2<String, Long>>() {
+        @Override
+        public Tuple2<String, Long> map(Tuple2<String, Long> tuple2) throws Exception {
+            return Tuple2.of(tuple2.f0, 1L);
+        }
+    })
+    // 分组
+    .keyBy(new KeySelector<Tuple2<String, Long>, String>() {
+        @Override
+        public String getKey(Tuple2<String, Long> element) throws Exception {
+            return element.f0;
+        }
+    })
+    // 每1分钟一个窗口
+    .timeWindow(Time.minutes(1))
+    // 求和
+    .process(new ProcessWindowFunction<Tuple2<String, Long>, Tuple4<String, Long, String, String>, String, TimeWindow>() {
+        @Override
+        public void process(String word, Context context, Iterable<Tuple2<String, Long>> elements, Collector<Tuple4<String, Long, String, String>> out) throws Exception {
+            // 计算出现次数
+            long count = 0;
+            for (Tuple2<String, Long> element : elements) {
+                count ++;
+            }
+            // 当前 Watermark
+            long currentWatermark = context.currentWatermark();
+            // 时间窗口元数据
+            TimeWindow window = context.window();
+            long start = window.getStart();
+            long end = window.getEnd();
+            String startTime = DateUtil.timeStamp2Date(start, "yyyy-MM-dd HH:mm:ss");
+            String endTime = DateUtil.timeStamp2Date(end, "yyyy-MM-dd HH:mm:ss");
+            LOG.info("word: {}, count: {}, watermark: {}, windowStart: {}, windowEnd: {}",
+                    word, count, currentWatermark,
+                    start + "|" + startTime, end + "|" + endTime
+            );
+            // 输出
+            out.collect(Tuple4.of(word, count, startTime, endTime));
+        }
+    });
 ```
-假如出现了延迟数据（递减的时间戳），系统是如何处理的呢？如果产生了递减的时间戳，就要使用名为 MonotonyViolationHandler 的组件进行处理，并提供了三种策略：
-- IgnoringHandler
-- FailingHandler
-- LoggingHandler
 
-(1) IgnoringHandler
+> 完整代码请查阅[AscendingWatermarkExample](https://github.com/sjf0115/data-example/blob/master/flink-example-1.9/src/main/java/com/flink/example/stream/watermark/extractor/AscendingWatermarkExample.java)
 
-违反时间戳单调递增时，不执行任何操作：
+实际效果如下
+```
+19:38:39,800 INFO  Source  [] - word: b, timestamp: 1662809919797, time: 2022-09-10 19:38:39
+19:38:49,819 INFO  Source  [] - word: a, timestamp: 1662809929819, time: 2022-09-10 19:38:49
+19:38:59,824 INFO  Source  [] - word: b, timestamp: 1662809939824, time: 2022-09-10 19:38:59
+19:39:09,827 INFO  Source  [] - word: a, timestamp: 1662809949826, time: 2022-09-10 19:39:09
+19:39:14,838 INFO  Process [] - word: b, count: 2, watermark: 1662809949825, windowStart: 1662809880000|2022-09-10 19:38:00, windowEnd: 1662809940000|2022-09-10 19:39:00
+(b,2,2022-09-10 19:38:00,2022-09-10 19:39:00)
+19:39:14,840 INFO  Process [] - word: a, count: 1, watermark: 1662809949825, windowStart: 1662809880000|2022-09-10 19:38:00, windowEnd: 1662809940000|2022-09-10 19:39:00
+(a,1,2022-09-10 19:38:00,2022-09-10 19:39:00)
+19:39:19,831 INFO  Source  [] - word: b, timestamp: 1662809959831, time: 2022-09-10 19:39:19
+...
+```
+
+#### 2.1.2 BoundedOutOfOrdernessTimestampExtractor
+
+周期性生成 Watermark 的时间戳分配器第二种内置实现是 BoundedOutOfOrdernessTimestampExtractor。实现了 AssignerWithPeriodicWatermarks 接口，用当前最大时间戳减去最大乱序时间作为最新的 Watermark。这种时间分配器比较适合于乱序场景。具体源码解读可以查看 [BoundedOutOfOrdernessTimestampExtractor](https://smartsi.blog.csdn.net/article/details/126797894?spm=1001.2014.3001.5502)。
+
+BoundedOutOfOrdernessTimestampExtractor 的使用类似 AscendingTimestampExtractor，也需要通过 assignTimestampsAndWatermarks 方法指定 BoundedOutOfOrdernessTimestampExtractor 时间戳分配器的实现，并且需要重写 extractTimestamp 方法来指定时间戳。不一样的地方是，时间戳分配器的实现需要指定最大乱序时间 maxOutOfOrderness。如下代码所示，通过创建 BoundedOutOfOrdernessTimestampExtractor 实现类来实现时间戳分配器，并指定最大乱序时间为 5 秒：
 ```java
-public static final class IgnoringHandler implements MonotonyViolationHandler {
-  private static final long serialVersionUID = 1L;
+// 每1s输出一次单词
+DataStreamSource<Tuple4<Integer, String, Integer, Long>> source = env.addSource(new OutOfOrderSource());
+// 计算每1分钟内每个单词出现的次数
+DataStream<Tuple3<String, Integer, String>> result = source
+        .assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Tuple4<Integer, String, Integer, Long>>(Time.seconds(5)) {
+            @Override
+            public long extractTimestamp(Tuple4<Integer, String, Integer, Long> element) {
+                return element.f3;
+            }
+        })
+        // 分组
+        .keyBy(new KeySelector<Tuple4<Integer, String, Integer, Long>, String>() {
+            @Override
+            public String getKey(Tuple4<Integer, String, Integer, Long> element) throws Exception {
+                return element.f1;
+            }
+        })
+        // 每1分钟的滚动窗口
+        .timeWindow(Time.minutes(1))
+        // 求和
+        .process(new ProcessWindowFunction<Tuple4<Integer, String, Integer, Long>, Tuple3<String, Integer, String>, String, TimeWindow>() {
+            @Override
+            public void process(String key, Context context, Iterable<Tuple4<Integer, String, Integer, Long>> elements, Collector<Tuple3<String, Integer, String>> out) throws Exception {
+                // 计算出现次数
+                int count = 0;
+                List<Integer> ids = Lists.newArrayList();
+                for (Tuple4<Integer, String, Integer, Long> element : elements) {
+                    count += element.f2;
+                    ids.add(element.f0);
+                }
+                // 当前 Watermark
+                long currentWatermark = context.currentWatermark();
+                // 时间窗口元数据
+                TimeWindow window = context.window();
+                long start = window.getStart();
+                long end = window.getEnd();
+                String startTime = DateUtil.timeStamp2Date(start, "yyyy-MM-dd HH:mm:ss");
+                String endTime = DateUtil.timeStamp2Date(end, "yyyy-MM-dd HH:mm:ss");
+                LOG.info("word: {}, count: {}, ids: {}, watermark: {}, windowStart: {}, windowEnd: {}",
+                        key, count, ids.toString(), currentWatermark,
+                        start + "|" + startTime, end + "|" + endTime
+                );
+                out.collect(Tuple3.of(key, count, ids.toString()));
+            }
+        });
 
-  @Override
-  public void handleViolation(long elementTimestamp, long lastTimestamp) {}
-}
 ```
+> 完整代码请查阅[BoundedOutOfOrderWatermarkExample](https://github.com/sjf0115/data-example/blob/master/flink-example-1.9/src/main/java/com/flink/example/stream/watermark/extractor/BoundedOutOfOrderWatermarkExample.java)
 
-(2) FailingHandler
-
-违反时间戳单调递增时，程序抛出异常：
-```java
-public static final class FailingHandler implements MonotonyViolationHandler {
-		private static final long serialVersionUID = 1L;
-
-		@Override
-		public void handleViolation(long elementTimestamp, long lastTimestamp) {
-			throw new RuntimeException("Ascending timestamps condition violated. Element timestamp "
-					+ elementTimestamp + " is smaller than last timestamp " + lastTimestamp);
-		}
-	}
-```
-
-(3) LoggingHandler
-
-违反时间戳单调递增时，仅打印 WARN 日志级别日志，这也是默认采取的策略：
-```java
-public static final class LoggingHandler implements MonotonyViolationHandler {
-  private static final long serialVersionUID = 1L;
-
-  private static final Logger LOG = LoggerFactory.getLogger(AscendingTimestampExtractor.class);
-
-  @Override
-  public void handleViolation(long elementTimestamp, long lastTimestamp) {
-    LOG.warn("Timestamp monotony violated: {} < {}", elementTimestamp, lastTimestamp);
-  }
-}
-```
-单调递增的事件时间并不太符合实际情况，所以AscendingTimestampExtractor用得不多。
-
-#### 2.1.2 固定时延间隔的Assigner
-
-第二种 Assigner 是通过设定固定的时间间隔来指定 Watermark 落后于 Timestamp 的区间长度，也就是最大可容忍迟到的时间长度。我们先看一下源代码：
-```java
-public abstract class BoundedOutOfOrdernessTimestampExtractor<T> implements AssignerWithPeriodicWatermarks<T> {
-	private long currentMaxTimestamp;
-	private long lastEmittedWatermark = Long.MIN_VALUE;
-	private final long maxOutOfOrderness;
-
-	public BoundedOutOfOrdernessTimestampExtractor(Time maxOutOfOrderness) {
-		if (maxOutOfOrderness.toMilliseconds() < 0) {
-			throw new RuntimeException("Tried to set the maximum allowed " +
-				"lateness to " + maxOutOfOrderness + ". This parameter cannot be negative.");
-		}
-		this.maxOutOfOrderness = maxOutOfOrderness.toMilliseconds();
-		this.currentMaxTimestamp = Long.MIN_VALUE + this.maxOutOfOrderness;
-	}
-
-	public abstract long extractTimestamp(T element);
-
-  // 生成 Watermark
-	@Override
-	public final Watermark getCurrentWatermark() {
-		// this guarantees that the watermark never goes backwards.
-		long potentialWM = currentMaxTimestamp - maxOutOfOrderness;
-		if (potentialWM >= lastEmittedWatermark) {
-			lastEmittedWatermark = potentialWM;
-		}
-		return new Watermark(lastEmittedWatermark);
-	}
-
-  // 提取事件时间戳
-	@Override
-	public final long extractTimestamp(T element, long previousElementTimestamp) {
-		long timestamp = extractTimestamp(element);
-		if (timestamp > currentMaxTimestamp) {
-			currentMaxTimestamp = timestamp;
-		}
-		return timestamp;
-	}
-}
-```
-通过上面我们可以看到 Flink 已经帮我们实现了 Timestamp 提取的部分逻辑以及 Watermark 生成逻辑。那具体如何使用呢？如下代码所示，通过创建 BoundedOutOfOrdernessTimestampExtractor 实现类来定义 Timestamp Assigner，其中第一个参数 Time.minutes(10) 表示最大可容忍的时延为 10 分钟，并在 extractTimestamp 中实现时间戳抽取逻辑。在代码中我们选择第2个元素作为事件时间戳，其中 Watermark 是根据事件时间戳减去固定的时间延迟而生成的，如果当前数据中的时间大于 Watermark 的时间，则会被认为是迟到事件，并且在计算其相应窗口结果时默认忽略该元素：
-```java
-// <key, timestamp, value>
-DataStream<Tuple3<String, Long, Integer>> input ...
-
-DataStream<Tuple3<String, Long, Integer>> withTimestampsAndWatermarks =
-    input.assignTimestampsAndWatermarks(new BoundedOutOfOrdernessTimestampExtractor<Tuple3<String, Long, Integer>>(Time.minutes(10)) {
-    @Override
-    public long extractTimestamp(Tuple3<String, Long, Integer> element) {
-        return element.f1;
-    }
-});
-```
-实际效果如下：
+如上示例，设置 5 秒的最大乱序时间，计算1分钟窗口内每个单词的出现次数。实际效果如下：
 ```
 2022-09-05 08:54:56,157 Source    [] - id: 1, word: a, count: 2, eventTime: 1662303772840|2022-09-04 23:02:52
-2022-09-05 08:54:56,361 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
-2022-09-05 08:54:56,565 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
-2022-09-05 08:54:56,770 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
-2022-09-05 08:54:56,974 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
 2022-09-05 08:54:57,161 Source    [] - id: 2, word: a, count: 1, eventTime: 1662303770844|2022-09-04 23:02:50
-2022-09-05 08:54:57,180 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
-2022-09-05 08:54:57,386 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
-2022-09-05 08:54:57,590 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
-2022-09-05 08:54:57,795 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
-2022-09-05 08:54:58,000 Extractor [] - currentMaxTimestamp: 1662303772840, currentWatermark: 1662303767840
 2022-09-05 08:54:58,165 Source    [] - id: 3, word: a, count: 3, eventTime: 1662303773848|2022-09-04 23:02:53
-2022-09-05 08:54:58,205 Extractor [] - currentMaxTimestamp: 1662303773848, currentWatermark: 1662303768848
-2022-09-05 08:54:58,411 Extractor [] - currentMaxTimestamp: 1662303773848, currentWatermark: 1662303768848
-2022-09-05 08:54:58,615 Extractor [] - currentMaxTimestamp: 1662303773848, currentWatermark: 1662303768848
-2022-09-05 08:54:58,820 Extractor [] - currentMaxTimestamp: 1662303773848, currentWatermark: 1662303768848
-2022-09-05 08:54:59,026 Extractor [] - currentMaxTimestamp: 1662303773848, currentWatermark: 1662303768848
 2022-09-05 08:54:59,170 Source    [] - id: 4, word: a, count: 2, eventTime: 1662303774866|2022-09-04 23:02:54
-2022-09-05 08:54:59,232 Extractor [] - currentMaxTimestamp: 1662303774866, currentWatermark: 1662303769866
-2022-09-05 08:54:59,434 Extractor [] - currentMaxTimestamp: 1662303774866, currentWatermark: 1662303769866
-2022-09-05 08:54:59,638 Extractor [] - currentMaxTimestamp: 1662303774866, currentWatermark: 1662303769866
-2022-09-05 08:54:59,839 Extractor [] - currentMaxTimestamp: 1662303774866, currentWatermark: 1662303769866
-2022-09-05 08:55:00,045 Extractor [] - currentMaxTimestamp: 1662303774866, currentWatermark: 1662303769866
 2022-09-05 08:55:00,171 Source    [] - id: 5, word: a, count: 1, eventTime: 1662303777839|2022-09-04 23:02:57
-2022-09-05 08:55:00,249 Extractor [] - currentMaxTimestamp: 1662303777839, currentWatermark: 1662303772839
-2022-09-05 08:55:00,454 Extractor [] - currentMaxTimestamp: 1662303777839, currentWatermark: 1662303772839
-2022-09-05 08:55:00,659 Extractor [] - currentMaxTimestamp: 1662303777839, currentWatermark: 1662303772839
-2022-09-05 08:55:00,863 Extractor [] - currentMaxTimestamp: 1662303777839, currentWatermark: 1662303772839
-2022-09-05 08:55:01,065 Extractor [] - currentMaxTimestamp: 1662303777839, currentWatermark: 1662303772839
 2022-09-05 08:55:01,174 Source    [] - id: 6, word: a, count: 2, eventTime: 1662303784887|2022-09-04 23:03:04
-2022-09-05 08:55:01,270 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
-2022-09-05 08:55:01,476 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
-2022-09-05 08:55:01,681 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
-2022-09-05 08:55:01,885 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
-2022-09-05 08:55:02,091 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
 2022-09-05 08:55:02,178 Source    [] - id: 7, word: a, count: 3, eventTime: 1662303776894|2022-09-04 23:02:56
-2022-09-05 08:55:02,294 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
-2022-09-05 08:55:02,498 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
-2022-09-05 08:55:02,704 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
-2022-09-05 08:55:02,910 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
-2022-09-05 08:55:03,113 Extractor [] - currentMaxTimestamp: 1662303784887, currentWatermark: 1662303779887
 2022-09-05 08:55:03,182 Source    [] - id: 8, word: a, count: 1, eventTime: 1662303786891|2022-09-04 23:03:06
-2022-09-05 08:55:03,314 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
 2022-09-05 08:55:03,396 Sum       [] - word: a, count: 12, ids: [1, 2, 3, 4, 5, 7], watermark: 1662303781891,
                                        windowStart: 1662303720000|2022-09-04 23:02:00, windowEnd: 1662303780000|2022-09-04 23:03:00
 2022-09-05 08:55:03,396 Print     [] - (a,12,[1, 2, 3, 4, 5, 7])
-2022-09-05 08:55:03,519 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
-2022-09-05 08:55:03,722 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
-2022-09-05 08:55:03,924 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
-2022-09-05 08:55:04,128 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
 2022-09-05 08:55:04,187 Source    [] - id: 9, word: a, count: 5, eventTime: 1662303778877|2022-09-04 23:02:58
-2022-09-05 08:55:04,332 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
-2022-09-05 08:55:04,535 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
-2022-09-05 08:55:04,741 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
-2022-09-05 08:55:04,945 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
-2022-09-05 08:55:05,150 Extractor [] - currentMaxTimestamp: 1662303786891, currentWatermark: 1662303781891
 2022-09-05 08:55:05,191 Source    [] - id: 10, word: a, count: 4, eventTime: 1662303791904|2022-09-04 23:03:11
-2022-09-05 08:55:05,354 Extractor [] - currentMaxTimestamp: 1662303791904, currentWatermark: 1662303786904
-2022-09-05 08:55:05,557 Extractor [] - currentMaxTimestamp: 1662303791904, currentWatermark: 1662303786904
-2022-09-05 08:55:05,761 Extractor [] - currentMaxTimestamp: 1662303791904, currentWatermark: 1662303786904
-2022-09-05 08:55:05,962 Extractor [] - currentMaxTimestamp: 1662303791904, currentWatermark: 1662303786904
-2022-09-05 08:55:06,167 Extractor [] - currentMaxTimestamp: 1662303791904, currentWatermark: 1662303786904
 2022-09-05 08:55:06,192 Source    [] - id: 11, word: a, count: 1, eventTime: 1662303795918|2022-09-04 23:03:15
-2022-09-05 08:55:06,373 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
-2022-09-05 08:55:06,578 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
-2022-09-05 08:55:06,785 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
-2022-09-05 08:55:06,991 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
 2022-09-05 08:55:07,196 Source    [] - id: 12, word: a, count: 6, eventTime: 1662303779883|2022-09-04 23:02:59
-2022-09-05 08:55:07,198 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
-2022-09-05 08:55:07,403 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
-2022-09-05 08:55:07,605 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
-2022-09-05 08:55:07,808 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
-2022-09-05 08:55:08,014 Extractor [] - currentMaxTimestamp: 1662303795918, currentWatermark: 1662303790918
 2022-09-05 08:55:08,203 Source    [] - id: 13, word: a, count: 2, eventTime: 1662303846254|2022-09-04 23:04:06
-2022-09-05 08:55:08,220 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
 2022-09-05 08:55:08,242 Sum       [] - word: a, count: 8, ids: [6, 8, 10, 11], watermark: 1662303841254,
                                        windowStart: 1662303780000|2022-09-04 23:03:00, windowEnd: 1662303840000|2022-09-04 23:04:00
 2022-09-05 08:55:08,243 Print     [] - (a,8,[6, 8, 10, 11])
-2022-09-05 08:55:08,422 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
-2022-09-05 08:55:08,628 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
-2022-09-05 08:55:08,829 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
-2022-09-05 08:55:09,034 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
-2022-09-05 08:55:09,209 Extractor [] - currentMaxTimestamp: 1662303846254, currentWatermark: 1662303841254
 2022-09-05 08:55:09,210 Sum       [] - word: a, count: 2, ids: [13], watermark: 9223372036854775807, windowStart: 1662303840000|2022-09-04 23:04:00, windowEnd: 1662303900000|2022-09-04 23:05:00
 2022-09-05 08:55:09,211 Print     [] - (a,2,[13])
 ```
 
+#### 2.1.3 自定义周期性生成 Watermark 的时间戳分配器
 
-#### 2.1.3 自定义 Periodic Watermark
-
-除了上述两种内置的 Periodic Watermark Assigner，我们还可以自定义实现 AssignerWithPeriodicWatermarks 接口来实现 Periodic Watermark。如下代码所示，通过重写 getCurrentWatermark 和 extractTimestamp 方法来分别定义生成 Watermark 逻辑和时间戳抽取逻辑。其中 getCurrentWatermark 生成 Watermark 逻辑需要依赖于 currentMaxTimeStamp，该方法每次被调用时，如果产生的 Watermark 比现在的大，就会覆盖现在的 Watermark，从而实现 Watermark 的更新，即每当有新的最大时间戳出现时，可能就会产生新的 Watermark：
+除了上述两种内置的周期性生成 Watermark 的时间戳分配器，我们还可以自定义实现 AssignerWithPeriodicWatermarks 接口来实现时间戳分配器。如下代码所示，通过重写 getCurrentWatermark 和 extractTimestamp 方法来分别定义生成 Watermark 逻辑和时间戳抽取逻辑。其中 getCurrentWatermark 生成 Watermark 逻辑需要依赖于 currentMaxTimeStamp。该方法每次被调用时，如果产生的 Watermark 比现在的大，就会覆盖现在的 Watermark，从而实现 Watermark 的更新。每当有新的最大时间戳出现时，可能就会产生新的 Watermark：
 ```java
-public static class CustomPeriodicWatermarkAssigner implements AssignerWithPeriodicWatermarks<Tuple2<String, Long>> {
+public abstract class CustomBoundedOutOfOrderTimestampExtractor<T> implements AssignerWithPeriodicWatermarks<T> {
+    private static final Logger LOG = LoggerFactory.getLogger(CustomBoundedOutOfOrderTimestampExtractor.class);
+    private static final long serialVersionUID = 1L;
+    // 当前最大时间戳
+    private long currentMaxTimestamp;
+    // 当前 Watermark
+    private long lastEmittedWatermark = Long.MIN_VALUE;
+    // 最大乱序时间
+    private final long maxOutOfOrder;
 
-    private final Long outOfOrdernessMillis = 600000L;
-    private Long currentMaxTimeStamp = Long.MIN_VALUE + outOfOrdernessMillis + 1;
+    public CustomBoundedOutOfOrderTimestampExtractor(Time maxOutOfOrder) {
+        if (maxOutOfOrder.toMilliseconds() < 0) {
+            throw new RuntimeException("Tried to set the maximum allowed " + "lateness to " + maxOutOfOrder + ". This parameter cannot be negative.");
+        }
+        this.maxOutOfOrder = maxOutOfOrder.toMilliseconds();
+        this.currentMaxTimestamp = Long.MIN_VALUE + this.maxOutOfOrder;
+    }
 
-    // 默认200ms被调用一次
-    @Nullable
+    // 用户自定义实现时间戳提取逻辑
+    public abstract long extractTimestamp(T element);
+
     @Override
-    public Watermark getCurrentWatermark() {
-        return new Watermark(currentMaxTimeStamp - outOfOrdernessMillis - 1);
+    public final Watermark getCurrentWatermark() {
+        // 保证 Watermark 递增的
+        long potentialWM = currentMaxTimestamp - maxOutOfOrder;
+        if (potentialWM >= lastEmittedWatermark) {
+            lastEmittedWatermark = potentialWM;
+        }
+        LOG.info("currentMaxTimestamp: {}, currentWatermark: {}", currentMaxTimestamp, lastEmittedWatermark);
+        return new Watermark(lastEmittedWatermark);
     }
 
     @Override
-    public long extractTimestamp(Tuple2<String, Long> element, long recordTimestamp) {
-        Watermark watermark = getCurrentWatermark();
-        LOG.info("[INFO] watermark: {}", DateUtil.timeStamp2Date(watermark.getTimestamp(), "yyyy-MM-dd HH:mm:ss")+ " | " + watermark.getTimestamp() + "]");
-        String key = element.f0;
-        Long timestamp = element.f1;
-
-        currentMaxTimeStamp = Math.max(timestamp, currentMaxTimeStamp);
-
-        LOG.info("[INFO] timestamp, key: {}, eventTime: {}, currentMaxTimeStamp: {}, maxOutOfOrderness: {}",
-                key,
-                "[" + DateUtil.timeStamp2Date(timestamp, "yyyy-MM-dd HH:mm:ss") + " | " + timestamp + "]",
-                "[" + DateUtil.timeStamp2Date(currentMaxTimeStamp, "yyyy-MM-dd HH:mm:ss")+" | "+currentMaxTimeStamp + "]",
-                outOfOrdernessMillis
-        );
-
+    public final long extractTimestamp(T element, long previousElementTimestamp) {
+        long timestamp = extractTimestamp(element);
+        // 当前最大时间戳计算 Watermark
+        if (timestamp > currentMaxTimestamp) {
+            currentMaxTimestamp = timestamp;
+        }
         return timestamp;
     }
 }
 ```
-> 备注：Tuple2<String, Long> 中第二个元素为元素时间戳。
+> 完整代码请查阅[CustomPeriodicWatermarkExample](https://github.com/sjf0115/data-example/blob/master/flink-example-1.9/src/main/java/com/flink/example/stream/watermark/custom/CustomPeriodicWatermarkExample.java)
 
-效果如下：
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-event-timestamp-and-extractors-1.jpg?raw=true)
+### 2.2 断点式生成 Watermark 时间戳分配器
 
-### 2.2 Punctuated Watermark
-
-除了根据时间周期性生成 Periodic Watermark，用户也可以根据某些特殊条件生成 Punctuated Watermark，例如判断某个数据元素为某个事件时，就会触发生成 Watermark，如果不为某个事件，就不会触发生成 Watermark。我们需要自定义实现 AssignerWithPunctuatedWatermarks 接口来实现 Punctuated Watermark。如下代码所示，通过重写 extractTimestamp 和 checkAndGetNextWatermark 方法来分别定义时间戳抽取逻辑和生成 Watermark 的逻辑：
+除了根据时间周期性生成 Watermark，用户也可以根据某些特殊条件生成 Watermark，例如判断某个数据元素为某个事件时，就会触发生成 Watermark。我们需要自定义实现 AssignerWithPunctuatedWatermarks 接口来实现断点式生成 Watermark 时间戳分配器。如下代码所示，通过重写 extractTimestamp 和 checkAndGetNextWatermark 方法来分别定义时间戳抽取逻辑和生成 Watermark 的逻辑：
 ```java
 public static class CustomPunctuatedWatermarkAssigner implements AssignerWithPunctuatedWatermarks<Tuple2<String, Long>> {
     @Nullable
@@ -382,23 +313,4 @@ public static class CustomPunctuatedWatermarkAssigner implements AssignerWithPun
     }
 }
 ```
-
-效果如下：
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-event-timestamp-and-extractors-2.jpg?raw=true)
-
-示例数据：
-```
-A,2021-01-05 12:07:01
-B,2021-01-05 12:08:01
-A,2021-01-05 12:14:01
-C,2021-01-05 12:09:01
-C,2021-01-05 12:15:01
-A,2021-01-05 12:08:01
-```
-
-参考:
-- [Generating Timestamps / Watermarks](https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/event_timestamps_watermarks.html)
-- Flink原理、实战与性能优化
-
-推荐订阅：
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jk.jpeg?raw=true)
+> 完整代码请查阅[CustomPunctuatedWatermarkExample](https://github.com/sjf0115/data-example/blob/master/flink-example-1.9/src/main/java/com/flink/example/stream/watermark/custom/CustomPunctuatedWatermarkExample.java)

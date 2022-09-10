@@ -12,7 +12,7 @@ permalink: flink-stream-code-time-assigner-with-watermark
 
 > Flink 1.10
 
-这篇文章主要从源码角度讲一下 Flink DataStream 是如何生成 Watermark 的。
+这篇文章主要从源码角度讲一下 Flink DataStream 中带 Watermark 生成的时间戳分配器。
 
 我们通常通过 DataStream 的 assignTimestampsAndWatermarks 方法分配时间戳并生成 Watermark。assignTimestampsAndWatermarks 方法可以传入两种时间戳分配器：
 - 周期性生成 Watermark 的时间戳分配器：AssignerWithPeriodicWatermarks

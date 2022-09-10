@@ -76,8 +76,7 @@ SingleOutputStreamOperator<Tuple3<String, Long, Integer>> watermarkStream = stre
 
 ### 2.2 乱序流
 
-由于乱序流中需要等待迟到数据到齐，所以必须设置一个固定量的延迟时间。这时生成 Watermark 的时间戳，就是当前数据流中最大的时间戳减去固定延迟时间的
-结果，即 Watermark 滞后于数据流中最大时间戳一个固定的时间量，相当于把表调慢。在这种场景下我们需要事先知道流中可能遇到的最大乱序时间，直接调用 WatermarkStrategy 的 forBoundedOutOfOrderness 静态方法即可：
+由于乱序流中需要等待迟到数据到齐，所以必须设置一个固定量的延迟时间。这时生成 Watermark 的时间戳，就是当前数据流中最大的时间戳减去固定延迟时间的结果，即 Watermark 滞后于数据流中最大时间戳一个固定的时间量，相当于把表调慢。在这种场景下我们需要事先知道流中可能遇到的最大乱序时间，直接调用 WatermarkStrategy 的 forBoundedOutOfOrderness 静态方法即可：
 ```java
 WatermarkStrategy.forBoundedOutOfOrderness();
 ```

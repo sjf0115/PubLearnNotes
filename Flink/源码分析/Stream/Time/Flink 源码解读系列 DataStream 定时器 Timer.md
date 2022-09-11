@@ -1,0 +1,6 @@
+
+定时器在 Flink 中叫作 Timer。窗口的触发器与定时器是紧密联系的。Flink 的定时器使用 InternalTimer 接口定义行为，如代码清单4-6所示。
+代码清单4-6 InternalTimer接口
+
+前面提到了Timer的注册和保存，那么Timer到底是如何触发然后回调用户逻辑的呢?答案在InternalTimerServiceImpl中。
+对于事件时间，会根据Watermark的时间，从事件时间的定时器队列中找到比给定时间小的所有定时器，触发该Timer所在的算子，然后由算子去调用UDF中的o

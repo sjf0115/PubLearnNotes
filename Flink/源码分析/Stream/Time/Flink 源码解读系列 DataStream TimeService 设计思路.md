@@ -147,10 +147,3 @@ public void deleteEventTimeTimer(N namespace, long time) {
     );
 }
 ```
-
-
-
-
-
-这里我们以 IntervalJoinOperator 为例说明内部算子如何直接调用 InternalTimerService 注册定时器。
-如代码清单2-31所示，在IntervalJoinOperator.processElement()方法中，实际上会调用internalTimerService.registerEventTimeTimer()方法注册基于事件时间的定时器，专门用于数据清理任务。随后internalTimerService会根据指定的cleanupTime完成对窗口中历史状

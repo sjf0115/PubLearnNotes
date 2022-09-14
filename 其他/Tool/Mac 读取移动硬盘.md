@@ -13,3 +13,6 @@ Volume UUID:              xxx
 ```
 echo "UUID=xxx none ntfs rw,auto,nobrowse" | sudo tee -a /etc/fstab
 ```
+
+
+参考：https://www.youtube.com/watch?v=j5AedYxk90E

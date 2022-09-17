@@ -15,6 +15,9 @@ MergingWindowSet（窗口合并的工具类）中有个map，用来保存窗口�
 这里窗口合并的同时会把窗口对应的状态所保存的数据合并到结果窗口对应的状态窗口对应的状态中。这里有点绕，还是看图2-6，最终合并窗口的结果窗口是TimeWindow(1,8)。我们怎么获取TimeWindow(1,8)对应的数据集ABC呢？这个时候可以通过MergingWindowSet中保存的TimeWindow(1,8)对应的状态窗口TimeWindow(1,4)来获取合并后的状态，即数据集ABC。
 会话窗口的其他过程与滑动窗口及滚动窗口没有什么区别。
 
+
+
+调用 MergingWindowSet 的 addWindow 方法并实现 MergeFunction 接口的 merge 方法：
 ```java
 MergingWindowSet<W> mergingWindows = getMergingWindowSet();
 W actualWindow = mergingWindows.addWindow(window, new MergingWindowSet.MergeFunction<W>() {
@@ -25,18 +28,8 @@ W actualWindow = mergingWindows.addWindow(window, new MergingWindowSet.MergeFunc
           }
       });
 ```
-
+我们先看一下 MergeFunction 接口中 merge 方法是如何实现窗口状态合并的：
 ```java
-if ((windowAssigner.isEventTime() &&
-      mergeResult.maxTimestamp() + allowedLateness <= internalTimerService .currentWatermark())) {
-    throw new UnsupportedOperationException(xxx);
-} else if (!windowAssigner.isEventTime()) {
-    long currentProcessingTime = internalTimerService.currentProcessingTime();
-    if (mergeResult.maxTimestamp() <= currentProcessingTime) {
-        throw new UnsupportedOperationException(xxx);
-    }
-}
-
 triggerContext.key = key;
 triggerContext.window = mergeResult;
 triggerContext.onMerge(mergedWindows);

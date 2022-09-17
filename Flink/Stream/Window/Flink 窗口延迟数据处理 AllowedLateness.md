@@ -24,3 +24,7 @@
 22:01:08,808 Sum         [] - word: a, count: 1, ids: [13], window: [2022-09-04 23:04:00, 2022-09-04 23:05:00], watermark: 9223372036854775807|292278994-08-17 15:12:55
 主链路> (a,1)
 ```
+
+
+
+窗口销毁时间: window.maxTimestamp + allowedLateness

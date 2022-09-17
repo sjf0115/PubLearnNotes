@@ -4,6 +4,17 @@
 - 窗口合并时如何合并状态
 - 窗口合并时如何合并触发器
 
+合并的主要过程如下：
+1）找出合并之前的窗口集合和合并之后的窗口；
+2）找出合并之后的窗口对应的状态窗口（方式是从合并窗口集合中挑选第一个窗口的状态窗口）；
+3）执行merge方法（合并窗口需要做的工作，也就是执行MergingWindowSet的addWindow方法）。
+这里不好理解的是合并结果的窗口和结果对应的状态窗口（用来获取合并之后的数据），我们来看图2-6。
+[插图]
+图2-6 合并窗口
+MergingWindowSet（窗口合并的工具类）中有个map，用来保存窗口和状态窗口的对应关系，那么怎么理解这个状态窗口呢？如果我们在得到TimeWindow(1,4)时基于TimeWindow(1,4)在状态中保存了数据（数据A），也就是说状态的命名空间是TimeWindow(1,4)，在得到TimeWindow(5,8)时基于TimeWindow(5,8)在状态中保存了数据（数据B），当第三个数据（数据C）来的时候，又经过合并窗口得到了TimeWindow(1,8)，那么怎么获取合并窗口的数据集AB呢？显然我们还需要原来的TimeWindow(1,4)或者TimeWindow(5,8)，原来的TimeWindow(1,4)在这里就是状态窗口。
+这里窗口合并的同时会把窗口对应的状态所保存的数据合并到结果窗口对应的状态窗口对应的状态中。这里有点绕，还是看图2-6，最终合并窗口的结果窗口是TimeWindow(1,8)。我们怎么获取TimeWindow(1,8)对应的数据集ABC呢？这个时候可以通过MergingWindowSet中保存的TimeWindow(1,8)对应的状态窗口TimeWindow(1,4)来获取合并后的状态，即数据集ABC。
+会话窗口的其他过程与滑动窗口及滚动窗口没有什么区别。
+
 ## 1. MergingWindowAssigner
 
 ## 窗口对象合并
@@ -18,53 +29,54 @@ public void mergeWindows(Collection<TimeWindow> windows, MergeCallback<TimeWindo
 ```
 从上面我们可以看到合并窗口的能力是借助 TimeWindow 实现的：
 ```java
+// TimeWindow#mergeWindows
 public static void mergeWindows(Collection<TimeWindow> windows, MergingWindowAssigner.MergeCallback<TimeWindow> c) {
-        // 按照窗口的起始时间进行排序
-        List<TimeWindow> sortedWindows = new ArrayList<>(windows);
-        Collections.sort(sortedWindows,
-                new Comparator<TimeWindow>() {
-                    @Override
-                    public int compare(TimeWindow o1, TimeWindow o2) {
-                        return Long.compare(o1.getStart(), o2.getStart());
-                    }
-                });
-        // 窗口你对象合并
-        // 合并完成的窗口  Set<TimeWindow> 中的窗口合并为 TimeWindow
-        List<Tuple2<TimeWindow, Set<TimeWindow>>> merged = new ArrayList<>();
-        // 当前正在合并的窗口
-        Tuple2<TimeWindow, Set<TimeWindow>> currentMerge = null;
-        for (TimeWindow candidate : sortedWindows) {
-            if (currentMerge == null) {
-                // 第一个窗口
-                currentMerge = new Tuple2<>();
-                currentMerge.f0 = candidate;
-                currentMerge.f1 = new HashSet<>();
-                currentMerge.f1.add(candidate);
-            } else if (currentMerge.f0.intersects(candidate)) {
-                // 两个窗口重叠进行合并
-                currentMerge.f0 = currentMerge.f0.cover(candidate);
-                currentMerge.f1.add(candidate);
-            } else {
-                // 不重叠
-                merged.add(currentMerge);
-                currentMerge = new Tuple2<>();
-                currentMerge.f0 = candidate;
-                currentMerge.f1 = new HashSet<>();
-                currentMerge.f1.add(candidate);
-            }
-        }
-
-        if (currentMerge != null) {
+    // 按照窗口的起始时间进行排序
+    List<TimeWindow> sortedWindows = new ArrayList<>(windows);
+    Collections.sort(sortedWindows,
+            new Comparator<TimeWindow>() {
+                @Override
+                public int compare(TimeWindow o1, TimeWindow o2) {
+                    return Long.compare(o1.getStart(), o2.getStart());
+                }
+            });
+    // 窗口你对象合并
+    // 合并完成的窗口  Set<TimeWindow> 中的窗口合并为 TimeWindow
+    List<Tuple2<TimeWindow, Set<TimeWindow>>> merged = new ArrayList<>();
+    // 当前正在合并的窗口
+    Tuple2<TimeWindow, Set<TimeWindow>> currentMerge = null;
+    for (TimeWindow candidate : sortedWindows) {
+        if (currentMerge == null) {
+            // 第一个窗口
+            currentMerge = new Tuple2<>();
+            currentMerge.f0 = candidate;
+            currentMerge.f1 = new HashSet<>();
+            currentMerge.f1.add(candidate);
+        } else if (currentMerge.f0.intersects(candidate)) {
+            // 两个窗口重叠进行合并
+            currentMerge.f0 = currentMerge.f0.cover(candidate);
+            currentMerge.f1.add(candidate);
+        } else {
+            // 不重叠
             merged.add(currentMerge);
-        }
-
-        for (Tuple2<TimeWindow, Set<TimeWindow>> m : merged) {
-            if (m.f1.size() > 1) {
-                // 需要合并的窗口
-                c.merge(m.f1, m.f0);
-            }
+            currentMerge = new Tuple2<>();
+            currentMerge.f0 = candidate;
+            currentMerge.f1 = new HashSet<>();
+            currentMerge.f1.add(candidate);
         }
     }
+
+    if (currentMerge != null) {
+        merged.add(currentMerge);
+    }
+
+    for (Tuple2<TimeWindow, Set<TimeWindow>> m : merged) {
+        if (m.f1.size() > 1) {
+            // 需要合并的窗口
+            c.merge(m.f1, m.f0);
+        }
+    }
+}
 ```
 
 通过 MergingWindowAssigner 的 MergeCallback 回调函数确定哪些窗口需要合并：

@@ -33,6 +33,7 @@
 - [ ] [Flink使用POJO提高处理效率和代码可读性](https://www.jianshu.com/p/c4261c863ddf)
 - [ ] [5分钟快速掌握一般人不知道的Flink类型与序列化](https://mp.weixin.qq.com/s/wgllU0CcB1hQKKdMSx8fpw)
 - [ ] [Apache Flink 进阶（五）：数据类型和序列化](https://mp.weixin.qq.com/s/FziI1YyaccuRLQAURWLnUw)
+- [ ] [Streaming analytics better than classic batch — when and why?](https://medium.com/getindata-blog/streaming-analytics-better-than-classic-batch-when-and-why-9747c3b9841e)
 
 ### 2. Function
 

@@ -1,3 +1,5 @@
+> Flink 1.15.2
+
 ## 1. InternalTimeServiceManager 设计
 
 Flink 1.12.0 版本将 InternalTimeServiceManager 重构为一个接口，目标是可以自定义实现不同的 InternalTimerService 实现，具体查阅[FLINK-19288](https://issues.apache.org/jira/browse/FLINK-19288)。当前版本下，InternalTimeServiceManager 提供了2个核心方法，一个是创建 InternalTimerService 实例的 getInternalTimerService，另一个就是通知所有 InternalTimerService 实例 Watermark 更新的 advanceWatermark：
@@ -160,3 +162,6 @@ public <K, N> InternalTimerService<N> getInternalTimerService(String name, TypeS
 ```
 
 > 从上面可以知道，只要继承 AbstractStreamOperator 的算子都可以通过 getInternalTimerService 方法来获取 InternalTimerService 实例以及通过 processWatermark 方法来处理 Watermark。
+
+
+> 源代码：[InternalTimeServiceManager](https://github.com/apache/flink/blob/release-1.15.2/flink-streaming-java/src/main/java/org/apache/flink/streaming/api/operators/InternalTimeServiceManager.java)

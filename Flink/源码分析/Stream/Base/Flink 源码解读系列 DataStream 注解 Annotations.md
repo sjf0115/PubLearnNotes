@@ -1,12 +1,6 @@
-
-本文将详细介绍下flink中的自定义注解模块，了解flink注解的作用与使用。主要围绕flink源码中的 flink-annotations模块，与docs 相关的注解有@ConfigGroup和@ConfigGroups , 通常作用于配置类上；@Documentation.OverrideDefault、@Documentation.Section、@Documentation.TableOption、@Documentation.SuffixOption,@Documentation.ExcludeFromDocumentation 作用于配置类的 ConfigOption 字段上，对配置项做一些修改。另外，还有其他5种标记注解，@Experimental、@Internal、@Public、@PublicEvolving、@VisibleForTesting。
-
-
 本文将详细介绍 Flink 中自定义注解模块。深入了解 Flink 的注解，便于我们提高阅读源码的效率。本文主要围绕 flink-annotations 模块展开，如下图所示：
 
 ![](1)
-
-与 docs 相关的注解有 @ConfigGroup、@ConfigGroups , 通常作用于配置类上，@Documentation.OverrideDefault、@Documentation.CommonOption、@Documentation.TableOption、@Documentation.ExcludeFromDocumentation, 作用于配置类的 ConfigOption 字段上，对配置项做一些修改。另外，还有其他5种标记注解，@Experimental、@Internal、@Public、@PublicEvolving、@VisibleForTesting。
 
 ## 1. docs 相关注解
 
@@ -20,13 +14,13 @@
 @Internal
 public @interface ConfigGroup {
     String name();
-
     String keyPrefix();
 }
 ```
 
 ### 1.2 @ConfigGroups
 
+`@ConfigGroups` 注解允许一个配置类中的配置项可以按照配置项名称前缀分成不同的组，生成多个 HTML 文件：
 ```java
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
@@ -112,6 +106,7 @@ public @interface OverrideDefault {
 
 ## 2. @Experimental
 
+`@Experimental` 注解用于标记某些类、接口、枚举、方法、字段以及构造器还处在试验阶段：
 ```java
 @Documented
 @Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR})
@@ -119,9 +114,11 @@ public @interface OverrideDefault {
 public @interface Experimental {
 }
 ```
+带有此注解的还没有经过实战严格测试，也不是稳定的。在未来的版本中可能会发生更变或者被删除。
 
 ## 3. @Internal
 
+`@Internal` 注解用于标记某些类、接口、枚举、方法、字段以及构造器是稳定、公共的开发者 API：
 ```java
 @Documented
 @Target({ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD})
@@ -129,9 +126,11 @@ public @interface Experimental {
 public @interface Internal {
 }
 ```
+开发者 API 面向 Flink 内部，不对外开放。一般来说比较稳定，但可能会在不同版本之间发生变化。
 
 ## 4. @Public
 
+`@Public` 注解用于标记类、接口或者枚举为公共、稳定：
 ```java
 @Documented
 @Target({ElementType.TYPE})
@@ -139,9 +138,11 @@ public @interface Internal {
 public @interface Public {
 }
 ```
+具有此注解的类、方法和字段在小版本（1.0、1.1、1.2）中是稳定的，但是在大版本 (1.0, 2.0, 3.0) 中会发生变化。
 
 ## 5. @PublicEvolving
 
+`@PublicEvolving` 注解用于标记某些类、接口、枚举、方法、字段以及构造器等是稳定，但可能会随着版本发生变化：
 ```java
 @Documented
 @Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR})
@@ -152,7 +153,7 @@ public @interface PublicEvolving {
 
 ## 6. @VisibleForTesting
 
-`@VisibleForTesting` 注解标记某些类型、方法、字段以及构造器只在测试阶段可见：
+`@VisibleForTesting` 注解标记某些类、接口、枚举、方法、字段以及构造器只在测试阶段使用：
 ```java
 @Documented
 @Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR})
@@ -173,3 +174,7 @@ public int numProcessingTimeTimers() {
 }
 ```
 > org.apache.flink.streaming.api.operators.InternalTimeServiceManagerImpl#numProcessingTimeTimers
+
+参考：
+- https://miaowenting.site/2020/04/13/Flink%E6%BA%90%E7%A0%81%E5%89%96%E6%9E%90-flink-annotations/
+- https://blog.csdn.net/a1240466196/article/details/105511850

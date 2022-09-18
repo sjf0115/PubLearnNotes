@@ -1,19 +1,12 @@
-TimeService 是在算子中提供定时器的管理行为，包含定时器的注册和删除。TimerService 在 DataStream、State 中都有应用。在 DataStream 和 State 模块中，一般会在 Keyed 算子中使用。
+定时器服务在 Flink 中叫作 TimerService。对于需要依赖时间定时器进行数据处理的算子来讲，需要借助 TimerService 组件实现对定时器的管理，其中定时器执行的具体处理逻辑主要通过回调函数定义。每个 StreamOperator 在创建和初始化的过程中，都会通过 InternalTimeServiceManager 创建 TimerService 实例，这里的 InternalTimeServiceManager 管理了 Task 内所有和时间相关的服务，并向所有 Operator 提供创建和获取 TimerService 的方法。
 
-那么在执行层面上，时间服务 TimerService 具体是怎么发挥其作用的呢?
-简单来讲，在算子中使用时间服务来创建定时器（Timer），并且在 Timer 触发的时候进行回调，从而进行业务逻辑处理。前边章节中延迟Join的示例中使用过Timer。
+## 1. TimerService 设计
 
-## 1. TimerService 接口
+我们先来看下TimerService的设计与实现，如下图所示：
 
-定时器服务在 Flink 中叫作 TimerService，窗口算子（WindowOperator）中使用了 InternalTimerService 来管理定时器（Timer），其初始化是在 WindowOperator#open（）中实现的。
-对于 InternalTimerService 而言，有几个元素比较重要：名称、命名空间类型N（及其序列化器）、键类型K（及其序列化器）和Triggerable对象（支持延时计算的算子，继承了Triggerable接口来实现回调）。
+![](1)
 
-一个算子中可以有多个 InternalTimeService，通过名称进行区分，如在WindowOperator中，InternalTimeService的名称是“window-timers”，在KeyedProcessOperator中名称是“user-timers”，在CepOperator中名称是“watermark-callbacks”。
-InternalTimerService接口的实现类是InternalTimerServiceImpl，Timer的实现类是InternalTimer。InternalTimerServiceImpl使用了两个TimerHeapInternalTimer的优先队列（HeapPriorityQueueSet，该优先队列是Flink自己实现的），分别用于维护事件时间和处理时间的Timer。
-InternalTimeServiceManager是Task级别提供的InternalTimeService集中管理器，其使用Map保存了当前所有的InternalTimeService，Map的Key是InternalTimerService的名字。
-
-
-我们先来看下 TimerService 的设计与实现，在 DataStream API 中提供了 TimerService 接口，用于获取和操作时间相关的信息，包括获取处理时间和事件时间以及注册、删除处理时间定时器和事件时间定时器，如下所示：
+在 DataStream API 中提供了 TimerService 接口，用于获取和操作时间相关的信息，包括获取处理时间和事件时间以及注册、删除处理时间定时器和事件时间定时器，如下所示：
 ```java
 public interface TimerService {
     // 当前处理时间
@@ -33,15 +26,12 @@ public interface TimerService {
 
 TimerService 接口的默认实现有 SimpleTimerService，在 Flink Table API 模块的 AbstractProcessStreamOperator.ContextImpl 内部类中也实现了 TimerService 接口。
 
-![](1)
-
 SimpleTimerService 会将 InternalTimerService 接口作为内部成员变量，因此在 SimpleTimerService 中提供的方法基本上都是借助 InternalTimerService 实现的，实际上将 InternalTimerService 进行了封装：
 ```java
 @Internal
 public class SimpleTimerService implements TimerService {
     // InternalTimerService 接口作为内部成员变量
     private final InternalTimerService<VoidNamespace> internalTimerService;
-
     public SimpleTimerService(InternalTimerService<VoidNamespace> internalTimerService) {
         this.internalTimerService = internalTimerService;
     }
@@ -96,7 +86,7 @@ public interface InternalTimerService<N> {
 
 InternalTimerService 需要按照 Key 和命名空间进行划分，并提供操作时间和定时器的内部方法，因此不仅是 SimpleTimerService 通过 InternalTimerService 操作和获取时间信息以及定时器，其他还有如 WindowOperator、IntervalJoinOperator 等内置算子也都会通过 InternalTimerService 提供的方法执行时间相关的操作。
 
-## 2. InternalTimerServiceImpl
+## 2. 实现
 
 InternalTimerService 接口具有 InternalTimerServiceImpl 的默认实现类，在 InternalTimerServiceImpl 中，实际上包含了两个比较重要的成员变量，分别为 `processingTimeService` 和 `KeyGroupedInternalPriorityQueue<TimerHeapInternalTimer<K, N>>` 队列。其中 processingTimeService 是基于系统处理时间提供的 TimerService，即基于 ProcessingTimeService 的实现类可以注册基于处理时间的定时器。TimerHeapInternalTimer 队列主要分为 processingTimeTimersQueue 和 eventTimeTimersQueue 两种类型，用于存储相应类型的定时器队列。TimerHeapInternalTimer 基于 Heap 堆内存存储定时器，并通过 HeapPriorityQueueSet 结构存储注册好的定时器。
 
@@ -149,3 +139,12 @@ public void deleteEventTimeTimer(N namespace, long time) {
     );
 }
 ```
+
+## 3. 使用
+
+，窗口算子（WindowOperator）中使用了 InternalTimerService 来管理定时器（Timer），其初始化是在 WindowOperator#open（）中实现的。
+对于 InternalTimerService 而言，有几个元素比较重要：名称、命名空间类型N（及其序列化器）、键类型K（及其序列化器）和Triggerable对象（支持延时计算的算子，继承了Triggerable接口来实现回调）。
+
+一个算子中可以有多个 InternalTimeService，通过名称进行区分，如在WindowOperator中，InternalTimeService的名称是“window-timers”，在KeyedProcessOperator中名称是“user-timers”，在CepOperator中名称是“watermark-callbacks”。
+InternalTimerService接口的实现类是InternalTimerServiceImpl，Timer的实现类是InternalTimer。InternalTimerServiceImpl使用了两个TimerHeapInternalTimer的优先队列（HeapPriorityQueueSet，该优先队列是Flink自己实现的），分别用于维护事件时间和处理时间的Timer。
+InternalTimeServiceManager是Task级别提供的InternalTimeService集中管理器，其使用Map保存了当前所有的InternalTimeService，Map的Key是InternalTimerService的名字。

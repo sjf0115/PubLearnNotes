@@ -45,6 +45,75 @@ stream.keyBy(...)
 主链路> (a,1)
 ```
 
+## 3. 实现原理
+
+```java
+for (W window : elementWindows) {
+    if (isWindowLate(window)) {
+        continue;
+    }
+    isSkippedElement = false;
+
+    windowState.setCurrentNamespace(window);
+    windowState.add(element.getValue());
+
+    triggerContext.key = key;
+    triggerContext.window = window;
+
+    TriggerResult triggerResult = triggerContext.onElement(element);
+    if (triggerResult.isFire()) {
+        ACC contents = windowState.get();
+        if (contents == null) {
+            continue;
+        }
+        emitWindowContents(window, contents);
+    }
+    if (triggerResult.isPurge()) {
+        windowState.clear();
+    }
+    registerCleanupTimer(window);
+}
+```
+对于可以合并的窗口，增加一个窗口后可能会导致窗口的合并，因此合并后的窗口才是实际要处理的窗口。除了窗口合并之外，其他处理逻辑基本一致，在这不再赘述：
+```java
+W actualWindow = mergingWindows.addWindow(
+      window,
+      new MergingWindowSet.MergeFunction<W>(){
+          ...
+      }
+);
+```
+
+只有基于事件时间的窗口才有迟到窗口的概念，当窗口的清除时间小于等于当前 Watermark 即认为是迟到窗口：
+```java
+protected boolean isWindowLate(W window) {
+    return (windowAssigner.isEventTime()
+            && (cleanupTime(window) <= internalTimerService.currentWatermark()));
+}
+// 窗口的清除时间
+private long cleanupTime(W window) {
+    if (windowAssigner.isEventTime()) {
+        long cleanupTime = window.maxTimestamp() + allowedLateness;
+        return cleanupTime >= window.maxTimestamp() ? cleanupTime : Long.MAX_VALUE;
+    } else {
+        return window.maxTimestamp();
+    }
+}
+```
+> 需要注意的是，allowedLateness 是针对事件时间窗口分配器的
+
+如果是基于事件时间的窗口，窗口的清除时间为窗口的最大时间戳加上最大可允许的时间 allowedLateness；如果是基于处理时间的窗口，窗口的清除时间为窗口为窗口的最大时间戳：
+
+
+window.maxTimestamp() + allowedLateness <= watermark
+
+```java
+protected boolean isElementLate(StreamRecord<IN> element) {
+    return (windowAssigner.isEventTime())
+            && (element.getTimestamp() + allowedLateness
+                    <= internalTimerService.currentWatermark());
+}
+```
 
 
 窗口销毁时间: window.maxTimestamp + allowedLateness

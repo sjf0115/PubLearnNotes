@@ -4,7 +4,7 @@
 
 所谓迟到数据是指数据记录元素到达算子后，本应该参与的计算已经执行完毕。在事件时间窗口算子中，如果数据记录元素到达算子时窗口分配器为其分配的窗口因为算子 Watermark 超过了窗口的结束时间而销毁，那么可以认为这条数据记录元素就是迟到数据（迟到数据在窗口计算时就不会被纳入窗口的统计范围内）。可以看出迟到数据本质是指某个 Watermark 之后到来的数据记录元素，并且其时间戳小于 Watermark。所以只有在事件时间语义下，讨论迟到数据的处理才是有意义的。
 
-一般情况 Watermark 不应该把延迟设置得太大，否则流处理的实时性就会大大降低。因为 Watermark 的延迟主要是用来对付分布式网络传输导致的数据乱序，而网络传输的乱序程度一般并不会很大，大多集中在几毫秒至几百毫秒。所以实际应用中，我们往往会给 Watermark 设置一个'能够处理大多数乱序数据的最小延迟'，视需求一般设在毫秒到秒级。保证了低延迟，但是就有可能数据记录在 Watermark 之后到达，必须额外添加一些代码来处理延迟事件。DataStream API 提供了不同的选项来应对迟到的数据记录：
+一般情况 Watermark 不应该把延迟设置得太大，否则流处理的实时性就会大大降低。因为 Watermark 的延迟主要是用来处理分布式网络传输导致的数据乱序，而网络传输的乱序程度一般并不会很大，大多集中在几毫秒至几百毫秒。所以实际应用中，我们往往会给 Watermark 设置一个'能够处理大多数乱序数据的最小延迟'，视需求一般设在毫秒到秒级。保证了低延迟，但是就有可能数据记录在 Watermark 之后到达，必须额外添加一些代码来处理延迟事件。DataStream API 提供了不同的选项来应对迟到的数据记录：
 - 丢弃迟到数据记录
 - 基于迟到数据更新计算结果
 - 将迟到的数据记录输出到单独的数据流中
@@ -247,76 +247,12 @@ stream.getSideOutput(lateOutputTag).print("延迟链路");
 ```
 从上面我们可以看到 id = 12 延迟到达而没有被处理的数据记录会输出到侧输出流中等待下一步的处理，这样我们就可以保证所有的数据不会丢失。
 
+## 3. Watermark 和 AllowedLateness 区别
 
-## 3. 实现原理
+基于事件时间的流式处理，虽然提供了 Watermark 机制，却只能一定程度上解决数据的乱序问题，一般情况下 Watermark 也不会把延迟设置得太大。但是真实业务场景的数据延迟可能会非常严重，即使通过 Watermark 也无法等到所有的延迟数据进入窗口再进行处理，Flink 默认会将这种迟到的数据做丢弃处理，但是有些时候用户希望即使在数据延迟严重的情况下，仍然能得到正确的计算结果，此时就需要 AllowedLateness 机制来对迟到的数据进行特殊处理。
 
-```java
-for (W window : elementWindows) {
-    if (isWindowLate(window)) {
-        continue;
-    }
-    isSkippedElement = false;
+Watermark 和 AllowedLateness 到底有什么区别呢？
+- Watermark 主要是为了解决数据乱序到达的问题；通过 Watermark 机制来处理 out-of-order 的问题，属于全局性的延迟处理，通常说的乱序问题的解决办法，就是指这类；
+- AllowedLateness 只能应用在窗口算子上，用来解决窗口触发后数据迟到后的问题；Late Element 问题就是指这类。
 
-    windowState.setCurrentNamespace(window);
-    windowState.add(element.getValue());
-
-    triggerContext.key = key;
-    triggerContext.window = window;
-
-    TriggerResult triggerResult = triggerContext.onElement(element);
-    if (triggerResult.isFire()) {
-        ACC contents = windowState.get();
-        if (contents == null) {
-            continue;
-        }
-        emitWindowContents(window, contents);
-    }
-    if (triggerResult.isPurge()) {
-        windowState.clear();
-    }
-    registerCleanupTimer(window);
-}
-```
-对于可以合并的窗口，增加一个窗口后可能会导致窗口的合并，因此合并后的窗口才是实际要处理的窗口。除了窗口合并之外，其他处理逻辑基本一致，在这不再赘述：
-```java
-W actualWindow = mergingWindows.addWindow(
-      window,
-      new MergingWindowSet.MergeFunction<W>(){
-          ...
-      }
-);
-```
-
-只有基于事件时间的窗口才有迟到窗口的概念，当窗口的清除时间小于等于当前 Watermark 即认为是迟到窗口：
-```java
-protected boolean isWindowLate(W window) {
-    return (windowAssigner.isEventTime()
-            && (cleanupTime(window) <= internalTimerService.currentWatermark()));
-}
-// 窗口的清除时间
-private long cleanupTime(W window) {
-    if (windowAssigner.isEventTime()) {
-        long cleanupTime = window.maxTimestamp() + allowedLateness;
-        return cleanupTime >= window.maxTimestamp() ? cleanupTime : Long.MAX_VALUE;
-    } else {
-        return window.maxTimestamp();
-    }
-}
-```
-> 需要注意的是，allowedLateness 是针对事件时间窗口分配器的
-
-如果是基于事件时间的窗口，窗口的清除时间为窗口的最大时间戳加上最大可允许的时间 allowedLateness；如果是基于处理时间的窗口，窗口的清除时间为窗口为窗口的最大时间戳：
-
-
-window.maxTimestamp() + allowedLateness <= watermark
-
-```java
-protected boolean isElementLate(StreamRecord<IN> element) {
-    return (windowAssigner.isEventTime())
-            && (element.getTimestamp() + allowedLateness
-                    <= internalTimerService.currentWatermark());
-}
-```
-
-
-窗口销毁时间: window.maxTimestamp + allowedLateness
+当 Watermark 大于窗口结束时间（window.maxTimestamp()）加允许的最大延迟时间（allowedLateness），窗口就会被销毁。当 数据记录时间戳（element.getTimestamp()）加加允许的最大延迟时间（allowedLateness） > Watermark，元素就会落入窗口内。

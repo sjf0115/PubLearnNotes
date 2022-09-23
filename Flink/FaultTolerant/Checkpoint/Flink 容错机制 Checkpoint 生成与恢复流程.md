@@ -1,3 +1,15 @@
+---
+layout: post
+author: smartsi
+title: Flink 容错机制 Checkpoint 生成与恢复流程
+date: 2022-09-23 08:37:01
+tags:
+  - Flink
+
+categories: Flink
+permalink: flink-checkpoint-generate-and-restore
+---
+
 Flink 是一个分布式数据处理系统，因此必须有一套机制处理各种故障，例如进程被强制杀掉、机器故障和网络连接中断。任务都是在本地维护状态，所以 Flink 要确保状态不丢以及不错。
 
 在本节中，我们将介绍 Flink 的检查点是如何恢复和生成的，看它们是如何保证精确一次 Exactly-Once 语义的状态一致性。
@@ -12,28 +24,35 @@ Flink 的故障恢复机制的核心需要基于应用状态的一致检查点�
 
 需要注意的是 Flink 实现的并不是这种简单的机制，而是一种更加复杂的检查点算法。下图展示了一个简单应用中的一致性检查点：
 
-![](1)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-1.png?raw=true)
 
 上面的应用程序中具有一个 Source 任务，负责从一个递增的数字(1、2、3、4...)流中东读取数据。数字流会被划分为偶数流和奇数流。SUM 算子的两个任务(sum_even 和 sum_odd)会分别计算当前所有偶数和奇数的总和。Source 任务会将其输入流的当前偏移量存储为状态，而求和任务则将当前的总和值存储为状态。在上图所示，Flink 会在输入偏移量为 5 时，将检查点写入了远程存储，当前的总和为 6 和 9。
 
 ## 2. 从一致性检查点中恢复
 
-在执行流应用程序期间，Flink 会周期性的为应用状态生成一致性检查点。一旦发生故障，Flink 会利用最新的检查点将应用状态恢复到某一个一致性的点并重启处理进程。图下图展示了整个恢复过程：
+在执行流应用程序期间，Flink 会周期性的为应用状态生成一致性检查点。一旦发生故障，Flink 会利用最新的检查点将应用状态恢复到某一个一致性的点并重启处理进程。如下图所示，sum_odd 任务在消费数字 7 时，应用发生了故障：
 
-![](2)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-2.png?raw=true)
 
-应用程序状态从检查点恢复分为三个步骤：
-- 重新启动整个应用程序。
-- 利用最新的检查点重置任务状态，即将所有有状态任务的状态重置为最新一次检查点的状态。
-- 恢复所有任务的处理。
+在应用发生故障后，第一步就是要重新启动整个应用程序：
 
-如果所有算子都将它们全部的状态写入检查点并从中恢复，并且所有输入流的消费位置都能重置到检查点生成那一刻，那么检查点和恢复机制就能为整个应用的状态提供精确一次的一致性保障。
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-3.png?raw=true)
 
-至于数据源是否可以重置它的输入流，需要取决于其实现方式以及所消费的外部系统是否提供相关的接口。例如，像 Apache Kafka 这样的事件日志系统就可以允许从之前的某个偏移量位置读取数据。这种数据源就可以重置到检查点生成那一刻的偏移量，重新消费数据。相反如果数据是从套接字 Socket 消费而来就无法重置，因为套接字的数据一旦被消费就会被丢弃。因此，只有当所有的输入流都是来自于可重置的数据源时，应用才支持精确一次的状态一致性保障。
+重新启动应用程序后并不是继续重启之前的位置继续消费，而是利用最新的检查点重置任务状态，即将所有有状态任务的状态重置为最新一次检查点的状态：
 
-应用从检查点恢复以后，它的内部状态会和生成检查点那一刻的状态完全一致。随后应用就会重新消费数据并重新处理从检查点生成到系统发生故障之间的所有数据。虽然这意味着 Flink 会重复处理部分消息，但仍然可以实现 Exactly-Once 语义的一致性状态，因为所有算子的状态都会重置到过去还没处理过那些数据的时间点。
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-4.png?raw=true)
 
-需要注意的是，检查点和恢复机制仅能重置流式应用内部的状态。根据应用所采用的 Sink 算子，在恢复期间，某些结果记录会向下游系统发送多次。对于某些存储系统，Flink 提供的 Sink 算子具有精确一次输出，例如可以在检查点完成时才会把写出的记录正式提到。另一种适用于许多存储系统的方法是幂等更新。
+如果所有算子都将它们全部的状态写入检查点并从中恢复，并且所有输入流的消费位置都能重置到检查点生成那一刻，那么检查点和恢复机制就能为整个应用的状态提供精确一次的一致性保障。在发生故障之前，应用程序已经完成了最新一次的检查点，所有算子都将它们全部的状态写入检查点，如一致性检查点章节的图片所示。重置后任务状态恢复到最新一次检查点的状态，可以看到 sum_even 任务的状态中总和从 12 恢复到 6，sum_odd 任务的状态的总和还是 9，Source 任务的所有输入流的消费位置也重置到检查点生成那一刻的位置，即上图中的偏移量 5。
+
+> 至于数据源是否可以重置它的输入流，需要取决于其实现方式以及所消费的外部系统是否提供相关的接口。例如，像 Apache Kafka 这样的事件日志系统就可以允许从之前的某个偏移量位置读取数据。这种数据源就可以重置到检查点生成那一刻的偏移量，重新消费数据。相反如果数据是从套接字 Socket 消费而来就无法重置，因为套接字的数据一旦被消费就会被丢弃。因此，只有当所有的输入流都是来自于可重置的数据源时，应用才支持精确一次的状态一致性保障。
+
+应用从检查点恢复以后，应用的内部状态会和生成检查点那一刻的状态完全一致，可以对比一下故障恢复前后的状态。随后应用就会重新消费数据并重新处理从检查点生成到系统发生故障之间的所有数据，在这会重新消费数字 6 和 7（7 还没有完成处理成功就发生了故障）。虽然这意味着 Flink 会重复处理部分消息，但仍然可以实现 Exactly-Once 语义的一致性状态，因为所有算子的状态都会重置到过去还没处理过那些数据的时间点。
+
+> 检查点和恢复机制仅能重置流式应用内部的状态。根据应用所采用的 Sink 算子，在恢复期间，某些结果记录会向下游系统发送多次。对于某些存储系统，Flink 提供的 Sink 算子具有精确一次输出，例如可以在检查点完成时才会把写出的记录正式提到。另一种适用于许多存储系统的方法是幂等更新。
+
+在应用发生故障后的最后一步就是恢复所有任务的处理，如下图所示：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-5.png?raw=true)
 
 ## 3. 生成一致性检查点
 
@@ -43,16 +62,30 @@ Flink 的检查点算法用到了一种称为检查点 Barrier 的特殊记录�
 
 我们通过一个简单的流应用程序示例来一步一步解释这个算法。应用包含了两个数据源 Source 任务，每个任务都会各自消费一条自增数字流。Source 任务的输出会被划分为奇数流和偶数流两部分。每一部分都会有一个任务负责将收到的全部数字求和，并将结果值更新至下游 Sink 任务。具体如下所示：
 
-![](3)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-6.png?raw=true)
 
 如下图所示 JobManager 会向每个 Source 任务发送一个新的检查点编号，以此启动检查点生成流程：
 
-![](4)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-7.png?raw=true)
 
-当一个 Source 任务收到消息时，它会暂停发出新的数据记录，利用状态后端触发生成本地状态的检查点，并把该检查点 Barrier 连同检查点编号广播至所有传出的数据流分区中。状态后端会在状态存为检查点完成后会通知任务，虽然任务会向 JobManager 发送确认消息确认完成。在将所有的 Barrier 发出后，Source 任务就可以恢复正常工作。通过向输出流中注入 Barrier，Source 函数定义了需要在数据流中哪些位置生成检查点。如下图展示了流式应用为 Source 任务的本地状态生成检查点并发出 Barrier：
+当一个 Source 任务收到消息时，它会暂停发出新的数据记录，利用状态后端触发生成本地状态的检查点，并把该检查点 Barrier 连同检查点编号广播至所有传出的数据流分区中。状态后端会在状态存为检查点完成后会通知任务，随后任务会向 JobManager 发送确认消息确认完成。在将所有的 Barrier 发出后，Source 任务就可以恢复正常工作。通过向输出流中注入 Barrier，Source 函数定义了需要在数据流中哪些位置生成检查点。如下图展示了流式应用为 Source 任务的本地状态生成检查点并发出 Barrier：
 
-![](5)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-8.png?raw=true)
 
+数据源 Source 任务发出的检查点 Barrier 会传输到所有与之相连的任务。与 Watermark 类似，检查点 Barrier 总是以广播的形式发送，从而可以确保每个任务都能从它们的每个输入中都收到一个 Barrier。当任务收到一个新检查点 Barrier 时，会继续等待所有其他输入分区发来这个检查点的 Barrier。在等待的过程中，会继续处理还未提供 Barrier 的流分区发来的数据。对于那些已经提供 Barrier 的分区，它们新到来的数据记录会被缓存起来，先不处理。需要等待这个检查点的所有 Barrier 都到达，这个过程称为 Barrier 对齐。具体如下图所示：
 
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-9.png?raw=true)
 
-....
+当任务收齐所有输入分区的 Barrier 后，就会通知状态后端开始生成检查点，同时把检查点 Barrier 广播到下游相连的任务。具体如下图所示：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-10.png?raw=true)
+
+任务在发出所有检查点 Barrier 后就开始处理缓冲中的数据。带所有的缓冲记录都处理完，任务就可以继续正常处理输入流了。具体如下图所示：
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-11.png?raw=true)
+
+最终检查点 Barrier 到达 Sink 任务。在 Sink 任务接收到 Barrier 后会依次执行 Barrier 对齐，将自身状态写入检查点，向 JobManager 确认已接收到 Barrier 等一系列动作。JobManager 在接收到所有应用任务返回的检查点确认消息后，就会将此次检查点标记为完成。下图展示了检查点算法的最后一个步骤。当应用故障发生时就可以用这个生成好的检查点进行恢复。
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-checkpoint-generate-and-restore-12.png?raw=true)
+
+来源：<基于 Apache Flink 的流处理>

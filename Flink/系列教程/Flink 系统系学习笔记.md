@@ -106,6 +106,7 @@
 
 ### 5.3 Savepoint & Checkpoint
 
+- [x] [Flink 容错机制 Checkpoint 生成与恢复流程](https://smartsi.blog.csdn.net/article/details/127019291)
 - [x] [Flink Savepoint 机制](https://smartsi.blog.csdn.net/article/details/126534751)
 - [x] [Flink 保存点之回溯时间](https://smartsi.blog.csdn.net/article/details/126474904)
 - [x] [Flink 如何实现新的流处理应用第二部分:版本化状态](https://smartsi.blog.csdn.net/article/details/126551289)
@@ -114,6 +115,7 @@
 - [ ] [Flink 管理大型状态之增量 Checkpoint]()
 - [ ] [Flink 从Checkpoint中恢复作业]()
 - [ ] [Flink 监控检查点]()
+- [x] [Flink Checkpoint 问题排查实用指南](https://smartsi.blog.csdn.net/article/details/127019399)
 
 ### 5.4 一致性保障
 

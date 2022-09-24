@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Flink 从Checkpoint中恢复作业
+title: Flink 从 Checkpoint 中恢复作业
 date: 2020-12-26 18:26:17
 tags:
   - Flink
@@ -24,14 +24,14 @@ env.setStateBackend(new FsStateBackend("hdfs://localhost:9000/flink/checkpoint")
 env.getCheckpointConfig().setMinPauseBetweenCheckpoints(500);
 env.getCheckpointConfig().setCheckpointTimeout(60000);
 ```
-作业停止后 CheckPoint 数据默认会自动删除，所以需要如下配置来设置在作业失败被取消后 CheckPoint 数据不被删除：
+作业停止后 Checkpoint 数据默认会自动删除，所以需要如下配置来设置在作业失败被取消后 Checkpoint 数据不被删除：
 ```java
 env.getCheckpointConfig().enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
 ```
 
 ## 2. 验证
 
-我们使用经典的 WordCount 实例来验证从 Checkpoint 中恢复作业并能沿用之前的状态信息。为了模拟作业失败并能恢复，我们判断当我们输入是 "ERROR" 时，抛出异常迫使作业失败：
+我们使用经典的 WordCount 实例来验证从 Checkpoint 中恢复作业并能沿用之前的状态信息。为了模拟作业失败并能恢复，当我们输入的单词是 "ERROR" 时，抛出异常迫使作业失败：
 ```java
 public void flatMap(String value, Collector out) {
     // 失败信号
@@ -45,6 +45,8 @@ public void flatMap(String value, Collector out) {
 ```java
 env.setRestartStrategy(RestartStrategies.fixedDelayRestart(3, 10000));
 ```
+> 失败重启策略具体可以查阅 [Flink 任务失败重启与恢复策略](https://smartsi.blog.csdn.net/article/details/126451162)
+
 我们看一下详细的代码：
 ```java
 public class RestoreCheckpointExample {
@@ -104,7 +106,7 @@ wy:~ wy$ flink run -c com.flink.example.stream.state.checkpoint.RestoreCheckpoin
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-restore-job-from-checkpoint-2.jpg?raw=true)
 
-下表是从 nc 服务输出测试数据，从 Flink Web 页面输出结果数据的详细信息：
+下表是从 nc 服务输入测试数据，从 Flink Web 页面输出结果数据的详细信息：
 
 | 序号 | 输入| 输出 | 备注 |
 | :------------- | :------------- | :------------- | :------------- |

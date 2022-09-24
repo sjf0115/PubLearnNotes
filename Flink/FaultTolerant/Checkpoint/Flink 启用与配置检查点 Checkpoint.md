@@ -12,9 +12,9 @@ permalink: flink-stream-development-checkpointing-enable-config
 
 > Flink版本：1.11
 
-Flink 中每个函数和算子都可以是有状态的（请参阅[状态分类](http://smartsi.club/flink-stream-working-with-state.html)了解详细信息）。有状态函数在处理单个元素/事件时会存储数据。为了能够使状态可以容错，Flink 需要对状态进行 checkpoint。checkpoint 可以允许 Flink 在流中恢复状态以及消费位置。
+Flink 中每个函数和算子都可以是有状态的（请参阅[状态分类](https://smartsi.blog.csdn.net/article/details/123296073)了解详细信息）。有状态函数在处理单个元素/事件时会存储数据。为了能够使状态可以容错，Flink 需要对状态进行 Checkpoint。Checkpoint 可以允许 Flink 在流中恢复状态以及消费位置。
 
-> 关于 Flink 容错机制背后的技术请参阅[流式容错](http://smartsi.club/flink-data-streaming-fault-tolerance.html)的详细文档。
+> 关于 Flink 容错机制背后的技术请参阅[流式容错](https://smartsi.blog.csdn.net/article/details/126551467)的详细文档。
 
 ### 1. 前提条件
 
@@ -29,15 +29,16 @@ Flink Checkpoint 机制可以与流和状态的持久化存储进行交互。一
 final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 env.enableCheckpointing(1000);
 ```
-其中 1000 是 Checkpoint 启动时间间隔，表示下一个 Checkpoint 将在上一个 Checkpoint 启动后的 1 秒内启动。
+表示每 1s 触发一个新的 Checkpoint 流程，即下一个 Checkpoint 将在上一个 Checkpoint 触发后的 1 秒触发。
 
-> 如果状态比较大，建议适当的增加该值。
+> 检查点的间隔时间是对处理性能和故障恢复速度的一个权衡。如果我们希望对性能的影响 更小，可以调大间隔时间;而如果希望故障重启后迅速赶上实时的数据处理，就需要将间隔时 间设小一些。
 
+除了设置 Checkpoint 的触发(启动)时间间隔，我们还可以提供一个可选的 Checkpoint 模式（CheckpointingMode），可以选择 Exactly-Once 或 At-Least-Once 处理语义：
 ```java
 StreamExecutionEnvironment enableCheckpointing(long interval);
 StreamExecutionEnvironment enableCheckpointing(long interval, CheckpointingMode mode);
 ```
-除了设置 Checkpoint 的启动时间间隔，我们还可以可选的将 Checkpoint 模式（CheckpointingMode）传递给 enableCheckpointing 方法，可以选择 Exactly-Once 或 At-Least-Once 处理语义。对于大多数应用来说，选择 Exactly-Once 处理语义即满足需求。只有某些超低延迟（持续几毫秒）的应用程序才会选择 At-Least-Once 处理语义：
+对于大多数应用来说，选择 Exactly-Once 处理语义即满足需求。只有某些超低延迟（持续几毫秒）的应用程序才会选择 At-Least-Once 处理语义：
 ```java
 final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 env.enableCheckpointing(1000, CheckpointingMode.EXACTLY_ONCE);
@@ -54,7 +55,7 @@ env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
 
 #### 3.1 Checkpoint 超时时间
 
-超时时间指定了每次 Checkpoint 执行上限时间，一旦超过该阈值，Flink 将会中断 Checkpoint，并按照超时处理。如下所示配置，必须在一分钟内完成 Checkpoint，否则将会中止正在进行的 Checkpoint：
+超时时间指定了每次 Checkpoint 执行上限时间。一旦超过该阈值，Flink 将会中断 Checkpoint，并按照超时处理。如下所示配置，必须在一分钟内完成 Checkpoint，否则将会中止正在进行的 Checkpoint：
 ```java
 // checkpoints have to complete within one minute, or are discarded
 env.getCheckpointConfig().setCheckpointTimeout(60000);
@@ -140,9 +141,3 @@ Flink 的[检查点机制](http://smartsi.club/flink-data-streaming-fault-tolera
 ```java
 env.enableCheckpointing(interval，CheckpointingMode.EXACTLY_ONCE, true);
 ```
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
-
-原文:[Checkpointing](https://ci.apache.org/projects/flink/flink-docs-release-1.11/dev/stream/state/checkpointing.html)

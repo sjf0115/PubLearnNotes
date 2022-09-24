@@ -72,8 +72,4 @@ RocksDB 的后台压缩线程会将 sstable 进行合并以删除可能的重复
 
 尽管增量 Checkpoint 可以显着改善大状态下的 Checkpoint 时间，但增量 Checkpoint 也需要权衡考虑。总体而言，增量 Checkpoint 可以减少了正常操作期间的 Checkpoint 时间，但可能会导致更长的恢复时间，这具体取决于您的状态大小。如果集群故障特别严重并且 Flink TaskManager 必须从多个 Checkpoint 读取，那么恢复时间可能比使用非增量 Checkpoint 时更长。您也不能再删除旧的 Checkpoint，因为新的 Checkpoint 需要它们，并且 Checkpoint 之间的差异历史会随着时间的推移无限增长。您需要规划更大的分布式存储来维护 Checkpoint 以及从它读取的网络开销。
 
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
-
 原文：[Managing Large State in Apache Flink: An Intro to Incremental Checkpointing](https://flink.apache.org/features/2018/01/30/incremental-checkpointing.html)

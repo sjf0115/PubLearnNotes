@@ -120,6 +120,8 @@ env.getCheckpointConfig().setPreferCheckpointForRecovery(true);
 env.getCheckpointConfig().enableUnalignedCheckpoints();
 ```
 
+> 完整代码请查阅:[CheckpointExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/state/checkpoint/CheckpointExample.java)
+
 ### 4. 相关配置选项
 
 其他参数和默认值也可以通过 `conf/flink-conf.yaml` 配置文件进行设置（请参阅完整指南的[配置](https://nightlies.apache.org/flink/flink-docs-release-1.11/zh/docs/deployment/config/)）：

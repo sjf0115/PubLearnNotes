@@ -24,7 +24,7 @@ env.setStateBackend(new FsStateBackend("hdfs://localhost:9000/flink/checkpoint")
 env.getCheckpointConfig().setMinPauseBetweenCheckpoints(500);
 env.getCheckpointConfig().setCheckpointTimeout(60000);
 ```
-作业停止后 Checkpoint 数据默认会自动删除，所以需要如下配置来设置在作业失败被取消后 Checkpoint 数据不被删除：
+Checkpoint 在默认的情况下仅用于恢复失败的作业，并不保留，当程序取消时 Checkpoint 就会被删除。你可以通过配置来保留 Checkpoint，这些被保留的 Checkpoint 在作业失败或取消时不会被清除。这样，你就可以使用该 Checkpoint 来恢复失败的作业。如下所示配置来设置在作业失败被取消后 Checkpoint 数据不被删除：
 ```java
 env.getCheckpointConfig().enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
 ```

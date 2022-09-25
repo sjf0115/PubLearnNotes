@@ -1,8 +1,8 @@
 ---
 layout: post
 author: sjf0115
-title: Flink 检查点启用与配置
-date: 2020-12-12 21:24:17
+title: Flink 启用与配置检查点 Checkpoint
+date: 2022-09-25 21:24:17
 tags:
   - Flink
 
@@ -55,66 +55,74 @@ env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
 
 #### 3.1 Checkpoint 超时时间
 
-超时时间指定了每次 Checkpoint 执行上限时间。一旦超过该阈值，Flink 将会中断 Checkpoint，并按照超时处理。如下所示配置，必须在一分钟内完成 Checkpoint，否则将会中止正在进行的 Checkpoint：
+超时时间指定了每次 Checkpoint 执行上限时间。一旦超过该阈值，Flink 将会中断 Checkpoint 并放弃这次 Checkpoint。如下所示配置，必须在一分钟内完成 Checkpoint，否则将会中止正在进行的 Checkpoint：
 ```java
-// checkpoints have to complete within one minute, or are discarded
 env.getCheckpointConfig().setCheckpointTimeout(60000);
 ```
+如果不设置，默认超时时间为 10 分钟。需要注意的是，Checkpoint 超时时间最低不能小于10毫秒。
 
-### 3.2 最大并行执行 Checkpoint 个数
+### 3.2 最多同时执行的 Checkpoint 个数
 
-这个配置指定了能够最大同时执行的 Checkpoint 个数。在默认情况下只有一个 Checkpoint 可以运行，即当一个 Checkpoint 正在运行时，系统不会触发另一个 Checkpoint。这确保了拓扑结构不会在 Checkpoint 上花费太多时间，并且不会影响流应用程序的处理。我们可以指定并行个数，同时触发多个 Checkpoint，进而提升 Checkpoint 的整体效率：
+这个配置指定了可以同时执行的最多 Checkpoint 个数。由于每个任务的处理进度不同，有可能出现后面的任务还没完成前一个 Checkpoint，但是前面任务已经触发了下一个 Checkpoint 了。这个参数就是限制同时进行的最大数量，可以通过 setMaxConcurrentCheckpoints 方法设置：
 ```java
-// allow only one checkpoint to be in progress at the same time
 env.getCheckpointConfig().setMaxConcurrentCheckpoints(1);
 ```
 > 如果配置 Checkpoint 之间最小时间间隔，不能使用此配置。
 
+默认情况下只有一个 Checkpoint 在运行，即当一个 Checkpoint 正在运行时，系统不会触发另一个 Checkpoint。这确保了拓扑结构不会在 Checkpoint 上花费太多时间，并且不会影响流应用程序的处理。我们可以指定并行个数，同时触发多个 Checkpoint，进而提升 Checkpoint 的整体效率。
+
+需要注意的是，如果设置了 minPauseBetweenCheckpoints，那么 maxConcurrentCheckpoints 这个参数就不起作用了。
+
 #### 3.3 Checkpoint 之间最小时间间隔
 
-主要目的是设置两个 Checkpoint 之间的最小时间间隔，防止出现例如状态过大而导致 Checkpoint 执行时间过长，从而导致 Checkpoint 积压过多，最终导致 Flink 应用程序密集的触发 Checkpoint 操作，会占用大量计算资源从而影响到整个应用的性能。在大状态下，如果 Checkpoint 每次完成时长都超过系统设定 Checkpoint 启动时间间隔，那么会一直在做 Checkpoint，因为当应用发现它刚刚做完一次 Checkpoint 后，又已经到了下次 Checkpoint 的时间，会又开始新的一次 Checkpoint。如下所示，如果配置为 5000，不论 Checkpoint 持续时间和启动时间间隔是多少，下一个 Checkpoint 将在上一个 Checkpoint 完成之后的5000毫秒内启动，即两个 Checkpoint 之间最少有5000毫秒的时间间隔。这意味着 Checkpoint 启动时间间隔要大于此参数：
+用于指定在上一个 Checkpoint 完成之后，检查点协调器 CheckpointCoordinator 最快等多久可以触发下一个 Checkpoint。主要目的是设置两个 Checkpoint 之间的最小时间间隔。一般情况下，Checkpoint 生成比较快，不会等到下一个 Checkpoint 触发之前就结束了。但有时候你可能会遇到状态过大导致 Checkpoint 生成时间过长。在大状态下，如果 Checkpoint 每次完成时长都超过系统设定 Checkpoint 时间间隔，那么会一直在做 Checkpoint，因为当应用发现它刚刚做完一次 Checkpoint 后，又已经到了下次 Checkpoint 的时间，会又开始新的一次 Checkpoint。最终导致 Flink 应用程序密集的触发 Checkpoint 操作，会占用大量计算资源从而影响到整个应用的性能。
+
+我们可以通过设定 Checkpoint 之间最小时间间隔，来改善这一问题。这就意味着即使已经达到了周期触发的时间点，只要距离上一个 Checkpoint 完成的间隔不够，就依然不能开启下一次 Checkpoint。这就为正常处理数据留下了充足的间隙。如下所示，如果配置为 5000 毫秒，不论 Checkpoint 持续时间和启动时间间隔是多少，下一个 Checkpoint 将在上一个 Checkpoint 完成之后的 5000 毫秒后启动，即两个 Checkpoint 之间最少有 5000 毫秒的时间间隔：
 ```java
-// make sure 500 ms of progress happen between checkpoints
-env.getCheckpointConfig().setMinPauseBetweenCheckpoints(500);
+env.getCheckpointConfig().setMinPauseBetweenCheckpoints(5000);
 ```
 > 通过配置 Checkpoint 之间最小时间间隔而不是配置 Checkpoint 启动时间间隔，这样更容易配置应用程序，因为 Checkpoint 之间最小时间间隔不容易受到 Checkpoint 完成时长的影响。
-> 请注意，这个值也意味着最大只能同时执行一个 Checkpoint。
 
-#### 3.4 外部 Checkpoint
+需要注意的是，当指定这个参数时，maxConcurrentCheckpoints 的值只能为 1，即最多只能同时执行一个 Checkpoint。
 
-可以配置 Checkpoint 定期持久化到从外部存储中。使用这种方式不会在任务正常停止的过程中清理 Checkpoint 数据，而是会一直保存在外部存储中，另外我们也可以通过从外部 Checkpoint 中对任务进行恢复：
+#### 3.4 外部持久化存储
+
+Checkpoint 在默认的情况下仅用于恢复失败的作业，并不保留，当程序取消时 Checkpoint 就会被删除。你可以通过配置来保留 Checkpoint，这些被保留的 Checkpoint 在作业失败或取消时不会被清除。这样，你就可以使用该 Checkpoint 来恢复失败的作业。通过 ExternalizedCheckpointCleanup 参数指定当作业失败或取消时外部 Checkpoint 该如何清理：
+- DELETE_ON_CANCELLATION：在作业取消的时候会自动删除外部 Checkpoint，但是如果是作业失败退出，则会保留 Checkpoint。
+- RETAIN_ON_CANCELLATION：作业取消的时候也会保留外部 Checkpoint。
+
+如下所示，使用 RETAIN_ON_CANCELLATION 清除策略配置 Checkpoint 定期持久化到从外部存储中。使用这种方式不会在任务正常停止的过程中清理 Checkpoint 数据，而是会一直保存在外部存储中，另外我们也可以通过外部 Checkpoint 对任务进行恢复：
 ```java
 env.getCheckpointConfig().enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
 ```
-> 详细信息请参阅[外部检查点](http://smartsi.club/flink-stream-deployment-externalized-checkpoints.html)
 
 #### 3.5 可容忍的 Checkpoint 失败次数
 
-默认值为0，这意味着我们不容忍任何 Checkpoint 失败。
+定义了在整个作业失败之前可以容忍多少次连续 Checkpoint 失败。默认值为 0，这意味着不允许任何 Checkpoint 失败，只要 Checkpoint 失败则任务直接失败：
 ```java
-// Set the tolerable checkpoint failure number
 env.getCheckpointConfig().setTolerableCheckpointFailureNumber(0);
 ```
+
+> setFailOnCheckpointingErrors 已经废弃，推荐使用 setTolerableCheckpointFailureNumber
 
 #### 3.6 优先从 Checkpoint 恢复
 
 配置优先从 Checkpoint 恢复。即使有更多可用的最近 Savepoint 可以减少恢复时间，但也可以配置作业优先从最新的 Checkpoint 恢复：
 ```java
-// allow job recovery fallback to checkpoint when there is a more recent savepoint
 env.getCheckpointConfig().setPreferCheckpointForRecovery(true);
 ```
+> 在后续版本中已经被废弃，不建议使用
 
 #### 3.7 非对齐的 Checkpoint
 
-我们可以启用非对齐的 Checkpoint，可以大大减少 Checkpoint 时间。这个配置仅适用于 EXACTLY-ONCE Checkpoint，并且同时并发为1：
+我们可以启用非对齐的 Checkpoint，即不再执行 Checkpoint Barrier 对齐操作，可以大大减少 Checkpoint 的时间。这个配置仅适用于 EXACTLY-ONCE 的 Checkpoint 模式下，并且同时并发的 Checkpoint 的个数为1：
 ```java
-// enables the experimental unaligned checkpoints
 env.getCheckpointConfig().enableUnalignedCheckpoints();
 ```
 
 ### 4. 相关配置选项
 
-其他参数和默认值也可以通过 `conf/flink-conf.yaml` 配置文件进行设置（请参阅完整指南的[配置](https://ci.apache.org/projects/flink/flink-docs-release-1.4/ops/config.html)）：
+其他参数和默认值也可以通过 `conf/flink-conf.yaml` 配置文件进行设置（请参阅完整指南的[配置](https://nightlies.apache.org/flink/flink-docs-release-1.11/zh/docs/deployment/config/)）：
 
 | 配置项     | 默认值     | 类型 | 描述 |
 | :------------- | :------------- | :------------- | :------------- |
@@ -129,15 +137,8 @@ env.getCheckpointConfig().enableUnalignedCheckpoints();
 
 ### 5. 选择状态后端
 
-Flink 的[检查点机制](http://smartsi.club/flink-data-streaming-fault-tolerance.html)会存储所有状态的一致性快照。Checkpoint 存储的位置（例如，JobManager 的内存，文件系统，数据库）取决于状态后端的配置。
+Flink 的[检查点机制](https://smartsi.blog.csdn.net/article/details/127019291)会存储所有状态的一致性快照。Checkpoint 存储的位置（例如，JobManager 的内存，文件系统，数据库）取决于状态后端的配置。
 
 默认情况下，状态保存在 TaskManager 的内存中，Checkpoint 存储在 JobManager 的内存中。为了能够存储较大的状态，Flink 支持多种方法在其他状态后端存储状态以及对状态进行 Checkpoint。状态后端的选择可以通过 `StreamExecutionEnvironment.setStateBackend（...）` 来配置。
 
-> 有关状态后端如何选择，请参阅[有状态流处理:Flink状态后端](http://smartsi.club/stateful-stream-processing-apache-flink-state-backends.html)。
-
-### 6. 迭代作业中的状态检查点
-
-目前 Flink 只为没有迭代的作业提供处理保证。在迭代作业上启用检查点会导致异常。为了能够在迭代作业上强制进行 Checkpoint，用户需要在启用 Checkpoint 时设置强制标志：
-```java
-env.enableCheckpointing(interval，CheckpointingMode.EXACTLY_ONCE, true);
-```
+> 有关状态后端如何选择，请参阅[有状态流处理:Flink状态后端](https://smartsi.blog.csdn.net/article/details/126682122)。

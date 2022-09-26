@@ -61,7 +61,7 @@ env.getCheckpointConfig().setCheckpointTimeout(60000);
 ```
 如果不设置，默认超时时间为 10 分钟。需要注意的是，Checkpoint 超时时间最低不能小于10毫秒。
 
-### 3.2 最多同时执行的 Checkpoint 个数
+#### 3.2 最多同时执行的 Checkpoint 个数
 
 这个配置指定了可以同时执行的最多 Checkpoint 个数。由于每个任务的处理进度不同，有可能出现后面的任务还没完成前一个 Checkpoint，但是前面任务已经触发了下一个 Checkpoint 了。这个参数就是限制同时进行的最大数量，可以通过 setMaxConcurrentCheckpoints 方法设置：
 ```java

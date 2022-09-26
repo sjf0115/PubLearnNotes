@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Flink监控检查点
+title: Flink 监控检查点 Checkpoint
 date: 2020-12-13 11:27:17
 tags:
   - Flink
@@ -12,7 +12,7 @@ permalink: flink-monitor-checkpoint
 
 > Flink 1.11
 
-Flink的 Web 页面中提供了一些页面标签，用于监控作业的检查点。这些监控统计信息即使在作业终止后也可以看到。Checkpoints 监控页面共有四个不同的 Tab 页签：Overview、History、Summary 和 Configuration，它们分别从不同角度进行了监控，每个页面都包含了与 Checkpoint 相关的指标。
+Flink的 Web 页面中提供了一些页面标签，用于监控作业的检查点 Checkpoint。这些监控统计信息即使在作业终止后也可以看到。Checkpoints 监控页面共有四个不同的 Tab 页签：Overview、History、Summary 和 Configuration，它们分别从不同角度进行了监控，每个页面都包含了与 Checkpoint 相关的指标。
 
 ### 1. Overview
 
@@ -72,10 +72,4 @@ Configuration 页签中包含 Checkpoint 中所有的基本配置信息，如下
 - Minimum Pause Between Checkpoints：配置两个 Checkpoint 之间的最小时间间隔。当上一次 Checkpoint 完成后，需要等待该时间间隔才能触发下一次的 Checkpoint，避免触发过多的 Checkpoint 导致系统资源紧张。
 - Persist Checkpoints Externally：如果启用 Checkpoint，数据将将持久化到外部存储中。
 
-> 具体如何配置，可以查阅[Flink 检查点启用与配置](http://smartsi.club/flink-stream-development-checkpointing-enable-config.html)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
-
-原文:[Monitoring Checkpointing](https://ci.apache.org/projects/flink/flink-docs-release-1.11/monitoring/checkpoint_monitoring.html)
+> 具体如何配置，可以查阅[Flink 启用与配置检查点 Checkpoint](https://smartsi.blog.csdn.net/article/details/127038694)

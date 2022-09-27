@@ -324,6 +324,21 @@
 - [ ] [基于 Flink Dynamic Table 构建流批一体数仓](https://www.bilibili.com/video/BV15r4y1v7Pe?p=4)
 - [ ] [Flink 流批一体在小米的探索和实践](https://www.bilibili.com/video/BV15r4y1v7Pe?p=5)
 
+### 5.4 Flink Forward Asia 2021
+
+#### 5.4.1 实时数仓
+
+- [ ] [美团实时数仓平台建设 2021 新进展](https://www.bilibili.com/video/BV1ou411U7KR/?p=1)
+- [ ] [快手实时数仓保障体系研发实践](https://www.bilibili.com/video/BV1ou411U7KR/?p=2)
+- [ ] [腾讯云原生实时数仓建设实践](https://www.bilibili.com/video/BV1ou411U7KR/?p=3)
+- [ ] [理想汽车基于 Flink 的实时数据仓库 0-1 初步建设](https://www.bilibili.com/video/BV1ou411U7KR/?p=4)
+- [ ] [蚂蚁实时数仓体系升级实践](https://www.bilibili.com/video/BV1ou411U7KR/?p=5)
+- [ ] [Flink 在讯飞 AI 营销业务实时数仓实践](https://www.bilibili.com/video/BV1ou411U7KR/?p=6)
+- [ ] [SmartNews 基于 Flink 的实时数仓建设](https://www.bilibili.com/video/BV1ou411U7KR/?p=7)
+- [ ] [十荟团基于 Flink SQL 与 Zeppelin 构建实时数仓的实践](https://www.bilibili.com/video/BV1ou411U7KR/?p=8)
+- [ ] [TiDB X Flink｜HTAP 为实时数据服务插上翅膀](https://www.bilibili.com/video/BV1ou411U7KR/?p=9)
+
+
 ## 6. 技术解密
 
 ### 6.1 版本解读

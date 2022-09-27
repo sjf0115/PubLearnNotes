@@ -57,6 +57,7 @@
 - [ ] [FLIP-147: Support Checkpoints After Tasks Finished - Part Two](https://flink.apache.org/2022/07/11/final-checkpoint-part2.html)
 - [ ] [Improving speed and stability of checkpointing with generic log-based incremental checkpoints](https://flink.apache.org/2022/05/30/changelog-state-backend.html)
 - [ ] [Flink 1.15 新功能架构解析：高效稳定的通用增量 Checkpoint](https://mp.weixin.qq.com/s/_E2AImwTKieo8BKf3J6Dzw)
+- [ ] [FLIP-147：支持包含结束任务的 Checkpoint 操作与作业结束流程修正](https://flink-learning.org.cn/article/detail/d0a1c0752a579c491501a644af83083d)
 
 ### 4. Savepoints
 

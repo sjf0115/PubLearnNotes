@@ -1,15 +1,29 @@
+在 Flink 1.13 版本之前，StateBackend 提供了三个开箱即用的 StateBackend：MemoryStateBackend、FsStateBackend 以及 RocksDBStateBackend。该版本下的 StateBackend 把状态存储(如何在 TM 上本地存储和访问状态)和 Checkpoint 持久化(Checkpoint 如何持久化状态)笼统的混在一起，导致初学者对此感觉很混乱，很难理解。
 
-状态后端 StateBackend 是一个'开箱即用'的组件，可以在不改变应用程序逻辑的情况下独立配置。Flink 中提供了两种不同的 StateBackend，一种是哈希表状态后端 HashMapStateBackend，另一种是内嵌 RocksDB 状态后端 EmbeddedRocksDBStateBackend。如果没有特别配置，系统默认的状态后端是 HashMapStateBackend。
+为了解决这种混乱的问题，Flink 1.13 版本将之前的 StateBackend 拆分成新的 StateBackend 和 CheckpointStorage 两个功能：
+- 新的 StateBackend 的概念变窄，只描述状态访问和存储，定义状态在 TM 本地存储的位置和方式。
+- CheckpointStorage 描述了 Checkpoint 行为，定义 Checkpoint 的存储位置和方式以进行故障恢复。
 
-### 1.1 StateBackend 分类
+为了更好的理解，我们弃用了老的 MemoryStateBackend、FsStateBackend 和 RocksDBStateBackend。StateBackend 的状态存储功能使用 HashMapStateBackend 和 EmbeddedRocksDBStateBackend 代替，Checkpoint 持久化功能使用 FileSystemCheckpointStorage 和 JobManagerCheckpointStorage 来代替。
+> 详细请查阅[Flink 1.13 StateBackend 与 CheckpointStorage 拆分](https://smartsi.blog.csdn.net/article/details/123057769)
 
-#### 1.1.1 HashMapStateBackend
+| Flink 1.13 之后     | Flink 1.13 之前     |
+| :------------- | :------------- |
+| HashMapStateBackend（默认）       | MemoryStateBackend（默认）      |
+| EmbeddedRocksDBStateBackend | RocksDBStateBackend|
+| | FsStateBackend |
+
+在这篇文章中我们重点介绍新版本的 StateBackend。Flink 中提供了两种不同的实现，一种是哈希表状态后端 HashMapStateBackend，另一种是内嵌 RocksDB 状态后端 EmbeddedRocksDBStateBackend。如果没有特别配置，系统默认的状态后端是 HashMapStateBackend。
+
+## 1. StateBackend
+
+### 1.1 HashMapStateBackend
 
 这种方式会把状态存放在内存里。具体实现上，HashMapStateBackend 在内部会直接把状态当作对象(objects)保存在 TaskManager 的 JVM 堆(heap)上。普通的状态，以及窗口中收集的数据和触发器(Triggers)，都会以键值对的形式存储起来，所以底层是一个哈希表(HashMap)，这种状态后端也因此得名。
 
 HashMapStateBackend 是将本地状态全部放入内存中，这样可以获得最快的读写速度，使计算性能达到最佳，代价则是内存的占用。HashMapStateBackend 适用于具有大状态、长窗口、大键值状态的作业，对所有高可用性设置也是有效的。
 
-#### 1.1.2 EmbeddedRocksDBStateBackend
+### 1.2 EmbeddedRocksDBStateBackend
 
 RocksDB 是一种内嵌的 KV 存储数据库，可以把数据持久化到本地硬盘。配置 EmbeddedRocksDBStateBackend 后，会将处理中的数据全部放入 RocksDB 数据库中，RocksDB 默认存储在 TaskManager 的本地数据目录里。
 
@@ -17,47 +31,71 @@ RocksDB 是一种内嵌的 KV 存储数据库，可以把数据持久化到本�
 
 EmbeddedRocksDBStateBackend 始终执行的是异步快照，也就是不会因为保存检查点而阻塞数据的处理；EmbeddedRocksDBStateBackend 适用于状态非常大、窗口非常长、 键/值状态很大的应用场景，同样对所有高可用性设置有效。
 
-### 1.2 如何选择正确的 StateBackend
+## 2. 如何正确的选择 StateBackend
 
-HashMap 和 RocksDB 两种状态后端最大的区别，就在于本地状态存放在哪里：前者是内存，后者是 RocksDB。在实际应用中，选择那种状态后端，主要是需要根据业务需求在处理性能和应用的扩展性上做一个选择。
+如何正确的选择 StateBackend，就需要知道 HashMapStateBackend 和 EmbeddedRocksDBStateBackend 两种状态后端的区别。最大的区别就在于本地状态存放在哪里：前者存放在内存中，后者存放在 RocksDB 中。在实际应用中，选择哪种状态后端，主要是需要根据业务需求在处理性能和应用的扩展性上做一个选择。
 
-HashMapStateBackend 是内存计算，读写速度非常快；但是，状态的大小会受到集群可用内存的限制，如果应用的状态随着时间不停地增长，就会耗尽内存资源。而 RocksDB 是硬盘存储，所以可以根据可用的磁盘空间进行扩展，而且是唯一支持增量检查点的状态后端，所以它非常适合于超级海量状态的存储。不过由于每个状态的读写都需要做序列化/反序列化，而且可能需要直接从磁盘读取数据，这就会导致性能的降低，平均读写性能要比 HashMapStateBackend 慢一个数量级。
+HashMapStateBackend 是内存计算，读写速度非常快；但是，状态的大小会受到集群可用内存的限制，如果应用的状态随着时间不停地增长，就会耗尽内存资源。而 EmbeddedRocksDBStateBackend 是基于硬盘存储，所以可以根据可用的磁盘空间进行扩展，而且是唯一支持增量检查点的状态后端，所以它非常适合于超级海量状态的存储。不过由于每个状态的读写都需要做序列化/反序列化，而且可能需要直接从磁盘读取数据，这就会导致性能的降低，平均读写性能要比 HashMapStateBackend 慢一个数量级。
 
-### 1.3 StateBackend 的配置
+## 3. 配置 StateBackend
 
-在不做配置的时候，应用程序使用的默认状态后端是由集群配置文件 flink-conf.yaml 中指定的，配置的键名称为 state.backend。这个默认配置对集群上运行的所有作业都有效，我们可以通过更改配置值来改变默认的状态后端。另外，我们还可以在代码中为当前作业单独配置状态后端，这个配置会覆盖掉集群配置文件的默认值。
+### 3.1 配置全局默认状态后端
 
-(1)配置默认的状态后端
+在不做配置的时候，应用程序使用的默认状态后端是由集群配置文件 flink-conf.yaml 中指定的，配置的 Key 名称为 state.backend。这个默认配置对集群上运行的所有作业都有效，我们可以通过更改配置值来改变默认的状态后端。
 
-在 flink-conf.yaml 中，可以使用 state.backend 来配置默认状态后端。配置项的可以是 hashmap，这样配置的就是 HashMapStateBackend；也可以是 rocksdb，这样配置的就是 EmbeddedRocksDBStateBackend。另外，也可以是一个实现了状态后端工厂 StateBackendFactory 的类的完全限定类名。
+需要注意的是 flink-conf.yaml 中关于 'state.backend' 的值和注释还是老版本的说明并没有更新：
+```
+# Supported backends are 'jobmanager', 'filesystem', 'rocksdb', or the
+# <class-name-of-factory>.
+#
+# state.backend: filesystem
+```
+> 具体可以查阅 [FLINK-25601](https://issues.apache.org/jira/browse/FLINK-25601)，目前还没有明确说明在哪个版本修复
+
+实际应该如下所示：
+```
+# Supported backends are 'hashmap', 'rocksdb', or the
+# <class-name-of-factory>.
+#
+# state.backend: hashmap
+```
+> 'jobmanager', 'filesystem', 'rocksdb' 三种值是 Flink 1.13.0 之前老版本的状态后端配置。新版本中对应拆分为 state.backend 和 state.checkpoint-storage 两个配置选项。具体查阅[state.backend](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/deployment/config/#state-backend) 和 [state.checkpoint-storage](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/deployment/config/#state-checkpoint-storage) 配置说明。
+
+目前 state.backend 只支持 'hashmap' 和 'rocksdb' 两种快捷方式名称，分别对应 HashMapStateBackend 和 EmbeddedRocksDBStateBackend 状态后端。如果想配置 HashMapStateBackend 为默认状态后端，只需要将 state.backend 配置为 hashmap 即可：
 ```
 # 默认状态后端
 state.backend: hashmap
 # 存放检查点的文件路径
 state.checkpoints.dir: hdfs://namenode:40010/flink/checkpoints
 ```
-这里的 state.checkpoints.dir 配置项，定义了状态后端将检查点和元数据写入的目录。
+> 这里的 state.checkpoints.dir 配置项，定义了状态后端将检查点和元数据写入的目录。
 
-(2) 为每个作业(Per-job)单独配置状态后端
-每个作业独立的状态后端，可以在代码中，基于作业的执行环境直接设置。代码如下:
+除了可以指定快捷方式名称，此外你还可以指定一个实现了状态后端工厂 StateBackendFactory 的类的完全限定类名。
+
+### 3.2 配置作业状态后端
+
+除了配置全局默认的状态后端后，你还可以在代码中为当前作业单独配置状态后端，这个配置会覆盖掉集群配置文件的默认值。
+
+每个作业独立的状态后端，可以在代码中，基于作业的执行环境直接设置。如下代码所示，使用 HashMapStateBackend：
 ```java
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 env.setStateBackend(new HashMapStateBackend());
 ```
+> 完整代码示例请查阅[HashMapStateBackendExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/state/statebackend/HashMapStateBackendExample.java)
+
 上面代码设置的是 HashMapStateBackend，如果想要设置 EmbeddedRocksDBStateBackend，可以用下面的配置方式:
 ```java
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 env.setStateBackend(new EmbeddedRocksDBStateBackend());
 ```
-需要注意，如果想在 IDE 中使用 EmbeddedRocksDBStateBackend，需要为 Flink 项目添加 依赖:
+> 完整代码示例请查阅[EmbeddedRocksDBStateBackendExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/state/statebackend/EmbeddedRocksDBStateBackendExample.java)
+
+需要注意，如果想在 IDE 中使用 EmbeddedRocksDBStateBackend，需要为 Flink 项目添加如下依赖:
 ```xml
 <dependency>
    <groupId>org.apache.flink</groupId>
 <artifactId>flink-statebackend-rocksdb_${scala.binary.version}</artifactId>
-   <version>1.13.0</version>
+   <version>1.13.5</version>
 </dependency>
 ```
-而由于 Flink 发行版中默认就包含了 RocksDB，所以只要我们的代码中没有使用 RocksDB 的相关内容，就不需要引入这个依赖。即使我们在 flink-conf.yaml 配置文件中设定了 state.backend 为 rocksdb，也可以直接正常运行，并且使用 RocksDB 作为状态后端。
-
-
-...
+而由于 Flink 发行版中默认就包含了 RocksDB，所以只要我们的代码中没有使用 RocksDB 的相关内容，就不需要引入这个依赖。即使我们在 flink-conf.yaml 配置文件中设定了 state.backend 为 rocksdb，也可以直接正常运行。

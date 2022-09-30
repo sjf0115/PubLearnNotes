@@ -1,3 +1,5 @@
+> Flink 1.13.5
+
 在 Flink 1.13 版本之前，StateBackend 提供了三个开箱即用的 StateBackend：MemoryStateBackend、FsStateBackend 以及 RocksDBStateBackend。该版本下的 StateBackend 把状态存储(如何在 TM 上本地存储和访问状态)和 Checkpoint 持久化(Checkpoint 如何持久化状态)笼统的混在一起，导致初学者对此感觉很混乱，很难理解。
 
 为了解决这种混乱的问题，Flink 1.13 版本将之前的 StateBackend 拆分成新的 StateBackend 和 CheckpointStorage 两个功能：
@@ -12,6 +14,8 @@
 | HashMapStateBackend（默认）       | MemoryStateBackend（默认）      |
 | EmbeddedRocksDBStateBackend | RocksDBStateBackend|
 | | FsStateBackend |
+
+> 老版本状态后端请查阅[有状态流处理:Flink 状态后端](https://smartsi.blog.csdn.net/article/details/126682122)
 
 在这篇文章中我们重点介绍新版本的 StateBackend。Flink 中提供了两种不同的实现，一种是哈希表状态后端 HashMapStateBackend，另一种是内嵌 RocksDB 状态后端 EmbeddedRocksDBStateBackend。如果没有特别配置，系统默认的状态后端是 HashMapStateBackend。
 

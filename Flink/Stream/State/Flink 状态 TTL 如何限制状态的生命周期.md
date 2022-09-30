@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Flink 状态TTL如何限制状态的生命周期
+title: Flink 状态 TTL 如何限制状态的生命周期
 date: 2021-06-26 10:56:01
 tags:
   - Flink
@@ -87,9 +87,5 @@ Apache Flink 的开源社区目前正在研究针对过期状态的额外垃圾�
 ### 5. 总结
 
 基于时间的状态访问限制和自动状态清理是有状态流处理领域的常见挑战。随着 1.6.0 版本发布，Apache Flink 引入了第一个 State TTL 实现来解决这些问题。在当前版本中，状态 TTL 保证在配置超时后状态不可访问，以符合 GDPR 或任何其他数据合规性规则。Flink 社区正在开发多个扩展，以在未来版本中改进和扩展 State TTL 功能。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文:[State TTL for Apache Flink: How to Limit the Lifetime of State](https://www.ververica.com/blog/state-ttl-for-apache-flink-how-to-limit-the-lifetime-of-state)

@@ -88,11 +88,11 @@
 
 - [x] [Flink 状态分类](https://smartsi.blog.csdn.net/article/details/123296073)
 - [x] [Flink 状态管理和容错机制介绍](https://smartsi.blog.csdn.net/article/details/126551467)
-- [ ] [Flink 状态 TTL 如何限制状态的生命周期]()
+- [x] [Flink 状态 TTL 如何限制状态的生命周期](https://smartsi.blog.csdn.net/article/details/127118930)
 - [x] [Flink State TTL 详解](https://smartsi.blog.csdn.net/article/details/123221583)
 - [ ] [Flink 使用 Broadcast State 的 4 个注意事项]()
 - [ ] [Flink Broadcast State 实战指南]()
-- [ ] [Flink 中可查询状态是如何工作的]()
+- [x] [Flink 可查询状态是如何工作的](https://smartsi.blog.csdn.net/article/details/127118986)
 - [x] [State Processor API：如何读写和修改 Flink 应用程序的状态](https://smartsi.blog.csdn.net/article/details/123265728)
 - [x] [深入了解 Flink 的可扩展性状态](https://smartsi.blog.csdn.net/article/details/121006448)
 
@@ -101,6 +101,7 @@
 - [x] [有状态流处理:Flink 状态后端](https://smartsi.blog.csdn.net/article/details/126682122)
 - [x] [Flink 1.13 State Backend 优化及生产实践](https://smartsi.blog.csdn.net/article/details/123057769)
 - [x] [Flink 1.13 StateBackend 与 CheckpointStorage 拆分](https://smartsi.blog.csdn.net/article/details/123057769)
+- [x] [Flink 1.13 新版状态后端 StateBackend 详解](https://smartsi.blog.csdn.net/article/details/127118745)
 - [ ] [Flink 如何管理 RocksDB 内存大小]()
 - [ ] [Flink 何时以及如何使用 RocksDB 状态后端]()
 

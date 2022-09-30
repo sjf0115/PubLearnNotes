@@ -19,23 +19,25 @@
 
 ### 1.1 HashMapStateBackend
 
-这种方式会把状态存放在内存里。具体实现上，HashMapStateBackend 在内部会直接把状态当作对象(objects)保存在 TaskManager 的 JVM 堆(heap)上。普通的状态，以及窗口中收集的数据和触发器(Triggers)，都会以键值对的形式存储起来，所以底层是一个哈希表(HashMap)，这种状态后端也因此得名。
+这种方式会把状态存放在内存里。具体实现上，HashMapStateBackend 在内部会直接把状态当作对象(Object)保存在 TaskManager 的 JVM 堆(heap)上。普通的状态，以及窗口中收集的数据和触发器(Triggers)，都会以键值对的形式存储起来，所以底层是一个哈希表(HashMap)，这种状态后端也因此得名。
 
-HashMapStateBackend 是将本地状态全部放入内存中，这样可以获得最快的读写速度，使计算性能达到最佳，代价则是内存的占用。HashMapStateBackend 适用于具有大状态、长窗口、大键值状态的作业，对所有高可用性设置也是有效的。
+HashMapStateBackend 是将本地状态全部放入内存中，这样可以获得最快的读写速度，使计算性能达到最佳，代价则是内存的占用。HashMapStateBackend 适用于具有大状态、长窗口、大键值状态的作业，对高可用方案也是有效的。
 
 ### 1.2 EmbeddedRocksDBStateBackend
 
 RocksDB 是一种内嵌的 KV 存储数据库，可以把数据持久化到本地硬盘。配置 EmbeddedRocksDBStateBackend 后，会将处理中的数据全部放入 RocksDB 数据库中，RocksDB 默认存储在 TaskManager 的本地数据目录里。
 
-与 HashMapStateBackend 直接在堆内存中存储对象不同，这种方式下状态主要是放在 RocksDB 中。数据被存储为序列化的字节数组(Byte Arrays)，读写操作需要序列化/反序列化，因此状态的访问性能要差一些。另外，因为做了序列化，key 的比较也会按照字节进行，而不是直接调用 hashCode()和 equals() 方法。
+与 HashMapStateBackend 直接在堆内存中存储对象不同，这种方式下状态主要是放在 RocksDB 中，可以保留非常大的状态(相比 HashMapStateBackend)。在 EmbeddedRocksDBStateBackend 中保留的状态大小仅受可用磁盘空间量的限制。数据被存储为序列化的字节数组(Byte Arrays)，读写操作需要序列化/反序列化，因此状态的访问性能要差一些。另外，因为做了序列化，key 的比较也会按照字节进行，而不是直接调用 hashCode()和 equals() 方法。
 
-EmbeddedRocksDBStateBackend 始终执行的是异步快照，也就是不会因为保存检查点而阻塞数据的处理；EmbeddedRocksDBStateBackend 适用于状态非常大、窗口非常长、 键/值状态很大的应用场景，同样对所有高可用性设置有效。
+EmbeddedRocksDBStateBackend 始终执行的是异步快照，也就是不会因为保存检查点而阻塞数据的处理，同时也是目前唯一提供增量检查点的状态后端。EmbeddedRocksDBStateBackend 适用于状态非常大、窗口非常长、键/值状态很大的应用场景，也非常适合高可用方案。
 
 ## 2. 如何正确的选择 StateBackend
 
-如何正确的选择 StateBackend，就需要知道 HashMapStateBackend 和 EmbeddedRocksDBStateBackend 两种状态后端的区别。最大的区别就在于本地状态存放在哪里：前者存放在内存中，后者存放在 RocksDB 中。在实际应用中，选择哪种状态后端，主要是需要根据业务需求在处理性能和应用的扩展性上做一个选择。
+如何正确的选择 StateBackend，就需要知道 HashMapStateBackend 和 EmbeddedRocksDBStateBackend 两种状态后端的区别。最大的区别就在于本地状态存放在哪里：前者存放在内存中，后者存放在 RocksDB 中。在实际应用中，选择哪种状态后端，主要是需要根据业务需求在处理性能和应用扩展性上做一个权衡。
 
-HashMapStateBackend 是内存计算，读写速度非常快；但是，状态的大小会受到集群可用内存的限制，如果应用的状态随着时间不停地增长，就会耗尽内存资源。而 EmbeddedRocksDBStateBackend 是基于硬盘存储，所以可以根据可用的磁盘空间进行扩展，而且是唯一支持增量检查点的状态后端，所以它非常适合于超级海量状态的存储。不过由于每个状态的读写都需要做序列化/反序列化，而且可能需要直接从磁盘读取数据，这就会导致性能的降低，平均读写性能要比 HashMapStateBackend 慢一个数量级。
+HashMapStateBackend 每次状态访问和更新都是对 Java 堆上的对象进行操作，因此读写速度非常快；但是，状态的大小会受到集群可用内存的限制，如果应用的状态随着时间不停地增长，就会耗尽内存资源。而 EmbeddedRocksDBStateBackend 是基于 RocksDB 存储，所以可以根据可用磁盘空间进行扩展，而且是唯一支持增量检查点的状态后端，所以非常适合非常大状态的存储。但是由于每次状态访问和更新都需要做序列化/反序列化，而且可能需要直接从磁盘读取数据，这就会导致性能的降低，平均读写性能要比 HashMapStateBackend 慢一个数量级。
+
+如果处理状态不是很大并追求处理的高性能，可以选择 HashMapStateBackend；如果处理的状态非常大可以选择 EmbeddedRocksDBStateBackend。
 
 ## 3. 配置 StateBackend
 

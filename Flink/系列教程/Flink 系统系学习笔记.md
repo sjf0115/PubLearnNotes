@@ -107,6 +107,7 @@
 
 ### 5.3 Savepoint & Checkpoint
 
+- [x] [分布式数据流的轻量级异步快照](https://smartsi.blog.csdn.net/article/details/127080910)
 - [x] [Flink 容错机制 Checkpoint 生成与恢复流程](https://smartsi.blog.csdn.net/article/details/127019291)
 - [x] [Flink 启用与配置检查点 Checkpoint](https://smartsi.blog.csdn.net/article/details/127038694)
 - [x] [Flink 监控检查点 Checkpoint](https://smartsi.blog.csdn.net/article/details/127038971)

@@ -186,14 +186,14 @@
 
 ### 4.19 20210512-北京
 
-- [x] [深入解读 Flink SQL 1.13](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
-- [ ] [Flink 1.13: Towards Scalable Cloud Native Application](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
-- [ ] [面向流批一体的 Flink 运行时与 DataStream API 优化](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
-- [ ] [State backend Flink-1.13 优化及生产实践分享](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
-- [ ] [Flink 在小红书的实践](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
-- [ ] [Flink 在字节跳动推荐特征体系中的落地实践](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
-- [ ] [快手基于 Flink 构建实时数仓的场景化实践](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
-- [ ] [Flink 在爱奇艺广告业务的实践](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
+- [x] [深入解读 Flink SQL 1.13](https://www.bilibili.com/video/BV1KQ4y1d7Dk)
+- [ ] [Flink 1.13: Towards Scalable Cloud Native Application](https://www.bilibili.com/video/BV1KQ4y1d7Dk)
+- [ ] [面向流批一体的 Flink 运行时与 DataStream API 优化](https://www.bilibili.com/video/BV1KQ4y1d7Dk)
+- [ ] [State backend Flink-1.13 优化及生产实践分享](https://www.bilibili.com/video/BV1KQ4y1d7Dk)
+- [ ] [Flink 在小红书的实践](https://www.bilibili.com/video/BV1KQ4y1d7Dk)
+- [ ] [Flink 在字节跳动推荐特征体系中的落地实践](https://www.bilibili.com/video/BV1KQ4y1d7Dk)
+- [x] [快手基于 Flink 构建实时数仓的场景化实践](https://www.bilibili.com/video/BV1KQ4y1d7Dk)
+- [ ] [Flink 在爱奇艺广告业务的实践](https://www.bilibili.com/video/BV1KQ4y1d7Dk)
 
 ### 4.20 20210710-北京
 
@@ -347,7 +347,7 @@
 - [x] [Flink SQL 1.9.0 技术内幕和最佳实践](https://www.bilibili.com/video/BV1Y4411y7u6?p=5)
 - [x] [Flink 1.11 新版本深度解析](https://www.bilibili.com/video/BV1ph411o746?spm_id_from=333.999.0.0)
 - [x] [Flink SQL 1.11 新功能与最佳实践](https://www.bilibili.com/video/BV1Ck4y1y7Dc?p=4)
-- [x] [深入解读 Flink SQL 1.13](https://www.bilibili.com/video/BV1KQ4y1d7Dk?spm_id_from=333.999.0.0)
+- [x] [深入解读 Flink SQL 1.13](https://www.bilibili.com/video/BV1KQ4y1d7Dk)
 - [x] [Flink 1.14 新特性预览](https://www.bilibili.com/video/BV1xM4y157AD?p=4)
 
 

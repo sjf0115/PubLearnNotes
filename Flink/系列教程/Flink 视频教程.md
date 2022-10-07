@@ -291,7 +291,7 @@
 
 #### 5.3.1 核心技术
 
-- [ ] [Flink SQL 在快手的落地和扩展](https://www.bilibili.com/video/BV1j34y1B72o?p=1)
+- [x] [Flink SQL 在快手的落地和扩展](https://www.bilibili.com/video/BV1j34y1B72o?p=1)
 - [ ] [Flink State-Backend Improvements and Evolution in 2021](https://www.bilibili.com/video/BV1j34y1B72o?p=2)
 - [ ] [Powering HTAP at ByteDance with Apache Flink](https://www.bilibili.com/video/BV1j34y1B72o?p=3)
 - [ ] [深入解析 Flink 细粒度资源管理](https://www.bilibili.com/video/BV1j34y1B72o?p=4)

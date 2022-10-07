@@ -1,6 +1,4 @@
-假设现在遇到这样一个场景，我们需要实时统计每分钟、每小时甚至每天的 PV 或者 UV。如果使用 Flink SQL 中的滚动窗口来计算，那么只能在每分钟、每小时或者每天结束的时候才能把结果输出。这种输出显然不满足我们的需求，有没有一种更实时的输出方案，例如，1分钟的时间窗口，窗口触发之前希望每 10 秒都能看到最新的结果。如果1分钟窗口内的统计结果无变化，则不更新输出结果；如果1分钟窗口内的统计结果有变化，则更新输出结果。
-
-针对这类提前输出的场景，可以在 Flink SQL 使用添加 EMIT 输出策略，如下所示启用提前输出策略：
+假设现在遇到这样一个场景，我们需要实时统计每分钟、每小时甚至每天的 PV 或者 UV。如果使用 Flink SQL 中的滚动窗口来计算，那么只能在每分钟、每小时或者每天结束的时候才能把结果输出。这种输出显然不满足我们的需求，有没有一种更实时的输出方案，例如，1 分钟的时间窗口，窗口触发之前希望每 10 秒都能看到最新的结果。针对这类提前输出的场景，可以在 Flink SQL 使用添加 EMIT 输出策略，如下所示启用提前输出策略：
 ```sql
 table.exec.emit.early-fire.enabled = true
 table.exec.emit.early-fire.delay = 10s
@@ -72,12 +70,12 @@ val TABLE_EXEC_EMIT_EARLY_FIRE_DELAY: ConfigOption[Duration] =
 
 AFTER WATERMARK 策略（或者称之为 Late Fire）是窗口结束之后的策略配置，即 Watermark 触发之后。AFTER WATERMARK 策略核心作用是提高数据精确性：不丢弃窗口触发之后的迟到的数据，修正输出结果。
 
-需要注意的是如果配置了 AFTER WATERMARK 策略，需要使用明文方式声明 table.exec.state.ttl，标识最大延迟时长。因为 AFTER WATERMARK 策略允许接收迟到的数据，所以窗口的状态（State）需要保留一定时长，等待迟到的数据。例如，table.exec.state.ttl = 3600000 表示状态允许保留超时时长为 1 小时内的数据，超时时长大于 1 小时的数据不被录入状态。
+需要注意的是如果配置了 AFTER WATERMARK 策略，需要声明 table.exec.state.ttl，标识最大延迟时长。因为 AFTER WATERMARK 策略允许接收迟到的数据，所以窗口的状态（State）需要保留一定时长，等待迟到的数据。例如，table.exec.state.ttl = 3600000 表示状态允许保留超时时长为 1 小时内的数据，超时时长大于 1 小时的数据不被录入状态。
 
 如果要使用 AFTER WATERMARK 策略，需要开启如下两个参数：
 - `table.exec.emit.late-fire.enabled`
 - `table.exec.emit.late-fire.delay`
-- `table.exec.state.ttl` 或者 `table.exec.emit.allow-lateness`
+- `table.exec.state.ttl`
 
 `table.exec.emit.late-fire.enabled` 参数指定了是否启用迟到输出策略，即在 Watermark或者处理时间到达窗口结束时间之后的输出策略：
 ```java
@@ -105,7 +103,7 @@ val TABLE_EXEC_EMIT_LATE_FIRE_DELAY: ConfigOption[Duration] =
 ```
 该参数配置必须大于等于 0：如果等于 0 表示没有迟到输出延迟，每个元素都会触发输出；如果大于 0 表示触发的时间间隔。例如，该参数配置为 10s，即在 Watermark或者处理时间到达窗口结束时间之后，每 10 秒输出一次。
 
-`table.exec.emit.allow-lateness`
+目前在新版本中添加了 `table.exec.emit.allow-lateness` 参数，可以用来指定 Watermark 到达窗口结束时间之后可允许的延迟时间：
 ```java
 @Experimental
 val TABLE_EXEC_EMIT_ALLOW_LATENESS: ConfigOption[Duration] =
@@ -121,7 +119,6 @@ val TABLE_EXEC_EMIT_ALLOW_LATENESS: ConfigOption[Duration] =
       "> 0 means allow-lateness.")
 ```
 
-
 > 详细请查阅  [WindowEmitStrategy](https://github.com/apache/flink/blob/master/flink-table/flink-table-planner/src/main/scala/org/apache/flink/table/planner/plan/utils/WindowEmitStrategy.scala)
 
 ## 5. 示例
@@ -136,44 +133,72 @@ SELECT
 FROM user_behavior
 GROUP BY TUMBLE(ts_ltz, INTERVAL '1' MINUTE)
 ```
-
-
-### 1.1 基于处理时间
-
+为了验证 BEFORE 和 AFTER WATERMARK 策略的实际效果，我们准备了一份测试数据集，数据以 CSV 格式编码，具体如下所示：
 ```
-19:14:54,942 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 295
-19:14:59,912 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 296
-19:15:04,917 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 297
-19:15:09,918 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 298
-19:15:14,926 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 299
-19:15:19,929 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 300
-19:15:24,932 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 301
-19:15:29,938 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 302
-19:15:34,941 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 303
-19:15:39,948 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 304
-19:15:44,954 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 305
-19:15:49,955 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 306
-19:15:54,960 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 307
+-- uid,pid,cid,type,timestamp,time
+1001,3827899,2920476,pv,1664636572000,2022-10-01 23:02:52
+1001,3745169,2891509,pv,1664636570000,2022-10-01 23:02:50
+1001,266784,2520771,pv,1664636573000,2022-10-01 23:02:53
+1001,2286574,2465336,pv,1664636574000,2022-10-01 23:02:54
+1001,1531036,2920476,pv,1664636577000,2022-10-01 23:02:57
+1001,2266567,4145813,pv,1664636584000,2022-10-01 23:03:04
+1001,2951368,1080785,pv,1664636576000,2022-10-01 23:02:56
+1001,3658601,2342116,pv,1664636586000,2022-10-01 23:03:06
+1001,5153036,2342116,pv,1664636578000,2022-10-01 23:02:58
+1001,598929,2429887,pv,1664636591000,2022-10-01 23:03:11
+1001,3245421,2881542,pv,1664636595000,2022-10-01 23:03:15
+1001,1046201,3002561,pv,1664636579000,2022-10-01 23:02:59
+1001,2971043,4869428,pv,1664636646000,2022-10-01 23:04:06
+```
+为了模拟真实的 Kafka 数据源，我们还特地写了一个 [UserBehaviorSimpleProducer](https://github.com/sjf0115/data-example/blob/master/kafka-example/src/main/java/com/kafka/example/producer/UserBehaviorSimpleProducer.java) 任务，每 5 秒钟会自动读取一条数据灌到 Kafka 的 user_behavior Topic 中。有了数据源后，我们就可以用 DDL 去创建并连接这个 Kafka 中的 Topic，将计算结果输出到控制台打印：
+```sql
+-- 输入表
+CREATE TABLE user_behavior (
+  uid BIGINT COMMENT '用户Id',
+  pid BIGINT COMMENT '商品Id',
+  type STRING COMMENT '行为类型',
+  `timestamp` BIGINT COMMENT '行为时间',
+  ts_ltz AS TO_TIMESTAMP_LTZ(`timestamp`, 3), -- 事件时间
+  WATERMARK FOR ts_ltz AS ts_ltz - INTERVAL '5' SECOND -- 在 ts_ltz 上定义watermark，ts_ltz 成为事件时间列
+) WITH (
+  'connector' = 'kafka',
+  'topic' = 'user_behavior',
+  'properties.bootstrap.servers' = 'localhost:9092',
+  'properties.group.id' = 'user_behavior',
+  'scan.startup.mode' = 'latest-offset',
+  'format' = 'json',
+  'json.ignore-parse-errors' = 'false',
+  'json.fail-on-missing-field' = 'true'
+)
+
+-- 输出表
+CREATE TABLE user_behavior_cnt (
+  window_start STRING COMMENT '窗口开始时间',
+  window_end STRING COMMENT '窗口结束时间',
+  cnt BIGINT COMMENT '次数'
+) WITH (
+  'connector' = 'print'
+)
 ```
 
+### 5.1 提前输出
+
+默认滚动窗口的输出需要等到 1 分钟结束后才能输出结果：
 ```
-+I[2022-10-06 19:14:00, 2022-10-06 19:15:00, 2]
-+I[2022-10-06 19:15:00, 2022-10-06 19:16:00, 2]
--U[2022-10-06 19:15:00, 2022-10-06 19:16:00, 2]
-+U[2022-10-06 19:15:00, 2022-10-06 19:16:00, 5]
--U[2022-10-06 19:15:00, 2022-10-06 19:16:00, 5]
-+U[2022-10-06 19:15:00, 2022-10-06 19:16:00, 7]
--U[2022-10-06 19:15:00, 2022-10-06 19:16:00, 7]
-+U[2022-10-06 19:15:00, 2022-10-06 19:16:00, 8]
--U[2022-10-06 19:15:00, 2022-10-06 19:16:00, 8]
-+U[2022-10-06 19:15:00, 2022-10-06 19:16:00, 10]
--U[2022-10-06 19:15:00, 2022-10-06 19:16:00, 10]
-+U[2022-10-06 19:15:00, 2022-10-06 19:16:00, 11]
++I[2022-10-01 23:02:00, 2022-10-01 23:03:00, 6]
++I[2022-10-01 23:03:00, 2022-10-01 23:04:00, 4]
 ```
+> 不添加 BEFORE WATERMARK 对应的参数
 
-### 1.2 基于事件时间
-
-
+如果你需要尽早看到窗口的输出结果（即使是不完整的结果），例如每 10 秒看到最新的窗口结果，可以添加如下代码：
+```java
+TableEnvironment tEnv = TableEnvironment.create(settings);
+Configuration config = tEnv.getConfig().getConfiguration();
+// 开启 BEFORE WATERMARK 策略
+config.setBoolean("table.exec.emit.early-fire.enabled", true);
+config.setString("table.exec.emit.early-fire.delay", "10s");
+```
+添加上述代码，在窗口结束之前每隔 10 秒输出一次更新结果：
 ```
 +I[2022-10-01 23:02:00, 2022-10-01 23:03:00, 3]
 -U[2022-10-01 23:02:00, 2022-10-01 23:03:00, 3]
@@ -187,41 +212,41 @@ GROUP BY TUMBLE(ts_ltz, INTERVAL '1' MINUTE)
 +U[2022-10-01 23:03:00, 2022-10-01 23:04:00, 4]
 +I[2022-10-01 23:04:00, 2022-10-01 23:05:00, 1]
 ```
+> 完整代码请查阅 [EarlyFireEventTimeTumbleWindowExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/table/function/window/EarlyFireEventTimeTumbleWindowExample.java)
 
+需要注意的是添加了 EMIT 输出策略后会由原来输出 Append 流变成输出 Retract 流。
 
+### 5.2 迟到输出
 
+默认滚动会忽略并丢弃窗口结束后到达的数据：
 ```
-22:39:00,012 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 334
-22:39:04,965 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 335
-22:39:09,969 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 336
-22:39:14,974 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 337
-22:39:19,978 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 338
-22:39:24,984 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 339
-22:39:29,988 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 340
-22:39:34,993 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 341
-22:39:39,999 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 342
-22:39:45,000 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 343
-22:39:50,005 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 344
-22:39:55,013 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 345
-22:40:00,016 INFO  kafka [] - 返回结果 topic: user_behavior, partition: 0, offset: 346
++I[2022-10-07 16:16:01, 2022-10-01 23:02:00, 2022-10-01 23:03:00, 6]
++I[2022-10-07 16:16:26, 2022-10-01 23:03:00, 2022-10-01 23:04:00, 4]
 ```
+> 不添加 AFTER WATERMARK 对应的参数
 
-```
-+I[2022-10-06 22:39:00, 2022-10-06 22:40:00, 12]
-+I[2022-10-06 22:40:00, 2022-10-06 22:41:00, 1]
-```
+因为 pid = 5153036 和 1046201 的数据记录延迟太长时间，当它到达时它本应该属于的窗口早已触发计算后并销毁，导致该数据记录被丢弃。
 
-
+如果您需要将窗口结束后 10 分钟到达的数据统计进入结果，并且每隔 5 秒更新一次结果，可以添加如下代码：
+```java
+TableEnvironment tEnv = TableEnvironment.create(settings);
+Configuration config = tEnv.getConfig().getConfiguration();
+// 窗口提前触发
+config.setBoolean("table.exec.emit.late-fire.enabled", true);
+config.setString("table.exec.emit.late-fire.delay", "5s");
 ```
-+I[2022-10-01 23:02:00, 2022-10-01 23:03:00, 6]
--U[2022-10-01 23:02:00, 2022-10-01 23:03:00, 6]
-+U[2022-10-01 23:02:00, 2022-10-01 23:03:00, 7]
--U[2022-10-01 23:02:00, 2022-10-01 23:03:00, 7]
-+U[2022-10-01 23:02:00, 2022-10-01 23:03:00, 8]
-+I[2022-10-01 23:03:00, 2022-10-01 23:04:00, 4]
+此外，您还需要在作业参数中配置 table.exec.state.ttl（增加10分钟的状态生命周期）：
+```java
+// 状态保留 10 分钟
+config.setString("table.exec.state.ttl", "600000");
 ```
-如果不配置：
+添加上述代码，在窗口结束之后会继续输出迟到数据（pid = 5153036 和 1046201 的数据记录）并更新结果：
 ```
-+I[2022-10-01 23:02:00, 2022-10-01 23:03:00, 6]
-+I[2022-10-01 23:03:00, 2022-10-01 23:04:00, 4]
++I[2022-10-07 16:26:45, 2022-10-01 23:02:00, 2022-10-01 23:03:00, 6]
+-U[2022-10-07 16:26:55, 2022-10-01 23:02:00, 2022-10-01 23:03:00, 6]
++U[2022-10-07 16:26:55, 2022-10-01 23:02:00, 2022-10-01 23:03:00, 7]
+-U[2022-10-07 16:27:05, 2022-10-01 23:02:00, 2022-10-01 23:03:00, 7]
++U[2022-10-07 16:27:05, 2022-10-01 23:02:00, 2022-10-01 23:03:00, 8]
++I[2022-10-07 16:27:11, 2022-10-01 23:03:00, 2022-10-01 23:04:00, 4]
 ```
+> 完整代码请查阅 [LateFireEventTimeTumbleWindowExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/table/function/window/LateFireEventTimeTumbleWindowExample.java)

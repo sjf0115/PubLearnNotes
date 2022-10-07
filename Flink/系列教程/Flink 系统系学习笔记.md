@@ -58,6 +58,8 @@
 
 ## 4. Table & SQL
 
+### 4.1 基础
+
 - [ ] [Flink SQL 动态表的持续查询]()
 - [x] [Flink 1.9 Table & SQL 第一个程序 WordCount](https://smartsi.blog.csdn.net/article/details/124062998)
 - [x] [Flink 1.14 Table API & SQL 第一个程序 WordCount](https://smartsi.blog.csdn.net/article/details/124110710)
@@ -69,6 +71,9 @@
 - [ ] [Flink Table 与 Stream 相互转换]()
 - [x] [Flink SQL 客户端如何使用](https://smartsi.blog.csdn.net/article/details/124460822)
 - [x] [Flink Table API & SQL 如何定义时间属性](https://smartsi.blog.csdn.net/article/details/127173096)
+
+### 4.2 函数
+
 - [ ] [Flink SQL 窗口]()
 - [ ] [Flink SQL 窗口表值函数 Window TVF 实战](https://smartsi.blog.csdn.net/article/details/127162902)
 - [ ] [Flink SQL 自定义函数]()
@@ -80,6 +85,9 @@
 - [ ] [Flink SQL 自定义 Format]()
 - [ ] [Flink SQL Catalogs]()
 - [ ] [Flink SQL 与 Hive 的集成]()
+
+### 4.3 性能优化
+
 - [ ] [Flink SQL 性能优化]()
 
 ## 5. 容错

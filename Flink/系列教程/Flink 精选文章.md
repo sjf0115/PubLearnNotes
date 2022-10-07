@@ -195,6 +195,10 @@
 - [ ] [Flink 源码阅读笔记（17）- Flink SQL 中的时间属性](https://blog.jrwang.me/2019/2019-09-16-flink-sourcecode-sql-time-attribute.md/)
 - [ ] [Flink 源码之 Table early fire 和 late fire](https://www.jianshu.com/p/8249f6152239)
 - [ ] [Flink SQL窗口表值函数（Window TVF）聚合实现原理浅析](https://mp.weixin.qq.com/s/ggfelDwX2Qb28mUPfq7ttQ)
+- [ ] [Flink SQL 功能解密系列 —— 解决热点问题的大杀器MiniBatch](https://developer.aliyun.com/article/448853)
+- [ ] [Flink SQL 核心解密 —— 提升吞吐的利器 MicroBatch](https://developer.aliyun.com/article/675100)
+- [ ] [Flink SQL流式聚合Mini-Batch优化原理浅析](https://blog.csdn.net/nazeniwaresakini/article/details/115235119)
+- [ ] [Flink SQL 性能调优--MiniBatch提升吞吐率](https://www.jianshu.com/p/aa2e94628e24)
 
 ### 13. 调优
 

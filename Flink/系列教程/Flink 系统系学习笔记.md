@@ -90,6 +90,7 @@
 
 ### 4.3 性能优化
 
+- [x] [Flink SQL 功能解密系列 解决热点问题的大杀器 MiniBatch](https://smartsi.blog.csdn.net/article/details/127201264)
 - [ ] [Flink SQL 性能优化]()
 
 ## 5. 容错
@@ -148,6 +149,7 @@
 
 ### 6.2 Table & SQL
 
+- [x] [Flink Table API & SQL DataGen Connector](https://smartsi.blog.csdn.net/article/details/127200907)
 - [ ] [Flink SQL Kafka Connector]()
 - [x] [Flink JDBC Connector：Flink 与数据库集成最佳实践](https://smartsi.blog.csdn.net/article/details/126535909)
 - [x] [Flink SQL Print Connector](https://smartsi.blog.csdn.net/article/details/124086562)

@@ -48,7 +48,7 @@
 - [x] [Flink DataStream 类型系统 TypeInformation](https://smartsi.blog.csdn.net/article/details/124333830)
 - [x] [Flink 指定 keys 的几种方法](https://smartsi.blog.csdn.net/article/details/126417116)
 - [ ] [Flink 如何使用算子]()
-- [ ] [Flink DataStream 处理函数 ProcessFunction 和 KeyedProcessFunction](https://smartsi.blog.csdn.net/article/details/126851094)
+- [x] [Flink DataStream 处理函数 ProcessFunction 和 KeyedProcessFunction](https://smartsi.blog.csdn.net/article/details/126851094)
 - [x] [Flink DataStream Split 实现分流](https://smartsi.blog.csdn.net/article/details/126737446)
 - [x] [Flink DataStream 侧输出流 Side Output](https://smartsi.blog.csdn.net/article/details/126737944)
 - [x] [Flink SourceFunction 初了解](https://smartsi.blog.csdn.net/article/details/123342142)
@@ -61,6 +61,7 @@
 ### 4.1 基础
 
 - [ ] [Flink SQL 动态表的持续查询]()
+- [x] [深入分析 Flink SQL 工作机制](https://smartsi.blog.csdn.net/article/details/127195605)
 - [x] [Flink 1.9 Table & SQL 第一个程序 WordCount](https://smartsi.blog.csdn.net/article/details/124062998)
 - [x] [Flink 1.14 Table API & SQL 第一个程序 WordCount](https://smartsi.blog.csdn.net/article/details/124110710)
 - [x] [Flink Table API & SQL Planner 演变](https://smartsi.blog.csdn.net/article/details/124159459)
@@ -71,11 +72,12 @@
 - [ ] [Flink Table 与 Stream 相互转换]()
 - [x] [Flink SQL 客户端如何使用](https://smartsi.blog.csdn.net/article/details/124460822)
 - [x] [Flink Table API & SQL 如何定义时间属性](https://smartsi.blog.csdn.net/article/details/127173096)
+- [x] [Flink SQL Emit 输出策略](https://smartsi.blog.csdn.net/article/details/127196376)
 
 ### 4.2 函数
 
-- [ ] [Flink SQL 窗口]()
-- [ ] [Flink SQL 窗口表值函数 Window TVF 实战](https://smartsi.blog.csdn.net/article/details/127162902)
+- [x] [Flink SQL 分组窗口函数 Group Window 实战](https://smartsi.blog.csdn.net/article/details/127178520)
+- [x] [Flink SQL 窗口表值函数 Window TVF 实战](https://smartsi.blog.csdn.net/article/details/127162902)
 - [ ] [Flink SQL 自定义函数]()
 - [x] [Flink Table API & SQL 自定义 Scalar 标量函数](https://smartsi.blog.csdn.net/article/details/124853175)
 - [x] [Flink Table API & SQL 自定义 Table 表函数](https://smartsi.blog.csdn.net/article/details/124874280)
@@ -150,7 +152,6 @@
 - [x] [Flink JDBC Connector：Flink 与数据库集成最佳实践](https://smartsi.blog.csdn.net/article/details/126535909)
 - [x] [Flink SQL Print Connector](https://smartsi.blog.csdn.net/article/details/124086562)
 - [x] [Flink SQL 1.11 流批一体 Hive 数仓](https://smartsi.blog.csdn.net/article/details/121061979)
-
 
 ## 7. 运维与监控
 

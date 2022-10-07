@@ -193,7 +193,8 @@
 - [ ] [Flink 原理与实现：Table & SQL API](https://flink-learning.org.cn/article/detail/5133eced98854eff56cc2eaa2150b1e4)
 - [ ] [Flink关系型API解读：Table API 与SQL](https://mp.weixin.qq.com/s/niHzIB7xCXO4gmlJeRfjGw)
 - [ ] [Flink 源码阅读笔记（17）- Flink SQL 中的时间属性](https://blog.jrwang.me/2019/2019-09-16-flink-sourcecode-sql-time-attribute.md/)
-
+- [ ] [Flink 源码之 Table early fire 和 late fire](https://www.jianshu.com/p/8249f6152239)
+- [ ] [Flink SQL窗口表值函数（Window TVF）聚合实现原理浅析](https://mp.weixin.qq.com/s/ggfelDwX2Qb28mUPfq7ttQ)
 
 ### 13. 调优
 

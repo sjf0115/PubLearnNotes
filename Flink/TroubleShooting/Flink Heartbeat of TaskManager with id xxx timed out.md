@@ -1,0 +1,31 @@
+
+```
+java.util.concurrent.TimeoutException: Heartbeat of TaskManager with id 127.0.0.1:50305-3a4aff timed out.
+	at org.apache.flink.runtime.jobmaster.JobMaster$TaskManagerHeartbeatListener.notifyHeartbeatTimeout(JobMaster.java:1299)
+	at org.apache.flink.runtime.heartbeat.HeartbeatMonitorImpl.run(HeartbeatMonitorImpl.java:111)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at org.apache.flink.runtime.rpc.akka.AkkaRpcActor.handleRunAsync(AkkaRpcActor.java:440)
+	at org.apache.flink.runtime.rpc.akka.AkkaRpcActor.handleRpcMessage(AkkaRpcActor.java:208)
+	at org.apache.flink.runtime.rpc.akka.FencedAkkaRpcActor.handleRpcMessage(FencedAkkaRpcActor.java:77)
+	at org.apache.flink.runtime.rpc.akka.AkkaRpcActor.handleMessage(AkkaRpcActor.java:158)
+	at akka.japi.pf.UnitCaseStatement.apply(CaseStatements.scala:26)
+	at akka.japi.pf.UnitCaseStatement.apply(CaseStatements.scala:21)
+	at scala.PartialFunction$class.applyOrElse(PartialFunction.scala:123)
+	at akka.japi.pf.UnitCaseStatement.applyOrElse(CaseStatements.scala:21)
+	at scala.PartialFunction$OrElse.applyOrElse(PartialFunction.scala:170)
+	at scala.PartialFunction$OrElse.applyOrElse(PartialFunction.scala:171)
+	at scala.PartialFunction$OrElse.applyOrElse(PartialFunction.scala:171)
+	at akka.actor.Actor$class.aroundReceive(Actor.scala:517)
+	at akka.actor.AbstractActor.aroundReceive(AbstractActor.scala:225)
+	at akka.actor.ActorCell.receiveMessage(ActorCell.scala:592)
+	at akka.actor.ActorCell.invoke(ActorCell.scala:561)
+	at akka.dispatch.Mailbox.processMailbox(Mailbox.scala:258)
+	at akka.dispatch.Mailbox.run(Mailbox.scala:225)
+	at akka.dispatch.Mailbox.exec(Mailbox.scala:235)
+	at akka.dispatch.forkjoin.ForkJoinTask.doExec(ForkJoinTask.java:260)
+	at akka.dispatch.forkjoin.ForkJoinPool$WorkQueue.runTask(ForkJoinPool.java:1339)
+	at akka.dispatch.forkjoin.ForkJoinPool.runWorker(ForkJoinPool.java:1979)
+	at akka.dispatch.forkjoin.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:107)
+
+```

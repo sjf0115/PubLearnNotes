@@ -91,6 +91,7 @@
 ### 4.3 性能优化
 
 - [x] [Flink SQL 功能解密系列 解决热点问题的大杀器 MiniBatch](https://smartsi.blog.csdn.net/article/details/127201264)
+- [x] [Flink SQL 核心解密 —— 提升吞吐的利器 MicroBatch](https://smartsi.blog.csdn.net/article/details/127209707)
 - [ ] [Flink SQL 性能优化]()
 
 ## 5. 容错

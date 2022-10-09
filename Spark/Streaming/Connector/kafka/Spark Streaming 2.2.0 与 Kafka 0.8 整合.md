@@ -50,14 +50,8 @@ JavaPairReceiverInputDStream<String, String> kafkaStream =
     KafkaUtils.createStream(streamingContext,
     [ZK quorum], [consumer group id], [per-topic number of Kafka partitions to consume]);
 ```
-Python：
-```python
-from pyspark.streaming.kafka import KafkaUtils
 
-kafkaStream = KafkaUtils.createStream(streamingContext, \
-    [ZK quorum], [consumer group id], [per-topic number of Kafka partitions to consume])
-```
-默认情况下，Python API会将 Kafka 数据解码为 UTF8 编码的字符串。你可以指定自定义解码函数，将 Kafka 记录中的字节数组解码为任意任意数据类型。 查看[API文档](http://spark.apache.org/docs/2.3.0/api/python/pyspark.streaming.html#pyspark.streaming.kafka.KafkaUtils)。
+默认情况下，Python API 会将 Kafka 数据解码为 UTF8 编码的字符串。你可以指定自定义解码函数，将 Kafka 记录中的字节数组解码为任意任意数据类型。 查看[API文档](http://spark.apache.org/docs/2.3.0/api/python/pyspark.streaming.html#pyspark.streaming.kafka.KafkaUtils)。
 
 请记住:
 - Kafka 中的 topic partition 区与 Spark Streaming 中生成的 RDD partition 没有关系。因此增加 KafkaUtils.createStream() 中特定 topic partition 的数量仅仅增加了在单个接收器中消费 topic 使用的线程数。但是这并没有增加 Spark 在处理数据的并行度。

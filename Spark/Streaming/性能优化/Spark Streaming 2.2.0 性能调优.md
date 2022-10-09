@@ -11,21 +11,21 @@ categories: Spark
 permalink: spark-streaming-performance-tuning
 ---
 
-集群上 Spark Streaming 应用程序中获得最佳性能需要一些调整。这篇文章我们介绍可以提高你应用程序性能参数以及配置。🏁需要考虑两件事情:
+Spark Streaming 应用程序要获得最佳性能需要做一些调整优化。这篇文章我们介绍可以提高你应用程序性能的参数以及配置。从高层次来看，你需要关心两件事情:
 - 通过充分利用集群资源，减少每批次数据的处理时间。
-- 设置合理的批次大小，以使每批次的数据可以尽可能快的处理，即数据处理速度与数据接收速度保持一致。
+- 设置合理的批次大小，从而尽可能快的处理每批次的数据，即数据处理速度与数据接收速度保持一致。
 
-### 1. 减少每批次的处理时间
+## 1. 减少每批次的处理时间
 
-#### 1.1 提升数据接收的并行度
+在 Spark 中可以进行许多优化来减少每批次的处理时间。这些已在 [Tuning Guide](https://spark.apache.org/docs/2.2.0/tuning.html) 中详细讨论。在这重点介绍了一些最重要的优化点。
 
-通过网络接收数据（如Kafka，Flume，Socket等）需要将数据反序列化并存储在 Spark 中。如果数据接收成为系统的瓶颈，则需要考虑并行接收数据。
+### 1.1 提升数据接收的并行度
 
-##### 1.1.1 提升Receiver的并发度
+通过网络接收数据（如Kafka，Flume，Socket等）需要将数据反序列化并存储在 Spark 中。如果数据接收成为系统的瓶颈，则需要考虑并行化接收数据。
 
-运行在 Worker 节点上的每个输入 DStream 都会创建一个Receiver，以便接收一个数据流。因此，通过创建多个输入 DStream 并将其配置为从数据源接收不同分区的数据流，从而实现接收多数据流。例如，一个 Kafka 输入 DStream 接收两个 Topic 的数据，可以拆分成两个 Kafka 的输入流，每个仅仅接收一个 Topic。这将运行两个接收器，并行接收数据，从而提高整体吞吐量。这些多个 DStream 可以整合(union)在一起创建一个 DStream。这样应用在一个输入 DStream 上的转换操作可以应用在整合后的流上（union之后的流）。如下完成：
+#### 1.1.1 提升 Receiver 的并发度
 
-Java版本：
+每一个输入 DStream 都会创建一个 Receiver（运行在 Worker 节点上）来单独接收一个数据流。因此，可以通过创建多个输入 DStream 以及配置分别从 Source 不同分区接收数据流，从而可以实现接收多个数据流。例如，一个接收两个 Topic 数据的 Kafka 输入 DStream 可以拆分成两个 Kafka 输入 DStream，每个仅仅接收一个 Topic 数据。这样可以运行两个 Receiver 并行接收数据，从而提高整体吞吐量。这些多个 DStream 可以合并(union)在一起创建一个 DStream。这样应用在一个输入 DStream 上的转换操作可以统一应用在整合后的数据流上。具体如下所示：
 ```java
 int numStreams = 5;
 List<JavaPairDStream<String, String>> kafkaStreams = new ArrayList<>(numStreams);
@@ -35,24 +35,10 @@ for (int i = 0; i < numStreams; i++) {
 JavaPairDStream<String, String> unifiedStream = streamingContext.union(kafkaStreams.get(0), kafkaStreams.subList(1, kafkaStreams.size()));
 unifiedStream.print();
 ```
-Scala版本：
-```scala
-val numStreams = 5
-val kafkaStreams = (1 to numStreams).map { i => KafkaUtils.createStream(...) }
-val unifiedStream = streamingContext.union(kafkaStreams)
-unifiedStream.print()
-```
-Python版本：
-```python
-numStreams = 5
-kafkaStreams = [KafkaUtils.createStream(...) for _ in range (numStreams)]
-unifiedStream = streamingContext.union(*kafkaStreams)
-unifiedStream.pprint()
-```
 
-##### 1.1.2 调整Receiver的块间隔
+#### 1.1.2 调整 Receiver 的 Block 间隔
 
-另一个应该考虑的参数是 Receiver 的 `block interval`，由配置参数 `spark.streaming.blockInterval` 决定。对于大多数的 Receiver，接收到的数据在存储到 Spark 内存之前会合并为大的数据块。每个批次中块的个数决定了任务的个数，这些任务用来处理类似 map 转换操作中接收到数据。Receiver 中每批次的任务个数大约等于 `batch interval / block interval`。例如，200 ms 的 `block interval`将会在每2s的批次中创建10个任务。如果任务个数太少（即少于每台机器的 core 的数量），将会导致效率变低，因为会有闲置的核没有用来处理数据。要增加给定 `batch interval` 的任务个数，需要降低 `block interval`。但是，建议 `block interval` 最小值为50毫秒，如果低于该值时，任务启动开销可能会有问题。
+另一个应该考虑的参数是 Receiver 的 Block 间隔（通过 `spark.streaming.blockInterval` 配置）。对于大多数 Receiver，接收到的数据在存储到 Spark 内存之前会合并为大的 Block。每个批次中 Block 的个数决定了任务的个数，这些任务用来处理类似 map 转换操作中接收到的数据。Receiver 中每批次的任务个数大约等于 `批次间隔 / Block 间隔`。例如，200 ms 的 Block 间隔会在每 2s 的批次中生成 10 个 Block，即对应创建 10 个任务。如果任务个数太少（少于每台机器的 core 数）会导致效率变低，因为会有空闲的核没有用来处理数据。如果要增加一个批次间隔的任务个数，需要降低 Block 间隔。但是，建议 Block 间隔最小为 50 毫秒，如果低于该值，任务启动开销可能会有问题。
 
 使用多输入流/ Receiver 接收数据的另一种方法是显式对输入数据流重新分区（使用 `inputStream.repartition（<分区个数>）`）。这会在进一步处理之前将收到的批量数据分布到集群中指定数量的机器上。
 

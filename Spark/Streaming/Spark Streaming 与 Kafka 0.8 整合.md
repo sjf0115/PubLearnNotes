@@ -11,40 +11,38 @@ categories: Spark
 permalink: spark-streaming-kafka-0-8-integration
 ---
 
-在这里我们解释如何配置 Spark Streaming 以接收来自 Kafka 的数据。有两种方法，一种为使用 Receivers 和 Kafka 高级API的旧方法，以及不使用 Receivers 的新方法（在 Spark 1.3 中引入）。它们具有不同的编程模型，性能特征和语义保证。就目前的 Spark 版本而言，这两种方法都被为稳定的API。
+> Spark 版本 2.2.0
 
-> Kafka0.8 在 Spark2.3.0　版本中已经被弃用
+在这篇文章我们主要讲解一下如何配置 Spark Streaming 来接收 Kafka 的数据，一共有两种方法：
+- 一种是使用 Receivers 和 Kafka 高级API的旧方法
+- 另一种是不使用 Receivers 的新方法（在 Spark 1.3 中引入）
 
-### 1. 基于Receiver的方法
+它们具有不同的编程模型，性能特征和语义保证。就目前的 Spark 版本而言，这两种方法都被为稳定的API。
 
-这种方法使用 Receiver 来接收数据。Receiver 是使用 Kafka 高级消费者API实现的。与所有接收方一样，通过 Receiver 从 Kafka 接收的数据存储在 Spark executors 中，然后由 Spark Streaming 启动的作业处理数据。
+> Kafka 0.8 在 Spark 2.3.0　版本中已经被弃用
 
-但是，在默认配置下，这种方法可能会在失败时丢失数据（请参阅[接收器的可靠性](http://spark.apache.org/docs/2.3.0/streaming-programming-guide.html#receiver-reliability)）。为确保零数据丢失，你不得不另外启用 Spark Streaming 中的 `Write Ahead Logs` （在 Spark 1.2 中引入），同时将所有收到的 Kafka 数据保存在分布式文件系统（例如HDFS）的 `Write Ahead Logs` 中，以便在发生故障时恢复所有数据。有关 `Write Ahead Logs` 的更多详细信息，请参阅流编程指南中的[部署](http://spark.apache.org/docs/2.3.0/streaming-programming-guide.html#deploying-applications)章节。
+### 1. 基于 Receiver 的方法
+
+第一种方法是使用 Receiver 来接收 Kafka 中的数据，是通过 Kafka 高级消费者 API 实现的。与所有接收方一样，通过 Receiver 从 Kafka 接收的数据存储在 Spark Executors 中，然后由 Spark Streaming 启动的作业处理数据。
+
+但是，在默认配置下，这种方法可能会在失败时丢失数据（请参阅[接收器的可靠性](http://spark.apache.org/docs/2.2.0/streaming-programming-guide.html#receiver-reliability)）。为确保数据不丢失，不得不另外启用 Spark Streaming 中的 `Write Ahead Logs` 功能（在 Spark 1.2 中引入）。将所有收到的 Kafka 数据保存在分布式文件系统（例如HDFS）的 `Write Ahead Logs` 中，以便在发生故障时恢复所有数据。有关 `Write Ahead Logs` 的更多详细信息，请参阅流编程指南中的[部署](http://spark.apache.org/docs/2.2.0/streaming-programming-guide.html#deploying-applications)章节。
 
 接下来，我们将讨论如何在流应用程序中使用这种方法。
 
 #### 1.1 引入
 
-对于使用 SBT/Maven 项目定义的 Scala/Java 应用程序，请引入如下工件（请参阅主编程指南中的[Linking](http://spark.apache.org/docs/2.3.0/streaming-programming-guide.html#linking)部分以获取更多信息）。
+对于使用 Maven 的 Scala/Java 应用程序，需要引入如下依赖：
+```xml
+<dependency>
+    <groupId>org.apache.spark</groupId>
+    <artifactId>spark-streaming_2.11</artifactId>
+    <version>2.2.0</version>
+</dependency>
 ```
-groupId = org.apache.spark
-artifactId = spark-streaming-kafka-0-8_2.11
-version = 2.3.0
-```
-对于Python应用程序，在部署应用程序时，必须添加上述库及其依赖项。请参阅下面的部署小节。
 
 #### 1.2 编程
 
-在流应用程序代码中，导入 KafkaUtils 并创建一个输入 DStream，如下所示。
-
-Scala版本:
-```scala
-import org.apache.spark.streaming.kafka._
-
-val kafkaStream = KafkaUtils.createStream(streamingContext,
-    [ZK quorum], [consumer group id], [per-topic number of Kafka partitions to consume])
-```
-Java版本：
+在流应用程序代码中，导入 KafkaUtils 并创建一个输入 DStream，如下所示：
 ```java
 import org.apache.spark.streaming.kafka.*;
 
@@ -78,7 +76,7 @@ kafkaStream = KafkaUtils.createStream(streamingContext, \
 ```
 或者，你也可以从 Maven 仓库中下载 spark-streaming-kafka-0-8-assembly 的JAR，并将其添加到 `spark-submit -jars` 中。
 
-### 2. 不使用Receiver的方法
+### 2. 不使用 Receiver 的方法
 
 这种新的没有接收器的 "直接" 方法已在 Spark 1.3 中引入，以确保更强大的端到端保证。这个方法不使用接收器接收数据，而是定期查询 Kafka 每个 topic+partition 中的最新偏移量，并相应地定义了要在每个批次中要处理的偏移量范围。当处理数据的作业启动后，Kafka 的简单消费者API用于从 Kafka 中读取定义的偏移量范围（类似于从文件系统读取文件）。请注意，此特征是在 Spark 1.3 中为 Scala 和 Java API 引入的，Python API 在 Spark 1.4 中引入。
 

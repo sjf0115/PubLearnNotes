@@ -58,7 +58,7 @@ import org.apache.spark.streaming.api.java.JavaStreamingContext;
 
 SparkConf conf = new SparkConf().setAppName("socket-spark-stream").setMaster("local[2]");
 JavaSparkContext sparkContext = new JavaSparkContext(conf);
-JavaStreamingContext jsc = new JavaStreamingContext(sparkContext, Durations.seconds(1));
+JavaStreamingContext ssc = new JavaStreamingContext(sparkContext, Durations.seconds(1));
 ```
 
 使用此 context，我们可以创建一个 DStream，表示来自 Socket 的流数据，需要指定主机名（例如 localhost）和端口（例如 9100）:
@@ -69,7 +69,7 @@ private static String hostName = "localhost";
 private static int port = 9100;
 
 // 以端口 9100 作为输入源创建DStream
-JavaReceiverInputDStream<String> lines = jsc.socketTextStream(hostName, port);
+JavaReceiverInputDStream<String> lines = ssc.socketTextStream(hostName, port);
 ```
 
 DStream lines 表示从 Socket 接收的数据流。流中的每条记录都是一行文本。然后，我们要将每行文本切分为单词：
@@ -107,9 +107,9 @@ wordCounts.print();
 需要注意的是，当以上这些代码被执行时，Spark Streaming 仅仅准备好了它要执行的计算，实际上并没有真正开始执行。在这些转换操作准备好之后，要真正执行计算，必须显式调用 StreamingContext 的 start() 方法。这样，SparkStreaming 就会开始把 Spark 作业不断的交给 SparkContext 去调度。执行会在另一个线程中进行，所以需要调用 awaitTermination() 函数来等待流计算完成，来防止应用退出：
 ```java
 // 启动流计算环境 StreamingContext 并等待完成
-jsc.start();
+ssc.start();
 // 等待作业完成
-jsc.awaitTermination();
+ssc.awaitTermination();
 ```
 > 一个 Streaming context 只启动一次，所以只有在配置好所有 DStream 以及所需的操作之后才能启动。
 

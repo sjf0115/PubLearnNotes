@@ -1,3 +1,5 @@
+## 1. 简介
+
 许多 Flink SQL 查询在一个或多个 Key 上做聚合或关联。当在流上执行这样的查询时，Flink 需要处理数据记录并维护每个 Key 的中间结果。如果输入流的 Key 是变化的，即随着时间的推移而变化，那么随着处理过的 Key 越来越多，查询会积累越来越多的状态。然而，通常在一段时间后，这些 Key 不会再出现，相应的状态也不在有用。例如，下面的查询计算每次会话的点击次数：
 ```SQL
 SELECT sessionId, COUNT(*) AS cnt
@@ -10,7 +12,7 @@ GROUP BY sessionId;
 
 对于前面的示例查询，只要 sessionId 在空闲状态保留时间内没有更新，它的点击次数就会被删除。删除 Key 的状态之后，该查询就认为以前没有见过这个 Key。如果再次处理具有这个 Key 的记录(其状态之前已被删除)，那么该记录会被认为是该 Key 出现的第一个记录。对于上面的例子，这意味着 sessionId 的计数将再次从 0 开始。
 
-
+## 2. 如何使用
 
 旧版本 Flink SQL 空闲状态保留时间有两个参数，状态空闲最小保留时间和状态空闲最大保留时间：
 - 最小空闲状态保留时间：定义了一个 Key 的状态在删除之前最小保留时间
@@ -55,9 +57,43 @@ public void setIdleStateRetention(Duration duration) {
 ```
 最大空闲状态保留时间会自动根据最小空闲状态保留时间乘以1.5来计算。
 
+如果要在 Flink SQL 中使用，只需要调用 setIdleStateRetention 即可，参数为最小空闲状态保留时间：
+```java
+// Table 运行环境配置
+EnvironmentSettings settings = EnvironmentSettings
+        .newInstance()
+        .inStreamingMode()
+        .build();
+StreamTableEnvironment tEnv = StreamTableEnvironment.create(env, settings);
+// 设置状态空闲时间
+TableConfig config = tEnv.getConfig();
+config.setIdleStateRetention(Duration.ofMinutes(1));
+```
+> 完整代码请查阅 []()
 
+## 3. 实现原理
 
-通过为每个状态设置 Timer，如果这个状态中途被访问过，则重新设置 Timer；否则（如果状态一直未被访问，长期处于 Idle 状态）则在 Timer 到期时做状态清理。这样，就可以确保每个状态都能得到及时的清理。
+```java
+public interface CleanupState {
+    default void registerProcessingCleanupTimer(ValueState<Long> cleanupTimeState, long currentTime, long minRetentionTime, long maxRetentionTime, TimerService timerService) throws Exception {
+        // 状态清理时间
+        Long curCleanupTime = (Long)cleanupTimeState.value();
+        //
+        if(curCleanupTime == null || currentTime + minRetentionTime > curCleanupTime.longValue()) {
+            long cleanupTime = currentTime + maxRetentionTime;
+            timerService.registerProcessingTimeTimer(cleanupTime);
+            if(curCleanupTime != null) {
+                timerService.deleteProcessingTimeTimer(curCleanupTime.longValue());
+            }
+            cleanupTimeState.update(Long.valueOf(cleanupTime));
+        }
+    }
+}
+```
+从上面可以知道，每个 key 对应的状态清理时间都会维护在 ValueState 中。如果满足以下两条件之一：
+
+状态清理时间为空，即这个 key 是第一次出现
+或者当前时间加上 minRetentionTime 已经超过了状态清理时间
 
 
 

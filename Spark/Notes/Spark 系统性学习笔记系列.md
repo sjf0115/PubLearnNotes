@@ -10,3 +10,5 @@
 
 
 ## 3. Spark Streaming
+
+- [x] [Spark Streaming 第一个程序 WordCount](https://smartsi.blog.csdn.net/article/details/127231676)

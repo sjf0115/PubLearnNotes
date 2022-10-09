@@ -133,4 +133,6 @@ Time: 1665295160000 ms
 (hello,2)
 (I,1)
 ```
+> 完整代码请查阅 [SocketWordCount](https://github.com/sjf0115/data-example/blob/master/spark-example-3.1/src/main/java/com/spark/example/streaming/base/SocketWordCount.java) 以及 Lambda 版本 [SocketWordCountLambda](https://github.com/sjf0115/data-example/blob/master/spark-example-3.1/src/main/java/com/spark/example/streaming/base/SocketWordCountLambda.java)
+
 可以通过 Web UI 查看作业详情，点击 `http://localhost:4040/` 进入。

@@ -31,7 +31,7 @@ spark-streaming-kafka-0-10 兼容 Kafka 0.10.0 及以后的版本。从 Spark 2.
 | :------------- | :------------- | :------------- |
 | 2.0.0  | 0.8.2.1 或者更高版本 | spark-streaming-kafka-0-8_2.10|
 | 2.2.0  | 0.8.2.1 或者更高版本 | spark-streaming-kafka-0-8_2.10 |
-| 2.3.0  | 0.8.2.1 或者更高版本 | spark-streaming-kafka-0-10_2.11 |
+| 2.3.0  | 0.8.2.1 - 0.9.0.1 | spark-streaming-kafka-0-10_2.11 |
 | 2.3.0  | 0.10.0 或者更高版本 | spark-streaming-kafka-0-10_2.11 |
 | 2.4.0  | 0.10.0 或者更高版本 | spark-streaming-kafka-0-10_2.11 |
 | 3.0.0  | 0.10.0 或者更高版本 | spark-streaming-kafka-0-10_2.12 |

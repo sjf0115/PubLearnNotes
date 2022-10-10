@@ -13,6 +13,9 @@ permalink: spark-streaming-kafka-0-8-integration
 
 > Spark 版本 2.2.0
 
+> Spark版本： 2.3.0
+> Kafka版本：0.8
+
 在这篇文章我们主要讲解一下如何配置 Spark Streaming 来接收 Kafka 的数据，一共有两种方法：
 - 一种是使用 Receivers 和 Kafka 高级API的旧方法
 - 另一种是不使用 Receivers 的新方法（在 Spark 1.3 中引入）
@@ -21,7 +24,7 @@ permalink: spark-streaming-kafka-0-8-integration
 
 > Kafka 0.8 在 Spark 2.3.0　版本中已经被弃用
 
-### 1. 基于 Receiver 的方法
+## 1. 基于 Receiver 的方法
 
 第一种方法是使用 Receiver 来接收 Kafka 中的数据，是通过 Kafka 高级消费者 API 实现的。与所有接收方一样，通过 Receiver 从 Kafka 接收的数据存储在 Spark Executors 中，然后由 Spark Streaming 启动的作业处理数据。
 
@@ -29,7 +32,7 @@ permalink: spark-streaming-kafka-0-8-integration
 
 接下来，我们将讨论如何在流应用程序中使用这种方法。
 
-#### 1.1 引入
+### 1.1 引入
 
 对于使用 Maven 的 Scala/Java 应用程序，需要引入如下依赖：
 ```xml
@@ -40,7 +43,7 @@ permalink: spark-streaming-kafka-0-8-integration
 </dependency>
 ```
 
-#### 1.2 编程
+### 1.2 编程
 
 在流应用程序代码中，导入 KafkaUtils 并创建一个输入 DStream，如下所示：
 ```java
@@ -58,19 +61,19 @@ JavaPairReceiverInputDStream<String, String> kafkaStream =
 - 可以用不同的 groups 和 topics 来创建多个 Kafka 输入 DStream，用于使用多个接收器并行接收数据。之后可以利用 union 来合并成一个 Dstream。
 - 如果你使用 HDFS 等副本文件系统去启用 `Write Ahead Logs`，那么接收到的数据已经在日志中备份。因此，输入流的存储级别为 StorageLevel.MEMORY_AND_DISK_SER（即使用KafkaUtils.createStream（...，StorageLevel.MEMORY_AND_DISK_SER））。
 
-#### 1.3 部署
+### 1.3 部署
 
-与任何 Spark 应用程序一样，spark-submit 用于启动你的应用程序。但是，Scala/Java　应用程序和 Python 应用程序的细节略有不同。
+与任何 Spark 应用程序一样，spark-submit 用于启动你的应用程序。但是，Scala/Java　应用程序和 Python 应用程序的细节略有不同。对于 Scala 和 Java 应用程序，如果你使用 SBT 或 Maven 进行项目管理，需要将 spark-streaming-kafka-0-8_2.11 及其依赖项打包到应用程序 JAR 中。同时确保 spark-core_2.11 和 spark-streaming_2.11 被标记为 provided 依赖关系，因为这些已经存在 Spark 的安装中。最后使用 spark-submit 启动你的应用程序。
 
-对于 Scala 和 Java 应用程序，如果你使用 SBT 或 Maven 进行项目管理，需要将 spark-streaming-kafka-0-8_2.11 及其依赖项打包到应用程序 JAR 中。同时确保 spark-core_2.11 和 spark-streaming_2.11 被标记为 provided 依赖关系，因为这些已经存在 Spark 的安装中。最后使用 spark-submit 启动你的应用程序。
-
-对于缺乏　SBT/Maven 项目管理的 Python 应用程序，可以使用 --packages 直接将 spark-streaming-kafka-0-8_2.11 及其依赖添加到 spark-submit 中（请参阅[应用程序提交指南](http://spark.apache.org/docs/2.3.0/submitting-applications.html)）。即，
+对于缺乏　SBT/Maven 项目管理的 Python 应用程序，可以使用 --packages 直接将 spark-streaming-kafka-0-8_2.11 及其依赖添加到 spark-submit 中，如下所示：
 ```
- ./bin/spark-submit --packages org.apache.spark:spark-streaming-kafka-0-8_2.11:2.3.0 ...
+./bin/spark-submit --packages org.apache.spark:spark-streaming-kafka-0-8_2.11:2.3.0 ...
 ```
 或者，你也可以从 Maven 仓库中下载 spark-streaming-kafka-0-8-assembly 的JAR，并将其添加到 `spark-submit -jars` 中。
 
-### 2. 不使用 Receiver 的方法
+> spark-submit 详细使用方法请查阅 [Spark 应用程序部署工具spark-submit](https://smartsi.blog.csdn.net/article/details/55271395)
+
+## 2. 不使用 Receiver 的方法
 
 这种新的没有接收器的 "直接" 方法已在 Spark 1.3 中引入，以确保更强大的端到端保证。这个方法不使用接收器接收数据，而是定期查询 Kafka 每个 topic+partition 中的最新偏移量，并相应地定义了要在每个批次中要处理的偏移量范围。当处理数据的作业启动后，Kafka 的简单消费者API用于从 Kafka 中读取定义的偏移量范围（类似于从文件系统读取文件）。请注意，此特征是在 Spark 1.3 中为 Scala 和 Java API 引入的，Python API 在 Spark 1.4 中引入。
 
@@ -83,7 +86,7 @@ JavaPairReceiverInputDStream<String, String> kafkaStream =
 
 接下来，我们将讨论如何在流应用程序中使用这种方法。
 
-#### ２.1 引入
+### ２.1 引入
 
 对于使用 SBT/Maven 项目定义的 Scala/Java 应用程序，请引入如下工件（请参阅主编程指南中的[Linking](http://spark.apache.org/docs/2.3.0/streaming-programming-guide.html#linking)部分以获取更多信息）。
 ```
@@ -91,19 +94,9 @@ groupId = org.apache.spark
 artifactId = spark-streaming-kafka-0-8_2.11
 version = 2.3.0
 ```
-#### ２.2 编程
+### ２.2 编程
 
-在流应用程序代码中，导入 KafkaUtils 并创建一个输入 DStream，如下所示。
-
-Scala版本:
-```scala
-import org.apache.spark.streaming.kafka._
-
-val directKafkaStream = KafkaUtils.createDirectStream[
-    [key class], [value class], [key decoder class], [value decoder class] ](
-    streamingContext, [map of Kafka parameters], [set of topics to consume])
-```
-Java版本:
+在流应用程序代码中，导入 KafkaUtils 并创建一个输入 DStream，如下所示：
 ```java
 import org.apache.spark.streaming.kafka.*;
 
@@ -112,36 +105,12 @@ JavaPairInputDStream<String, String> directKafkaStream =
         [key class], [value class], [key decoder class], [value decoder class],
         [map of Kafka parameters], [set of topics to consume]);
 ```
-Python版本:
-```python
-from pyspark.streaming.kafka import KafkaUtils
- directKafkaStream = KafkaUtils.createDirectStream(ssc, [topic], {"metadata.broker.list": brokers})
-```
 
 你还可以将 messageHandler 传递给 createDirectStream 来访问 MessageAndMetadata，其包含了当前消息的元数据，并可以将其转换为任意所需的类型。
 
 在 Kafka 参数中，必须指定 metadata.broker.list 或 bootstrap.servers。默认情况下，它将从每个 Kafka 分区的最新偏移量开始消费。如果你将 Kafka 参数中的 `auto.offset.reset` 配置为 `smallest`，那么它将从最小偏移量开始消费。
 
 你也可以使用 KafkaUtils.createDirectStream 的其他变体从任意偏移量开始消费。此外，如果你想访问每个批次中消费的偏移量，你可以执行以下操作：
-
-Scala版本：
-```scala
-// Hold a reference to the current offset ranges, so it can be used downstream
-var offsetRanges = Array.empty[OffsetRange]
-
-directKafkaStream.transform { rdd =>
-  offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
-  rdd
-}.map {
-          ...
-}.foreachRDD { rdd =>
-  for (o <- offsetRanges) {
-    println(s"${o.topic} ${o.partition} ${o.fromOffset} ${o.untilOffset}")
-  }
-  ...
-}
-```
-Java版本:
 ```java
 // Hold a reference to the current offset ranges, so it can be used downstream
 AtomicReference<OffsetRange[]> offsetRanges = new AtomicReference<>();
@@ -155,23 +124,6 @@ System.out.println(
 );    }    ...
 });
 ```
-Python版本:
-```python
-offsetRanges = []
-
-def storeOffsetRanges(rdd):
-    global offsetRanges
-    offsetRanges = rdd.offsetRanges()
-    return rdd
-
-def printOffsetRanges(rdd):
-    for o in offsetRanges:
-        print "%s %s %s %s" % (o.topic, o.partition, o.fromOffset, o.untilOffset)
-
-directKafkaStream \
-    .transform(storeOffsetRanges) \
-    .foreachRDD(printOffsetRanges)
-```
 
 如果你希望基于 Zookeeper 的 Kafka 监视工具显示流应用程序的进度，你可以使用上面来更新 Zookeeper。
 
@@ -179,11 +131,8 @@ directKafkaStream \
 
 另外需要注意的是，由于此方法不使用 Receivers，因此与 receiver 相关的配置（即 `spark.streaming.receiver.*` 形式的配置）将不再适用于由此方法创建的输入DStream（将应用于其他输入DStreams）。相反，使用 `spark.streaming.kafka.*` 配置。一个重要的配置是 `spark.streaming.kafka.maxRatePerPartition`，每个 Kafka partition 使用 direct API 读取的最大速率（每秒消息数）。
 
-#### 2.3 部署
+### 2.3 部署
 
 这与第一种方法相同。
-
-> Spark版本： 2.3.0
-> Kafka版本：0.8
 
 原文：http://spark.apache.org/docs/2.3.0/streaming-kafka-0-8-integration.html

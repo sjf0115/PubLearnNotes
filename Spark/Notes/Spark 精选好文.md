@@ -17,11 +17,19 @@
 
 ## 3. Spark Streaming
 
-- [ ] [Spark Streaming 实时计算在甜橙金融监控系统中的应用及优化](https://mp.weixin.qq.com/s/Kv1Qq4118I2itYwPYyQUoA)
-- [ ] [Improved Fault-tolerance and Zero Data Loss in Apache Spark Streaming](https://www.databricks.com/blog/2015/01/15/improved-driver-fault-tolerance-and-zero-data-loss-in-spark-streaming.html)
+### 3.1 案例
+
 - [ ] [Spark Streaming 实时计算在甜橙金融监控系统中的应用及优化](https://mp.weixin.qq.com/s/Kv1Qq4118I2itYwPYyQUoA)
 - [ ] [Spark Streaming实时计算在链家网的实践](https://mp.weixin.qq.com/s/fSrWF4PFZkvky7rkeCf46w)
 - [ ] [Spark Streaming在小米数据流应用中的Checkpoint相关问题](https://mp.weixin.qq.com/s/axD5FN1g7PIe9JsFu7lHKQ)
+
+### 3.2 容错
+
+- [x] [Improvements to Kafka integration of Spark Streaming](https://databricks.com/blog/2015/03/30/improvements-to-kafka-integration-of-spark-streaming.html)
+- [x] [Improved Fault-tolerance and Zero Data Loss in Apache Spark Streaming](https://www.databricks.com/blog/2015/01/15/improved-driver-fault-tolerance-and-zero-data-loss-in-spark-streaming.html)
+- [ ] [Spark Streaming 中如何实现 Exactly-Once 语义](https://shzhangji.com/cnblogs/2017/08/01/how-to-achieve-exactly-once-semantics-in-spark-streaming/)
+- [ ] [Create Apache Spark Streaming jobs with exactly-once event processing](https://learn.microsoft.com/en-us/azure/hdinsight/spark/apache-spark-streaming-exactly-once)
+
 
 ## 4. Structured Streaming
 

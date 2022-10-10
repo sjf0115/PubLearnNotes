@@ -5,7 +5,6 @@ title: Spark Streaming 与 Kafka 整合的改进
 date: 2018-03-18 11:28:01
 tags:
   - Spark
-  - Spark Stream
 
 categories: Spark
 permalink: improvements-to-kafka-integration-of-spark-streaming
@@ -83,7 +82,7 @@ val rdd = KafkaUtils.createRDD[String, String, StringDecoder, StringDecoder](spa
 - Direct API 完整 word count example: [Scala](https://github.com/apache/spark/blob/master/examples/src/main/scala/org/apache/spark/examples/streaming/DirectKafkaWordCount.scala) 和 [Java](https://github.com/apache/spark/blob/master/examples/src/main/java/org/apache/spark/examples/streaming/JavaDirectKafkaWordCount.java)
 - [Fault-tolerance Semantics in Spark Streaming Programming Guide](http://spark.apache.org/docs/latest/streaming-programming-guide.html#fault-tolerance-semantics)
 
-### 4. Python 中的Kafka API
+### 4. Python 中的 Kafka API
 
 在 Spark 1.2 中，添加了 Spark Streaming 的基本 Python API，因此开发人员可以使用 Python 编写分布式流处理应用程序。在 Spark 1.3 中，扩展了 Python API 来包含Kafka。借此，在 Python 中使用 Kafka 编写流处理应用程序变得轻而易举。这是一个示例代码。
 ```python

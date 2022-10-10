@@ -18,7 +18,12 @@
 ## 3. Spark Streaming
 
 - [ ] [Spark Streaming 实时计算在甜橙金融监控系统中的应用及优化](https://mp.weixin.qq.com/s/Kv1Qq4118I2itYwPYyQUoA)
+- [ ] [Improved Fault-tolerance and Zero Data Loss in Apache Spark Streaming](https://www.databricks.com/blog/2015/01/15/improved-driver-fault-tolerance-and-zero-data-loss-in-spark-streaming.html)
+- [ ] [Spark Streaming 实时计算在甜橙金融监控系统中的应用及优化](https://mp.weixin.qq.com/s/Kv1Qq4118I2itYwPYyQUoA)
+- [ ] [Spark Streaming实时计算在链家网的实践](https://mp.weixin.qq.com/s/fSrWF4PFZkvky7rkeCf46w)
+- [ ] [Spark Streaming在小米数据流应用中的Checkpoint相关问题](https://mp.weixin.qq.com/s/axD5FN1g7PIe9JsFu7lHKQ)
 
 ## 4. Structured Streaming
 
 - [ ] [专访朱诗雄：Apache Spark中的全新流式引擎Structured Streaming](https://mp.weixin.qq.com/s/gp9MTKWbgHQ7b7QR5pNSnA)
+- [ ] [Spark Structured Streaming 2021年最新进展的总结](https://mp.weixin.qq.com/s/rS9xASvJfKvZ3ZE0j3366w)

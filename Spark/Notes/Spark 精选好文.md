@@ -29,6 +29,8 @@
 - [x] [Improved Fault-tolerance and Zero Data Loss in Apache Spark Streaming](https://www.databricks.com/blog/2015/01/15/improved-driver-fault-tolerance-and-zero-data-loss-in-spark-streaming.html)
 - [ ] [Spark Streaming 中如何实现 Exactly-Once 语义](https://shzhangji.com/cnblogs/2017/08/01/how-to-achieve-exactly-once-semantics-in-spark-streaming/)
 - [ ] [Create Apache Spark Streaming jobs with exactly-once event processing](https://learn.microsoft.com/en-us/azure/hdinsight/spark/apache-spark-streaming-exactly-once)
+- [ ] [Spark & Kafka - Achieving zero data-loss](http://aseigneurin.github.io/2016/05/07/spark-kafka-achieving-zero-data-loss.html)
+- [ ] [Exactly-once Spark Streaming from Kafka](https://github.com/koeninger/kafka-exactly-once/blob/master/blogpost.md)
 
 
 ## 4. Structured Streaming

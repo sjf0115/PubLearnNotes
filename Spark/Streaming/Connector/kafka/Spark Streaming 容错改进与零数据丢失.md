@@ -57,7 +57,7 @@ Spark 以及 RDD 抽象设计旨在无缝处理集群中任何 Worker 节点的�
 - 读取保存在预写日志中的 Block（蓝色箭头）：在这些作业执行时，Block 数据直接从预写日志中读出。这将恢复可靠存储在预写日志中的所有数据。
 - 重发尚未确认的数据（紫色箭头）：失败时没有保存到预写日志中的缓存数据将由数据源再次发送。因为接收器尚未对其确认。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-streaming-improved-driver-fault-tolerance-and-zero-data-loss-2.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-streaming-improved-driver-fault-tolerance-and-zero-data-loss-2.jpg?raw=true)
 
 因此通过预写日志和可靠的接收器，Spark Streaming 就可以保证没有输入数据会由于 Driver 的失败（或换言之，任何失败）而丢失。
 

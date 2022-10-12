@@ -197,7 +197,7 @@ hbase(main):002:0>
 本节中的代码示例使用如下版本的 Spark Streaming Kafka 集成：
 
 | GroupID | ArtifactID | Version |
-| :------------- | :------------- |
+| :------------- | :------------- | :------------- |
 | org.apache.spark  | spark-streaming_2.11 | 2.1.0.cloudera1 |
 | org.apache.spark  | spark-streaming-kafka-0-10_2.11 | 2.1.0.cloudera1 |
 

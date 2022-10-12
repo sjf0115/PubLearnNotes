@@ -17,6 +17,7 @@
 ### 3.2 Connector
 
 - [x] [Spark Streaming 基于 Direct API 优化与 Kafka 集成](https://smartsi.blog.csdn.net/article/details/127247415)
+- [x] [Spark Streaming Kafka 偏移量 Offset 管理](https://smartsi.blog.csdn.net/article/details/127292267)
 
 ### 3.3 性能优化
 

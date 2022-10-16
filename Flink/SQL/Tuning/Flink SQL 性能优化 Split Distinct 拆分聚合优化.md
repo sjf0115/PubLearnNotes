@@ -55,6 +55,11 @@ GROUP BY day
 拆分 DISTINCT 优化默认是关闭的，您需要在作业中的配置如下参数：
 ```java
 Configuration configuration = tEnv.getConfig().getConfiguration();
+// 开启 MiniBatch
+configuration.setString("table.exec.mini-batch.enabled", "true");
+configuration.setString("table.exec.mini-batch.allow-latency", "1 s");
+configuration.setString("table.exec.mini-batch.size", "5000");
+// 开启拆分 Distinct 优化
 configuration.setString("table.optimizer.distinct-agg.split.enabled", "true");
 ```
 判断是否生效，可以通过 Web UI 中观察最终生成的拓扑图，是否由原来一层的聚合变成了两层的聚合，其中一个 partialFinalType 为 PARTITAL，另一个为 FINAL：

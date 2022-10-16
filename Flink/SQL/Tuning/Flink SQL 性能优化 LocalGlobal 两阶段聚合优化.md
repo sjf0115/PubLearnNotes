@@ -33,4 +33,8 @@ configuration.setString("table.optimizer.agg-phase-strategy", "TWO_PHASE");
 ```
 判断 LocalGlobal 两阶段聚合优化是否生效，可以通过 Web UI 观察最终生成的拓扑图的节点名字中是否包含 GlobalGroupAggregate 或 LocalGroupAggregate：
 
-![]()
+![](2)
+
+## 4. 示例
+
+[LocalGlobalAggExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/table/tuning/skew/LocalGlobalAggExample.java)

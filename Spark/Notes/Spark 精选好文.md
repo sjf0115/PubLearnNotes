@@ -32,6 +32,9 @@
 - [ ] [Spark & Kafka - Achieving zero data-loss](http://aseigneurin.github.io/2016/05/07/spark-kafka-achieving-zero-data-loss.html)
 - [ ] [Exactly-once Spark Streaming from Kafka](https://github.com/koeninger/kafka-exactly-once/blob/master/blogpost.md)
 
+### 3.3 性能
+
+- [ ] [Spark Streaming 反压（Back Pressure）机制介绍](https://www.iteblog.com/archives/2323.html)
 
 ## 4. Structured Streaming
 

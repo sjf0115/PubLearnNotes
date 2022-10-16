@@ -160,6 +160,7 @@
 
 - [x] [Flink 本地运行 Web UI](https://smartsi.blog.csdn.net/article/details/124742662)
 - [ ] [在 Zeppelin 中如何使用 Flink]()
+- [x] [Flink 网络流控和反压剖析详解](https://smartsi.blog.csdn.net/article/details/127312894)
 - [ ] [Flink 如何定位背压来源]()
 - [ ] [Flink 如何处理背压]()
 - [x] [Flink 监控 Rest API](https://smartsi.blog.csdn.net/article/details/126087582)

@@ -78,6 +78,7 @@
 
 - [x] [Flink SQL 分组窗口函数 Group Window 实战](https://smartsi.blog.csdn.net/article/details/127178520)
 - [x] [Flink SQL 窗口表值函数 Window TVF 实战](https://smartsi.blog.csdn.net/article/details/127162902)
+- [x] [Flink SQL 功能解密系列 —— 流式 TopN 挑战与实现](https://smartsi.blog.csdn.net/article/details/127378780)
 - [ ] [Flink SQL 自定义函数]()
 - [x] [Flink Table API & SQL 自定义 Scalar 标量函数](https://smartsi.blog.csdn.net/article/details/124853175)
 - [x] [Flink Table API & SQL 自定义 Table 表函数](https://smartsi.blog.csdn.net/article/details/124874280)
@@ -162,7 +163,7 @@
 - [ ] [在 Zeppelin 中如何使用 Flink]()
 - [x] [Flink 网络流控和反压剖析详解](https://smartsi.blog.csdn.net/article/details/127312894)
 - [ ] [Flink 如何定位背压来源]()
-- [ ] [Flink 如何处理背压]()
+- [x] [Flink 如何处理背压](https://smartsi.blog.csdn.net/article/details/127355152)
 - [x] [Flink 监控 Rest API](https://smartsi.blog.csdn.net/article/details/126087582)
 - [ ] [Flink 单元测试指南]()
 - [ ] [Flink 1.11 JobManager 内存管理优化]()

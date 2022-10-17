@@ -1,0 +1,97 @@
+## 1. 简介
+
+TopN 是统计报表和大屏非常常见的功能，主要用来实时计算排行榜，对实时数据中某个指标的前 N 个最值的筛选。流式的 TopN 不同于批处理的 TopN，它的特点是持续的在内存中按照某个统计指标（如出现次数）计算 TopN 排行榜，然后当排行榜发生变化时，发出更新后的排行榜。
+
+## 2. 语法
+
+Flink SQL 可以基于 OVER 窗口子句以及筛选条件灵活地完成 TopN 的功能。通过 OVER 窗口 PARTITION BY 子句的功能，Flink 还支持分组 TopN。Top-N语句的语法如下:
+```sql
+SELECT *
+FROM (
+  SELECT *,
+    ROW_NUMBER() OVER ([PARTITION BY col1[, col2..]]
+      ORDER BY col1 [asc|desc][, col2 [asc|desc]...]) AS rownum
+  FROM T
+)
+WHERE rownum <= N [AND conditions]
+```
+参数说明：
+- `ROW_NUMBER()`：根据分区内的行顺序，为每一行分配一个惟一的行号，行号计算从1开始。目前，Over 窗口函数中只支持 ROW_NUMBER。未来还会支持 RANK()和 DENSE_RANK()。
+- `PARTITION BY col1[, col2..]`：分区列，每个分区都有一个 TopN 结果。
+- `ORDER BY col1 [asc|desc][, col2 [asc|desc]...]`：指定排序的列和每列的排序方向，不同列上排序方向可以不同。
+- `WHERE rownum <= N`：需要 rownum <= N 才能让 Flink 识别该查询是 TopN 查询。N 表示将保留最小或最大的 N 条记录。
+- `[AND conditions]`：在 where 子句中可以自由添加其他条件，但其他条件只能使用 AND 连接与 `rownum <= N` 进行组合。
+
+如上语法所示，TopN 需要两层查询：
+- 第一层子查询中，使用 ROW_NUMBER() 开窗函数来为每条数据标上排名，排名的计算根据 PARTITION BY 和 ORDER BY 来指定分区列和排序列，也就是说每一条数据会计算其所属分区，并根据排序列排序得到的排名。
+- 第二层外层查询中，对排名进行过滤，只取出排名小于 N 的。例如 N=10，那么就是取 Top 10 的数据。如果没有指定 PARTITION BY 那么就是一个全局 TopN 的计算，所以 ROW_NUMBER 在使用上更为灵活。
+
+在执行过程中，Flink SQL 会对输入的数据流根据排序键进行排序。如果某个分区的前 N 条记录发生了改变，则会将改变的那几条数据以更新流的形式发给下游。
+
+TopN 查询的唯一键（UNIQUE KEY）是分区列和 rownum 列的组合。TopN 查询还可以导出上游的唯一键。以下面的作业为例，假设 product_id 是 ShopSales 的惟一键，那么 TopN 查询的惟一键是 `[category, rownum]` 和 `[product_id]` 的组合。下面的示例演示如何在流表上使用 TopN 指定 SQL 查询。这是一个获得我们上面提到的“实时销售额最高的每个类别的前五种产品”的例子：
+```sql
+CREATE TABLE ShopSales (
+  product_id   STRING,
+  category     STRING,
+  product_name STRING,
+  sales        BIGINT
+) WITH (...);
+
+SELECT *
+FROM (
+  SELECT *,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY sales DESC) AS row_num
+  FROM ShopSales)
+WHERE row_num <= 5
+```
+
+> 如果需要将TopN的数据输出到外部存储，后接的结果表必须是一个带主键的表。
+
+## 3. 算法
+
+当 TopN 的输入是非更新流（例如Source），TopN 只有 AppendRank 算法。当 TopN 的输入是更新流时（例如经过了 AGG 或 JOIN 计算），TopN 有 3 种算法，性能从高到低分别是：UpdateFastRank、UnaryUpdateRank 和 RetractRank。算法名字会显示在拓扑图的节点名字上。
+
+### 3.1 UpdateFastRank
+
+使用该算法需要具备 2 个条件：
+- 输入流有 PK（Primary Key）信息，例如 ORDER BY AVG。
+- 排序字段的更新是单调的，且单调方向与排序方向相反。例如，ORDER BY COUNT/COUNT_DISTINCT/SUM（正数）DESC。
+
+如果您要获取到优化 Plan，则您需要在使用 ORDER BY SUM DESC 时，添加 SUM 为正数的过滤条件，确保 total_fee 为正数。
+
+### 3.2 UnaryUpdateRank
+
+性能仅次于 UpdateFastRank 的算法。使用该算法需要具备的条件是输入流中存在PK信息。
+
+### 3.3 RetractRank
+
+普通算法，性能最差，不建议在生产环境使用该算法。请检查输入流是否存在 PK 信息，如果存在，则可使用 UnaryUpdateRank 或 UpdateFastRank 算法进行优化。
+
+## 4. 无排名优化
+
+根据 TopN 的语法，rownum 字段会作为结果表的主键字段之一写入结果表，这可能会导致大量记录写入结果表。例如，当排名第 9 的记录更新上升为第 1 名时，从排名第 1 到第 9 的所有记录都将作为更新消息输出到结果表中。如果结果表接收到太多的数据，有可能会成为 SQL 作业的瓶颈。
+
+我们提出了一种无排名优化方法，就是在 TopN 查询的外部 SELECT 子句中省略 rownum 字段，即结果表中不保存 rownum 排名。这也是一种合理的方法，因为 TopN 的数据量通常不会很大，因此消费者可以自己快速地对记录进行排序。如果没有 rownum 字段，在上面的例子中，只需要将更改的记录(原排名第 9，更新后排名上升到第 1 的数据)发送到下游，而不用把排名第 1 到第 9 的数据全发送下去，这可以大大减少对结果表的 IO。
+
+下面的例子展示了如何以这种方式优化上面的Top-N例子:
+```sql
+CREATE TABLE ShopSales (
+  product_id   STRING,
+  category     STRING,
+  product_name STRING,
+  sales        BIGINT
+) WITH (...);
+
+-- omit row_num field from the output
+SELECT product_id, category, product_name, sales
+FROM (
+  SELECT *,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY sales DESC) AS row_num
+  FROM ShopSales
+)
+WHERE row_num <= 5
+```
+在将上述查询输出到外部存储时需要特别小心，外部存储结果表必须与 Top-N 查询有相同的 UNIQUE KEY。如果定义有误，会直接导致 TopN 结果的不正确。在无 rownum 场景中，UNIQUE KEY 应为 TopN 上游 GROUP BY 节点的 KEY 列表。在上面的示例查询中，如果 product_id 是查询的 UNIQUE KEY，那么外部表也应该有 product_id 作为 UNIQUE KEY。
+
+参考：
+- [Top-N](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/dev/table/sql/queries/topn/)

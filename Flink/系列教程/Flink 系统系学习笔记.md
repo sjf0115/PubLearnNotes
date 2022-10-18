@@ -16,6 +16,7 @@
 - [ ] [Flink 数据交换策略 Partitioner]()
 - [x] [Flink 任务失败重启与恢复策略](https://smartsi.blog.csdn.net/article/details/126451162)
 - [ ] [Flink 与 SPI]()
+- [x] [Flink 原理与实现：架构和拓扑概览](https://smartsi.blog.csdn.net/article/details/127384980)
 
 ## 3. DataStream
 

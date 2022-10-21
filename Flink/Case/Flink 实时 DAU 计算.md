@@ -75,7 +75,7 @@ tabEnv.sqlUpdate(
     您好，我程序运行一段时间后，发现checkpoint文件总在增长，应该是状态没有过期，
     我配置了tableConfig.setIdleStateRetentionTime(Time.minutes(2),Time.minutes(7)),按理说，日期是前一天的key对应的状态会在第二天过期的。
 
-### 1.1 GroupBy
+### 1.1 GroupBy + MiniBatch
 
 
 

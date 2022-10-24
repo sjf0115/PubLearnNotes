@@ -92,3 +92,7 @@ tabEnv.sqlUpdate(
 
 参考：
 - [快手基于 Flink 构建实时数仓场景化实践](https://smartsi.blog.csdn.net/article/details/127164637)
+- [Flink计算pv和uv的通用方法](https://www.cnblogs.com/data-magnifier/p/15493159.html) https://github.com/Get-up-And-Lean/20percent/blob/3a40106bef6cbd6d2666a477a8f9417e8f6094fc/%E5%A4%A7%E6%95%B0%E6%8D%AE%E5%AE%9E%E6%97%B6%E8%AE%A1%E7%AE%97%E5%BC%95%E6%93%8EFlink%E5%AE%9E%E6%88%98%E4%B8%8E%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/4349%E5%A6%82%E4%BD%95%E7%BB%9F%E8%AE%A1%E7%BD%91%E7%AB%99%E5%90%84%E9%A1%B5%E9%9D%A2%E4%B8%80%E5%A4%A9%E5%86%85%E7%9A%84%20PV%20%E5%92%8C%20UV%EF%BC%9F.md
+- https://github.com/chenpengcong/flink-uv/blob/master/src/main/java/UVWindowFunction.java
+- https://github.com/yindahuisme/flink_learn/blob/da8af005b2f4baa63bd52ada6bc3c6fc160d78af/flink-learning-monitor/flink-learning-monitor-pvuv/src/main/java/com/zhisheng/monitor/pvuv/MapStateUvExample.java
+- https://github.com/MrWhiteSike/learning-experience/blob/d7526130104f01a17e205c51398c5473c2e2ae82/flink/UserBehaviorAnalysis/NetworkFlowAnalysis/src/main/java/com/bsk/flink/pvuv/UvWithBloomFilter.java

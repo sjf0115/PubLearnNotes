@@ -14,6 +14,7 @@
 
 - [ ] [Spark SQL 中 Broadcast Join 一定比 Shuffle Join 快？那你就错了](https://mp.weixin.qq.com/s/5OBHLjRjOykuuaCqEthD4g)
 - [ ] [深入理解 SQL 中的 Grouping Sets 语句](https://bbs.huaweicloud.com/blogs/363546)
+- [ ] [Introducing Window Functions in Spark SQL](https://www.databricks.com/blog/2015/07/15/introducing-window-functions-in-spark-sql.html)
 
 ## 3. Spark Streaming
 
@@ -35,6 +36,10 @@
 ### 3.3 性能
 
 - [ ] [Spark Streaming 反压（Back Pressure）机制介绍](https://www.iteblog.com/archives/2323.html)
+
+### 3.4 特性
+
+- [ ] [Faster Stateful Stream Processing in Apache Spark Streaming](https://www.databricks.com/blog/2016/02/01/faster-stateful-stream-processing-in-apache-spark-streaming.html)
 
 ## 4. Structured Streaming
 

@@ -11,6 +11,8 @@ categories: ElasticSearch
 permalink: elasticsearch-internal-distributed-document-store
 ---
 
+> ElasticSearch版本: 2.x
+
 之前的文章中，我们已经知道如何存储数据到索引中以及如何检索它。但是我们掩盖了数据存储到集群中以及从集群中获取数据的具体实现的技术细节。
 
 ### 1. 路由文档到分片中
@@ -25,8 +27,7 @@ Routing 值是一个任意字符串，默认为 `文档的id`，也可以设置�
 
 这就解释了为什么主分片个数在创建索引之后就不能再更改了：如果主分片个数在创建之后可以修改，那么之前所有通过公式得到的值都会失效，之前存储的文档也可能找不到。
 
-> 有的人可能认为，拥有固定数量的主分片会使以后很难对索引进行扩展。实际上，有一些技术可以让你在需要的时候很轻松的扩展。可以参阅[
-Designing for Scale](https://www.elastic.co/guide/en/elasticsearch/guide/2.x/scale.html)。
+> 有的人可能认为，拥有固定数量的主分片会使以后很难对索引进行扩展。实际上，有一些技术可以让你在需要的时候很轻松的扩展。可以参阅[Designing for Scale](https://www.elastic.co/guide/en/elasticsearch/guide/2.x/scale.html)。
 
 所有的文档API（get , index , delete , bulk , update , 和 mget）都可以接受一个 routing 参数，来自定义文档与分片之间的映射。一个自定义的路由参数可以用来确保所有相关的文档，例如所有属于同一个用户的文档都被存储到同一个分片中。我们会在[
 Designing for Scale](https://www.elastic.co/guide/en/elasticsearch/guide/2.x/scale.html)中详细讨论为什么要这样做。
@@ -35,7 +36,7 @@ Designing for Scale](https://www.elastic.co/guide/en/elasticsearch/guide/2.x/sca
 
 假设我们有一个三个节点的集群。集群里有一个名称为 blog 的索引，有两个主分片（primary shards）。每个主分片都有两个副本。相同节点的副本不会分配到同一节点，最后如下图展示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-internal-distributed-document-store-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-internal-distributed-document-store-1.png?raw=true)
 
 我们可以发送请求到集群中的任何一个节点，每个节点都有能力处理我们的请求。每个节点都知道集群中每个文档的存储位置，所以可以直接将请求转发到对应的节点上。
 
@@ -47,7 +48,7 @@ Designing for Scale](https://www.elastic.co/guide/en/elasticsearch/guide/2.x/sca
 
 交互过程如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-internal-distributed-document-store-2.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-internal-distributed-document-store-2.png?raw=true)
 
 下面是成功在主分片和副本分片上创建，索引以及删除文档所必须的步骤：
 - 客户端发送了一个新建，索引 或者删除文档请求给节点 1；
@@ -83,8 +84,7 @@ int( (primary + 3 replicas) / 2 ) + 1 = 3
 
 我们可以从一个主分片（primary shard）或者它们任一副本中检索文档，流程如下图：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-internal-distributed-document-store-3.png?raw=true)
-
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-internal-distributed-document-store-3.png?raw=true)
 
 下面是从主分片或者副本分片上检索文档所需要的一系列步骤：
 - 客户端发送了一个 Get 请求给节点 1；
@@ -100,8 +100,7 @@ int( (primary + 3 replicas) / 2 ) + 1 = 3
 
 更新 API （Update API）融合了上面解释的两种读写模式，如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-internal-distributed-document-store-4.png?raw=true)
-
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-internal-distributed-document-store-4.png?raw=true)
 
 下面是部分更新一篇文档所需要的一系列步骤：
 - 客户端发送了一个 Update 请求给节点 1；
@@ -122,10 +121,9 @@ mget 和 bulk API的模式类似于单文档模式。 不同的是，协调节�
 
 如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-internal-distributed-document-store-5.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-internal-distributed-document-store-5.png?raw=true)
 
 以下是使用单个 mget 请求取回多个文档所需的步骤顺序：
-
 - 客户端向节点 1 发送 mget 请求。
 - 节点 1 为每个分片构建多文档获取请求，然后并行转发这些请求到托管在每个所需的主分片或者副本分片的节点上。一旦收到所有应答， 节点 1 构建响应并将其返回给客户端。
 
@@ -133,7 +131,7 @@ mget 和 bulk API的模式类似于单文档模式。 不同的是，协调节�
 
 bulk API，允许在单个批量请求中执行多个创建、索引、删除和更新请求，如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-internal-distributed-document-store-6.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-internal-distributed-document-store-6.png?raw=true)
 
 bulk API 按如下步骤顺序执行：
 - 客户端向 节点 1 发送 bulk 请求。
@@ -141,8 +139,5 @@ bulk API 按如下步骤顺序执行：
 - 主分片一个接一个按顺序执行每个操作。当每个操作成功时，主分片并行转发新文档（或删除）到副本分片，然后执行下一个操作。 一旦所有的副本分片报告所有操作成功，该节点将向协调节点报告成功，协调节点将这些响应收集整理并返回给客户端。
 
 bulk API 还可以在整个批量请求的最顶层使用 consistency 参数，以及在每个请求中的元数据中使用 routing 参数。
-
-
-> ElasticSearch版本: 2.x
 
 原文： https://www.elastic.co/guide/en/elasticsearch/guide/2.x/distributed-docs.html

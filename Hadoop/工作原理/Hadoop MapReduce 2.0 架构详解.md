@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hadoop MapReduce2.0 架构详解
+title: Hadoop MapReduce 2.0 架构详解
 date: 2017-12-08 19:16:01
 tags:
   - Hadoop
@@ -13,7 +13,7 @@ permalink: hadoop-mapReduce2.0-architecture-detail
 
 ### 1. MapReduce 2.0 概述
 
-`Apache Hadoop 0.23`比以前的版本有了很大的改进。以下是`MapReduce`的一些亮点；请注意，`HDFS`也有一些主要的改进，这些都不在本文的讨论范围之内。
+`Apache Hadoop 0.23` 比以前的版本有了很大的改进。以下是`MapReduce`的一些亮点；请注意，`HDFS`也有一些主要的改进，这些都不在本文的讨论范围之内。
 
 `MapReduce 2.0`(又名`MRv2`或`YARN`)。新的架构将`JobTracker`的两个主要功能 - 资源管理和作业生命周期管理 - 分解成单独的组件：
 

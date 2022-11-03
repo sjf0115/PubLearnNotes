@@ -144,6 +144,6 @@ public SearchRequestBuilder setTypes(String... types) {
 > 搜索一个具有五个主分片的索引完全等同于搜索每个具有一个主分片的五个索引。
 
 
-原文：https://www.elastic.co/guide/en/elasticsearch/guide/2.x/empty-search.html
-
-https://www.elastic.co/guide/en/elasticsearch/guide/2.x/multi-index-multi-type.html
+原文：
+- https://www.elastic.co/guide/en/elasticsearch/guide/2.x/empty-search.html
+- https://www.elastic.co/guide/en/elasticsearch/guide/2.x/multi-index-multi-type.html

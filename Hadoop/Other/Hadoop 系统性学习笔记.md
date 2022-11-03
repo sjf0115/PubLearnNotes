@@ -16,6 +16,7 @@ Hadoop 系统性学习笔记系列
 - [x] [Hadoop 推测执行](https://smartsi.blog.csdn.net/article/details/125631879)
 - [x] [Hadoop MapReduce 1.x 工作原理](https://smartsi.blog.csdn.net/article/details/126131891)
 - [x] [Hadoop MapReduce 2.x 工作原理](https://smartsi.blog.csdn.net/article/details/127661361)
+- [x] [Hadoop MapReduce 2.0 架构详解](https://smartsi.blog.csdn.net/article/details/127679690)
 
 ## 3. HDFS
 

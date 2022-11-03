@@ -15,6 +15,7 @@ Hadoop 系统性学习笔记系列
 - [x] [Hadoop MapReduce 文件路径过滤 GlobStatus 与 PathFilter](https://smartsi.blog.csdn.net/article/details/126112375)
 - [x] [Hadoop 推测执行](https://smartsi.blog.csdn.net/article/details/125631879)
 - [x] [Hadoop MapReduce 1.x 工作原理](https://smartsi.blog.csdn.net/article/details/126131891)
+- [x] [Hadoop MapReduce 2.x 工作原理](https://smartsi.blog.csdn.net/article/details/127661361)
 
 ## 3. HDFS
 

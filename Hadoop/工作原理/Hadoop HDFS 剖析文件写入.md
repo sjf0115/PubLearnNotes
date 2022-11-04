@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: HDFS 剖析文件写入
+title: Hadoop HDFS 剖析文件写入
 date: 2017-12-01 19:29:01
 tags:
   - Hadoop
@@ -15,7 +15,7 @@ permalink: hadoop-internal-anatomy-of-a-file-write
 
 接下来我们看看文件是如何写入HDFS 的。尽管比较详细，但对于理解数据流还是很有用的，因为它清楚地说明了 HDFS 的一致模型。我们要考虑的情况是如何新建一个文件，把数据写入该文件，最后关闭该文件。参见下图。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/hadoop-internal-anatomy-of-a-file-write-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-internal-anatomy-of-hdfs-file-wr-2.png?raw=true)
 
 客户端通过对 DistributedFileSystem 对象调用 `create()` 函数来新建文件(步骤1)。DistributedFileSystem 对 NameNode 创建一个RPC调用，在文件系统的命名空间中新建一个文件，此时该文件中还没有相应的数据块(步骤2)。NameNode 执行各种不同的检查以确保这个文件不存在以及客户端有新建该文件的权限。如果这些检查均通过，NameNode 就会为创建新文件记录一条记录；否则，文件创建失败并向客户端抛出一个IOException异常。DistributedFileSystem向客户端返回一个FSDataOutputStream对象，由此客户端可以开始写入数据。就像读取事件一样，FSDataOutputStream封装一个DFSoutPutstream对象，该对象负责处理 DataNode 和 NameNode 之间的通信。
 
@@ -39,7 +39,6 @@ Hadoop 的默认布局策略是在运行客户端的节点上放第1个复本 (�
 
 总的来说，这一方法不仅提供很好的稳定性(数据块存储在两个机架中)并实现很好的负载均衡，包括写入带宽(写入操作只需要遍历一个交换机)、读取性能(可以从两个机架中选择读取)和集群中块的均匀分布(客户端只在本地机架上写入一个块)。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/hadoop-internal-anatomy-of-a-file-write-2.png?raw=true)
-
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-internal-anatomy-of-hdfs-file-wr-3.png?raw=true)
 
 来源：Hadoop权威指南

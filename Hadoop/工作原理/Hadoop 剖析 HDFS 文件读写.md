@@ -26,6 +26,4 @@ DistributedFileSystem 类返回一个 FSDataInputStream 对象(一个支持文�
 
 这个设计的一个重点是， NameNode 告知客户端每个块中最佳的 DataNode ，并让客户端直接连接到该 DataNode 检索数据。由于数据流分散在集群中的所有 DataNode ，所以这种设计能使HDFS可扩展到大量的并发客户端。同时， NameNode 只需要响应块位置的请求(这些信息存储在内存中，因而非常高效)，无需响应数据请求，否则随着客户端数量的增长， NameNode 会很快成为瓶颈。
 
-
-
 来源：Hadoop权威指南

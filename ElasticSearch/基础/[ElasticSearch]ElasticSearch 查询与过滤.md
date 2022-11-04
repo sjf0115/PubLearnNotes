@@ -11,6 +11,8 @@ categories: ElasticSearch
 permalink: elasticsearch-base-queries-and-filters
 ---
 
+> Elasticsearch版本：2.x
+
 ### 1. 查询与过滤
 
 Elasticsearch 使用的查询语言（DSL）拥有一套查询组件(称之为`queries`)，这些组件可以以无限组合的方式进行搭配。这套组件可以在以下两种上下文中使用：过滤上下文（filtering context）和查询上下文（query context）。
@@ -53,7 +55,5 @@ Elasticsearch 使用的查询语言（DSL）拥有一套查询组件(称之为`q
 ### 3. 如何选择查询与过滤
 
 通常的规则是，使用查询（query）语句来进行 `全文搜索` 或者其他任何需要影响相关性得分条件的搜索。除此以外的情况都使用过滤（filters)。
-
-> Elasticsearch版本：2.x
 
 原文：https://www.elastic.co/guide/en/elasticsearch/guide/2.x/_queries_and_filters.html#_queries_and_filters

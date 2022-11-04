@@ -11,6 +11,8 @@ categories: ElasticSearch
 permalink: elasticsearch-base-replica-shard
 ---
 
+> ElasticSearch版本：2.x
+
 ### 1. 副本分片
 
 到目前为止，我们只讨论了主分片，但是我们还有另一个工具：副本分片。副本分片的主要目的是为了故障转移（failover），如[深入集群生命周期](https://www.elastic.co/guide/en/elasticsearch/guide/2.x/distributed-cluster.html)所述：如果持有主分片的节点挂掉了，则一个副本分片会提升为主分片的角色。
@@ -29,11 +31,11 @@ PUT /my_index/_settings
 
 拥有两个主分片，另外加上每个主分片的一个副本，我们总共拥有四个分片：每个节点一个，如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-base-replica-shard-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-base-replica-shard-1.png?raw=true)
 
 ### 2. 通过副本进行负载均衡
 
-搜索性能取决于最慢节点的响应时间，所以尝试均衡所有节点的负载是一个好想法。如果我们只是增加一个节点而不是两个，最终我们会有三个节点，其中两个节点只拥有一个分片，另一个节点拥有两个分片做着两倍的工作。
+搜索性能取决于最慢节点的响应时间，所以尝试均衡所有节点的负载是一个好想法。如果我们只是增加一个节点，最终我们会有三个节点，其中两个节点只拥有一个分片，另一个节点有两个分片做着两倍的工作。
 
 我们可以通过调整分片副本数量来平衡这些。通过分配两个副本，最终我们会拥有六个分片，刚好可以平均分给三个节点
 ```json
@@ -46,10 +48,8 @@ PUT /my_index/_settings
 
 如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-base-replica-shard-2.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-base-replica-shard-2.png?raw=true)
 
 事实上节点 3 拥有两个副本分片，没有主分片并不重要。副本分片与主分片做着相同的工作。它们只是扮演着略微不同的角色。没有必要确保主分片均匀地分布在所有节点中。
-
-> ElasticSearch版本：2.x
 
 原文：[Replica Shards](https://www.elastic.co/guide/cn/elasticsearch/guide/2.x/replica-shards.html)

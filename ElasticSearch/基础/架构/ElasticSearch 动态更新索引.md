@@ -15,7 +15,7 @@ permalink: elasticsearch-base-dynamically-updatable-indices
 
 ### 1. 不变性
 
-倒排索引被写入磁盘后是 `不可改变`(immutable)：永远不会被修改。不变性有如下几个重要的优势：
+[倒排索引](https://smartsi.blog.csdn.net/article/details/52858049)被写入磁盘后是 `不可改变`(immutable)：永远不会被修改。不变性有如下几个重要的优势：
 - 不需要锁。如果你没有必要更新索引，你就没有必要担心多进程会同时修改数据。
 - 一旦索引被读入内核的文件系统缓存中，由于其不会改变，便会留在那里。只要文件系统缓存中还有足够的空间，那么大部分读请求会直接请求内存，而不会命中磁盘。这提供了很大的性能提升。
 - 其它缓存(例如filter缓存)，在索引的生命周期内始终保持有效。因为数据不会改变，不需要在每次数据改变时被重建。
@@ -25,21 +25,19 @@ permalink: elasticsearch-base-dynamically-updatable-indices
 
 ### 2. 动态更新索引
 
-下一个需要解决的问题是如何更新倒排索引，而不会失去其不变性的好处？ 答案是：`使用多个索引`。
+下一个需要解决的问题是如何更新倒排索引，而不会失去其不变性的好处？ 答案是：`使用多个索引`。通过增加一个新的补充索引来反映最近的修改，而不是直接重写整个倒排索引。每一个倒排索引都会被轮流查询--从最旧的开始--再对各个索引的查询结果进行合并。
 
-通过增加一个新的补充索引来反映最近的修改，而不是直接重写整个倒排索引。每一个倒排索引都会被轮流查询--从最旧的开始--再对各个索引的查询结果进行合并。
+Lucene 是 Elasticsearch 所依赖的 Java 库，引入了 `按段搜索` 的概念。每一个段本身就是一个倒排索引，但 Lucene 中的 `index` 除表示段 `segments` 的集合外，还增加了提交点 `commit point` 的概念，一个列出了所有已知段的文件，如下图所示展示了带有一个提交点和三个分段的 Lucene 索引:
 
-Lucene 是 Elasticsearch 所基于的Java库，引入了 `按段搜索` 的概念。 每一个段本身就是一个倒排索引， 但 Lucene 中的 `index` 除表示段 `segments` 的集合外，还增加了提交点 `commit point` 的概念，一个列出了所有已知段的文件，如下图所示展示了带有一个提交点和三个分段的 Lucene 索引:
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-base-dynamically-updatable-indices-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-base-dynamically-updatable-indices-1.png?raw=true)
 
 新文档首先被添加到内存中的索引缓冲区中，如下图所示展示了一个在内存缓存中包含新文档准备提交的Lucene索引:
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-base-dynamically-updatable-indices-2.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-base-dynamically-updatable-indices-2.png?raw=true)
 
 然后写入到一个基于磁盘的段，如下图所示展示了在一次提交后一个新的段添加到提交点而且缓存被清空:
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ElasticSearch/elasticsearch-base-dynamically-updatable-indices-3.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/ElasticSearch/elasticsearch-base-dynamically-updatable-indices-3.png?raw=true)
 
 #### 2.1 索引与分片
 

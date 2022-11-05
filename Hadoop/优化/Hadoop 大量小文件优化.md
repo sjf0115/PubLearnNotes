@@ -75,8 +75,4 @@ Hadoop Archives（HAR files）是在 0.18.0 版本中引入到 HDFS 中的，它
 
 如果你产生很多小文件，根据访问模式的不同，应该进行不同类型的存储。HBase 将数据存储在 Map Files（带索引的 SequenceFile）中，如果你需要随机访问来执行 MapReduce 流式分析，这是一个不错的选择。如果延迟是一个问题，那么还有很多其他选择 - 参见Richard Jones对键值存储的[调查](https://www.metabrew.com/article/anti-rdbms-a-list-of-distributed-key-value-stores)。
 
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
-
 原文：http://blog.cloudera.com/blog/2009/02/the-small-files-problem/

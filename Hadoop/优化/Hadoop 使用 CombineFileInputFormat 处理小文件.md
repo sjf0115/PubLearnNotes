@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hadoop 使用CombineFileInputFormat处理小文件
+title: Hadoop 使用 CombineFileInputFormat 处理小文件
 date: 2018-08-02 09:32:17
 tags:
   - Hadoop
@@ -13,12 +13,12 @@ permalink: hadoop-use-combinefileinputformat-merge-small-files
 
 ### 1. 背景需求
 
-在这里我们有广告投放的激活数据一共有1349个文件：
+在这里我们有广告投放的激活数据一共有 1349 个文件：
 ```
 [smartsi@ying ~]$  sudo -usmartsi hadoop fs -ls adv_push_activate/ | grep ".gz" | wc -l
 1349
 ```
-每个文件都只有几KB大小，正常写一个MapReduce程序，如下输出我们发现一共产生了1349个 InputSplit，也就是每个小文件就会产生了一个 InputSplit。文件很小（比HDFS的块要小很多），并且文件数量很多，那么每次 Map 任务只处理很少的输入数据，每次 Map 操作都会造成额外的开销：
+每个文件都只有几 KB 大小，正常写一个 MapReduce 程序，如下输出我们发现一共产生了 1349 个 InputSplit，也就是每个小文件就会产生了一个 InputSplit。文件很小（比HDFS的块要小很多），并且文件数量很多，那么每次 Map 任务只处理很少的输入数据，每次 Map 操作都会造成额外的开销：
 ```
 ...
 18/08/01 12:40:38 INFO input.FileInputFormat: Total input paths to process : 1349
@@ -30,7 +30,7 @@ permalink: hadoop-use-combinefileinputformat-merge-small-files
 18/08/01 12:42:34 INFO mapreduce.Job:  map 100% reduce 100%
 18/08/01 12:42:34 INFO mapreduce.Job: Job job_1504162679223_32340234 completed successfully
 ```
-相对于大批量的小文件，Hadoop 更合适处理少量的大文件。一个原因是 `FileInputFormat` 生成的分块是一个文件或该文件的一部分。如果文件很小（小意味着比HDFS的块要小很多），并且文件数量很多，那么每次 Map 任务只处理很少的输入数据，（一个文件）就会有很多 Map 任务，每次 Map 操作都会造成额外的开销。比较一下把1G的文件分割成8个128MB与分成10000个左右的100KB的文件。10000个文件每个都需要使用一个 Map 任务，作业时间比一个输入文件上用8个 Map 任务慢几十倍甚至几百倍。
+相对于大批量的小文件，Hadoop 更合适处理少量的大文件。一个原因是 `FileInputFormat` 生成的分块是一个文件或该文件的一部分。如果文件很小（小意味着比 HDFS 的块要小很多），并且文件数量很多，那么每次 Map 任务只处理很少的输入数据，（一个文件）就会有很多 Map 任务，每次 Map 操作都会造成额外的开销。比较一下把 1G 的文件分割成 8 个 128MB 与分成 10000 个左右的 100KB 的文件。10000 个文件每个都需要使用一个 Map 任务，作业时间比一个输入文件上用 8 个 Map 任务慢几十倍甚至几百倍。
 
 ### 2. CombineFileInputFormat
 
@@ -40,8 +40,8 @@ permalink: hadoop-use-combinefileinputformat-merge-small-files
 
 `CombineFileInputFormat` 不仅可以很好的处理小文件，在处理大文件的时候也有好处。这是因为，它在为每个节点生成一个分片，分片可能由多个块组成。本质上，`CombineFileInputFormat` 使 Map 操作中处理的数据量与 HDFS 中文件的块大小之间的耦合度降低了。
 
-`CombineFileInputFormat` 类继承自 `FileInputFormat`，主要重写了 `List getSplits(JobContext job)` 方法。这个方法会根据数据的分布，`mapreduce.input.fileinputformat.split.minsize.per.node`、`mapreduce.input.fileinputformat.split.minsize.per.rack` 以及 `mapreduce.input.fileinputformat.split.maxsize` 参数的设置来合并小文件，并生成List。其中 `mapreduce.input.fileinputformat.split.maxsize` 参数至关重要：
-- 如果用户没有设置这个参数（默认就是没设置），那么同一个机架上的所有小文件将组成一个 InputSplit，最终由一个 Map Task来处理；
+`CombineFileInputFormat` 类继承自 `FileInputFormat`，主要重写了 `List getSplits(JobContext job)` 方法。这个方法会根据数据的分布，`mapreduce.input.fileinputformat.split.minsize.per.node`、`mapreduce.input.fileinputformat.split.minsize.per.rack` 以及 `mapreduce.input.fileinputformat.split.maxsize` 参数的设置来合并小文件，并生成 List。其中 `mapreduce.input.fileinputformat.split.maxsize` 参数至关重要：
+- 如果用户没有设置这个参数（默认就是没设置），那么同一个机架上的所有小文件将组成一个 InputSplit，最终由一个 Map Task 来处理；
 - 如果用户设置了这个参数，那么同一个节点（node）上的文件将会组成一个 InputSplit。
 
 `CombineFileInputFormat` 是抽象类，如果我们要使用它，需要实现 `createRecordReader` 方法，告诉 MapReduce 程序如何读取组合的 `InputSplit`。内置实现了两种用于解析组合 InputSplit 的类：
@@ -117,7 +117,7 @@ public class CombineInputExample extends Configured implements Tool {
     }
 }
 ```
-上面的程序很简单，其实就是将HDFS上多个小文件合并到大文件中。运行上述程序，如下输出我们发现1349个小文件只产生了1个 InputSplit，程序运行时间也会减少：
+上面的程序很简单，其实就是将 HDFS 上多个小文件合并到大文件中。运行上述程序，如下输出我们发现 1349 个小文件只产生了 1 个 InputSplit，程序运行时间也会减少：
 ```
 ...
 18/08/01 12:32:40 INFO input.FileInputFormat: Total input paths to process : 1349
@@ -131,6 +131,6 @@ public class CombineInputExample extends Configured implements Tool {
 18/08/01 12:34:19 INFO mapreduce.Job: Job job_1504162679223_32339255 completed successfully
 ```
 
-> 注意体会 `mapreduce.input.fileinputformat.split.maxsize` 参数的设置，大家可以不设置这个参数和设置这个参数运行情况对比，观察Map Task的个数变化。
+> 注意体会 `mapreduce.input.fileinputformat.split.maxsize` 参数的设置，大家可以不设置这个参数和设置这个参数运行情况对比，观察 Map Task 的个数变化。
 
 参考：[使用CombineFileInputFormat来优化Hadoop小文件](https://www.iteblog.com/archives/2139.html)

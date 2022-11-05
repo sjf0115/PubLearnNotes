@@ -1,12 +1,24 @@
+---
+layout: post
+author: sjf0115
+title: Hadoop MapReduce 源码解读系列 FileInputFormat
+date: 2017-12-14 19:58:01
+tags:
+  - Hadoop
+
+categories: Hadoop
+permalink: hadoop-mapReduce-code-fileinputformat
+---
+
 系统自带了各种 InputFormat 实现。为了方便用户编写 MapReduce 程序，Hadoop 自带了一些针对数据库和文件的 InputFormat 实现，具体如下图所示。通常而言，用户需要处理的数据均以文件形式存储到 HDFS 上, 所以我们重点针对文件的 InputFormat 实现进行讨论 。
 
-![image](http://img.blog.csdn.net/20170929151601227?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvU3VubnlZb29uYQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-mapReduce-code-fileinputformat-1.png?raw=true)
 
 所有基于文件的 InputFormat 实现的基类是 FileInputFormat，并由此派生出针对文本文件格式的 TextInputFormat、KeyValueTextInputFormat 和 NLineInputFormat，针对二进制文件格式的 SequenceFileInputFormat 等。整个基于文件的 InputFormat 体系的设计思路是由公共基类 FileInputFormat 采用统一的方法对各种输入文件进行切分，比如按照某个固定大小等分，而由各个派生 InputFormat 自己提供机制将进一步解析 InputSplit。对应到具体的实现是，基类 FileInputFormat 提供 getSplits 实现，而派生类提供 getRecordReader 实现。
 
 FileInputFormat 是所有基于文件的 InputFormat 的基类。提供了 getSplits(JobContext) 的通用实现。FileInputFormat 的子类可以重写 isSplitable(JobContext，Path) 方法，以确保输入文件不可分割，作为一个整体交由 Mapper 处理。
 
-![image](http://img.blog.csdn.net/20170929152536726?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvU3VubnlZb29uYQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-mapReduce-code-fileinputformat-2.png?raw=true)
 
 从图中可以看出 FileInputFormat 实现了 InputFormat 接口中的 getSplit 方法，并没有实现 createRecordReader 方法。createRecordReader 需要在 FileInputFormat 的继承类中实现。FileInputFormat 最重要的功能是为各种 InputFormat 提供统一的 getSplits 函数。该函数实现中最核心的两个算法就是文件切分算法和 host 选择算法。
 

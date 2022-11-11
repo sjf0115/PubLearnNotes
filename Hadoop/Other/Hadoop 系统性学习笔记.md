@@ -23,3 +23,7 @@ Hadoop 系统性学习笔记系列
 
 - [x] [Hadoop HDFS Trash 回收站使用指南](https://smartsi.blog.csdn.net/article/details/78869778)
 - [x] [Hadoop 如何使用 Archives 实现归档](https://smartsi.blog.csdn.net/article/details/53889284)
+
+## 4. 优化
+
+- [x] [Hadoop 大量小文件问题及解决方案](https://smartsi.blog.csdn.net/article/details/53870077)

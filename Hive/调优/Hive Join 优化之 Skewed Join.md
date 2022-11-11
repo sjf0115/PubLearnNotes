@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hive Skewed Join
+title: Hive Join 优化之 Skewed Join
 date: 2018-07-22 20:30:01
 tags:
   - Hive
@@ -9,7 +9,6 @@ tags:
 categories: Hive
 permalink: hive-optimization-how-to-use-skewed-join
 ---
-
 
 Skewed Join 可以解决这个问题。在运行时，它会扫描数据并检测具有较大倾斜的 key，Hive 在运行时是没有办法判断哪个 key 会产生多大的倾斜，所以使用参数 `hive.skewjoin.key` 来控制倾斜的阈值。不是处理这些 key，而是将它们临时存储在一个 HDFS 目录中。后面会启动一个新的 MapReduce 作业来处理那些倾斜的 key。对于所有表来说，相同的 key 有可能不都是倾斜的，因此会是一个 map-join，这个新的 MapReduce 作业（对于倾斜的 key）执行会更快一些。
 

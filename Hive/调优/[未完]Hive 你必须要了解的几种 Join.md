@@ -42,16 +42,47 @@ ON a.uid = b.uid;
 ```
 hive.auto.convert.join 的默认值在 Hive 0.7.0 版本中为 false，需要手动修改配置。在 Hive 0.11.0 版本中默认值已经更改为 true([HIVE-3297](https://issues.apache.org/jira/browse/HIVE-3297))。需要注意的是在 Hive 0.11.0 到 0.13.1 ，hive-default.xml.template 错误地将其默认值设置为 false。
 
-在 Join 过程中，通过参数 hive.mapjoin.smalltable.filesize 来确定哪个表是小表，默认情况下为 25MB。当 Join 中涉及三个或更多表时，Hive 会生成三个或更多的 Map Join，并假设所有表的大小都较小。 为了进一步加快连接速度，如果 n-1 表的大小小于 10MB（这是默认值），您可以将三个或更多地图侧连接合并为一个地图侧连接。 为此，您需要将 hive.auto.convert.join.noconditionaltask 参数设置为 true 并指定参数 hive.auto.convert.join.noconditionaltask.size。
+在 Join 过程中，需要通过参数 `hive.mapjoin.smalltable.filesize` 来确定哪个表是小表，默认情况下为 25MB。当 Join 中涉及三个或更多表时，Hive 会生成三个或更多的 Map Join，并假设所有表都是小表。为了进一步加快 JOIN 速度，如果 n-1 表的大小小于 10MB（这是默认值），您可以将三个或更多地图侧连接合并为一个地图侧连接。为此，您需要将 hive.auto.convert.join.noconditionaltask 参数设置为 true 并指定参数 hive.auto.convert.join.noconditionaltask.size。
 
 
 如何识别 Map Join：使用 EXPLAIN 命令时，在 Map Operator Tree 下方会看到 Map Join Operator。
 
-## 3. Bucket map join
+## 3. Bucket map JOIN
+
+Bucket Map Join 是应用在 Bucket 表上的一种特殊类型的 Map JOIN。如果要使用 Bucket Map JOIN 时，需要使用如下配置:
+- set hive.auto.convert.join=true;
+- set hive.optimize.bucketmapjoin=true; —— 默认为false
+
+在 Bucket Map Join 中，所有 JOIN 表都必须是 Bucket 表，并在 Bucket 列上进行 JOIN。此外，较大表中的桶号必须是小表桶的倍数
 
 ## 4. Sort merge bucket (SMB) join
+
+Sort Merge Bucket (SMB) Join
+
+SMB是在具有相同排序、桶和连接的桶表上执行的连接
+
+状态列。它从两个桶表读取数据，并执行公共连接(映射
+
+和减少触发)在桶桌上。我们需要启用以下属性
+
+使用SMB:
+- set hive.input.format=org.apache.hadoop.hive.ql.io.BucketizedHiveInputFormat;
+- set hive.auto.convert.sortmerge.join=true;
+- set hive.optimize.bucketmapjoin=true;
+- set hive.optimize.bucketmapjoin.sortedmerge=true;
+- set hive.auto.convert.sortmerge.join.noconditionaltask=true;
 
 
 ## 5. Sort merge bucket map (SMBM) join
 
 ## 6. Skew join
+
+在处理分布极不均匀的数据时，可能会发生数据倾斜。这样一来，少量的计算节点就必须处理大量的计算。以下设置通知Hive在数据倾斜时进行适当优化发生了:
+- SET hive.optimize.skewjoin=true;
+- SET hive.skewjoin.key=100000;
+
+需要设置 hive.groupby。skewindata=true 可使用上述设置在GROUP BY结果中启用倾斜数据优化。一旦配置完成，Hive将首先触发一个额外的MapReduce作业，其映射输出将随机分布到reducer，以避免数据倾斜
+
+
+
+。。。

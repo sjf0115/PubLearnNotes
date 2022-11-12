@@ -23,6 +23,7 @@
 
 ## 3. 调优
 
+- [x] [Hive Count Distinct 优化](https://smartsi.blog.csdn.net/article/details/127814412)
 - [x] [Hive Join 优化之 Map Join](https://smartsi.blog.csdn.net/article/details/121190775)
 
 ## 4. 实战

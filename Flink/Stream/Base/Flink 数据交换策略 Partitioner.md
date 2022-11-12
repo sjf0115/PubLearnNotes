@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Flink 数据交换策略Partitioner
+title: Flink 数据交换策略 Partitioner
 date: 2021-03-21 16:35:01
 tags:
   - Flink

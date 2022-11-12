@@ -13,7 +13,7 @@
 - [x] [Flink 程序剖析](https://smartsi.blog.csdn.net/article/details/126088002)
 - [x] [Flink 如何指定并发](https://smartsi.blog.csdn.net/article/details/126535786)
 - [x] [4 个步骤让 Flink 应用程序达到生产状态](https://smartsi.blog.csdn.net/article/details/126682174)
-- [ ] [Flink 数据交换策略 Partitioner]()
+- [x] [Flink 数据交换策略 Partitioner](https://smartsi.blog.csdn.net/article/details/127816865)
 - [x] [Flink 任务失败重启与恢复策略](https://smartsi.blog.csdn.net/article/details/126451162)
 - [ ] [Flink 与 SPI]()
 - [x] [Flink 原理与实现：架构和拓扑概览](https://smartsi.blog.csdn.net/article/details/127384980)
@@ -140,7 +140,7 @@
 ### 5.4 一致性保障
 
 - [x] [Flink Exactly-Once 投递实现浅析](https://smartsi.blog.csdn.net/article/details/126494280)
-- [ ] [Flink 如何实现端到端的 Exactly-Once 处理语义]()
+- [x] [深入了解 Flink 如何实现端到端的 Exactly-Once 处理语义](https://smartsi.blog.csdn.net/article/details/127820457)
 
 ## 6. Connector
 

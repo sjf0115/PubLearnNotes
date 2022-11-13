@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Roaring Bitmap更好的位图压缩算法
+title: Roaring Bitmap 更好的位图压缩算法
 date: 2019-07-14 16:08:24
 tags:
   - Algorithm
@@ -40,7 +40,7 @@ Array Container 是 Roaring Bitmap 初始化默认的 Container。Array Containe
 
 下面我们具体看一下数据如何被存储的，例如，0x00020032（十进制131122）放入一个 RBM 的过程如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Algorithm/better-bitmap-performance-with-roaring-bitmaps-1.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/better-bitmap-performance-with-roaring-bitmaps-1.png?raw=true)
 
 0x00020032 的前 16 位是 0002，找到对应的桶 0x0002。在桶对应的 Container 中存储低 16 位，因为 Container 元素个数不足 4096，因此是一个 Array Container。低 16 位为 0032（十进制为50）, 在 Array Container 中二分查找找到相应的位置插入即可（如上图50的位置）。
 
@@ -54,16 +54,12 @@ Array Container 是 Roaring Bitmap 初始化默认的 Container。Array Containe
 
 下面我们具体看一下数据如何被存储的，例如，0xFFFF3ACB（十进制4294916811）放入一个 RBM 的过程如下图所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Algorithm/better-bitmap-performance-with-roaring-bitmaps-2.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/better-bitmap-performance-with-roaring-bitmaps-2.png?raw=true)
 
 0xFFFF3ACB 的前 16 位是 FFFF，找到对应的桶 0xFFFF。在桶对应的 Container 中存储低 16 位，因为 Container 中元素个数已经超过 4096，因此是一个 Bitmap Container。低 16 位为 3ACB（十进制为15051）, 因此在 Bitmap Container 中通过下标直接寻址找到相应的位置，将其置为 1 即可（如上图15051的位置）。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Algorithm/better-bitmap-performance-with-roaring-bitmaps-3.png?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Algorithm/better-bitmap-performance-with-roaring-bitmaps-3.png?raw=true)
 
 可以看到元素个数达到 4096 之前，Array Container 占用的空间比 Bitmap Container 的少，当 Array Container 中元素到 4096 个时，正好等于 Bitmap Container 所占用的 8 KB。当元素个数超过了 4096 时，Array Container 所占用的空间还是继续线性增长，而 Bitmap Container 的内存空间并不会增长，始终还是占用 8 KB，与数据量无关。所以当 Array Container 超过最大容量 4096 会转换为 Bitmap Container。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 参考: [不深入而浅出 Roaring Bitmaps 的基本原理](https://cloud.tencent.com/developer/article/1136054)

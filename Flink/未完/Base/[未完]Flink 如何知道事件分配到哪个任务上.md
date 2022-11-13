@@ -17,7 +17,7 @@ env.setMaxParallelism(128);
 
 ### 1.2 如何计算 maxParallelism
 
-如果设置了，就是设定的值。当然设置了，也需要检测合法性。如下图所示，Flink 要求 maxParallelism 应该介于 1 到 Short.MAX_VALUE 之间，即：0 < maxParallelism < 32768：
+如果设置了，就是设定的值。当然设置了，也需要检测合法性。如下所示 Flink 要求 maxParallelism 应该介于 1 到 UPPER_BOUND_MAX_PARALLELISM 之间，即：0 < maxParallelism < 32768：
 ```java
 // UPPER_BOUND_MAX_PARALLELISM = 32768;
 public StreamExecutionEnvironment setMaxParallelism(int maxParallelism) {
@@ -25,12 +25,11 @@ public StreamExecutionEnvironment setMaxParallelism(int maxParallelism) {
 					maxParallelism <= KeyGroupRangeAssignment.UPPER_BOUND_MAX_PARALLELISM,
 			"maxParallelism is out of bounds 0 < maxParallelism <= " +
 					KeyGroupRangeAssignment.UPPER_BOUND_MAX_PARALLELISM + ". Found: " + maxParallelism);
-
 	config.setMaxParallelism(maxParallelism);
 	return this;
 }
 ```
-如果用户没有明确配置最大并行度，则 Flink 会自动通过 KeyGroupRangeAssignment 类的 computeDefaultMaxParallelism 方法计算得出，computeDefaultMaxParallelism 源码如下所示：
+如果用户没有明确配置最大并行度，则 Flink 会自动通过 KeyGroupRangeAssignment 类的 computeDefaultMaxParallelism 方法计算得出：
 ```java
 public static int computeDefaultMaxParallelism(int operatorParallelism) {
     checkParallelismPreconditions(operatorParallelism);

@@ -26,7 +26,7 @@ EXPLAIN [EXTENDED|CBO|AST|DEPENDENCY|AUTHORIZATION|LOCKS|VECTORIZATION] query
 
 ### 1. EXPLAIN
 
-在查询语句的 SQL 前面加上关键字 EXPLAIN 可以查看执行计划的基本方法。例如，有如下 EXPLAIN 查询：
+在查询语句的 SQL 前面加上关键字 EXPLAIN 就可以查看执行计划。例如，有如下 EXPLAIN 查询：
 ```sql
 EXPLAIN
 INSERT OVERWRITE TABLE dws_app_pub_user_overview_1d

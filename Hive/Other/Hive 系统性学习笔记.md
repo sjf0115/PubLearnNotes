@@ -17,8 +17,8 @@
 ### 1.4 服务
 
 - [X] [Hive 一起了解一下 HiveServer2](https://smartsi.blog.csdn.net/article/details/75322177)
+- [x] [Hive 如何启动 HiveServer2](https://smartsi.blog.csdn.net/article/details/75322224)
 - [x] [Hive 元数据服务 MetaStore](https://smartsi.blog.csdn.net/article/details/124440004)
-
 
 ## 2. 原理
 

@@ -10,11 +10,11 @@ categories: Hive
 permalink: how-to-config-and-start-hiveserver2
 ---
 
-HiveServer2 是一种可选的 Hive 内置服务，可以允许远程客户端使用不同编程语言向 Hive 提交请求并返回结果。HiveServer2 是 HiveServer1 的改进版，主要解决了无法处理来自多个客户端的并发请求以及身份验证问题。具体可以参阅 [一起了解一下HiveServer2](http://smartsi.club/hiveserver2-overview.html)。下面我们具体看一下如何配置 HiveServer2。
+HiveServer2 是一种可选的 Hive 内置服务，可以允许远程客户端使用不同编程语言向 Hive 提交请求并返回结果。HiveServer2 是 HiveServer1 的改进版，主要解决了无法处理来自多个客户端的并发请求以及身份验证问题。具体可以参阅 [Hive 一起了解一下 HiveServer2](https://smartsi.blog.csdn.net/article/details/75322177)。下面我们具体看一下如何配置 HiveServer2。
 
-### 1. Thrift服务配置
+### 1. Thrift 服务配置
 
-假设我们已经成功安装了 Hive，如果没有安装，可以参阅 [Hive 安装与配置](http://smartsi.club/hive-install-and-config.html)。在启动 HiveServer2 之前，我们需要先进行一些配置：
+假设我们已经成功安装了 Hive，如果没有安装，可以参阅 [Hive 安装与配置](https://smartsi.blog.csdn.net/article/details/126198200)。在启动 HiveServer2 之前，我们需要先进行一些配置：
 ```xml
 <property>
   <name>hive.server2.transport.mode</name>
@@ -65,7 +65,7 @@ netstat -nl | grep 10000
 ```
 `beeline -u  <url> -n <username> -p <Password>`
 ```
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hive/how-to-config-and-start-hiveserver2-1.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/how-to-config-and-start-hiveserver2-1.jpg?raw=true)
 
 ### 4. Web UI
 
@@ -89,8 +89,4 @@ Hive 从 2.0.0 版本开始，为 HiveServer2 提供了一个简单的 WEB UI �
 
 配置完成之后启动 hiveserver2 通过 `http://localhost:10002/` 地址访问 Web UI：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hive/how-to-config-and-start-hiveserver2-2.jpg?raw=true)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/how-to-config-and-start-hiveserver2-2.jpg?raw=true)

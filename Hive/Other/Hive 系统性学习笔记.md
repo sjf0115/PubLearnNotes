@@ -10,6 +10,7 @@
 ### 1.3 函数
 
 - [x] [Hive 如何实现自定义函数 UDF](https://blog.csdn.net/SunnyYoona/article/details/126211216)
+- [x] [深入理解 Hive UDAF](https://smartsi.blog.csdn.net/article/details/127964198)
 - [x] [Hive 日期相关函数](https://smartsi.blog.csdn.net/article/details/52987726)
 - [x] [Hive 如何使用 Grouping Sets](https://smartsi.blog.csdn.net/article/details/126325198)
 
@@ -30,3 +31,7 @@
 
 - [x] [Hive 安装与配置](https://smartsi.blog.csdn.net/article/details/126198200)
 - [x] [在 Zeppelin 中如何使用 Hive](https://smartsi.blog.csdn.net/article/details/125031162)
+
+## 5. 源码
+
+- [x] [Hive 源码解读 准备篇 Debug 讲解](https://smartsi.blog.csdn.net/article/details/128392774)

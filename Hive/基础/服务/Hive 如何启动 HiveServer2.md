@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: 如何启动HiveServer2
+title: Hive 如何启动 HiveServer2
 date: 2020-09-12 15:15:01
 tags:
   - Hive

@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hive 从Hive CLI迁移到Beeline
+title: Hive 从 CLI 迁移到 Beeline
 date: 2018-07-24 13:01:01
 tags:
   - Hive
@@ -10,9 +10,9 @@ categories: Hive
 permalink: hive-base-migrating-from-hive-cli-to-beeline
 ---
 
-之前，Apache Hive 是一个重量级命令行工具，接受查询SQL并转换为 MapReduce 执行。后来，该工具分为 `client-server` 模式，server 为 `HiveServer1` （负责编译和监控 MapReduce 作业），Hive CLI 是命令行界面（将SQL发送到 server）。
+之前，Apache Hive 是一个重量级命令行工具，接受查询 SQL 并转换为 MapReduce 执行。后来，该工具分为 `client-server` 模式，server 为 `HiveServer1` （负责编译和监控 MapReduce 作业），Hive CLI 是命令行界面（将 SQL 发送到 server）。
 
-Hive社区推出了 HiveServer2，这是一个增强的Hive服务器，专为多客户端并发和改进身份验证而设计，也为通过 JDBC 和 ODBC 连接的客户端提供了更好的支持。现在，推荐使用 HiveServer2，Beeline 作为命令行界面；不推荐使用 HiveServer1 和Hive CLI，后者甚至都不能与 HiveServer2 一起使用。
+后来 Hive 社区推出了 HiveServer2，这是一个增强的 Hive Server，专为多客户端并发和改进身份验证而设计，也为通过 JDBC 和 ODBC 连接的客户端提供了更好的支持。现在，推荐使用 HiveServer2，Beeline 作为命令行界面；不推荐使用 HiveServer1 和 Hive CLI，后者甚至都不能与 HiveServer2 一起使用。
 
 Beeline 专门开发用来与新服务器进行交互。与基于 Apache Thrift 的 Hive CLI 客户端不同，Beeline 是基于 SQLLine CLI 的 JDBC 客户端 - 尽管 JDBC 驱动程序使用 HiveServer2 的 Thrift API 与 HiveServer2 进行通信。
 

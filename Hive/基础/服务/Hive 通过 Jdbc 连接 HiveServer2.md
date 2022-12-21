@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Hive通过Jdbc连接HiveServer2
+title: Hive 通过 Jdbc 连接 HiveServer2
 date: 2020-09-13 21:57:01
 tags:
   - Hive
@@ -14,7 +14,7 @@ permalink: hiveserver2-client-jdbc
 
 ### 1. 配置
 
-如果想通过 JDBC 来访问 HiveServer2，需要开启 HiveServer2 服务，具体请参阅 [如何启动HiveServer2](http://smartsi.club/how-to-config-and-start-hiveserver2.html)。
+如果想通过 JDBC 来访问 HiveServer2，需要开启 HiveServer2 服务，具体请参阅 [如何启动 HiveServer2](http://smartsi.club/how-to-config-and-start-hiveserver2.html)。
 
 ### 2. URL格式
 
@@ -72,7 +72,3 @@ while (resultSet.next()) {
 下表为 HiveServer2 列出了 Hive数据类型与 Java 数据类型之间的映射关系：
 
 ![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hive/hiveserver2-client-jdbc-1.jpg?raw=true)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)

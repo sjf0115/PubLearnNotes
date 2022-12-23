@@ -128,10 +128,11 @@ env:HIVE_HOME=/opt/hive
 
 ### 1.3 静默模式
 
-使用 `-S` 命令进入 hive 的静默模式，只显示查询结果，不显示执行过程；如下所示使用静默模式将查询结果存储到文件中：
+使用 `-S` 命令进入 hive 的静默模式，只显示查询结果，不显示执行过程；如下所示使用静默模式执行 HQL 语句：
 ```
-hive -S -e 'select a.foo from pokes a' > a.txt
+hive -S -e 'SELECT COUNT(*) FROM behavior';
 ```
+这样可以在输出中去掉 'OK'、'Time taken' 等无关的输出。
 
 ### 1.4 hiverc 文件
 
@@ -152,59 +153,19 @@ set hive.cli.print.header=true;
 
 ## 2. Hive 交互式 Shell 命令
 
-当使用 `$HIVE_HOME/bin/hive` 命令运行，并且没有 `-e` 或 `-f` 选项时，会进入到交互式 Shell 模式。使用 `;`（分号）作为一个命令的终止。可以使用 `-` 前缀指定脚本中的注释。
+当使用 `$HIVE_HOME/bin/hive` 命令运行，并且没有 `-e` 或 `-f` 选项时，会进入到交互式 Shell 模式：
 
 命令|描述
 ---|---
-quit 或 exit | 退出交互式 Shell 模式
-reset| 将配置重置为默认值
-set <key>=<value> | 为指定配置选项设置值
-set | 打印由用户或 Hive 覆盖后的配置变量列表
-set -v | 打印所有 Hadoop 和 Hive 配置变量
-`add FILE[S] <filepath> <filepath>*` 或 `add JAR[S] <filepath> <filepath>*` 或 `add ARCHIVE[S] <filepath> <filepath>*` |将一个或多个文件，jar或归档添加到分布式缓存中的资源列表
-`list FILE[S]或list JAR[S]或list ARCHIVE[S]` |列出已添加到分布式缓存中的资源
-`delete FILE[S] <filepath>*` 或 `delete JAR[S] <filepath>*` 或 `delete ARCHIVE[S] <filepath>*` ` |从分布式缓存中删除资源
-`! <command>` |Hive shell中执行shell命令
-dfs <dfs command>|Hive shell中执行dfs命令
-<query string>|执行Hive查询并将结果打印到标准输出
-source FILE <filepath>|在CLI客户端中执行脚本文件
-
-Example:
-
-```
-hive> source /root/test.sql;
-hive> show tables;
-test1
-test2
-hive> exit;
-hive> quit;
-hive> set;
-hive> set hive.cli.print.header=true;
-hive> set -v;
-hive> reset;
-hive> add file /opt/a.txt;
-Added resources: [/opt/a.txt]
-hive> list files;
-/opt/a.txt
-hive> delete file /opt/a.txt;
-hive> add jar /usr/share/vnc/classes/vncviewer.jar;
-Added [/usr/share/vnc/classes/vncviewer.jar]to class path
-Added resources:[/usr/share/vnc/classes/vncviewer.jar]
-hive> list jars;
-/usr/share/vnc/classes/vncviewer.jar
-hive> delete jar /usr/share/vnc/classes/vncviewer.jar;
-hive> !ls;
-bin
-conf
-hive> dfs -ls / ;
-Found 2 items
-drwx-wx-wx  - root supergroup  0   2015-08-12 19:06 /tmp
-drwxr-xr-x  - root supergroup  0   2015-08-12 19:43 /user
-hive> select * from pokes;
-OK
-pokes.foo   pokes.bar
-238         val_238
-86          val_86
-311         val_311
-hive>source /opt/s.sql;
-```
+`quit` 或 `exit` | 退出交互式 Shell 模式
+`reset` | 将配置重置为默认值
+`set <key>=<value>` | 为指定配置选项设置值
+`set` | 打印由用户或 Hive 覆盖后的配置变量列表
+`set -v` | 打印所有 Hadoop 和 Hive 配置变量
+`add FILE[S] <filepath> <filepath>*` 或 `add JAR[S] <filepath> <filepath>*` 或 `add ARCHIVE[S] <filepath> <filepath>*` | 将一个或多个文件，jar或归档添加到分布式缓存中的资源列表
+`list FILE[S]` 或 `list JAR[S]` 或 `list ARCHIVE[S]` | 列出已添加到分布式缓存中的资源
+`delete FILE[S] <filepath>*` 或 `delete JAR[S] <filepath>*` 或 `delete ARCHIVE[S] <filepath>*` ` | 从分布式缓存中删除资源
+`! <command>` | Hive shell 中执行 shell命令
+`dfs <dfs command>` | Hive shell 中执行 dfs 命令
+`<query string>` | 执行 Hive 查询并将结果打印到标准输出
+`source FILE <filepath>` | 在 CLI 客户端中执行脚本文件

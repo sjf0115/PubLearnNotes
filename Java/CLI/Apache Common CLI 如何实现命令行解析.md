@@ -13,7 +13,7 @@ Commons CLI支持不同类型的选项:
 > 短选项（Short Options）：短选项用一个单独的字母作为标志，通常也是一个选项英语的缩写。例如：`-f` 表示文件（file）。多个短选项可以连写，如 `ls -a -l`，可以写成`ls -al`；
 > 长选项（Long Options）：单独字母的数量毕竟有限，会不够用，而且表达的意思不够明确，于是就有了长选项 `--`，后面可以跟一串单词，如 `--version`。
 
-## 2. 命令行处理阶段
+## 2. 处理阶段
 
 命令行处理有三个阶段，分别是定义阶段、解析阶段和查询阶段。下面依次讨论这几个阶段，并讨论如何用 CLI（Apache Common CLI） 实现。
 
@@ -27,7 +27,7 @@ Commons CLI支持不同类型的选项:
 ```java
 Options options = new Options();
 ```
-通过 `addOption` 方法来添加 Option 实例：
+可以通过 `addOption` 方法来添加 Option 实例：
 ```java
 // -H 或者 --help
 options.addOption(new Option("H", "help", false, "Print help information"));
@@ -36,7 +36,7 @@ options.addOption(new Option("H", "help", false, "Print help information"));
 下面具体看一下 Options 的一些常用方法：
 
 | 返回值     | 方法名     | 说明      |
-| :------------- | :------------- |
+| :------------- | :------------- | :------------- |
 | `Options`  | `addOption(Option opt)` | 添加一个 Option |
 | `Options`	 | `addOption(String opt, boolean hasArg, String description)`	| 添加一个只包含短选项名称的 Option（可以指定参数） |
 | `Options`	 | `addOption(String opt, String description)` | 添加一个只包含短选项名称的 Option（没有参数）|
@@ -91,16 +91,16 @@ options.addOption(Option.builder("d")
 
 | 属性  | 类型  | 说明 |
 | :------------- | :------------- | :------------- |
-| `option`  | String | 短选项名称，选项的唯一标识符 |
-| `longOption` | String | 长选项名称，段选项的别名或者是更具描述性的标识符 |
-| `required` | boolean | 选项是否必须存在 |
-| `description` | String | 选项的描述信息 |
-| `type` | Object | 选项类型 |
-| `optionalArg` | boolean | 选项的参数是否可选 |
-| `argName` | String | 参数的名称 |
-| `argCount` | int | 选项可以包含的参数个数 |
-| `values` | String[] | 参数值列表 |
-| `valuesep` | char | 参数值分隔符 |
+| `option`  | `String` | 短选项名称，选项的唯一标识符 |
+| `longOption` | `String` | 长选项名称，段选项的别名或者是更具描述性的标识符 |
+| `required` | `boolean` | 选项是否必须存在 |
+| `description` | `String` | 选项的描述信息 |
+| `type` | `Object` | 选项类型 |
+| `optionalArg` | `boolean` | 选项的参数是否可选 |
+| `argName` | `String` | 参数的名称 |
+| `argCount` | `int` | 选项可以包含的参数个数 |
+| `values` | `String[]` | 参数值列表 |
+| `valuesep` | `char` | 参数值分隔符 |
 
 ### 2.2 解析阶段
 
@@ -147,7 +147,7 @@ for (String propKey : hiveVars.stringPropertyNames()) {
 | `String` | `getOptionValue(Option option, String defaultValue)` | 获取选项对应的第一个参数；如果没有指定返回 defaultValue；1.5.0 版本开始； |
 | `String[]` | `getOptionValues(char opt)` | 获取选项对应所有参数 |
 | `String[]` | `getOptionValues(String opt)` | 获取选项对应所有参数 |
-| `String[]` | ``getOptionValues(Option option)` | 获取选项对应所有参数；1.5.0 版本开始；|
+| `String[]` | `getOptionValues(Option option)` | 获取选项对应所有参数；1.5.0 版本开始；|
 | `Object` | `getParsedOptionValue(char opt)` | 获取选项对应的第一个参数；转换为 type 指定的类型 |
 | `Object` | `getParsedOptionValue(String opt)` | 获取选项对应的第一个参数；转换为 type 指定的类型 |
 | `Object` | `getParsedOptionValue(Option option)` |  获取选项对应的第一个参数；转换为 type 指定的类型；1.5.0 版本开始；|

@@ -97,7 +97,89 @@ try {
 
 ## 3. 执行 CLI 驱动
 
+从 OptionsProcessor 解析器中获取解析到的 Hive 变量并存储到 SessionState 的 hiveVariables 变量中：
+```java
+cli.setHiveVariables(oproc.getHiveVariables());
+// 存储到 SessionState 的 hiveVariables 变量中
+public void setHiveVariables(Map<String, String> hiveVariables) {
+  SessionState.get().setHiveVariables(hiveVariables);
+}
+```
+如果 Hive CLI 命令行中指定了 `--database` 选项，需要使用指定的数据库，其本质上是执行了 `use <database>;` HQL 语句：
+```java
+cli.processSelectDatabase(ss);
+// 执行切换数据库HQL语句
+public void processSelectDatabase(CliSessionState ss) throws IOException {
+  String database = ss.database;
+  if (database != null) {
+    int rc = processLine("use " + database + ";");
+    if (rc != 0) {
+      System.exit(rc);
+    }
+  }
+}
+```
+如果 Hive CLI 命令行中指定了 `-e '<quoted-query-string>'` 选项，需要调用 processLine 来执行 HQL 语句：
+```java
+if (ss.execString != null) {
+  int cmdProcessStatus = cli.processLine(ss.execString);
+  return cmdProcessStatus;
+}
+```
+> HQL 语句的执行 processLine 后续会详细介绍
 
+如果 Hive CLI 命令行中指定了 `-f <query-file>` 选项，需要调用 processFile 来执行文件中的一个或者多个 HQL 语句：
+```java
+try {
+  if (ss.fileName != null) {
+    return cli.processFile(ss.fileName);
+  }
+} catch (FileNotFoundException e) {
+  System.err.println("Could not open input file for reading. (" + e.getMessage() + ")");
+  return 3;
+}
+```
+> HQL 文件的执行 processFile 后续会详细介绍
+
+如果 Hive 的执行引擎选择的是 mr 会打印警告信息 `Hive-on-MR is deprecated in Hive 2 and may not be available in the future versions. Consider using a different execution engine (i.e. spark, tez) or using Hive 1.X releases.`，提示你要切换到 Spark 或者 Tez 执行引擎上：
+```java
+if ("mr".equals(HiveConf.getVar(conf, ConfVars.HIVE_EXECUTION_ENGINE))) {
+  console.printInfo(HiveConf.generateMrDeprecationWarning());
+}
+```
+最后最重要的是从标准化输入中解析出一个个完整 HQL 语句交由 processLine 来执行：
+```java
+String line;
+int ret = 0;
+String prefix = "";
+String curDB = getFormattedDb(conf, ss);
+String curPrompt = prompt + curDB;
+String dbSpaces = spacesForString(curDB);
+
+while ((line = reader.readLine(curPrompt + "> ")) != null) {
+  // 换行
+  if (!prefix.equals("")) {
+    prefix += '\n';
+  }
+  // 注释
+  if (line.trim().startsWith("--")) {
+    continue;
+  }
+  // 直到遇到分号结尾 表示一个完整 HQL 语句
+  if (line.trim().endsWith(";") && !line.trim().endsWith("\\;")) {
+    line = prefix + line;
+    ret = cli.processLine(line, true);
+    prefix = "";
+    curDB = getFormattedDb(conf, ss);
+    curPrompt = prompt + curDB;
+    dbSpaces = dbSpaces.length() == curDB.length() ? dbSpaces : spacesForString(curDB);
+  } else {
+    prefix = prefix + line;
+    curPrompt = prompt2 + dbSpaces;
+    continue;
+  }
+}
+```
 
 
 

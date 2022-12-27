@@ -1,4 +1,4 @@
-
+Hive 的执行入口脚本都在 bin/etc 目录下，启动hive客户端的过程就是通过这些脚本启动的。细心一点的话，我们在hive脚本中看到了服务列表（SERVICE_LIST），这些脚本正是Hive Server清单。
 
 ## 1. beeline.sh
 

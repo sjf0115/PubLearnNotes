@@ -123,6 +123,120 @@ try {
 
 ## processLocalCmd
 
+在上面 processCmd 方法中，根据不同的命令获取对应不同的命令处理器 CommandProcessor。在这里，processLocalCmd 方法会根据命令处理器 CommandProcessor 的类型来处理 HQL 命令。根据是否是 Driver 命令处理器分成了两种处理逻辑，一类是 Driver 命令处理器，会调用 Driver 的 run 方法来执行命令并在控制台上输出命令的返回结果；另一类是非 Driver 命令处理器，需要调用各自处理器的 run 方法；
+
+先看一下整体框架，可以看到根据命令处理器 CommandProcessor 的不同会拆分成两种处理逻辑。如果处理过程中出现了异常会一直进行重试：
+```java
+int processLocalCmd(String cmd, CommandProcessor proc, CliSessionState ss) {
+    do {
+        try {
+          needRetry = false;
+          if (proc != null) {
+              if (proc instanceof Driver) {
+                  // CommandProcessor 为 Driver 的处理逻辑
+              } else {
+                  // CommandProcessor 为非 Driver 的处理逻辑
+              }
+          }
+        } catch (CommandNeedRetryException e) {
+            // 出现异常会进行重试
+            console.printInfo("Retry query with a different approach...");
+            tryCount++;
+            needRetry = true;
+        }
+    } while (needRetry);
+    return ret;
+}
+```
+
+### Driver 命令处理器
+
+如果命令处理器 CommandProcessor 是 Driver，处理逻辑如下所示。整个处理逻辑可以分成两部分：第一部分通过调用 Driver 的 run 方法来实际执行命令，并计算命令运行的耗时；第二部分输出命令计算的结果：
+```java
+Driver qp = (Driver) proc;
+PrintStream out = ss.out;
+// 第一部分
+long start = System.currentTimeMillis();
+// 如果设置了 -v 选项，打印命令
+if (ss.getIsVerbose()) {
+  out.println(cmd);
+}
+// 设置重试次数
+qp.setTryCount(tryCount);
+// 关键点：通过 Driver 的 run 进行命令处理
+ret = qp.run(cmd).getResponseCode();
+if (ret != 0) {
+  qp.close();
+  return ret;
+}
+long end = System.currentTimeMillis();
+// 命令运行耗时
+double timeTaken = (end - start) / 1000.0;
+
+// 第二部分
+ArrayList<String> res = new ArrayList<String>();
+printHeader(qp, out);
+int counter = 0;
+try {
+  if (out instanceof FetchConverter) {
+    ((FetchConverter)out).fetchStarted();
+  }
+  // 输出命令计算结果
+  while (qp.getResults(res)) {
+    for (String r : res) {
+      out.println(r);
+    }
+    counter += res.size();
+    res.clear();
+    if (out.checkError()) {
+      break;
+    }
+  }
+} catch (IOException e) {
+  console.printError("Failed with exception " + e.getClass().getName() + ":"
+      + e.getMessage(), "\n"
+      + org.apache.hadoop.util.StringUtils.stringifyException(e));
+  ret = 1;
+}
+// 关闭 Driver
+int cret = qp.close();
+if (ret == 0) {
+  ret = cret;
+}
+if (out instanceof FetchConverter) {
+  ((FetchConverter)out).fetchFinished();
+}
+// 在控制台打印耗时以及结果记录条数
+console.printInfo("Time taken: " + timeTaken + " seconds" +
+    (counter == 0 ? "" : ", Fetched: " + counter + " row(s)"));
+
+```
+### 非 Driver 命令处理器
+
+如果命令处理器 CommandProcessor 是非 Driver 处理器，即 SetProcessor、ResetProcessor、DfsProcessor、AddResourceProcessor、ListResourceProcessor、DeleteResourceProcessor、ReloadProcessor、CryptoProcessor 命令处理器，处理逻辑如下所示。
+```java
+// 命令 cmd 根据 \\s+ 拆分成词条 获取第一个词条
+String firstToken = tokenizeCmd(cmd.trim())[0];
+String cmd_1 = getFirstCmd(cmd.trim(), firstToken.length());
+// 如果设置了 -v 选项，打印命令
+if (ss.getIsVerbose()) {
+  ss.out.println(firstToken + " " + cmd_1);
+}
+// 调用各自命令处理器的 run 方法实际处理命令
+CommandProcessorResponse res = proc.run(cmd_1);
+if (res.getResponseCode() != 0) {
+  ss.out.println("Query returned non-zero code: " + res.getResponseCode() +
+      ", cause: " + res.getErrorMessage());
+}
+// 在控制台打印输出信息
+if (res.getConsoleMessages() != null) {
+  for (String consoleMsg : res.getConsoleMessages()) {
+    console.printInfo(consoleMsg);
+  }
+}
+// 执行结果
+ret = res.getResponseCode();
+```
 
 
 

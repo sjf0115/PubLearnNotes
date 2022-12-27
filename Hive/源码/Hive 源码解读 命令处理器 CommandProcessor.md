@@ -127,3 +127,14 @@ public enum HiveCommand {
     }
 }
 ```
+
+## 2. 类型
+
+### 2.1 SetProcessor
+
+
+
+
+
+
+。。。

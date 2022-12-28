@@ -20,3 +20,13 @@
 - [ ] [Join Type in Hive: Skewed Join](https://weidongzhou.wordpress.com/2017/06/08/join-type-in-hive-skewed-join/)
 - [ ] [Hive join optimizations](https://www.slideshare.net/SzehonHo/hive-join-optimizations-mr-and-spark-53265877)
 - [ ] [Hive千亿级数据倾斜解决方案](https://mp.weixin.qq.com/s/BlCJBZwFzr9_VU4vj3TUIg)
+
+## 2. 血缘
+
+- [ ] [Hive SQL血缘关系解析与应用](https://mp.weixin.qq.com/s/65iKzNfG-x5R13vZ2hI71Q)
+- [ ] [Hive Query生命周期 —— 钩子（Hook）函数篇](https://mp.weixin.qq.com/s/2DadPHe27yrCcnCc2S8oqw)
+
+
+
+
+。。。

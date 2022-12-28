@@ -37,3 +37,4 @@
 ## 5. 源码
 
 - [x] [Hive 源码解读 准备篇 Debug 讲解](https://smartsi.blog.csdn.net/article/details/128392774)
+- [x] [Hive 源码解读 CLI 入口 CliDriver](https://smartsi.blog.csdn.net/article/details/128462596)

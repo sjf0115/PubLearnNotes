@@ -10,6 +10,56 @@ Hooks 是一种事件和消息机制，可以将事件绑定在内部 Hive 的�
 
 ## Hooks 类型
 
+### hive.exec.driver.run.hooks
+
+在 Driver.run 开始或结束时运行。使用时需要实现接口：org.apache.hadoop.hive.ql.HiveDriverRunHook：
+```java
+public interface HiveDriverRunHook extends Hook {
+  public void preDriverRun(HiveDriverRunHookContext hookContext) throws Exception;
+  public void postDriverRun(HiveDriverRunHookContext hookContext) throws Exception;
+}
+```
+具体在 hive-site.xml 中的配置如下：
+```xml
+<property>
+    <name>hive.exec.driver.run.hooks</name>
+    <value>实现类的全限定名<value/>
+</property>
+```
+
+### hive.semantic.analyzer.hook
+
+Hive 对查询语句进行语义分析的时候调用。使用时需要实现接口：`org.apache.hadoop.hive.ql.parse.HiveSemanticAnalyzerHook`：
+```java
+public interface HiveSemanticAnalyzerHook extends Hook {
+  public ASTNode preAnalyze(HiveSemanticAnalyzerHookContext context, ASTNode ast) throws SemanticException;
+  public void postAnalyze(HiveSemanticAnalyzerHookContext context, List<Task<? extends Serializable>> rootTasks) throws SemanticException;
+}
+```
+也可以使用抽象类：`org.apache.hadoop.hive.ql.parse.AbstractSemanticAnalyzerHook`：
+```java
+public abstract class AbstractSemanticAnalyzerHook implements HiveSemanticAnalyzerHook {
+  public ASTNode preAnalyze(HiveSemanticAnalyzerHookContext context,ASTNode ast) throws SemanticException {
+    return ast;
+  }
+  public void postAnalyze(HiveSemanticAnalyzerHookContext context, List<Task<? extends Serializable>> rootTasks) throws SemanticException {
+  }
+}
+```
+
+
+
+具体在 hive-site.xml 中的配置如下：
+```xml
+<property>
+    <name>hive.semantic.analyzer.hook</name>
+    <value>实现类的全限定名<value/>
+</property>
+```
+
+
+
+
 ### hive.exec.pre.hooks
 
 从名称可以看出，在执行引擎执行查询之前被调用。这个需要在 Hive 对查询计划进行过优化之后才可以使用。使用该 Hooks 需要实现接口：org.apache.hadoop.hive.ql.hooks.ExecuteWithHookContext，具体在 hive-site.xml 中的配置如下：
@@ -18,6 +68,12 @@ Hooks 是一种事件和消息机制，可以将事件绑定在内部 Hive 的�
     <name>hive.exec.pre.hooks</name>
     <value>实现类的全限定名<value/>
 </property>
+```
+
+```java
+public interface ExecuteWithHookContext extends Hook {
+    void run(HookContext hookContext) throws Exception;
+}
 ```
 
 ### hive.exec.post.hooks
@@ -50,25 +106,9 @@ HMSHandler 初始化是被调用。使用时需要实现接口：org.apache.hado
 </property>
 ```
 
-### hive.exec.driver.run.hooks
 
-在 Driver.run 开始或结束时运行，使用时需要实现接口：org.apache.hadoop.hive.ql.HiveDriverRunHook，具体在 hive-site.xml 中的配置如下：
-```
-<property>
-    <name>hive.exec.driver.run.hooks</name>
-    <value>实现类的全限定名<value/>
-</property>
-```
 
-### hive.semantic.analyzer.hook
 
-Hive 对查询语句进行语义分析的时候调用。使用时需要集成抽象类：org.apache.hadoop.hive.ql.parse.AbstractSemanticAnalyzerHook，具体在 hive-site.xml 中的配置如下：
-```
-<property>
-    <name>hive.semantic.analyzer.hook</name>
-    <value>实现类的全限定名<value/>
-</property>
-```
 
 | 属性 | 接口(抽象类) |
 | :------------- | :------------- |

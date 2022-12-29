@@ -21,12 +21,12 @@
 - [ ] [Hive join optimizations](https://www.slideshare.net/SzehonHo/hive-join-optimizations-mr-and-spark-53265877)
 - [ ] [Hive千亿级数据倾斜解决方案](https://mp.weixin.qq.com/s/BlCJBZwFzr9_VU4vj3TUIg)
 
-## 2. 血缘
+## 2. 元数据
 
-- [ ] [Hive SQL血缘关系解析与应用](https://mp.weixin.qq.com/s/65iKzNfG-x5R13vZ2hI71Q)
+- [x] [Hive SQL血缘关系解析与应用](https://mp.weixin.qq.com/s/65iKzNfG-x5R13vZ2hI71Q)
 - [ ] [Hive Query生命周期 —— 钩子（Hook）函数篇](https://mp.weixin.qq.com/s/2DadPHe27yrCcnCc2S8oqw)
-
-
+- [ ] [基于hook机制实现数据血缘系统](https://mp.weixin.qq.com/s/LG2ZWZkV3sFA8sYPcAtEfA)
+- [ ] [Hive Hooks和Metastore监听器介绍](https://mp.weixin.qq.com/s/VVBWK_5bVVL8IfqW9EmK7w)
 
 
 。。。

@@ -73,3 +73,6 @@ In order to obtain the performance metrics via the PerfLogger, you need to set D
 log4j.logger.org.apache.hadoop.hive.ql.log.PerfLogger=DEBUG
 
 If the logger level has already been set to DEBUG at root via hive.root.logger, the above setting is not required to see the performance logs.
+
+
+https://www.cnblogs.com/lemonu/p/12368373.html

@@ -27,12 +27,14 @@
 - [ ] [Hive Query生命周期 —— 钩子（Hook）函数篇](https://mp.weixin.qq.com/s/2DadPHe27yrCcnCc2S8oqw)
 - [ ] [基于hook机制实现数据血缘系统](https://mp.weixin.qq.com/s/LG2ZWZkV3sFA8sYPcAtEfA)
 - [ ] [Hive Hooks和Metastore监听器介绍](https://mp.weixin.qq.com/s/VVBWK_5bVVL8IfqW9EmK7w)
+- [ ] [携程数据血缘构建及应用](https://mp.weixin.qq.com/s/LGK3YPZCe6oPTf48QaAIqA)
 
 ## 3. 源码
 
 - [ ] [寒暄-Hive源码解析](https://blog.csdn.net/qq_41106844/category_10170718.html)
 - [ ] [井地儿-Hive源码解读](https://www.jianshu.com/nb/35911917)
 - [ ] [Kotlin-Hive源码](https://www.cnblogs.com/wuxiaolong4/category/1553297.html)
-
+- [ ] [从一个sql引发的hive谓词下推的全面复盘及源码分析（上）](https://mp.weixin.qq.com/s/ZwoAjkMlvAOoOI8Z-QNFsQ)
+- [ ] [从一个sql引发的hive谓词下推的全面复盘及源码分析（下）](https://mp.weixin.qq.com/s/IW8dB-zRhCpN7OjFID2oNQ)
 
 。。。

@@ -1,4 +1,5 @@
 - [x] [ANTLR4 初识语法分析器生成工具 ANTLR](https://smartsi.blog.csdn.net/article/details/128500910)
 - [x] [ANTLR4 在 IDEA 中使用 ANTLR 与 Java 程序集成](https://smartsi.blog.csdn.net/article/details/128521224)
+- [x] [ANTLR4 如何编写语法文件之语法词汇](https://blog.csdn.net/SunnyYoona/article/details/128541067)
 - [x] [如何实现一个SQL解析器](https://smartsi.blog.csdn.net/article/details/128504170)
 - [x] [关于 SQL 解析，为何编程语言解析器 ANTLR 更胜一筹？](https://smartsi.blog.csdn.net/article/details/128500444)

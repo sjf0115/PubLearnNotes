@@ -178,11 +178,59 @@ public static class ElistContext extends ParserRuleContext {
 | `r` | 在当前输入位置匹配规则 `r`，这相当于像调用函数一样调用规则。语法解析器规则名称总是以小写字母开头。|
 | `r [«args»]` | 在当前输入位置匹配规则 `r`，像函数调用一样传入一组参数。方括号内的参数满足目标语言的语法，通常是逗号分隔的表达式列表。|
 | `{«action»}` | 在前一个的备选分支元素之后，后一个备选分支元素之前立即执行一个动作 `action`。动作中的代码满足目标语言的语法。ANTLR 将动作中的代码逐字复制到生成的类中，除了替换属性和 `token` 引用，例如 `$x` 和 `$x.y`。|
-| `{«p»}?` | |
-| `.` | |
+| `{«p»}?` | 计算语义谓词 `«p»`。如果 `«p»` 在运行时计算为 false，则不会继续解析谓词之后的内容。一般用在预测期间，当 ANTLR 区分备选分支时，启用或禁用对应谓词的备选分支。|
+| `.` | 匹配除文件结束符之外的任意词条 `token`。`.` 符号称为通配符。|
 
+当你希望匹配除特定词条 `token` 或者词条集合之外的所有内容时，可以使用 `~` 非运算符。这个运算符在语法解析器规则中很少使用。`~INT` 表示匹配除 `INT` 词条以外的任何词条。`~','` 表示匹配除逗号以外的任何词条。`~(INT|ID)` 表示匹配除 `INT` 或 `ID` 之外的任何词条。
 
 ## 5. 子规则
+
+规则中可以包含称为子规则的可选块(即 EBNF)。子规则与规则类似，只是缺少名称并用圆括号括起来的规则。子规则在括号内可以有一个或多个备选分支。子规则不能像规则那样使用 `local` 和 `return` 定义属性。目前一共存在四种子规则(x, y, z代表语法元素)：
+
+<table>
+<tr>
+<th>用法</th><th>说明</th>
+</tr>
+<tr>
+<td>![](../../Image/Antlr/antlr-parser-rules-1.png)
+</td>
+<td>格式：(x|y|z)，匹配子规则内的任意备选分支一次。例子：<br>
+<tt>
+returnType : (type | 'void') ;
+</tt>
+</td>
+</tr>
+
+<tr>
+<td>![](../../Image/Antlr/antlr-parser-rules-2.png)</td>
+<td>格式：(x|y|z)? ，匹配子规则内的任意备选分支一次或者不匹配。例子：<br>
+<tt>
+classDeclaration
+    : 'class' ID (typeParameters)? ('extends' type)?
+      ('implements' typeList)?
+ 	   classBody
+    ;
+</tt>
+<tr>
+<td>![](../../Image/Antlr/antlr-parser-rules-3.png)</td><td>(x|y|z)*
+Match an alternative within subrule zero or more times. Example:
+<br>
+<tt>
+annotationName : ID ('.' ID)* ;
+</tt>
+</tr>
+<tr>
+<td>![](../../Image/Antlr/antlr-parser-rules-4.png)</td><td>(x|y|z)+
+Match an alternative within subrule one or more times. Example:
+<br>
+<tt>
+annotations : (annotation)+ ;
+</tt>
+</td>
+</tr>
+</table>
+
+
 
 
 ## 6. 捕获异常

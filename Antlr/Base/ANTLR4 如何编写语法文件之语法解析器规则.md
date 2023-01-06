@@ -230,10 +230,53 @@ annotations : (annotation)+ ;
 </tr>
 </table>
 
-
-
-
 ## 6. 捕获异常
+
+当一条规则中发生语法错误时，ANTLR 会捕获异常，报告错误，并尝试恢复(可能通过使用更多词条)，然后从规则返回。每条规则都包含在 `try/catch/finally` 语句中:
+```
+void r() throws RecognitionException {
+ 	try {
+ 		rule-body
+ 	}
+ 	catch (RecognitionException re) {
+	 	_errHandler.reportError(this, re);
+	 	_errHandler.recover(this, re);
+ 	}
+ 	finally {
+		exitRule();
+ 	}
+}
+```
+可以使用策略对象来改变 ANTLR 的错误处理策略。然而，替换这个策略会影响到所有规则的策略。如果想要更改单个规则的异常处理策略，可以在规则定义后指定一个异常（这样只会影响这一条规则）:
+```
+r : ...
+  ;
+  catch[RecognitionException e] { throw e; }
+```
+该示例展示了如何避免使用默认的错误报告和恢复机制。当出现报错时，`r` 规则会重新抛出异常，这在对于希望更高层规则报告错误时非常有用。指定任何异常子句都会让 ANTLR 不再生成处理 RecognitionException 的子句。
+
+你也可以指定其他异常:
+```
+r : ...
+  ;
+  catch[FailedPredicateException fpe] { ... }
+  catch[RecognitionException e] { ... }
+```
+花括号内的代码段以及作为参数的异常必须使用目标语言编写，在这里是 Java。当你在即使发生异常时也要执行一个动作 `action`，要把它放在 `finally` 子句中：
+```
+r : ...
+  ;
+  // catch blocks go first
+  finally { System.out.println("exit rule r"); }
+```
+finally 子句在规则触发 exitRule 之前执行。如果你希望在规则完成匹配备备选分支之后，但在完成清理工作之前执行动作，可以使用 `after`。
+
+如下是一个完整的异常列表:
+
+| Header One     | Header Two     |
+| :------------- | :------------- |
+| RecognitionException | Item Two       |
+
 
 
 ## 7. 规则属性定义
@@ -241,11 +284,27 @@ annotations : (annotation)+ ;
 
 ## 8. 起始规则和文件结束符
 
+起始规则是语法解析器首先使用的规则；语言应用程序会调用它对应的规则函数。例如，一个被解析 Java 代码的语言应用程序可能会调用 `parser.compilationunit()` 方法，其中 parser 是一个 JavaParser 对象。语法中的任意规则都可以作为起始规则。
 
+起始规则不一定使用所有的输入。它们只使用匹配规则备选分支所需的输入即可。例如，如下规则根据输入匹配一个、两个或者三个词条 `token`：
+```
+s : ID
+  | ID '+'
+  | ID '+' INT
+  ;
+```
+如果输入是 `a+3`，规则 `s` 匹配第三个备选分支；如果是 `a+b`，匹配第二个备选分支，并忽略最后一个词条 `b`；如果是 `a b`，则匹配第一个备选分支，并忽略词条 `b`。对于后两种 Case，解析器不会使用完整的输入（即上面所说的只使用匹配规则备选分支所需的输入即可），因为规则 `s` 并没有明确的指出文件结束符必须出现在匹配规则的备选分支之后。
 
+这种默认行为对于编写 ide 之类的东西非常有用。想象一下，IDE 想要解析一个大 Java 文件中间的某个方法。对规则 methodDeclaration 的调用应该只匹配一个方法，并忽略后面出现的任何文本。
 
-
-
+另一方面，描述整个输入文件的规则应该引用特殊的预定义词条 `EOF`。如果没有，你可能百思不得其解，为什么不管你输入什么，起始规则都不会报错。下面是读取配置文件语法的一部分：
+```
+config : element*; // 能够 "匹配" 带有无效内容的输入文本
+```
+无效的输入会导致 `config` 立即返回，不匹配任何输入，也不报告错误。下面是正确的用法：
+```
+file : element* EOF; // 不会提前结束 必须匹配所有输入文本
+```
 
 
 

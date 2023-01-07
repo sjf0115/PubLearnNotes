@@ -204,6 +204,8 @@ public static class ElistContext extends ParserRuleContext {
 
 规则中可以包含名为子规则的可选块。子规则与规则类似，只是缺少名称并用圆括号括起来的规则。子规则在括号内可以有一个或多个备选分支。子规则不能像规则那样使用 `local` 和 `return` 定义属性。目前一共存在四种子规则(x, y, z代表语法元素)：
 
+![](../../Image/Antlr/antlr-parser-rules-1.png)
+
 <table>
 <tr>
 <th>用法</th><th>说明</th>

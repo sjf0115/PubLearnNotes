@@ -204,48 +204,45 @@ public static class ElistContext extends ParserRuleContext {
 
 规则中可以包含名为子规则的可选块。子规则与规则类似，只是缺少名称并用圆括号括起来的规则。子规则在括号内可以有一个或多个备选分支。子规则不能像规则那样使用 `local` 和 `return` 定义属性。目前一共存在四种子规则(x, y, z代表语法元素)：
 
+### 5.1 (x|y|z)
+
 ![](../../Image/Antlr/antlr-parser-rules-1.png)
 
-<table>
-<tr>
-<th>用法</th><th>说明</th>
-</tr>
-<tr>
-<td>![](../../Image/Antlr/antlr-parser-rules-1.png)
-</td>
-<td>格式：`(x|y|z)`，匹配子规则内的任意备选分支一次。例子：<br>
-<tt>
+格式：`(x|y|z)`，匹配子规则内的任意备选分支一次。具体例子如下：
+```
 returnType : (type | 'void') ;
-</tt>
-</td>
-</tr>
+```
 
-<tr>
-<td>![](../../Image/Antlr/antlr-parser-rules-2.png)</td>
-<td>格式：`(x|y|z)?`，匹配子规则内的任意备选分支一次或者不匹配。例子：<br>
-<tt>
+### 5.2 (x|y|z)?
+
+![](../../Image/Antlr/antlr-parser-rules-2.png)
+
+格式：`(x|y|z)?`，匹配子规则内的任意备选分支一次或者不匹配。具体例子如下：
+```
 classDeclaration
     : 'class' ID (typeParameters)? ('extends' type)?
       ('implements' typeList)?
  	   classBody
     ;
-</tt>
-<tr>
-<td>![](../../Image/Antlr/antlr-parser-rules-3.png)</td>
-<td>格式：`(x|y|z)*`，匹配子规则内的任意备选分支零次或者多次。例子：<br>
-<tt>
+```
+
+### 5.3 (x|y|z)*
+
+![](../../Image/Antlr/antlr-parser-rules-3.png)
+
+格式：`(x|y|z)*`，匹配子规则内的任意备选分支零次或者多次。具体例子如下：
+```
 annotationName : ID ('.' ID)* ;
-</tt>
-</tr>
-<tr>
-<td>![](../../Image/Antlr/antlr-parser-rules-4.png)</td>
-<td>格式：`(x|y|z)+`，匹配子规则内的任意备选分支一次或者多次。例子：<br>
-<tt>
+```
+
+### 5.4 (x|y|z)+
+
+![](../../Image/Antlr/antlr-parser-rules-4.png)</td>
+
+格式：`(x|y|z)+`，匹配子规则内的任意备选分支一次或者多次。具体例子如下：
+```
 annotations : (annotation)+ ;
-</tt>
-</td>
-</tr>
-</table>
+```
 
 ## 6. 捕获异常
 

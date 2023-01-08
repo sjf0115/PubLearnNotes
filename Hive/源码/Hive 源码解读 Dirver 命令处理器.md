@@ -4,7 +4,11 @@
 ```java
 public CommandProcessorResponse run(String command, boolean alreadyCompiled) throws CommandNeedRetryException {
     CommandProcessorResponse cpr = runInternal(command, alreadyCompiled);
+    ...
+}
+```
 
+```java
     if(cpr.getResponseCode() == 0) {
       return cpr;
     }

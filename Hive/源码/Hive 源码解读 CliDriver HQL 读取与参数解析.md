@@ -165,7 +165,7 @@ try {
 }
 ```
 
-## 3. 执行 CLI 驱动
+## 3. 执行 CLI 驱动 executeDriver
 
 在上面说到最重要的的一步就是执行 CLI 驱动程序方法 executeDriver。下面具体看一下如何执行的。首先从 OptionsProcessor 解析器中获取解析到的 Hive 变量并存储到 SessionState 的 hiveVariables 变量中：
 ```java
@@ -176,7 +176,7 @@ public void setHiveVariables(Map<String, String> hiveVariables) {
   SessionState.get().setHiveVariables(hiveVariables);
 }
 ```
-如果 Hive CLI 命令行中指定了 `--database` 选项，需要使用指定的数据库，即执行 `use <database>;` HQL 语句：
+如果 Hive CLI 命令行中指定了 `--database` 选项，需要调用 processSelectDatabase 方法指定数据库，即执行 `use <database>;` HQL 语句：
 ```java
 cli.processSelectDatabase(ss);
 // 执行切换数据库HQL语句
@@ -190,6 +190,42 @@ public void processSelectDatabase(CliSessionState ss) throws IOException {
   }
 }
 ```
+如果 Hive CLI 命令行中指定了 `-i <filename>` 选项，需要调用 processInitFiles 方法来处理初始化文件：
+```java
+cli.processInitFiles(ss);
+// 处理初始化文件
+public void processInitFiles(CliSessionState ss) throws IOException {
+    boolean saveSilent = ss.getIsSilent();
+    ss.setIsSilent(true);
+    // 调用 processFile 处理初始文件
+    for (String initFile : ss.initFiles) {
+      int rc = processFile(initFile);
+      if (rc != 0) {
+        System.exit(rc);
+      }
+    }
+    // 如果没有指定初始文件则读取默认配置文件
+    if (ss.initFiles.size() == 0) {
+      if (System.getenv("HIVE_HOME") != null) {
+        String hivercDefault = System.getenv("HIVE_HOME") + File.separator + "bin" + File.separator + HIVERCFILE;
+        if (new File(hivercDefault).exists()) {
+          int rc = processFile(hivercDefault);
+          ...
+        }
+      }
+      if (System.getenv("HIVE_CONF_DIR") != null) {
+        String hivercDefault = System.getenv("HIVE_CONF_DIR") + File.separator + HIVERCFILE;
+        ...
+      }
+      if (System.getProperty("user.home") != null) {
+        String hivercUser = System.getProperty("user.home") + File.separator + HIVERCFILE;
+        ...
+      }
+    }
+    ss.setIsSilent(saveSilent);
+}
+```
+
 如果 Hive CLI 命令行中指定了 `-e '<quoted-query-string>'` 选项，需要调用 processLine 来执行 HQL 语句：
 ```java
 if (ss.execString != null) {

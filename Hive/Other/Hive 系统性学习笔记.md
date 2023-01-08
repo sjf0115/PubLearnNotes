@@ -38,3 +38,4 @@
 
 - [x] [Hive 源码解读 准备篇 Debug 讲解](https://smartsi.blog.csdn.net/article/details/128392774)
 - [x] [Hive 源码解读 CliDriver HQL 读取与参数解析](https://smartsi.blog.csdn.net/article/details/128462596)
+- [x] [Hive 源码解读 CliDriver HQL 语句拆分](https://smartsi.blog.csdn.net/article/details/128607389)

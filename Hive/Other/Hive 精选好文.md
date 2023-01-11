@@ -36,5 +36,6 @@
 - [ ] [Kotlin-Hive源码](https://www.cnblogs.com/wuxiaolong4/category/1553297.html)
 - [ ] [从一个sql引发的hive谓词下推的全面复盘及源码分析（上）](https://mp.weixin.qq.com/s/ZwoAjkMlvAOoOI8Z-QNFsQ)
 - [ ] [从一个sql引发的hive谓词下推的全面复盘及源码分析（下）](https://mp.weixin.qq.com/s/IW8dB-zRhCpN7OjFID2oNQ)
+- [ ] [Hive SQL的编译过程 - 美团技术团队](https://tech.meituan.com/2014/02/12/hive-sql-to-mapreduce.html)
 
 。。。

@@ -62,3 +62,44 @@ public static <T extends Hook> List<T> getHooks(HiveConf conf, ConfVars hookConf
     return hooks;
 }
 ```
+
+## 3. 执行时机
+
+### 3.1
+
+
+## 4. HookRunner
+
+```java
+hookRunner.runBeforeParseHook(command);
+...
+// 解析逻辑
+...
+hookRunner.runAfterParseHook(command, parseError);
+...
+
+hookRunner.runBeforeCompileHook(command);
+boolean executeHooks = hookRunner.hasPreAnalyzeHooks();
+HiveSemanticAnalyzerHookContext hookCtx = new HiveSemanticAnalyzerHookContextImpl();
+if (executeHooks) {
+  ...
+  tree =  hookRunner.runPreAnalyzeHooks(hookCtx, tree);
+}
+...
+// 语义分析逻辑
+...
+if (executeHooks) {
+  hookRunner.runPostAnalyzeHooks(hookCtx, sem.getAllRootTasks());
+}
+...
+
+hookRunner.runAfterCompilationHook(command, compileError);
+
+```
+
+
+
+https://blog.csdn.net/houzhizhen/article/details/121036390
+
+
+。。。。

@@ -3,27 +3,14 @@
 
 Hive 使用 ANTLR3 实现 HQL 的词法和语法解析。ANTLR 是一种语言识别的工具，可以用来构造领域语言。 这里不详细介绍 ANTLR，具体可以查阅 [ANTLR4 初识语法分析器生成工具 ANTLR](https://smartsi.blog.csdn.net/article/details/128500910)。在这只需要了解使用 ANTLR 构造特定的语言只需要编写一个语法文件，定义词法和语法规则即可。ANTLR 通过词法分析器 (Lexer)、语法分析器 (Parser) 以及树分析器 (Tree Parser)等实现了词法分析、语法分析、语义分析、中间代码生成的过程。
 
-Hive 中语法规则的定义文件在 0.10 版本以前只有一个 `Hive.g` 文件，随着语法规则越来越复杂，由语法规则生成的 Java 解析类可能超过 Java 类文件的最大上限，因此 0.11 版本将 `Hive.g` 拆成了 5 个文件，词法规则 `HiveLexer.g` 和语法规则的 4 个文件 `SelectClauseParser.g`、`FromClauseParser.g`，`IdentifiersParser.g` 以及 `HiveParser.g`。这几个文件均存放在 org.apache.hadoop.hive.ql.parse 目录下。
+Hive 中语法规则的定义文件在 0.10 版本以前只有一个 `Hive.g` 文件，随着语法规则越来越复杂，由语法规则生成的 Java 解析类可能超过 Java 类文件的最大上限，因此 0.11 版本将 `Hive.g` 拆成了 5 个文件，词法规则 `HiveLexer.g` 和语法规则的 4 个文件 `SelectClauseParser.g`、`FromClauseParser.g`，`IdentifiersParser.g` 以及 `HiveParser.g`：
+- `HiveLexer.g` 文件定义了 Hive 关键字以及组成词法符号的合法字符
+- `SelectClauseParser.g` 文件定义 select 语句的语法规则
+- `FromClauseParser.g` 文件定义 FROM 语句的语法规则
+- `IdentifiersParser.g` 文件定义了函数、GROUP 等的语法规则
+- `HiveParser.g` 定义语法规则文件，引入了其他语法规则文件
 
-### 1.1 HiveLexer
-
-`HiveLexer.g` 文件定义了 Hive 关键字以及组成词法符号的合法字符
-
-### 1.2 SelectClauseParser
-
-`SelectClauseParser.g` 文件定义 select 语句的语法规则
-
-### 1.3 FromClauseParser
-
-`FromClauseParser.g` 文件定义 FROM 语句的语法规则
-
-### 1.4 IdentifiersParser
-
-`IdentifiersParser.g` 文件定义了函数、GROUP 等的语法规则
-
-### 1.5 HiveParser
-
-`HiveParser.g` 定义语法规则文件，引入了其他语法规则文件
+> 这几个文件均存放在 org.apache.hadoop.hive.ql.parse 目录下。
 
 ## 2. 入口
 
@@ -63,6 +50,7 @@ public ASTNode parse(String command, Context ctx, String viewFullyQualifiedName)
   ...
   // 语法分析器
   HiveParser parser = new HiveParser(tokens);
+  parser.setTreeAdaptor(adaptor);
   ...
   // 转换为语法树
   HiveParser.statement_return r = parser.statement();
@@ -129,9 +117,47 @@ public class HiveLexerX extends HiveLexer {
   }
 }
 ```
-Hive 使用 `HiveLexerX` 自定义词法解析器类的目的是显示、记录分析过程中的错误信息。
+Hive 使用 `HiveLexerX` 自定义词法解析器类的目的是显示、记录分析过程中的错误信息。有了词法分析器 lexer 通过 TokenRewriteStream 创建词法分析器与语法解析器之间的管道-词法符号流 tokens。接着使用 ANTLR 自动生成的 HiveParser 创建语法解析器。
 
+正常情况下 ANTLR3 的语法解析器返回的是一个 CommonTree 对象。Hive 为了让语法解析器返回自定义的 ASTNode（而不是 CommonTree），需要为语法解析器设置 TreeAdapter：
+```java
+parser.setTreeAdaptor(adaptor);
+```
+TreeAdapter 实际上是 CommonTreeAdapter 对象，目的就是让语法解析器可以构建不同类型的节点。在 Hive 中重写了 CommonTreeAdaptor 类的 `create`、`errorNode`、`dupNode` 以及 `dupTree` 方法以返回 ASTNode：
+```java
+public static final TreeAdaptor adaptor = new CommonTreeAdaptor() {
+    // 为 Toekn 创建 ASTNode
+    @Override
+    public Object create(Token payload) {
+      return new ASTNode(payload);
+    }
 
+    @Override
+    public Object dupNode(Object t) {
+      return create(((CommonTree)t).token);
+    };
 
+    @Override
+    public Object dupTree(Object t, Object parent) {
+      ASTNode astNode = (ASTNode) t;
+      ASTNode astNodeCopy = (ASTNode) super.dupTree(t, parent);
+      astNodeCopy.setTokenStartIndex(astNode.getTokenStartIndex());
+      astNodeCopy.setTokenStopIndex(astNode.getTokenStopIndex());
+      return astNodeCopy;
+    }
 
-- [Hive SQL编译原理（上）](https://bbs.huaweicloud.com/blogs/289088)
+    @Override
+    public Object errorNode(TokenStream input, Token start, Token stop, RecognitionException e) {
+      return new ASTErrorNode(input, start, stop, e);
+    };
+};
+```
+ASTNode 是 Hive 自己定义的一个树节点对象，是对 ANTLR 的 CommonTree 类的一个包装，主要实现了 Node 和 Serializable 接口：
+```java
+public class ASTNode extends CommonTree implements Node,Serializable {
+    ...
+}
+```
+Hive 之所以要这样做，主要是可以实现 Node 接口，以便可以使用 Hive 自己的遍历框架对语法树进行遍历；此外还实现 Serializable 接口，以便可以将语法树序列化。
+
+创建完语法解析器并设置 TreeAdapter 后，就可以进行真正的语法分析，并转换为 ASTNode。

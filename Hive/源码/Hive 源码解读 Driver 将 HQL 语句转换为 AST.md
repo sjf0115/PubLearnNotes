@@ -160,4 +160,39 @@ public class ASTNode extends CommonTree implements Node,Serializable {
 ```
 Hive 之所以要这样做，主要是可以实现 Node 接口，以便可以使用 Hive 自己的遍历框架对语法树进行遍历；此外还实现 Serializable 接口，以便可以将语法树序列化。
 
-创建完语法解析器并设置 TreeAdapter 后，就可以进行真正的语法分析，并转换为 ASTNode。
+创建完语法解析器并设置 TreeAdapter 后，就可以进行真正的语法分析，并转换为 ASTNode。假设我们有如下 SQL：
+```sql
+SELECT COUNT(*) AS num FROM behavior WHERE uid LIKE 'a%';
+```
+有两种方式可以查看 ASTNode 具体长的什么样：一种方式是通过 debug 模式下的计算表达式(`tree.dump()`)查看语法树 ASTNode 的树形形式，另一种方式是直接调用 Hive 的 ParseDriver 解析器类获取：
+```java
+String command = "SELECT COUNT(*) AS num FROM behavior WHERE uid LIKE 'a%'";
+ParseDriver pd = new ParseDriver();
+ASTNode tree = pd.parse(command);
+System.out.println(tree.dump());
+```
+经过词法分析器、语义解析器分析之后得到的语法树 ASTNode 打印之后树形形式如下所示：
+```
+nil
+   TOK_QUERY
+      TOK_FROM
+         TOK_TABREF
+            TOK_TABNAME
+               behavior
+      TOK_INSERT
+         TOK_DESTINATION
+            TOK_DIR
+               TOK_TMP_FILE
+         TOK_SELECT
+            TOK_SELEXPR
+               TOK_FUNCTIONSTAR
+                  COUNT
+               num
+         TOK_WHERE
+            LIKE
+               TOK_TABLE_OR_COL
+                  uid
+               'a%'
+   <EOF>
+```
+整个 `TOK_QUERY` 语法树根节点是 `nil`，下面跟着 SQL 语法树主体和结束标志符 `<EOF>`。`TOK_QUERY` 主要由 `TOK_FROM` 和 `TOK_INSERT` 两部分组成。`TOK_FROM` 代表了 FROM 子句的语法树；`TOK_INSERT` 则表示查询的主体部分，包含了查询结果目的数据源 `TOK_DESTINATION`（Hive 的查询数据会临时存在 HDFS 的临时文件中）、查询条件 `TOK_SELECT`、过滤条件 `TOK_WHERE` 等。详细对比 HQL 语句和语法树来看，解析过程对每个表生成一个 `TOK_TABREF` 节点，表名对应 `TOK_TABNAME` 节点；对查询的每个字段生成一个 `TOK_SELEXPR` 节点，每个使用到的属性列生成一个 `TOK_TABLE_OR_COL` 节点，其他节点类似可以一一对应到 HQL 语句上。

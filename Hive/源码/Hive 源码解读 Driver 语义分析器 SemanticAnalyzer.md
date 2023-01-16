@@ -1,12 +1,14 @@
-语义解析主要是把 AST Tree 转化为 QueryBlock，那为什么要转成 QueryBlock 呢？从之前的分析，我们可以看到 AST Tree 还是很抽象，并且也不携带表、字段相关的信息，进行语义解析可以将AST Tree分模块存入QueryBlock 并携带对应的元数据信息，为生成逻辑执行计划做准备
+> Hive 版本：2.3.4
 
-## 1. 入口
+通过上一篇文章 [Hive 源码解读 Driver 将 HQL 语句转换为 AST](https://smartsi.blog.csdn.net/article/details/128668094) 中，我们可以看到 AST 抽象语法树还是很抽象，不够结构化，并且也不携带表、字段相关的信息。为了方便翻译为 MapReduce 程序，AST 需要进一步的抽象和结构化转化为 QueryBlock，在这个过程中语义分析器 SemanticAnalyzer 起到了重要的作用
+
+## 1. 如何获取语义分析器
 
 通过 QueryState 和语法树 ASTNode 以工厂设计模式获取处理不同语义的语义分析器：
 ```java
 BaseSemanticAnalyzer sem = SemanticAnalyzerFactory.get(queryState, tree);
 ```
-获取具体语义分析器的工作实际是交由 getInternal 方法处理，除此之外就是判断在 getInternal 方法中通过语法树 Token 获取的 Hive 操作类型是否支持：
+获取具体语义分析器的工作实际是交由 getInternal 方法处理，获取到语义分析器之后需要判断语法树 Token 对应的操作类型是否是 Hive 支持的：
 ```java
 public static BaseSemanticAnalyzer get(QueryState queryState, ASTNode tree) throws SemanticException {
   BaseSemanticAnalyzer sem = getInternal(queryState, tree);
@@ -21,9 +23,9 @@ public static BaseSemanticAnalyzer get(QueryState queryState, ASTNode tree) thro
 }
 ```
 
-## 2. 获取语义分析器
+## 2. 不同的语义分析器
 
-获取语义分析器的框架如下所示：
+获取具体语义分析器的工作实际是交由 getInternal 方法处理，获取过程如下所示：
 ```java
 private static BaseSemanticAnalyzer getInternal(QueryState queryState, ASTNode tree) throws SemanticException {
   if (tree.getToken() == null) {
@@ -78,6 +80,8 @@ switch (tree.getType()) {
 
 > CBO，全称是 Cost Based Optimization，即基于代价的优化器。其优化目标是：在编译阶段，根据查询语句中涉及到的表和查询条件，计算出产生中间结果少的高效 JOIN 顺序，从而减少查询时间和资源消耗。Hive 使用开源组件 Apache Calcite 实现 CBO 优化。
 
+下面简单罗列了词法符号与语义分析器的对应关系：
+
 | 语义分析器 | 词法符号 |
 | :------------- | :------------- |
 | ExplainSemanticAnalyzer | TOK_EXPLAIN |
@@ -91,9 +95,45 @@ switch (tree.getType()) {
 | ColumnStatsSemanticAnalyzer | TOK_ANALYZE、TOK_ALTERVIEW |
 | MacroSemanticAnalyzer | TOK_CREATEMACRO、TOK_DROPMACRO |
 | UpdateDeleteSemanticAnalyzer | TOK_EXPORT、TOK_UPDATE_TABLE、TOK_DELETE_FROM、TOK_MERGE |
-| CalcitePlanner | 默认。开启 CBO 优化的情况下 |
-| SemanticAnalyzer | 默认。不开启 CBO 优化的情况下 |
+| CalcitePlanner | 在上与语义分析器满足不了的场景下使用，兜底语义分析器。开启 CBO 优化的情况下 |
+| SemanticAnalyzer | 在上与语义分析器满足不了的场景下使用，兜底语义分析器。不开启 CBO 优化的情况下 |
 
+## 3. 示例
 
-
-https://cloud.tencent.com/developer/article/1616684
+通过上一篇文章 [Hive 源码解读 Driver 将 HQL 语句转换为 AST](https://smartsi.blog.csdn.net/article/details/128668094) 中，我们了解到如下 SQL：
+```sql
+SELECT COUNT(*) AS num FROM behavior WHERE uid LIKE 'a%';
+```
+经过词法分析器、语义解析器分析之后得到的语法树 ASTNode 打印之后树形形式如下所示：
+```
+nil
+   TOK_QUERY
+      TOK_FROM
+         TOK_TABREF
+            TOK_TABNAME
+               behavior
+      TOK_INSERT
+         TOK_DESTINATION
+            TOK_DIR
+               TOK_TMP_FILE
+         TOK_SELECT
+            TOK_SELEXPR
+               TOK_FUNCTIONSTAR
+                  COUNT
+               num
+         TOK_WHERE
+            LIKE
+               TOK_TABLE_OR_COL
+                  uid
+               'a%'
+   <EOF>
+```
+上述语法树得到的节点类型为 `HiveParser.TOK_QUERY`，在默认开启 CBO 优化的情况下得到的语义分析器为 `CalcitePlanner`：
+```java
+default: {
+  SemanticAnalyzer semAnalyzer = HiveConf
+      .getBoolVar(queryState.getConf(), HiveConf.ConfVars.HIVE_CBO_ENABLED) ?
+          new CalcitePlanner(queryState) : new SemanticAnalyzer(queryState);
+  return semAnalyzer;
+}
+```

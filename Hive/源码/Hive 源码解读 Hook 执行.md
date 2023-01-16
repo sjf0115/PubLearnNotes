@@ -65,8 +65,85 @@ public static <T extends Hook> List<T> getHooks(HiveConf conf, ConfVars hookConf
 
 ## 3. 执行时机
 
-### 3.1
+### 3.1 Driver 执行 Hook
 
+
+
+### 3.2 生命周期 Hook
+
+> 位置：org.apache.hadoop.hive.ql.Driver#compile
+
+```java
+// 获取所有生命周期 Hook
+queryHooks = loadQueryHooks();
+
+if (queryHooks != null && !queryHooks.isEmpty()) {
+    // 设置生命周期 Hook 上下文
+    QueryLifeTimeHookContext qhc = new QueryLifeTimeHookContextImpl();
+    qhc.setHiveConf(conf);
+    qhc.setCommand(command);
+    // 在编译之前
+    for (QueryLifeTimeHook hook : queryHooks) {
+      hook.beforeCompile(qhc);
+    }
+}
+
+...
+
+if (queryHooks != null && !queryHooks.isEmpty()) {
+    // 设置生命周期 Hook 上下文
+    QueryLifeTimeHookContext qhc = new QueryLifeTimeHookContextImpl();
+    qhc.setHiveConf(conf);
+    qhc.setCommand(command);
+    // 在编译之后
+    for (QueryLifeTimeHook hook : queryHooks) {
+      hook.afterCompile(qhc, compileError);
+    }
+}
+```
+单独构建 loadQueryHooks 的目的就是额外添加了一个 HiveServer2 指标 Hook：
+```java
+private List<QueryLifeTimeHook> loadQueryHooks() throws Exception {
+    List<QueryLifeTimeHook> hooks = new ArrayList<>();
+    if (conf.getBoolVar(ConfVars.HIVE_SERVER2_METRICS_ENABLED)) {
+      hooks.add(new MetricsQueryLifeTimeHook());
+    }
+    List<QueryLifeTimeHook> propertyDefinedHoooks = getHooks(ConfVars.HIVE_QUERY_LIFETIME_HOOKS, QueryLifeTimeHook.class);
+    if (propertyDefinedHoooks != null) {
+      Iterables.addAll(hooks, propertyDefinedHoooks);
+    }
+    return hooks;
+}
+```
+
+
+### 3.2 语义分析 Hook
+
+> 位置：org.apache.hadoop.hive.ql.Driver#compile
+
+```java
+// 获取所有语义分析 Hook
+List<HiveSemanticAnalyzerHook> saHooks = getHooks(
+    HiveConf.ConfVars.SEMANTIC_ANALYZER_HOOK, HiveSemanticAnalyzerHook.class
+);
+// 设置语义分析 Hook 上下文
+HiveSemanticAnalyzerHookContext hookCtx = new HiveSemanticAnalyzerHookContextImpl();
+hookCtx.setConf(conf);
+hookCtx.setUserName(userName);
+hookCtx.setIpAddress(SessionState.get().getUserIpAddress());
+hookCtx.setCommand(command);
+hookCtx.setHiveOperation(queryState.getHiveOperation());
+// 语义分析之前
+for (HiveSemanticAnalyzerHook hook : saHooks) {
+  tree = hook.preAnalyze(hookCtx, tree);
+}
+sem.analyze(tree, ctx);
+hookCtx.update(sem);
+// 语义分析之后
+for (HiveSemanticAnalyzerHook hook : saHooks) {
+  hook.postAnalyze(hookCtx, sem.getAllRootTasks());
+}
+```
 
 ## 4. HookRunner
 

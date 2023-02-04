@@ -1,16 +1,14 @@
 ---
 layout: post
 author: sjf0115
-title: Hive 窗口函数
-date: 2017-02-22 20:16:01
+title: Hive 窗口函数 LEAD、LAG、FIRST_VALUE、LAST_VALUE
+date: 2023-02-0 20:16:01
 tags:
   - Hive
 
 categories: Hive
 permalink: hive-base-window-functions
 ---
-
-窗口函数（window functions）可以对指定开窗列的数据灵活地进行分析处理。可以对多行进行操作，并为查询中的每一行返回一个值。OVER() 子句能将窗口函数与其他分析函数（analytical functions）和报告函数（reporting functions）区分开来。
 
 ## 1. 常用窗口函数
 

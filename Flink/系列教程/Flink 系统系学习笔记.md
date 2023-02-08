@@ -104,7 +104,7 @@
 - [x] [Flink 状态管理和容错机制介绍](https://smartsi.blog.csdn.net/article/details/126551467)
 - [x] [Flink 状态 TTL 如何限制状态的生命周期](https://smartsi.blog.csdn.net/article/details/127118930)
 - [x] [Flink State TTL 详解](https://smartsi.blog.csdn.net/article/details/123221583)
-- [ ] [Flink 使用 Broadcast State 的 4 个注意事项]()
+- [x] [Flink 使用 Broadcast State 的 4 个注意事项](https://smartsi.blog.csdn.net/article/details/127833112)
 - [x] [Flink Broadcast State 实战指南](https://smartsi.blog.csdn.net/article/details/127831923)
 - [x] [Flink 可查询状态是如何工作的](https://smartsi.blog.csdn.net/article/details/127118986)
 - [x] [State Processor API：如何读写和修改 Flink 应用程序的状态](https://smartsi.blog.csdn.net/article/details/123265728)

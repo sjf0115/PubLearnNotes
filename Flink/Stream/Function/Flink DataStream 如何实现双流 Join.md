@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: Flink DataStream 如何实现双流Join
+title: Flink DataStream 如何实现双流 Join
 date: 2021-05-03 12:38:17
 tags:
   - Flink
@@ -578,10 +578,6 @@ c,7,2021-03-23 12:09:07
 Join 效果如下所示：
 
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-14.png?raw=true)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 推荐订阅：
 ![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jk.jpeg?raw=true)

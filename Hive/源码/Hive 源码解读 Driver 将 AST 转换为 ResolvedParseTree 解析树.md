@@ -413,60 +413,49 @@ if (frm.getToken().getType() == HiveParser.TOK_TABREF) {
 
 #### 2.4.6 TOK_CLUSTERBY
 
+CLUSTERBY 节点处理比较简单，只需要设置 hasClusterBy 属性为 true 以及为 QBParseInfo 对象填充 ClusterBy 表达式即可：
 ```java
-// Get the clusterby aliases - these are aliased to the entries in the
-// select list
 queryProperties.setHasClusterBy(true);
 qbp.setClusterByExprForClause(ctx_1.dest, ast);
 ```
 
 #### 2.4.7 TOK_DISTRIBUTEBY
 
+DISTRIBUTEBY 节点处理比较简单，除了设置 hasDistributeBy 属性为 true 以及为 QBParseInfo 对象填充 DistributeBy 表达式之外，还需要判断是否与 ClusterBy 和 OrderBy 冲突使用：
 ```java
-// Get the distribute by aliases - these are aliased to the entries in
-// the
-// select list
 queryProperties.setHasDistributeBy(true);
 qbp.setDistributeByExprForClause(ctx_1.dest, ast);
 if (qbp.getClusterByForClause(ctx_1.dest) != null) {
-  throw new SemanticException(generateErrorMessage(ast,
-      ErrorMsg.CLUSTERBY_DISTRIBUTEBY_CONFLICT.getMsg()));
+  // 如果使用了 ClusterBy，再使用 DistributeBy 则会抛出 DistributeBy 与 ClusterBy 冲突异常
 } else if (qbp.getOrderByForClause(ctx_1.dest) != null) {
-  throw new SemanticException(generateErrorMessage(ast,
-      ErrorMsg.ORDERBY_DISTRIBUTEBY_CONFLICT.getMsg()));
+  // 如果使用了 OrderBy，再使用 DistributeBy 则会抛出 DistributeBy 与 OrderBy 冲突异常
 }
 ```
 
 #### 2.4.8 TOK_SORTBY
 
+SORTBY 节点处理与 DISTRIBUTEBY 节点类似：
 ```java
-// Get the sort by aliases - these are aliased to the entries in the
-// select list
 queryProperties.setHasSortBy(true);
 qbp.setSortByExprForClause(ctx_1.dest, ast);
 if (qbp.getClusterByForClause(ctx_1.dest) != null) {
-  throw new SemanticException(generateErrorMessage(ast,
-      ErrorMsg.CLUSTERBY_SORTBY_CONFLICT.getMsg()));
+  // 如果使用了 ClusterBy，再使用 SortBy 则会抛出 SortBy 与 ClusterBy 冲突异常
 } else if (qbp.getOrderByForClause(ctx_1.dest) != null) {
-  throw new SemanticException(generateErrorMessage(ast,
-      ErrorMsg.ORDERBY_SORTBY_CONFLICT.getMsg()));
+  // 如果使用了 OrderBy，再使用 SortBy 则会抛出 SortBy 与 OrderBy 冲突异常
 }
 ```
 
 #### 2.4.9 TOK_ORDERBY
 
+ORDERBY 节点跟其他排序节点不一样的是，如果 Order By 中有聚合操作 需要在 qb 中进行记录：
 ```java
-// Get the order by aliases - these are aliased to the entries in the
-// select list
 queryProperties.setHasOrderBy(true);
 qbp.setOrderByExprForClause(ctx_1.dest, ast);
 if (qbp.getClusterByForClause(ctx_1.dest) != null) {
-  throw new SemanticException(generateErrorMessage(ast,
-      ErrorMsg.CLUSTERBY_ORDERBY_CONFLICT.getMsg()));
+  // 如果使用了 ClusterBy，再使用 OrderBy 则会抛出 OrderBy 与 ClusterBy 冲突异常
 }
-// If there are aggregations in order by, we need to remember them in qb.
-qbp.addAggregationExprsForClause(ctx_1.dest,
-    doPhase1GetAggregationsFromSelect(ast, qb, ctx_1.dest));
+// 如果 Order By 中有聚合操作 需要在 qb 中进行记录
+qbp.addAggregationExprsForClause(ctx_1.dest, doPhase1GetAggregationsFromSelect(ast, qb, ctx_1.dest));
 ```
 
 #### 2.4.10 TOK_GROUPBY
@@ -502,9 +491,10 @@ if (ast.getToken().getType() == HiveParser.TOK_ROLLUP_GROUPBY) {
 
 #### 2.4.11 TOK_HAVING
 
+HAVING 节点处理比较简单，只需要设置 Having 表达式 以及如果 Having 中有聚合操作需要在 qb 中进行记录：
 ```java
 qbp.setHavingExprForClause(ctx_1.dest, ast);
-qbp.addAggregationExprsForClause(ctx_1.dest,doPhase1GetAggregationsFromSelect(ast, qb, ctx_1.dest));
+qbp.addAggregationExprsForClause(ctx_1.dest, doPhase1GetAggregationsFromSelect(ast, qb, ctx_1.dest));
 ```
 
 #### 2.4.12 KW_WINDOW

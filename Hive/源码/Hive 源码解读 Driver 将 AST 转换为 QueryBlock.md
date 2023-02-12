@@ -1,31 +1,42 @@
+- Driver#compile
+  - BaseSemanticAnalyzer#analyze
+    - BaseSemanticAnalyzer#analyzeInternal
+      - CalcitePlanner#analyzeInternal
+        - SemanticAnalyzer#analyzeInternal
+          - SemanticAnalyzer#processPositionAlias
+          - SemanticAnalyzer#genResolvedParseTree
+            - SemanticAnalyzer#doPhase1
+
+
+获取对应的语义分析器并进行语义分析：
 > 位置：org.apache.hadoop.hive.ql.Driver#compile
 ```java
 BaseSemanticAnalyzer sem = SemanticAnalyzerFactory.get(queryState, tree);
 sem.analyze(tree, ctx);
-```
-> 位置：org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer
-```java
+// org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer
 public void analyze(ASTNode ast, Context ctx) throws SemanticException {
+    // 语义分析初始化
     initCtx(ctx);
     init(true);
+    // 实际语义分析
     analyzeInternal(ast);
 }
 ```
 
-## 1. 初始化
+## 1. 语义分析初始化
 
+在进行语义分析之前首先进行调用 `initCtx` 和 `init` 进行初始化：
 ```java
 public void initCtx(Context ctx) {
     this.ctx = ctx;
 }
-```
-
-```java
 // org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer
 public void init(boolean clearPartsCache) {
     //no-op
 }
-
+```
+SemanticAnalyzer
+```java
 // org.apache.hadoop.hive.ql.parse.SemanticAnalyzer
 public void init(boolean clearPartsCache) {
   // clear most members
@@ -35,7 +46,7 @@ public void init(boolean clearPartsCache) {
   this.qb = qb;
 }
 ```
-在初始化中最重要的就是创建 QueryBlock 对象 QB，QueryBlock 的一个实现：
+在初始化中最重要的就是创建 QueryBlock 对象 QB：
 ```java
 public class QB {
   private final int numJoins = 0;
@@ -91,22 +102,96 @@ public class QBExpr {
 }
 ```
 
+QBParseInfo
+```java
+public class QBParseInfo {
+  private boolean isSubQ;
+  private String alias;
+  private ASTNode joinExpr;
+  private ASTNode hints;
+  private List<ASTNode> hintList;
+  private final HashMap<String, ASTNode> aliasToSrc;
+  /**
+   * insclause-0 -> TOK_TAB ASTNode
+   */
+  private final HashMap<String, ASTNode> nameToDest;
+  /**
+   * For 'insert into FOO(x,y) select ...' this stores the
+   * insclause-0 -> x,y mapping
+   */
+  private final Map<String, List<String>> nameToDestSchema;
+  private final HashMap<String, TableSample> nameToSample;
+  private final Map<ASTNode, String> exprToColumnAlias;
+  private final Map<String, ASTNode> destToSelExpr;
+  private final HashMap<String, ASTNode> destToWhereExpr;
+  private final HashMap<String, ASTNode> destToGroupby;
+  private final Set<String> destRollups;
+  private final Set<String> destCubes;
+  private final Set<String> destGroupingSets;
+  private final Map<String, ASTNode> destToHaving;
+  private final Map<String, Boolean> destToOpType;
+  // insertIntoTables/insertOverwriteTables map a table's fullName to its ast;
+  private final Map<String, ASTNode> insertIntoTables;
+  private final Map<String, ASTNode> insertOverwriteTables;
+  private ASTNode queryFromExpr;
+
+  private boolean isAnalyzeCommand; // used for the analyze command (statistics)
+  private boolean isNoScanAnalyzeCommand; // used for the analyze command (statistics) (noscan)
+
+  private final HashMap<String, TableSpec> tableSpecs; // used for statistics
+
+  private AnalyzeRewriteContext analyzeRewrite;
+
+
+  /**
+   * ClusterBy is a short name for both DistributeBy and SortBy.
+   */
+  private final HashMap<String, ASTNode> destToClusterby;
+  /**
+   * DistributeBy controls the hashcode of the row, which determines which
+   * reducer the rows will go to.
+   */
+  private final HashMap<String, ASTNode> destToDistributeby;
+  /**
+   * SortBy controls the reduce keys, which affects the order of rows that the
+   * reducer receives.
+   */
+
+  private final HashMap<String, ASTNode> destToSortby;
+
+  /**
+   * Maping from table/subquery aliases to all the associated lateral view nodes.
+   */
+  private final HashMap<String, ArrayList<ASTNode>> aliasToLateralViews;
+
+  private final HashMap<String, ASTNode> destToLateralView;
+
+  /* Order by clause */
+  private final HashMap<String, ASTNode> destToOrderby;
+  // Use SimpleEntry to save the offset and rowcount of limit clause
+  // KEY of SimpleEntry: offset
+  // VALUE of SimpleEntry: rowcount
+  private final HashMap<String, SimpleEntry<Integer, Integer>> destToLimit;
+  private int outerQueryLimit;
+
+  // used by GroupBy
+  private final LinkedHashMap<String, LinkedHashMap<String, ASTNode>> destToAggregationExprs;
+  private final HashMap<String, List<ASTNode>> destToDistinctFuncExprs;
+
+  // used by Windowing
+  private final LinkedHashMap<String, LinkedHashMap<String, ASTNode>> destToWindowingExprs;
+  ...
+}
+```
+
 
 
 语义解析就是从ASTTree生成QueryBlock的过程，即从抽象语法树中找出所有的基本单元以及每个单元之间的关系的过程。每个基本单元创建一个QB对象，将每个基本单元的不同操作转化为QB对象的不同属性。
 
 
-## 3. analyzeInternal
+## 2. 语义分析
 
-- Driver#compile
-  - BaseSemanticAnalyzer#analyze
-    - BaseSemanticAnalyzer#analyzeInternal
-      - CalcitePlanner#analyzeInternal
-        - SemanticAnalyzer#analyzeInternal
-          - SemanticAnalyzer#processPositionAlias
-          - SemanticAnalyzer#genResolvedParseTree
-            - SemanticAnalyzer#doPhase1
-
+analyzeInternal 本身是一个抽象类，不同的语义分析器有不同的语义分析实现，在这我们以 CalcitePlanner 语义分析器为例进行分析。
 ```java
 public void analyzeInternal(ASTNode ast) throws SemanticException {
   if (runCBO) {
@@ -121,13 +206,14 @@ public void analyzeInternal(ASTNode ast) throws SemanticException {
   }
 }
 ```
-
+根据是否开启了 CBO 优化，传递 analyzeInternal 方法的参数也不一样：
 > org.apache.hadoop.hive.ql.parse.SemanticAnalyzer
 ```java
+// 不开启 CBO 优化
 public void analyzeInternal(ASTNode ast) throws SemanticException {
     analyzeInternal(ast, new PlannerContext());
 }
-
+// 开启 CBO 优化
 void analyzeInternal(ASTNode ast, PlannerContextFactory pcf) throws SemanticException {
     LOG.info("Starting Semantic Analysis");
     // 1. Generate Resolved Parse tree from syntax tree
@@ -141,112 +227,64 @@ void analyzeInternal(ASTNode ast, PlannerContextFactory pcf) throws SemanticExce
     ...
 }
 ```
+从上面可以知道如果开启了 CBO 优化会使用 PreCboCtx（继承自 PlannerContext）。下面重点分析一下如何进行语义分析。
 
+### 2.1 生成解析树
+
+首先第一步就是根据抽象语法树 AST 生成 ResolvedParseTree 解析树：
 ```java
-boolean genResolvedParseTree(ASTNode ast, PlannerContext plannerCtx) throws SemanticException {
-  ASTNode child = ast;
-  this.ast = ast;
-  viewsExpanded = new ArrayList<String>();
-  ctesExpanded = new ArrayList<String>();
-
-  // 1. analyze and process the position alias
-  // step processPositionAlias out of genResolvedParseTree
-
-  // 2. analyze create table command
-  if (ast.getToken().getType() == HiveParser.TOK_CREATETABLE) {
-    // if it is not CTAS, we don't need to go further and just return
-    if ((child = analyzeCreateTable(ast, qb, plannerCtx)) == null) {
-      return false;
-    }
-  } else {
-    queryState.setCommandType(HiveOperation.QUERY);
+boolean needsTransform = needsTransform();
+// 将 GroupBy 和 OrderBy 中的位置别名替换为名称
+processPositionAlias(ast);
+PlannerContext plannerCtx = pcf.create();
+// 生成解析树 本质上就是把 AST 解析成 QB
+if (!genResolvedParseTree(ast, plannerCtx)) {
+  return;
+}
+// 如果子查询或者视图中 Order/SortBy 没有 LIMIT 将被移除
+if (HiveConf.getBoolVar(conf, ConfVars.HIVE_REMOVE_ORDERBY_IN_SUBQUERY)) {
+  for (String alias : qb.getSubqAliases()) {
+    removeOBInSubQuery(qb.getSubqForAlias(alias));
   }
-
-  // 3. analyze create view command
-  if (ast.getToken().getType() == HiveParser.TOK_CREATEVIEW ||
-      ast.getToken().getType() == HiveParser.TOK_CREATE_MATERIALIZED_VIEW ||
-      (ast.getToken().getType() == HiveParser.TOK_ALTERVIEW && ast.getChild(1).getType() == HiveParser.TOK_QUERY)) {
-    child = analyzeCreateView(ast, qb, plannerCtx);
-    if (child == null) {
-      return false;
-    }
-    viewSelect = child;
-    // prevent view from referencing itself
-    viewsExpanded.add(createVwDesc.getViewName());
+}
+// 检查查询结果是否缓存 如果先前执行的查询的结果会被缓存，那么再次执行相同的查询时会复用缓存的查询结果
+boolean isCacheEnabled = isResultsCacheEnabled();
+QueryResultsCache.LookupInfo lookupInfo = null;
+if (isCacheEnabled && !needsTransform && queryTypeCanUseCache()) {
+  lookupInfo = createLookupInfoForQuery(ast);
+  if (checkResultsCache(lookupInfo)) {
+    return;
   }
+}
 
-  switch(ast.getToken().getType()) {
-  case HiveParser.TOK_SET_AUTOCOMMIT:
-    assert ast.getChildCount() == 1;
-    if(ast.getChild(0).getType() == HiveParser.TOK_TRUE) {
-      setAutoCommitValue(true);
-    }
-    else if(ast.getChild(0).getType() == HiveParser.TOK_FALSE) {
-      setAutoCommitValue(false);
-    }
-    else {
-      assert false : "Unexpected child of TOK_SET_AUTOCOMMIT: " + ast.getChild(0).getType();
-    }
-    //fall through
-  case HiveParser.TOK_START_TRANSACTION:
-  case HiveParser.TOK_COMMIT:
-  case HiveParser.TOK_ROLLBACK:
-    if(!(conf.getBoolVar(ConfVars.HIVE_IN_TEST) || conf.getBoolVar(ConfVars.HIVE_IN_TEZ_TEST))) {
-      throw new IllegalStateException(SemanticAnalyzerFactory.getOperation(ast.getToken().getType()) +
-          " is not supported yet.");
-    }
-    queryState.setCommandType(SemanticAnalyzerFactory.getOperation(ast.getToken().getType()));
-    return false;
-  }
-
-  // masking and filtering should be created here
-  // the basic idea is similar to unparseTranslator.
-  tableMask = new TableMask(this, conf, ctx.isSkipTableMasking());
-
-  // 4. continue analyzing from the child ASTNode.
-  Phase1Ctx ctx_1 = initPhase1Ctx();
-  if (!doPhase1(child, qb, ctx_1, plannerCtx)) {
-    // if phase1Result false return
-    return false;
-  }
-
-  // 5. Resolve Parse Tree
-  // Materialization is allowed if it is not a view definition
-  getMetaData(qb, createVwDesc == null);
-  plannerCtx.setParseTreeAttr(child, ctx_1);
-  return true;
+ASTNode astForMasking;
+if (isCBOExecuted() && needsTransform && (qb.isCTAS() || qb.isView() || qb.isMaterializedView() || qb.isMultiDestQuery())) {
+  astForMasking = (ASTNode) ParseDriver.adaptor.dupTree(ast);
+} else {
+  astForMasking = ast;
 }
 ```
+在生成解析树之前先通过 processPositionAlias 方法将 GroupBy 和 OrderBy 中的位置别名替换为名称。实际生成解析树的过程是通过 genResolvedParseTree 方法来完成的，本质上是把 AST 解析成 QB 对象，在 []() 会详细介绍是如何生成解析树的。
 
-
-doPhase1 主要是递归遍历 AST，进行语义检查，并建立下面的映射关系表：
-- 获取所有表/子查询的所有别名，并在aliasToTabs, aliasToSubq中进行适当的映射
-- 获取目标的位置并将子句命名为“inclause”+ i
-- 创建从聚合树的字符串表示到实际聚合 AST 的映射
-- 在destToSelExpr中创建从子句名称到选择表达式AST的映射
-- 在 aliasToLateralViews 中创建一个从表别名到横向视图 AST 的映射
-
-
+在 Hive 3.0.0 版本之后，如果子查询或者视图中 Order/SortBy 没有 LIMIT 将被移除：
 ```java
-public boolean doPhase1(ASTNode ast, QB qb, Phase1Ctx ctx_1, PlannerContext plannerCtx) throws SemanticException {
-    boolean phase1Result = true;
-    QBParseInfo qbp = qb.getParseInfo();
-    boolean skipRecursion = false;
-    if (ast.getToken() != null) {
-        ...
-        // 逻辑处理
-        ...
-    }
-    if (!skipRecursion) {
-      // 迭代遍历子树
-      int child_count = ast.getChildCount();
-      for (int child_pos = 0; child_pos < child_count && phase1Result; ++child_pos) {
-        phase1Result = phase1Result && doPhase1((ASTNode)ast.getChild(child_pos), qb, ctx_1, plannerCtx);
-      }
-    }
-    return phase1Result;
+if (HiveConf.getBoolVar(conf, ConfVars.HIVE_REMOVE_ORDERBY_IN_SUBQUERY)) {
+  for (String alias : qb.getSubqAliases()) {
+    removeOBInSubQuery(qb.getSubqForAlias(alias));
+  }
+}
 ```
+> hive.remove.orderby.in.subquery 参数默认为 true，即子查询或者视图中 Order/SortBy 没有 LIMIT 将会被移除，具体参阅[配置](https://cwiki.apache.org/confluence/display/Hive/Configuration+Properties#ConfigurationProperties-hive.remove.orderby.in.subquery)
 
+如果开启 CBO 优化并应用 Masking/Filtering 屏蔽过滤策略，则需要创建一个 AST 的副本。原因是生成 Operator 树的过程中可能会修改原始的 AST，但如果需要第二次解析，则需要解析未修改的 AST：
+```java
+ASTNode astForMasking;
+if (isCBOExecuted() && needsTransform && (qb.isCTAS() || qb.isView() || qb.isMaterializedView() || qb.isMultiDestQuery())) {
+  astForMasking = (ASTNode) ParseDriver.adaptor.dupTree(ast);
+} else {
+  astForMasking = ast;
+}
+```
 
 
 

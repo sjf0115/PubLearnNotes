@@ -40,4 +40,23 @@
 - [x] [Hive 源码解读 CliDriver HQL 读取与参数解析](https://smartsi.blog.csdn.net/article/details/128462596)
 - [x] [Hive 源码解读 CliDriver HQL 语句拆分](https://smartsi.blog.csdn.net/article/details/128607389)
 - [x] [Hive 源码解读 CliDriver HQL 命令处理](https://smartsi.blog.csdn.net/article/details/128622970)
+- [ ] [Hive 源码解读 CliDriver 变量替换]()
+- [ ] [Hive 源码解读 输出控制台]()
+- [ ] [Hive 源码解读 CliDriver 命令处理器 CommandProcessor]()
+- [ ] [Hive 源码解读 Hook 执行]()
 - [x] [Hive 源码解读 Driver 将 HQL 语句转换为 AST](https://smartsi.blog.csdn.net/article/details/128668094)
+- [x] [Hive 源码解读 Driver 语义分析器 SemanticAnalyzer](https://smartsi.blog.csdn.net/article/details/128695596)
+- [ ] [Hive 源码解读 Driver 将 AST 转换为 QueryBlock]()
+  - [ ] [Hive 源码解读 Driver 将 AST 转换为 ResolvedParseTree 解析树]()
+  - [ ] [Hive 源码解读 Driver 分析创建表命令]()
+  - [ ] [Hive 源码解读 Driver 分析创建视图命令]()
+- [ ] [Hive 源码解读 Driver 将 QueryBlock 转换为 OperatorTree 操作树]()
+- [ ] [Hive 源码解读 Driver 对 OperatorTree 进行逻辑优化]()
+- [ ] [Hive 源码解读 Driver 生成 TaskTree]()
+- [ ] [Hive 源码解读 Driver 提交任务作业]()
+
+
+
+
+
+..

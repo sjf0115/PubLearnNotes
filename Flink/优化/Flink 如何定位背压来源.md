@@ -18,7 +18,7 @@ permalink: how-to-identify-the-source-of-backpressure
 
 ## 1. 什么是背压？
 
-[Flink 如何处理背压](http://smartsi.club/how-flink-handles-backpressure.html) 这篇文章虽然比较旧，但比较准确的解释了背压。如果您不了解背压这个概念，我强烈建议您阅读一下。如果想更深入、更底层地了解该话题以及 Flink 的网络堆栈是如何工作的，可以查阅[咱们从头到尾讲一次 Flink 网络流控和反压剖析](https://mp.weixin.qq.com/s/6kqUEkJdsZgMIknqSPlzbQ)。
+[Flink 如何处理背压](https://smartsi.blog.csdn.net/article/details/127355152) 这篇文章虽然比较旧，但比较准确的解释了背压。如果您不了解背压这个概念，我强烈建议您阅读一下。如果想更深入、更底层地了解该话题以及 Flink 的网络堆栈是如何工作的，可以查阅[Flink 网络流控和反压剖析详解](https://smartsi.blog.csdn.net/article/details/127312894)。
 
 从高层次上理解，如果作业图中的某些算子无法以接收记录相同的速度处理记录，就会发生背压。运行这个慢算子的子任务的输入缓冲区就会被填满。一旦输入缓冲区被填满，背压就会传播到上游子任务的输出缓冲区。一旦上游子任务的输出缓冲区被填满，上游子任务就被迫降低处理速度，来匹配慢算子的处理速度，最终导致下游出现瓶颈。背压一步一步向上传播，最终到达 Source 算子。
 

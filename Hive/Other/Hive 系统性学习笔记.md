@@ -13,6 +13,12 @@
 - [x] [深入理解 Hive UDAF](https://smartsi.blog.csdn.net/article/details/127964198)
 - [x] [Hive 日期相关函数](https://smartsi.blog.csdn.net/article/details/52987726)
 - [x] [Hive 如何使用 Grouping Sets](https://smartsi.blog.csdn.net/article/details/126325198)
+- [x] [Hive SORT BY vs ORDER BY vs DISTRIBUTE BY vs CLUSTER BY](https://smartsi.blog.csdn.net/article/details/129000338)
+- [ ] [Hive 窗口函数 LEAD、LAG、FIRST_VALUE、LAST_VALUE]()
+- [ ] [Hive 分析函数 RANK ROW_NUMBER CUME_DIST CUME_DIST](https://smartsi.blog.csdn.net/article/details/56488568)
+- [x] [Hive Union 使用指南](https://smartsi.blog.csdn.net/article/details/60779047)
+- [x] [Hive JsonSerde 使用指南](https://smartsi.blog.csdn.net/article/details/70170173)
+- [x] [Hive Lateral View 使用指南](https://smartsi.blog.csdn.net/article/details/62894761)
 
 ### 1.4 服务
 

@@ -7,6 +7,8 @@
 
 ### 1.2 DML
 
+- [x] [Hive 排除 SELECT 中某列](https://smartsi.blog.csdn.net/article/details/129073922)
+
 ### 1.3 函数
 
 - [x] [Hive 如何实现自定义函数 UDF](https://blog.csdn.net/SunnyYoona/article/details/126211216)
@@ -19,6 +21,7 @@
 - [x] [Hive Union 使用指南](https://smartsi.blog.csdn.net/article/details/60779047)
 - [x] [Hive JsonSerde 使用指南](https://smartsi.blog.csdn.net/article/details/70170173)
 - [x] [Hive Lateral View 使用指南](https://smartsi.blog.csdn.net/article/details/62894761)
+- [ ] [Hive 如何定义窗口]()
 
 ### 1.4 服务
 
@@ -29,11 +32,18 @@
 
 ## 2. 原理
 
+- [ ] [Hive CBO 原理介绍]()
 
 ## 3. 调优
 
+- [ ] [Hive 简单查询 FetchTask]()
+- [ ] [Hive 启用压缩]()
+- [ ] [Hive 本地执行模式]()
+- [ ] [Hive ORC 文件格式]()
+- [ ] [Hive 公用表表达式 CTE 使用指南]()
 - [x] [Hive Count Distinct 优化](https://smartsi.blog.csdn.net/article/details/127814412)
 - [x] [Hive Join 优化之 Map Join](https://smartsi.blog.csdn.net/article/details/121190775)
+- [ ] [Hive Join 优化之 Skewed Join]()
 
 ## 4. 实战
 

@@ -55,33 +55,33 @@ ON study.user_id = user.user_id;
 顶层的 UNION 两侧各为一个 JOIN，JOIN 的右表是相同的查询。通过写子查询的方式，只能重复这段代码。可以使用 CTE 的方式重写以上语句：
 ```sql
 WITH
-    user AS (
-        SELECT user_id
-        FROM dim_app_user_td
-        WHERE dt = '${date}'
-    ),
-    study_duration AS (
-        SELECT user_id, duration
-        FROM dws_app_study_user_td
-        WHERE dt = '${date}'
-    ),
-    study_score AS (
-        SELECT user_id, score
-        FROM dws_app_score_user_td
-        WHERE dt = '${date}'
-    ),
-    user_study_duration AS (
-        SELECT SUM(a.duration) AS duration
-        FROM study_duration AS a
-        LEFT SEMI JOIN user AS b
-        ON a.user_id = b.user_id
-    ),
-    user_study_score AS (
-        SELECT SUM(a.score) AS score
-        FROM study_score AS a
-        LEFT SEMI JOIN user AS b
-        ON a.user_id = b.user_id
-    )
+user AS (
+    SELECT user_id
+    FROM dim_app_user_td
+    WHERE dt = '${date}'
+),
+study_duration AS (
+    SELECT user_id, duration
+    FROM dws_app_study_user_td
+    WHERE dt = '${date}'
+),
+study_score AS (
+    SELECT user_id, score
+    FROM dws_app_score_user_td
+    WHERE dt = '${date}'
+),
+user_study_duration AS (
+    SELECT SUM(a.duration) AS duration
+    FROM study_duration AS a
+    LEFT SEMI JOIN user AS b
+    ON a.user_id = b.user_id
+),
+user_study_score AS (
+    SELECT SUM(a.score) AS score
+    FROM study_score AS a
+    LEFT SEMI JOIN user AS b
+    ON a.user_id = b.user_id
+)
 SELECT * FROM user_study_duration
 UNION ALL
 SELECT * FROM user_study_score;

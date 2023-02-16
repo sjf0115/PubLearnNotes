@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Hive中排除SELECT查询列
+title: Hive 排除 SELECT 中某列
 date: 2019-08-27 21:48:09
 tags:
   - Hive
@@ -19,7 +19,8 @@ permalink: exclude-columns-from-select-query-in-hive
 我们可以使用正则表达式来排除某些列。如果要使用正则表达式，需要将属性 `hive.support.quoted.identifiers` 设置为 `none`。
 
 下面是我们的样本数据。此表中一共有100多列，如下图所示(只展示了8列):
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hive/exclude-columns-from-select-query-in-hive.png?raw=true)
+
+![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/exclude-columns-from-select-query-in-hive.png?raw=true)
 
 如果我们不想要 `event_ts` 这一列。我们会使用如下查询来排除这一列:
 ```sql

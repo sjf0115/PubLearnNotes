@@ -275,8 +275,6 @@ TOK_QUERY
 
 #### 2.4.1 TOK_SELECT
 
-
-
 ```java
 qb.countSel();
 qbp.setSelExprForClause(ctx_1.dest, ast);
@@ -303,9 +301,6 @@ doPhase1GetColumnAliasesFromSelect(ast, qbp, ctx_1.dest);
 qbp.setAggregationExprsForClause(ctx_1.dest, aggregations);
 qbp.setDistinctFuncExprsForClause(ctx_1.dest, doPhase1GetDistinctFuncExprs(aggregations));
 ```
-
-
-
 
 #### 2.4.2 TOK_WHERE
 

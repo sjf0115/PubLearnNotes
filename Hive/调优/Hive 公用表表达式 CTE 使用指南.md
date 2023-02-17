@@ -9,7 +9,7 @@ Hive 从 0.13.0 版本开始支持标准 SQL 的 CTE，具体细看使[HIVE-1180
 
 ## 2. 语法
 
-CTE 由表示 CTE 的表达式名称，AS 关键字以及 SELECT 语句组成。定义 CTE 后，可以在 SELECT、INSERT、UPDATE 或 DELETE 语句中像表或视图一样引用它。CTE 也可以在 CREATE VIEW 语句中用作其定义 SELECT 语句的一部分。CTE 的基本语法结构如下所示：
+CTE 由表示 CTE 的表达式名称，AS 关键字以及 SELECT 语句组成。CTE 的基本语法结构如下所示：
 ```sql
 WITH
   cte_name AS (cte_query)
@@ -18,6 +18,8 @@ WITH
 说明:
 - cte_name：CTE 的名称，不能与当前 WITH 子句中的其他 CTE 的名称相同。查询中任何使用到 cte_name 标识符的地方，均指 CTE。
 - cte_query：一个 SELECT 语句。它产生的结果集用于填充 CTE。
+
+> 在视图、CTAS 以及 INSERT 语句中支持 CTE。但是需要注意的是在子查询块中不支持 WITH 子句，此外也不支持递归查询。
 
 ## 3. Example
 
@@ -90,66 +92,98 @@ SELECT * FROM user_study_score;
 
 ## 4. 使用场景
 
+### 4.1 在 SELECT 语句中使用
 
+在 SELECT 语句中使用 CTE：
 ```sql
-with q1 as ( select key from src where key = '5')
-select *
-from q1;
-
--- chaining CTEs
-with q1 as ( select key from q2 where key = '5'),
-q2 as ( select key from src where key = '5')
-select * from (select key from q1) a;
-
--- union example
-with q1 as (select * from src where key= '5'),
-q2 as (select * from src s2 where key = '4')
-select * from q1 union all select * from q2;
+WITH user AS (
+  SELECT uid, COUNT(*) AS num
+  FROM behavior
+  WHERE uid LIKE 'a%'
+  GROUP BY uid
+)
+SELECT uid, num
+FROM user;
+```
+在 SELECT 语句中使用多个 CTE：
+```sql
+WITH user AS (
+  SELECT uid, COUNT(*) AS num
+  FROM behavior
+  WHERE uid LIKE 'a%'
+  GROUP BY uid
+),
+user_num AS (
+  SELECT SUM(num) AS num
+  FROM user
+)
+SELECT num
+FROM user_num;
+```
+在 SELECT 语句中可以支持对两个 CTE 进行 UNION：
+```sql
+WITH user_a AS (
+  SELECT uid, COUNT(*) AS num
+  FROM behavior
+  WHERE uid LIKE 'a%'
+  GROUP BY uid
+),
+user_b AS (
+  SELECT uid, COUNT(*) AS num
+  FROM behavior
+  WHERE uid LIKE 'b%'
+  GROUP BY uid
+),
+SELECT uid, num
+FROM user_a
+UNION ALL
+SELECT uid, num
+FROM user_b;
 ```
 
-在视图/创建/插入语句的CTE：
+### 4.2 在 INSERT 语句中使用
+
 ```sql
--- insert example
-create table s1 like src;
-with q1 as ( select key, value from src where key = '5')
-from q1
-insert overwrite table s1
-select *;
-
--- ctas example
-create table s2 as
-with q1 as ( select key from src where key = '4')
-select * from q1;
-
--- view example
-create view v1 as
-with q1 as ( select key from src where key = '5')
-select * from q1;
-select * from v1;
-
--- view example, name collision
-create view v1 as
-with q1 as ( select key from src where key = '5')
-select * from q1;
-with q1 as ( select key from src where key = '4')
-select * from v1;
+WITH user AS (
+  SELECT uid, COUNT(*) AS num
+  FROM behavior
+  WHERE uid LIKE 'a%'
+  GROUP BY uid
+)
+FROM user
+INSERT OVERWRITE TABLE user_num
+SELECT uid, num;
 ```
 
-### 5. 使用CTE的好处
+### 4.3 在 CTAS 语句中使用
+
+```sql
+CREATE TABLE user_num AS
+WITH user AS (
+  SELECT uid, COUNT(*) AS num
+  FROM behavior
+  WHERE uid LIKE 'a%'
+  GROUP BY uid
+)
+SELECT uid, num FROM user;
+```
+
+### 4.4 在视图中使用
+
+在创建视图中使用 CTE:
+```sql
+CREATE VIEW user_num_view AS
+WITH user AS (
+  SELECT uid, COUNT(*) AS num
+  FROM behavior
+  WHERE uid LIKE 'a%'
+  GROUP BY uid
+)
+SELECT uid, num FROM user;
+```
+
+## 5. 使用CTE的好处
 
 - 提高可读性：使用 CTE 可以提高可读性并简化复杂查询的维护。不是将所有查询逻辑都集中到一个大型查询中，而是创建几个简单逻辑构建块的 CTE，然后可以使用它们构建更复杂的 CTE，直到生成最终结果集。
 - 替代视图或表：定义CTE后，可以用作表或视图，并可以 SELECT，INSERT，UPDATE 或 DELETE 数据。如果你没有创建视图或表的权限，或者你根本不想创建一个视图或表，因为它仅在这一个查询中使用，这种情形使用 CTE 很方便。
 - 排名：每当你想使用排名函数，如ROW_NUMBER()，RANK()，NTILE()等。
-
-当SQL的逻辑很复杂，子查询嵌套比较多时，SQL的可读性会很差，后期理解和维护困难。这个时候可以使用Common Table Expression（CTE）来简化SQL，提高可读性和执行效率。
-
-
-
-
-参考:[Common Table Expression](https://cwiki.apache.org/confluence/display/Hive/Common+Table+Expression)
-[Introduction to common table expressions](http://dcx.sybase.com/1100/en/dbusage_en11/commontblexpr-s-5414852.html)
-[WITH common_table_expression (Transact-SQL)](https://docs.microsoft.com/zh-cn/sql/t-sql/queries/with-common-table-expression-transact-sql?view=sql-server-2017#syntax)
-[What are the Advantages of using common table expression (CTE)?](http://www.codesolution.org/what-are-the-advantages-of-using-common-table-expression-cte/)
-- [with as 语句真的会把查询的数据存内存嘛？](https://mp.weixin.qq.com/s/fBdKMxvZJ43Dp4NAyJAqLg#at)
-- [Hive with语句你所不知道的秘密](https://blog.csdn.net/godlovedaniel/article/details/115480115)
-- [数据仓库之Hive with as](https://mp.weixin.qq.com/s/y5d2lCTFxi4NKHqwNpxyDA)

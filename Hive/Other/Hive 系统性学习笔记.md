@@ -40,7 +40,7 @@
 - [ ] [Hive 启用压缩]()
 - [ ] [Hive 本地执行模式]()
 - [ ] [Hive ORC 文件格式]()
-- [ ] [Hive 公用表表达式 CTE 使用指南]()
+- [ ] [Hive 公用表表达式 CTE 使用指南](https://smartsi.blog.csdn.net/article/details/129074882)
 - [x] [Hive Count Distinct 优化](https://smartsi.blog.csdn.net/article/details/127814412)
 - [x] [Hive Join 优化之 Map Join](https://smartsi.blog.csdn.net/article/details/121190775)
 - [ ] [Hive Join 优化之 Skewed Join]()

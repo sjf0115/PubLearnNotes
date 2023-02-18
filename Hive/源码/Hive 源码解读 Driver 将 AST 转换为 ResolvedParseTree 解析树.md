@@ -272,9 +272,11 @@ TOK_QUERY
             'a%'
 ```
 
+AST 树生成 QueryBlock 的过程是一个递归的过程，先序遍历 AST 树，遇到不同的 Token 节点，保存到相应的属性中，主要包含以下几个过程。
 
 #### 2.4.1 TOK_SELECT
 
+分别将查询表达式的语法部分保存在 QBParseInfo 对象的 destToSelExpr、destToAggregationExprs、destToDistinctFuncExprs三个属性中
 ```java
 qb.countSel();
 qbp.setSelExprForClause(ctx_1.dest, ast);
@@ -304,6 +306,7 @@ qbp.setDistinctFuncExprsForClause(ctx_1.dest, doPhase1GetDistinctFuncExprs(aggre
 
 #### 2.4.2 TOK_WHERE
 
+将 Where 部分的语法保存在 QBParseInfo 对象的 destToWhereExpr 属性中：
 ```java
 qbp.setWhrExprForClause(ctx_1.dest, ast);
 if (!SubQueryUtils.findSubQueries((ASTNode) ast.getChild(0)).isEmpty()) {
@@ -313,6 +316,7 @@ if (!SubQueryUtils.findSubQueries((ASTNode) ast.getChild(0)).isEmpty()) {
 
 #### 2.4.3 TOK_INSERT_INTO
 
+将 INSERT INTO 部分的语法保存在 QBParseInfo 对象的 insertIntoTables 属性中：
 ```java
 String currentDatabase = SessionState.get().getCurrentDatabase();
 String tab_name = getUnescapedName((ASTNode) ast.getChild(0).getChild(0), currentDatabase);
@@ -321,6 +325,7 @@ qbp.addInsertIntoTable(tab_name, ast);
 
 #### 2.4.4 TOK_DESTINATION
 
+将输出目标的语法部分保存在 QBParseInfo 对象的 nameToDest 属性中：
 ```java
 ctx_1.dest = this.ctx.getDestNamePrefix(ast, qb).toString() + ctx_1.nextNum;
 ctx_1.nextNum++;
@@ -376,11 +381,11 @@ if (plannerCtx != null && !queryProperties.hasMultiDestQuery()) {
 
 #### 2.4.5 TOK_FROM
 
+将表名语法部分保存到 QBParseInfo 对象的 aliasToTabs 等属性中：
 ```java
 int child_count = ast.getChildCount();
 if (child_count != 1) {
-  throw new SemanticException(generateErrorMessage(ast,
-      "Multiple Children " + child_count));
+  throw new SemanticException(generateErrorMessage(ast, "Multiple Children " + child_count));
 }
 
 if (!qbp.getIsSubQ()) {
@@ -393,8 +398,7 @@ if (frm.getToken().getType() == HiveParser.TOK_TABREF) {
   processTable(qb, frm);
 } else if (frm.getToken().getType() == HiveParser.TOK_SUBQUERY) {
   processSubQuery(qb, frm);
-} else if (frm.getToken().getType() == HiveParser.TOK_LATERAL_VIEW ||
-    frm.getToken().getType() == HiveParser.TOK_LATERAL_VIEW_OUTER) {
+} else if (frm.getToken().getType() == HiveParser.TOK_LATERAL_VIEW || frm.getToken().getType() == HiveParser.TOK_LATERAL_VIEW_OUTER) {
   queryProperties.setHasLateralViews(true);
   processLateralView(qb, frm);
 } else if (isJoinToken(frm)) {

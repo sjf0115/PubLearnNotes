@@ -42,7 +42,7 @@ PARTITION 语句会按照一个或多个指定字段，将查询结果集拆分�
 
 窗口帧 用于从分区中选择指定的多条记录，供窗口函数处理。Hive 提供了两种定义窗口帧的形式：ROWS 和 RANGE。两种类型都需要配置上界和下界。例如，ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW 表示选择分区起始记录到当前记录的所有行；SUM(close) RANGE BETWEEN 100 PRECEDING AND 200 FOLLOWING 则通过 字段差值 来进行选择。如当前行的 close 字段值是 200，那么这个窗口帧的定义就会选择分区中 close 字段值落在 100 至 400 区间的记录。以下是所有可能的窗口帧定义组合。如果没有定义窗口帧，则默认为 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW。
 
-```
+```sql
 (ROWS | RANGE) BETWEEN (UNBOUNDED | [num]) PRECEDING AND ([num] PRECEDING | CURRENT ROW | (UNBOUNDED | [num]) FOLLOWING)
 (ROWS | RANGE) BETWEEN CURRENT ROW AND (CURRENT ROW | (UNBOUNDED | [num]) FOLLOWING)
 (ROWS | RANGE) BETWEEN [num] FOLLOWING AND (UNBOUNDED | [num]) FOLLOWING
@@ -58,6 +58,11 @@ PARTITION 语句会按照一个或多个指定字段，将查询结果集拆分�
 ```sql
 Function (arg1,..., argn) OVER ([PARTITION BY <...>] [ORDER BY <....>] [<window_expression>])
 ```
+
+窗口计算过程：
+- 按窗口定义，将所有输入数据分区、再排序（如果需要的话）
+- 对每一行数据，计算它的窗口范围
+- 将窗口内的行集合输入窗口函数，计算结果填入当前行
 
 ### 2.1 窗口函数
 
@@ -76,7 +81,6 @@ Function (arg1,..., argn) OVER ([PARTITION BY <...>] [ORDER BY <....>] [<window_
 - 基于值 RANGE 类型
   - 通过比较 ORDER BY 指定的列值大小关系来确定数据边界。
 
-
 | 名词 | 含义 |
 | -------- | -------- |
 | preceding     | 往前     |
@@ -89,90 +93,193 @@ Function (arg1,..., argn) OVER ([PARTITION BY <...>] [ORDER BY <....>] [<window_
 | N following     | 往后 N 行     |
 
 
+不是所有的函数在运行都是可以通过改变窗口的大小，来控制计算的数据集的范围！所有的排名函数和LAG,LEAD，支持使用over()，但是在over()中不能定义 window_clause
+
+
+#### 2.2.1 ROWS
+
+ROWS 类型是基于行类型，需要通过数据行数来确定窗口边界，是物理意义上的行。比如 ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING 代表从当前行往前一行以及往后一行。
+
 
 ```sql
-(ROWS | RANGE) BETWEEN (UNBOUNDED | [num]) PRECEDING AND ([num] PRECEDING | CURRENT ROW | (UNBOUNDED | [num]) FOLLOWING)
-(ROWS | RANGE) BETWEEN CURRENT ROW AND (CURRENT ROW | (UNBOUNDED | [num]) FOLLOWING)
-(ROWS | RANGE) BETWEEN [num] FOLLOWING AND (UNBOUNDED | [num]) FOLLOWING
+ROWS BETWEEN (UNBOUNDED | [num]) PRECEDING AND ([num] PRECEDING | CURRENT ROW | (UNBOUNDED | [num]) FOLLOWING)
+ROWS BETWEEN CURRENT ROW AND (CURRENT ROW | (UNBOUNDED | [num]) FOLLOWING)
+ROWS BETWEEN [num] FOLLOWING AND (UNBOUNDED | [num]) FOLLOWING
 ```
 
+> 假设 idx 表示当前行的下标
+
+| 起始 |  终止 | 窗口范围 | 说明 |
+| -------- | -------- | -------- | -------- |
+| UNBOUNDED PRECEDING  | [N] PRECEDING       | [0, idx - N]               |
+| UNBOUNDED PRECEDING  | CURRENT ROW         | [0, idx]                   |
+| UNBOUNDED PRECEDING  | [N] FOLLOWING       | [0, idx + N]               |
+| UNBOUNDED PRECEDING  | UNBOUNDED FOLLOWING | [0, size - 1]              |
+| [N] PRECEDING        | [M] PRECEDING       | [idx - N, idx - M], N >= M |
+| [N] PRECEDING        | CURRENT ROW         | [idx - N, idx]             |
+| [N] PRECEDING        | [M] FOLLOWING       | [idx - N, idx + M]         |
+| [N] PRECEDING        | UNBOUNDED FOLLOWING | [idx - N, size - 1]        |
+| CURRENT ROW          | CURRENT ROW         | [idx, idx]                 |
+| CURRENT ROW          | [M] FOLLOWING       | [idx, idx + M]             |
+| CURRENT ROW          | UNBOUNDED FOLLOWING | [idx, size - 1]            |
+| [N] FOLLOWING        | [M] FOLLOWING       | [idx + N, idx + M], N <= M |
+| [N] FOLLOWING        | UNBOUNDED FOLLOWING | [idx + N, size - 1]        |
+
+> 需要注意的是在 ROWS 类型下 `[N] PRECEDING` 表示当前行往后倒退 N 行，同样的 `[M] FOLLOWING` 表示当前行往前前进 M 行
+
+```sql
+WITH behavior AS (
+  SELECT 'a' AS uid, '20230211' AS dt, 1 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230213' AS dt, 3 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230214' AS dt, 4 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230212' AS dt, 2 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230215' AS dt, 5 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230216' AS dt, 6 AS score
+)
+SELECT
+  uid, dt, score,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS s1,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS s2,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN UNBOUNDED PRECEDING AND 1 FOLLOWING) AS s3,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS s4,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN 2 PRECEDING AND 1 PRECEDING) AS s5,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS s6,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN 2 PRECEDING AND 1 FOLLOWING) AS s7,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN 2 PRECEDING AND UNBOUNDED FOLLOWING) AS s8,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS s9,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS s10,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS s11,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING) AS s12,
+  COLLECT_SET(score) OVER (ORDER BY dt ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING) AS s13
+FROM behavior;
+```
+
+#### 2.2.2 RANGE
+
+RANGE 类型，是基于值类型，需要通过比较 ORDER BY 指定的列值大小关系来确定数据边界。
+
+```sql
+RANGE BETWEEN (UNBOUNDED | [num]) PRECEDING AND ([num] PRECEDING | CURRENT ROW | (UNBOUNDED | [num]) FOLLOWING)
+RANGE BETWEEN CURRENT ROW AND (CURRENT ROW | (UNBOUNDED | [num]) FOLLOWING)
+RANGE BETWEEN [num] FOLLOWING AND (UNBOUNDED | [num]) FOLLOWING
+```
+
+| 起始 |  终止 | 窗口范围 |
+| -------- | -------- | -------- |
+| UNBOUNDED PRECEDING  | [N] PRECEDING       | [0, idx - N]   |
+| UNBOUNDED PRECEDING  | CURRENT ROW         | [0, idx]     |
+| UNBOUNDED PRECEDING  | [N] FOLLOWING       | [0, idx + N]   |
+| UNBOUNDED PRECEDING  | UNBOUNDED FOLLOWING | [0, size - 1]  |
+| [N] PRECEDING        | [M] PRECEDING       | [idx - N, idx - M], N >= M |
+| [N] PRECEDING        | CURRENT ROW         | [idx - N, idx] |
+| [N] PRECEDING        | [M] FOLLOWING       | [idx - N, idx + M] |
+| [N] PRECEDING        | UNBOUNDED FOLLOWING | [idx - N, size - 1] |
+| CURRENT ROW          | CURRENT ROW         | [idx, idx] |
+| CURRENT ROW          | [M] FOLLOWING       | [idx, idx + M] |
+| CURRENT ROW          | UNBOUNDED FOLLOWING | [idx, size - 1] |
+| [N] FOLLOWING        | [M] FOLLOWING       | [idx + N, idx + M], N <= M |
+| [N] FOLLOWING        | UNBOUNDED FOLLOWING | [idx + N, size - 1] |
+
+> 需要注意的是在 RANGE 类型下 `[N] PRECEDING` 表示当前值减去 N，同样的 `[M] FOLLOWING` 表示当前值加上 M
+
+```sql
+WITH behavior AS (
+  SELECT 'a' AS uid, '20230211' AS dt, 1 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230213' AS dt, 3 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230214' AS dt, 4 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230212' AS dt, 2 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230215' AS dt, 5 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230216' AS dt, 6 AS score
+)
+SELECT
+  uid, dt, score,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS s1,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS s2,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN UNBOUNDED PRECEDING AND 1 FOLLOWING) AS s3,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS s4,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN 2 PRECEDING AND 1 PRECEDING) AS s5,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN 2 PRECEDING AND CURRENT ROW) AS s6,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN 2 PRECEDING AND 1 FOLLOWING) AS s7,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN 2 PRECEDING AND UNBOUNDED FOLLOWING) AS s8,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS s9,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING) AS s10,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS s11,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN 1 FOLLOWING AND 2 FOLLOWING) AS s12,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING) AS s13
+FROM behavior;
+```
+
+我们以 dt = '20230214' 这一行数据为例，ORDER BY 指定值比较字段为 score，即当前值为 4：
+- `UNBOUNDED PRECEDING AND 1 PRECEDING` 表示的范围为 `(-∞, 3]` s1 结果为 `[1, 2, 3]` 结果不符合预期
+
+- `UNBOUNDED PRECEDING AND CURRENT ROW` 表示的范围为 `(-∞, 4]`，s2 结果为 `[1, 2, 3, 4]`
+- `UNBOUNDED PRECEDING AND 1 FOLLOWING` 表示的范围为 `(-∞, 5]`，s3 结果为 `[1, 2, 3, 4, 5]`
+- `UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING` 表示的范围为 `(-∞, +∞)`，s4 结果为 `[1, 2, 3, 4, 5, 6]`
+- `2 PRECEDING AND 1 PRECEDING` 表示的范围为 `[2, 3]`，s5 结果为 `[2, 3]` 结果不符合预期
+- `2 PRECEDING AND CURRENT ROW` 表示的范围为 `[2, 4]`，s6 结果为 `[2, 3, 4]`      
+- `2 PRECEDING AND 1 FOLLOWING` 表示的范围为 `[2, 5]`，s7 结果为 `[2, 3, 4, 5]`   
+- `2 PRECEDING AND UNBOUNDED FOLLOWING` 表示的范围为 `[2, +∞)`，s8 结果为 `[2, 3, 4, 5, 6]`   
+- `CURRENT ROW AND CURRENT ROW` 表示的范围为 `[4, 4]`，s9 结果为 `[4]`   
+- `CURRENT ROW AND 1 FOLLOWING` 表示的范围为 `[4, 5]`，s10 结果为 `[4, 5]`   
+- `CURRENT ROW AND UNBOUNDED FOLLOWING` 表示的范围为 `[4, +∞)`，s11 结果为 `[4, 5 ,6]`
+- `1 FOLLOWING AND 2 FOLLOWING` 表示的范围为 `[5, 6]`，s12 结果为 `[5 ,6]` 结果不符合预期
+- `1 FOLLOWING AND UNBOUNDED FOLLOWING` 表示的范围为 `[5, +∞)`，s13 结果为 `[5 ,6]` 结果不符合预期
 
 
 开启 ROWS BETWEEN 是不是必须使用 ORDER BY ？
 
 
-#### ROWS vs RANGE
+#### 2.2.3 ROWS vs RANGE
 
-ROWS BETWEEN AND 通过数据行数来确定窗口的边界，是物理意义上的行。比如 ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING 代表从当前行往前一行以及往后一行。
 
 RANGE BETWEEN AND 通过比较 ORDER BY 列值的大小关系来确定窗口的边界。一般在窗口定义中会指定 ORDER BY，如果 未指定 ORDER BY 时，一个分区中的所有数据行具有相同的 ORDER BY 列值。NULL 与 NULL 被认为是相等的。
-
-
-不是所有的函数在运行都是可以通过改变窗口的大小，来控制计算的数据集的范围！所有的排名函数和LAG,LEAD，支持使用over()，但是在over()中不能定义 window_clause
 
 
 当为排序函数，如row_number(),rank()等时，over中的order by只起到窗口内排序作用。
 
 当为聚合函数，如max，min，count等时，over中的order by不仅起到窗口内排序，还起到窗口内从当前行到之前所有行的聚合（多了一个范围）。
 
-
-
-(1) 起始范围：
-
-| Boundary1.type |  Boundary1.amt | Behavior |
-| -------- | -------- | -------- |
-| PRECEDING     | UNBOUNDED     | start = 0     |
-| PRECEDING     | unsigned int  | start = R.idx - Boundary1.amt |
-| CURRENT ROW   |               | start = R.idx |
-| FOLLOWING     | UNBOUNDED     | Error |
-| FOLLOWING     | unsigned int  | start = R.idx + b1.amt |
-
-(2) 终止范围：
-
-| Boundary2.type | Boundary2.amt | Behavior |
-| -------- | -------- | -------- |
-| PRECEDING | UNBOUNDED | Error |
-| PRECEDING | unsigned int | end = R.idx - Boundary2.amt b2.amt == 0 => end = R.idx + 1 |
-| CURRENT ROW | | end = R.idx + 1 |
-| FOLLOWING | UNBOUNDED | end = Part Spec.size |
-| FOLLOWING | unsigned int | end = R.idx + b2.amt + 1 |
-
-
-
-
-
-在 SELECT 语句中加入窗口函数，计算窗口函数的结果时，数据会按照窗口定义中的 PARTITION BY 和 ORDER BY 语句进行分区和排序：
-- 如果没有 PARTITION BY 语句，那么只有一个分区，即一个包含全部数据的分区。
-- 如果没有 ORDER BY 语句，则分区内的数据会按照任意顺序排布，最终生成一个数据流
-
-之后对于每一行数据（当前行），会按照窗口定义中的 frame_clause 从数据流中截取一段数据，构成当前行的窗口。窗口函数会根据窗口中包含的数据，计算得到窗口函数针对当前行对应的输出结果。
-
-
-
-
-
-如果不指定 PARTITION BY，则不对数据进行分区，换句话说，所有数据看作同一个分区；
-如果不指定 ORDER BY，则不对各分区做排序，通常用于那些顺序无关的窗口函数，例如 SUM()
 如果不指定窗口子句，则默认采用以下的窗口定义：
 - 若不指定 ORDER BY，默认使用分区内所有行 `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING`
 - 若指定了 ORDER BY，默认使用分区内第一行到当前值 `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`
 
-窗口计算过程：
-- 按窗口定义，将所有输入数据分区、再排序（如果需要的话）
-- 对每一行数据，计算它的窗口范围
-- 将窗口内的行集合输入窗口函数，计算结果填入当前行
+### 2.3 PARTITION BY
+
+
+在 SELECT 语句中加入窗口函数，计算窗口函数的结果时，数据会按照窗口定义中的 PARTITION BY 和 ORDER BY 语句进行分区和排序。如果没有 PARTITION BY 语句，那么只有一个分区，即一个包含全部数据的分区。
+
+
+之后对于每一行数据（当前行），会按照窗口定义中的 frame_clause 从数据流中截取一段数据，构成当前行的窗口。窗口函数会根据窗口中包含的数据，计算得到窗口函数针对当前行对应的输出结果。
+
+### 2.4 ORDER BY
+
+在 SELECT 语句中加入窗口函数，计算窗口函数的结果时，数据会按照窗口定义中的 PARTITION BY 和 ORDER BY 语句进行分区和排序。如果没有 ORDER BY 语句，则分区内的数据会按照任意顺序排布，最终生成一个数据流。
+
+
+基于行 ROWS 类型中，ORDER BY 的作用是指定行的顺序。只有顺序是固定的，基于行的计算才是有意义的。
+基于值 RANGE 类型中，ORDER BY 的作用是指定通过哪个字段值的大小关系来确定窗口的边界。在这种情况下不需要考虑上下行的顺序，而是通过字段值的范围来划分窗口。
+
+
+
+如果不指定 ORDER BY，则不对各分区做排序，通常用于那些顺序无关的窗口函数，例如 SUM()
 
 
 一般在窗口定义中会指定order by，未指定order by时，一个分区中的所有数据行具有相同的order by列值。NULL与NULL被认为是相等的。
+
 
 
 资料：
 - https://help.aliyun.com/document_detail/34994.html#section-w1o-ihh-omn
 - https://www.studytime.xin/article/hive-knowledge-window-function.html
 - https://mp.weixin.qq.com/s/mPpj_RYBztfKHZwZQCTCGQ
-
-## 4. 聚合函数
-
-
-参考：
 - https://shzhangji.com/cnblogs/2017/09/05/hive-window-and-analytical-functions/

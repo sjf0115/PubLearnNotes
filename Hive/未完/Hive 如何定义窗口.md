@@ -186,6 +186,7 @@ RANGE BETWEEN [num] FOLLOWING AND (UNBOUNDED | [num]) FOLLOWING
 | [N] FOLLOWING        | UNBOUNDED FOLLOWING | [idx + N, size - 1] |
 
 > 需要注意的是在 RANGE 类型下 `[N] PRECEDING` 表示当前值减去 N，同样的 `[M] FOLLOWING` 表示当前值加上 M
+> Window Frame Boundary Amount must be a positive integer
 
 ```sql
 WITH behavior AS (
@@ -221,7 +222,6 @@ FROM behavior;
 
 我们以 dt = '20230214' 这一行数据为例，ORDER BY 指定值比较字段为 score，即当前值为 4：
 - `UNBOUNDED PRECEDING AND 1 PRECEDING` 表示的范围为 `(-∞, 3]` s1 结果为 `[1, 2, 3]` 结果不符合预期
-
 - `UNBOUNDED PRECEDING AND CURRENT ROW` 表示的范围为 `(-∞, 4]`，s2 结果为 `[1, 2, 3, 4]`
 - `UNBOUNDED PRECEDING AND 1 FOLLOWING` 表示的范围为 `(-∞, 5]`，s3 结果为 `[1, 2, 3, 4, 5]`
 - `UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING` 表示的范围为 `(-∞, +∞)`，s4 结果为 `[1, 2, 3, 4, 5, 6]`
@@ -237,6 +237,27 @@ FROM behavior;
 
 
 开启 ROWS BETWEEN 是不是必须使用 ORDER BY ？
+
+
+WITH behavior AS (
+  SELECT 'a' AS uid, '20230211' AS dt, 1 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230213' AS dt, 3 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230214' AS dt, 4 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230212' AS dt, 2 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230215' AS dt, 5 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230216' AS dt, 6 AS score
+)
+SELECT
+  uid, dt, score,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS s2,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN UNBOUNDED PRECEDING AND 2 PRECEDING) AS s3,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN UNBOUNDED PRECEDING AND 3 PRECEDING) AS s4
+FROM behavior;
 
 
 #### 2.2.3 ROWS vs RANGE

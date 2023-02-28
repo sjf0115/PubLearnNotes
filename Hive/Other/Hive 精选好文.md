@@ -20,6 +20,7 @@
 - [ ] [Join Type in Hive: Skewed Join](https://weidongzhou.wordpress.com/2017/06/08/join-type-in-hive-skewed-join/)
 - [ ] [Hive join optimizations](https://www.slideshare.net/SzehonHo/hive-join-optimizations-mr-and-spark-53265877)
 - [ ] [Hive千亿级数据倾斜解决方案](https://mp.weixin.qq.com/s/BlCJBZwFzr9_VU4vj3TUIg)
+- [ ] [hive中窗口函数实现原理复盘](https://mp.weixin.qq.com/s/2rbeloa1VyDhrE18EAtUtw)
 
 ## 2. 元数据
 

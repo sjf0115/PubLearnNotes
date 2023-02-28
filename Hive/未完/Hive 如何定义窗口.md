@@ -220,6 +220,44 @@ SELECT
 FROM behavior;
 ```
 
+WITH behavior AS (
+  SELECT 'a' AS uid, '20230211' AS dt, 1 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230212' AS dt, 2 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230213' AS dt, 3 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230214' AS dt, 4 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230215' AS dt, 5 AS score
+  UNION ALL
+  SELECT 'a' AS uid, '20230216' AS dt, 6 AS score
+)
+SELECT
+  uid, dt, score,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS s1,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN 3 PRECEDING AND 1 PRECEDING) AS s2,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN 1 FOLLOWING AND 2 FOLLOWING) AS s3,
+  COLLECT_SET(score) OVER (ORDER BY score RANGE BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING) AS s4
+FROM behavior;
+
+
+
+
+我们以 dt = '20230214' 这一行数据为例，ORDER BY 指定值比较字段为 score，即当前值为 4：
+- `UNBOUNDED PRECEDING AND 1 PRECEDING` 表示的范围为 `(-∞, 3]` s1 结果应该为 `[1, 2, 3]`，但结果为 `[1,2]` 不符合预期
+- `3 PRECEDING AND 1 PRECEDING` 表示的范围为 `[1, 3]`，s2 结果应该为 `[1, 2, 3]`，但结果为 `[1,2]` 不符合预期
+- `1 FOLLOWING AND 2 FOLLOWING` 表示的范围为 `[5, 6]`，s3 结果应该为 `[5 ,6]`，但结果为 `[6]` 不符合预期
+- `1 FOLLOWING AND UNBOUNDED FOLLOWING` 表示的范围为 `[5, +∞)`，s4 结果应该为 `[5 ,6]`，但结果为 `[6]` 不符合预期
+
+
+
+
+
+输出结果如下所示：
+
+![](2)
+
 我们以 dt = '20230214' 这一行数据为例，ORDER BY 指定值比较字段为 score，即当前值为 4：
 - `UNBOUNDED PRECEDING AND 1 PRECEDING` 表示的范围为 `(-∞, 3]` s1 结果为 `[1, 2, 3]` 结果不符合预期
 - `UNBOUNDED PRECEDING AND CURRENT ROW` 表示的范围为 `(-∞, 4]`，s2 结果为 `[1, 2, 3, 4]`
@@ -232,6 +270,12 @@ FROM behavior;
 - `CURRENT ROW AND CURRENT ROW` 表示的范围为 `[4, 4]`，s9 结果为 `[4]`   
 - `CURRENT ROW AND 1 FOLLOWING` 表示的范围为 `[4, 5]`，s10 结果为 `[4, 5]`   
 - `CURRENT ROW AND UNBOUNDED FOLLOWING` 表示的范围为 `[4, +∞)`，s11 结果为 `[4, 5 ,6]`
+- `1 FOLLOWING AND 2 FOLLOWING` 表示的范围为 `[5, 6]`，s12 结果为 `[5 ,6]` 结果不符合预期
+- `1 FOLLOWING AND UNBOUNDED FOLLOWING` 表示的范围为 `[5, +∞)`，s13 结果为 `[5 ,6]` 结果不符合预期
+
+
+- `UNBOUNDED PRECEDING AND 1 PRECEDING` 表示的范围为 `(-∞, 3]` s1 结果为 `[1, 2, 3]` 结果不符合预期
+- `3 PRECEDING AND 1 PRECEDING` 表示的范围为 `[2, 3]`，s5 结果为 `[2, 3]` 结果不符合预期
 - `1 FOLLOWING AND 2 FOLLOWING` 表示的范围为 `[5, 6]`，s12 结果为 `[5 ,6]` 结果不符合预期
 - `1 FOLLOWING AND UNBOUNDED FOLLOWING` 表示的范围为 `[5, +∞)`，s13 结果为 `[5 ,6]` 结果不符合预期
 

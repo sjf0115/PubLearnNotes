@@ -1,7 +1,7 @@
 
 ## 1. Common Join
 
-Common Join 是 Hive 中的默认 Join 类型，也称为 Reduce Side Join。在 Join 期间，两个表中的所有行都根据 Join Key 分布到所有节点。这样，有相同 Join Key 的值最终会出现在同一个节点上。
+Common Join 是 Hive 中的默认 Join 类型，也称为 Reduce Side Join。通过一个 MapReduce 作业完成一个 Join 操作。Map 端负责将 Join 操作所需表的数据，并按照关联字段(Join Key)进行分区，通过 Shuffle 将其发送到 Reduce 端，拥有相同的 Key 的数据最终会出现在同一个节点上，在 Reduce 端完成最终的 Join 操作。
 
 ![](1)
 

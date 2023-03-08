@@ -1,0 +1,4 @@
+- [ ] [从 Clickhouse 到 Apache Doris，慧策电商 SaaS 高并发数据服务的改造实践｜应用实践](https://mp.weixin.qq.com/s/C6VKlnlyox6tQH22rFuZ8g)
+- [ ] [干货 ｜揭秘字节跳动基于 Doris 的实时数仓探索](https://mp.weixin.qq.com/s/siZ-rjREN_s7FFEgPqRgpA)
+- [ ] [打破数据孤岛，Apache Doris 助力纵腾集团快速构建流批一体数仓架构｜最佳实践](https://mp.weixin.qq.com/s/3HG9pka3aabj2zmZRTvYMg)
+- [ ] [如何基于 Apache Doris 构建简易高效的用户行为分析平台？](https://mp.weixin.qq.com/s/fHoFHLmdYKXV5AAKKRCPIg)

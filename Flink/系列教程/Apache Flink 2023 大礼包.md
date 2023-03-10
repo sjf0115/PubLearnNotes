@@ -1,0 +1,8 @@
+- [ ] [基于 Flink 流计算实现的股票交易实时资产应用](https://mp.weixin.qq.com/s/b4Hl6EUHBgrC5DH_nzMf8Q)
+- [ ] [基于 Flink CDC 的实时同步系统](https://mp.weixin.qq.com/s/I3XuEAFUwPyCs1sEEKYW2Q)
+- [ ] [基于 Flink 的小米数据集成实践](https://mp.weixin.qq.com/s/wNrHTRCP44BWkOhCKzIeSA)
+- [ ] [Apache Flink 实时计算在美的多业务场景下的应用与实践](https://mp.weixin.qq.com/s/9zbSflHsIaTukBLFMRcEnQ)
+- [ ] [Flink SQL的行级权限解决方案及源码解读](https://mp.weixin.qq.com/s/QAshBraW7PkLxYdfvBDirg)
+- [ ] [首次 Flink Batch 社区开发者会议](https://mp.weixin.qq.com/s/vByXmlJGYjwhy7o5-xP9-A)
+- [ ] [基于Flink的高吞吐精确一致性入湖实现](https://mp.weixin.qq.com/s/_FzjOdlF5QtDX-b9ZStZdQ)
+- [ ] [Apache Flink 1.16 功能解读](https://mp.weixin.qq.com/s/uI9MGZ9DcbmPGMw0Na5Ygg)

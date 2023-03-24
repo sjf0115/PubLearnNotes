@@ -6,3 +6,7 @@
 - [ ] [首次 Flink Batch 社区开发者会议](https://mp.weixin.qq.com/s/vByXmlJGYjwhy7o5-xP9-A)
 - [ ] [基于Flink的高吞吐精确一致性入湖实现](https://mp.weixin.qq.com/s/_FzjOdlF5QtDX-b9ZStZdQ)
 - [ ] [Apache Flink 1.16 功能解读](https://mp.weixin.qq.com/s/uI9MGZ9DcbmPGMw0Na5Ygg)
+- [ ] [官宣｜Apache Flink 1.17 发布公告](https://mp.weixin.qq.com/s/UlsgxHX3Nhb5To91ipSVtQ)
+- [ ] [Airwallex 基于 Flink 打造实时风控系统](https://mp.weixin.qq.com/s/blipWcuJpzPz-MOK1tXx4A)
+- [ ] [Flink Task调度部署机制 ｜ 得物技术](https://mp.weixin.qq.com/s/W5Msfor7gJ6kgroRIGrXtQ)
+- [ ] [流批一体在 AI 核心电商领域的探索与实践](https://mp.weixin.qq.com/s/EnSEP6wiq7sxO__DNlba5Q)

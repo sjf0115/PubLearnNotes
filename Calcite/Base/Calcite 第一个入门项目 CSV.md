@@ -299,28 +299,93 @@ onMatch 方法生成一个新的关系表达式，并调用 RelOptRuleCall.trans
 
 ## 8. 查询优化过程
 
-有很多关于 Calcite 查询优化器是多么巧妙的说法，但是我们不会在这里谈论它。巧妙是设计用来减轻你的负担——优化器规则的开发者。
+关于 Calcite 的查询计划器有很多巧妙的设计，但在这里我们不过多的赘述。最巧妙的设计是给计划规则的你减轻了负担。
 
-首先，Calcite 不会按照指定的顺序触发规则。查询优化过程按照分支树的众多分支执行，就像下棋程序检查许多可能的位移顺序一样。如果规则 A 和 B 都匹配了查询操作树的给定部分，则 Calcite 可以同时触发。
+首先，Calcite 不会按照指定的顺序触发规则。查询优化过程会执行分支树的众多分支，就像下棋程序检查所有可能的走法序列一样。如果规则 A 和 B 都匹配了查询操作树的给定部分，则 Calcite 可以同时触发这两个规则；其次，Calcite 基于成本在多个计划中进行选择，但成本模型并不能阻止规则的触发。
 
-其次，Calcite 基于成本在多个计划中进行选择，但成本模型并不能阻止规则的触发，这个操作在短期内看起来似乎代价更大。
+许多优化器都有线性优化方案。如上所述，在面对规则 A 和规则 B 的选择时，优化器需要立即做出选择。它可能有诸如将规则 A 应用于整棵树，然后再将规则 B 应用于整棵树的策略，或者基于成本的策略，应用代价最小的规则。Calcite 不需要进行这样的妥协。这使得组合各种规则集合变得简单。如果你想要将识别物化视图的规则与从 CSV 和 JDBC 数据源系统读取数据的规则结合起来，你只要将所有规则的集合提供给 Calcite 并告诉它去执行即可。
 
-许多优化器都有一个线性优化方案。如上所述，在面对规则 A 和规则 B 这样的选择时，线性优化器需要立即选择。它可能有诸如 将规则 A 应用于整棵树，然后将规则 B 应用于整棵树 之类的策略，或者使用基于成本的策略，应用代价最小的规则。
+Calcite 会使用成本模型。成本模型决定了最终使用哪个计划，有时会剪枝搜索树以防止搜索空间爆炸，但它从不强迫你在规则 A 和规则 B 之间进行选择。这点很重要，因为它避免了在搜索空间中陷入局部最小值，而实际上全局不是最优的。
 
-Calcite 不需要进行这样的妥协。这使得组合各种规则集合变得简单。如果你想要将 识别物化视图的规则 与 从 CSV 和 JDBC 源系统读取数据的规则 结合起来，你只要将所有规则的集合提供给 Calcite 并告诉它去执行即可。
+此外，如你所想，成本模型是可插拔的，它所基于的表和查询操作统计也是可插拔的，但这可以留待以后讨论。
 
-Calcite 确实使用了成本模型。成本模型决定最终使用哪个计划，有时会修剪搜索树以防止搜索空间爆炸，但它从不强迫你在规则 A 和规则 B 之间进行选择。这点很重要，因为它避免了陷入在搜索空间中不是全局最佳的局部最小值。
+## 9. JDBC 适配器
 
-此外，如你所想，成本模型是可插拔的，它所依赖的表和查询操作统计也是可插拔的，但那些都是后面的主题。
+JDBC 适配器将 JDBC 数据源中的 Schema 与 Calcite Schema 进行映射。如下所示，`FOODMART` 模式 Schema 从 MySQL 中的 `foodmart` 数据库读取数据：
+```json
+{
+  version: '1.0',
+  defaultSchema: 'FOODMART',
+  schemas: [
+    {
+      name: 'FOODMART',
+      type: 'custom',
+      factory: 'org.apache.calcite.adapter.jdbc.JdbcSchema$Factory',
+      operand: {
+        jdbcDriver: 'com.mysql.jdbc.Driver',
+        jdbcUrl: 'jdbc:mysql://localhost/foodmart',
+        jdbcUser: 'foodmart',
+        jdbcPassword: 'foodmart'
+      }
+    }
+  ]
+}
+```
+> 使用过 Mondrian OLAP 引擎的人应该对 FoodMart 数据库很熟悉，因为它是 Mondrian 的主要测试数据集。要加载数据集，请遵循 [Mondrian 安装说明](https://mondrian.pentaho.com/documentation/installation.php#2_Set_up_test_data) 进行安装。
+
+JDBC 适配器将尽可能多的处理下推到数据源系统，同时转换语法、数据类型和内置函数。如果一个 Calcite 查询基于来自单个 JDBC 数据库的表，原则上整个查询都应该转到该数据库。如果表来自多个 JDBC 数据源，或者 JDBC 和非 JDBC 的混合，Calcite 将使用最有效的分布式查询方法。
+
+## 10. 克隆 JDBC 适配器
+
+克隆 JDBC 适配器会创建一个混合数据库。数据来自 JDBC 数据库，但在第一次访问每个表时会将数据读入内存表。Calcite 基于这些内存表获取查询结果，内存表实际上是数据库的缓存。如下所示模型从 MySQL `foodmart` 数据库读取表数据：
+```json
+{
+  version: '1.0',
+  defaultSchema: 'FOODMART_CLONE',
+  schemas: [
+    {
+      name: 'FOODMART_CLONE',
+      type: 'custom',
+      factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',
+      operand: {
+        jdbcDriver: 'com.mysql.jdbc.Driver',
+        jdbcUrl: 'jdbc:mysql://localhost/foodmart',
+        jdbcUser: 'foodmart',
+        jdbcPassword: 'foodmart'
+      }
+    }
+  ]
+}
+```
+另一个技巧是在现有模式 Schema 之上构建克隆模式 Schema。你可以使用 source 属性来引用模型中之前定义的模式 Schema，就像下面这样：
+```json
+{
+  version: '1.0',
+  defaultSchema: 'FOODMART_CLONE',
+  schemas: [
+    {
+      name: 'FOODMART',
+      type: 'custom',
+      factory: 'org.apache.calcite.adapter.jdbc.JdbcSchema$Factory',
+      operand: {
+        jdbcDriver: 'com.mysql.jdbc.Driver',
+        jdbcUrl: 'jdbc:mysql://localhost/foodmart',
+        jdbcUser: 'foodmart',
+        jdbcPassword: 'foodmart'
+      }
+    },
+    {
+      name: 'FOODMART_CLONE',
+      type: 'custom',
+      factory: 'org.apache.calcite.adapter.clone.CloneSchema$Factory',
+      operand: {
+        source: 'FOODMART'
+      }
+    }
+  ]
+}
+```
+您可以使用这种方法在任何类型的模式 Schema 上进行克隆，而不仅仅是 JDBC 类型。克隆适配器并不是万能的。我们计划开发更复杂的缓存策略，以及更完整和更有效的内存表实现，但现在克隆 JDBC 适配器展示了什么是可行的，并允许我们去尝试初始实现。
 
 
-
-
-
-
-
-...
-
-
-
-> 原文: []()
+> 原文: [Tutorial](https://calcite.apache.org/docs/tutorial.html)

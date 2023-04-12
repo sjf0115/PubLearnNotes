@@ -4,7 +4,7 @@
 - [ ] [Apache Calcite 整体架构及处理流程](https://xie.infoq.cn/article/1df5a39bb071817e8b4cb4b29)
 - [ ] [Apache Calcite SQL 验证](https://xie.infoq.cn/article/ccfaf91cf0708e600846e70bc)
 - [ ] [Apache Calcite SQL 解析及语法扩展](https://xie.infoq.cn/article/7601e809de20aea301611194b)
-- [ ] [MaxCompute 与 Calcite 的技术和故事](https://zhuanlan.zhihu.com/p/77850082)
+- [x] [MaxCompute 与 Calcite 的技术和故事](https://smartsi.blog.csdn.net/article/details/130072537)
   - [视频](https://www.bilibili.com/video/BV1U4411n7Yx/)
 - [ ] [Calcite 中新增的 Top-down 优化器](https://ericfu.me/calcite-top-down-planner/)
 - [ ] [Calcite 官方文档中文版](https://strongduanmu.com/wiki/calcite/background.html#start)

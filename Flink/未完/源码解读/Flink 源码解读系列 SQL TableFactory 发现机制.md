@@ -1,4 +1,5 @@
 
+
 ## 1. 查找 TableFactory
 
 ```java
@@ -232,9 +233,3 @@ private static <T extends TableFactory> List<T> filterBySupportedProperties(Clas
     return supportedFactories;
 }
 ```
-
-
-
-
-
-。。。

@@ -1,21 +1,20 @@
 ---
 layout: post
 author: sjf0115
-title: Flink Kafka Connector
+title: Flink DataStream 1.11 Kafka Connector 实现读写 Kafka
 date: 2020-11-01 16:19:17
 tags:
   - Flink
-  - Flink Stream
 
 categories: Flink
-permalink: flink-kafka-connector
+permalink: flink-datastream-kafka-connector
 ---
 
 ## 1. 依赖
 
 > Flink版本：1.11.2
 
-Apache Flink 内置了多个 Kafka Connector：通用、0.10、0.11等。这个通用的 Kafka Connector 会尝试追踪最新版本的 Kafka 客户端。不同 Flink 发行版之间其使用的客户端版本可能会发生改变。现在的 Kafka 客户端可以向后兼容 0.10.0 或更高版本的 Broker。对于大多数用户使用通用的 Kafka Connector 就可以了。但对于 0.11.x 和 0.10.x 版本的 Kafka 用户，我们建议分别使用专用的 0.11 和 0.10 Connector。有关 Kafka 兼容性的详细信息，请参阅 [Kafka官方文档](https://kafka.apache.org/protocol.html#protocol_compatibility)。
+Apache Flink 内置了多个 Kafka Connector：通用、0.10、0.11等。这个通用的 Kafka Connector 会尝试追踪最新版本的 Kafka 客户端。不同 Flink 发行版之间其使用的客户端版本可能会发生改变。现在的 Kafka 客户端可以向后兼容 0.10.0 或更高版本的 Broker。对于大多数用户来说使用通用的 Kafka Connector 就可以了。但对于 0.11.x 和 0.10.x 版本的 Kafka 用户，建议分别使用专用的 0.11 和 0.10 Connector。有关 Kafka 兼容性的详细信息，请参阅 [Kafka官方文档](https://kafka.apache.org/protocol.html#protocol_compatibility)。
 
 通用 Connector：
 ```xml
@@ -53,47 +52,36 @@ Apache Flink 内置了多个 Kafka Connector：通用、0.10、0.11等。这个�
 | flink-connector-kafka-0.11_2.11|1.4.0|FlinkKafkaConsumer011、FlinkKafkaProducer011|0.11.x| Kafka 0.11.x 版本不支持 scala 2.10 版本。此连接器支持 [Kafka 事务消息](https://cwiki.apache.org/confluence/display/KAFKA/KIP-98+-+Exactly+Once+Delivery+and+Transactional+Messaging) 可以为生产者提供 Exactly-Once 语义。|
 | flink-connector-kafka_2.11 | 1.7.0 | FlinkKafkaConsumer、FlinkKafkaProducer | >= 1.0.0 | 这是一个通用的 Kafka 连接器，会追踪最新版本的 Kafka 客户端。|
 
-## 2. Kafka消费者
+## 2. Kafka 消费者
 
-Flink 的 Kafka 消费者：FlinkKafkaConsumer（对于 Kafka 0.11.x 版本为 FlinkKafkaConsumer011，对于 Kafka 0.10.x 版本为 FlinkKafkaConsumer010) 提供了可以访问一个或多个 Kafka Topic 的功能。
-
-Kafka 消费者的构造函数接受如下参数:
-- Kafka Topic 名称或者 Kafka Topic 名称列表
+Flink 的 Kafka 消费者：FlinkKafkaConsumer（对于 Kafka 0.11.x 版本为 FlinkKafkaConsumer011，对于 Kafka 0.10.x 版本为 FlinkKafkaConsumer010) 提供了可以访问一个或多个 Kafka Topic 的功能。Kafka 消费者的构造函数接受如下参数:
+- Kafka Topic 名称或者 Topic 名称列表
 - 用于反序列化 Kafka 数据的 DeserializationSchema / KafkaDeserializationSchema
-- Kafka 消费者的配置。需要以下属性：`bootstrap.servers`(逗号分隔的 Kafka broker 列表、`zookeeper.connect`(逗号分隔的 Zookeeper 服务器)(对于 Kafka 0.8 是必需的)、`group.id`(消费组的Id)。
+- Kafka 消费者的配置：
+  - `bootstrap.servers`(逗号分隔的 Kafka broker 列表）
+  - `zookeeper.connect`(逗号分隔的 Zookeeper 服务器)(对于 Kafka 0.8 是必需的)
+  - `group.id`(消费组 Id)
 
-Java版本:
 ```Java
 Properties properties = new Properties();
 properties.setProperty("bootstrap.servers", "localhost:9092");
 // 根据版本判断是否使用
 properties.setProperty("zookeeper.connect", "localhost:2181");
 properties.setProperty("group.id", "test");
-properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-properties.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
 FlinkKafkaConsumer consumer = new FlinkKafkaConsumer<>("topic", new SimpleStringSchema(), properties);
 DataStream<String> stream = env.addSource(consumer);
 ```
 
-Scala版本:
-```
-val properties = new Properties()
-properties.setProperty("bootstrap.servers", "localhost:9092")
-properties.setProperty("group.id", "test")
-properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-properties.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-stream = env
-    .addSource(new FlinkKafkaConsumer[String]("topic", new SimpleStringSchema(), properties))
-```
-
 ### 2.1 DeserializationSchema
 
-Flink Kafka 消费者需要知道如何将 Kafka 中的二进制数据转换为 Java/Scala 对象。DeserializationSchema 可以允许用户指定这样的一个 Schema。每个 Kafka 消息都会调用 `T deserialize(ConsumerRecord<byte[], byte[]> record)` 方法。
-
-为了使用方便，Flink 提供如下开箱即用的 Schema：
-- TypeInformationSerializationSchema(以及 TypeInformationKeyValueSerializationSchema) 会基于 Flink 的 TypeInformation 创建 Schema。对 Flink 读写数据会非常有用。这个 Schema 是其他通用序列化方法的高性能替代方案。
-- JsonDeserializationSchema(以及 JSONKeyValueDeserializationSchema)将序列化的 JSON 转换为 ObjectNode 对象，可以使用 `objectNode.get("field").as(Int/String/...)()` 方法访问某个字段。KeyValue objectNode 包含一个"key"和"value"字段，这包含了所有字段，以及一个可选的"metadata"字段，可以用来查询此消息的偏移量/分区/主题。
-- AvroDeserializationSchema 使用静态 Schema 读取 Avro 格式的序列化的数据。可以从 Avro 生成的类(`AvroDeserializationSchema.forSpecific(...)`) 中推断出 Schema，也可以使用 GenericRecords 手动提供 Schema（`AvroDeserializationSchema.forGeneric(...)`）。这个反序列化 Schema 要求序列化记录不能包含嵌套 Schema。
+Flink Kafka 消费者需要知道如何将 Kafka 中的二进制数据转换为 Java/Scala 对象。DeserializationSchema 可以允许用户指定这样的一个 Schema。每个 Kafka 消息都会调用 `T deserialize(ConsumerRecord<byte[], byte[]> record)` 方法。为了使用方便，Flink 提供如下开箱即用的 Schema：
+- `TypeInformationSerializationSchema`(以及 `TypeInformationKeyValueSerializationSchema`)：
+  - 基于 Flink 的 TypeInformation 创建 Schema。对 Flink 读写数据会非常有用。这个 Schema 是其他通用序列化方法的高性能替代方案。
+- `JsonDeserializationSchema`(以及 `JSONKeyValueDeserializationSchema`)：
+  - 将序列化的 JSON 转换为 ObjectNode 对象，可以使用 `objectNode.get("field").as(Int/String/...)()` 方法访问某个字段。
+  - KeyValue objectNode 包含一个"key"和"value"字段，这包含了所有字段，以及一个可选的"metadata"字段，可以用来查询此消息的偏移量/分区/主题。
+- `AvroDeserializationSchema`：
+  - 使用静态 Schema 读取 Avro 格式的序列化的数据。可以从 Avro 生成的类(`AvroDeserializationSchema.forSpecific(...)`) 中推断出 Schema，也可以使用 GenericRecords 手动提供 Schema（`AvroDeserializationSchema.forGeneric(...)`）。这个反序列化 Schema 要求序列化记录不能包含嵌套 Schema。
 
 如果要使用 Avro 这种 Schema，必须添加如下依赖：
 ```xml
@@ -108,9 +96,7 @@ Flink Kafka 消费者需要知道如何将 Kafka 中的二进制数据转换为 
 
 ### 2.2 起始位置配置
 
-Flink Kafka Consumer 可以配置如何确定 Kafka 分区的起始位置。
-
-Java版本:
+可以为 Flink Kafka 消费者配置 Kafka 分区的起始位置：
 ```java
 final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
@@ -123,48 +109,23 @@ myConsumer.setStartFromLatest();
 myConsumer.setStartFromTimestamp(...);
 // 默认行为 从指定消费组偏移量开始消费
 myConsumer.setStartFromGroupOffsets();
-
 DataStream<String> stream = env.addSource(myConsumer);
 ...
 ```
-Scala版本:
-```scala
-val env = StreamExecutionEnvironment.getExecutionEnvironment()
-
-val myConsumer = new FlinkKafkaConsumer[String](...)
-myConsumer.setStartFromEarliest()      // start from the earliest record possible
-myConsumer.setStartFromLatest()        // start from the latest record
-myConsumer.setStartFromTimestamp(...)  // start from specified epoch timestamp (milliseconds)
-myConsumer.setStartFromGroupOffsets()  // the default behaviour
-
-val stream = env.addSource(myConsumer)
-...
-```
+> 也可以在消费者配置中设置 `auto.offset.reset` 参数
 
 Flink 所有版本的 Kafka Consumer 都具有上述配置起始位置的方法：
 - setStartFromGroupOffsets（默认行为）：从消费者组（通过消费者属性 `group.id` 配置）提交到 Kafka Broker（Kafka 0.8 版本提交到 ZooKeeper）的偏移量开始读取分区。如果找不到分区的偏移量，会使用 `auto.offset.reset` 属性中的配置。
 - setStartFromEarliest()/setStartFromLatest()：读取最早/最新记录。在这个模式下，提交到 Kafka 偏移量可以忽略，不用作起始位置。
 - setStartFromTimestamp(long)：从指定的时间戳开始读取。对于每个分区，第一个大于或者等于指定时间戳的记录会被用作起始位置。如果分区的最新记录早于时间戳，则分区简单的读取最新记录即可。在这个模式下，提交到 Kafka 偏移量可以忽略，不用作起始位置。
 
-你还可以为 Consumer 指定每个分区应该开始的确切偏移量：
-
-Java版本:
+此外你还可以为 Consumer 指定每个分区应该开始的确切偏移量：
 ```java
 Map<KafkaTopicPartition, Long> specificStartOffsets = new HashMap<>();
 specificStartOffsets.put(new KafkaTopicPartition("myTopic", 0), 23L);
 specificStartOffsets.put(new KafkaTopicPartition("myTopic", 1), 31L);
 specificStartOffsets.put(new KafkaTopicPartition("myTopic", 2), 43L);
-
 myConsumer.setStartFromSpecificOffsets(specificStartOffsets);
-```
-Scala版本:
-```scala
-val specificStartOffsets = new java.util.HashMap[KafkaTopicPartition, java.lang.Long]()
-specificStartOffsets.put(new KafkaTopicPartition("myTopic", 0), 23L)
-specificStartOffsets.put(new KafkaTopicPartition("myTopic", 1), 31L)
-specificStartOffsets.put(new KafkaTopicPartition("myTopic", 2), 43L)
-
-myConsumer.setStartFromSpecificOffsets(specificStartOffsets)
 ```
 
 上面的示例配置 Consumer 从 myTopic 主题的 0、1 和 2 分区的指定偏移量开始消费。偏移量是 Consumer 读取每个分区的下一条记录。需要注意的是如果 Consumer 需要读取的分区在提供的偏移量 Map 中没有指定偏移量，那么自动转换为默认的消费组偏移量。
@@ -173,22 +134,11 @@ myConsumer.setStartFromSpecificOffsets(specificStartOffsets)
 
 ### 2.3 容错
 
-当 Flink 启动检查点时，Consumer 会从 Topic 中消费记录，并定期对 Kafka 偏移量以及其他算子的状态进行 Checkpoint。如果作业失败，Flink 会从最新检查点的状态恢复流处理程序，并从保存在检查点中的偏移量重新开始消费来自 Kafka 的记录。
-
-因此，检查点间隔定义了程序在发生故障时最多可以回退多少。要使用容错的 Kafka Consumer，需要在作业中开启拓扑的检查点。如果禁用了检查点，Kafka Consumer 会定期将偏移量提交给 Zookeeper。
-
-Java版本:
+当 Flink 启动检查点时，Consumer 会从 Topic 中消费记录，并定期对 Kafka 偏移量以及其他算子的状态进行 Checkpoint。如果作业失败，Flink 会从最新检查点的状态恢复流处理程序，并从保存在检查点中的偏移量重新开始消费来自 Kafka 的记录。因此，检查点间隔定义了程序在发生故障时最多可以回退多少。要使用容错的 Kafka Consumer，需要在作业中开启拓扑的检查点。如果禁用了检查点，Kafka Consumer 会定期将偏移量提交给 Zookeeper：
 ```java
 final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 // 每5s进行一次checkpoint
 env.enableCheckpointing(5000);
-```
-
-Scala版本:
-```scala
-val env = StreamExecutionEnvironment.getExecutionEnvironment()
-// 每5s进行一次checkpoint
-env.enableCheckpointing(5000)
 ```
 
 > 如果有足够的 slot 可用于重新启动拓扑，那么 Flink 才能重新启动拓扑。因此，如果拓扑由于与 TaskManager 断开而失败，那么必须有足够的可用 slot。
@@ -326,9 +276,5 @@ Flink Kafka 生产者需要知道如何将 Java/Scala 对象转换为 Kafka 中�
 - Semantic.NONE：Flink 不做任何保证。产生的记录可能会丢失或重复。
 - Semantic.AT_LEAST_ONCE（默认设置）：保证了不会丢失任何记录（可能重复）。
 - Semantic.EXACTLY_ONCE：通过 Kafka 事务提供 Exactly-once 的语义。每当我们使用事务写入 Kafka 时，请不要忘记为所有使用 Kafka 记录的应用程序设置所需的隔离等级（read_committed 或 read_uncommitted，后者为默认值）。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 原文:[Apache Kafka Connector](https://ci.apache.org/projects/flink/flink-docs-release-1.11/dev/connectors/kafka.html)

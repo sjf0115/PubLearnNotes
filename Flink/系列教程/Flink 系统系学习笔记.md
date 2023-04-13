@@ -148,7 +148,7 @@
 ### 6.1 DataStream
 
 - [ ] [Flink HDFS Connector]()
-- [ ] [Flink Kafka Connector]()
+- [x] [Flink DataStream 1.11 Kafka Connector 实现读写 Kafka](https://smartsi.blog.csdn.net/article/details/130141728)
 - [x] [Flink 如何管理 Kafka 的消费偏移量](https://smartsi.blog.csdn.net/article/details/126475307)
 
 ### 6.2 Table & SQL

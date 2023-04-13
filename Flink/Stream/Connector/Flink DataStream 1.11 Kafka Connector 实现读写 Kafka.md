@@ -147,88 +147,46 @@ env.enableCheckpointing(5000);
 
 #### 2.4.1 分区发现
 
-Flink Kafka Consumer 支持发现动态创建的 Kafka 分区，并使用 Exactly-Once 语义来消费。当作业开始运行，首次检索分区元数据后发现的所有分区会从最早的偏移量开始消费。
-
-默认情况下，分区发现是禁用的。如果要启用它，需要设置 `flink.partition-discovery.interval-millis` 为一个非负值，表示发现间隔（以毫秒为单位的）。
-
-> 当使用 Flink 1.3.x 之前的版本，消费者从保存点恢复时，无法在恢复的运行启用分区发现。如果要启用，恢复将失败并抛出异常。在这种情况下，为了使用分区发现，需要在 Flink 1.3.x 版本中生成保存点，然后再从中恢复。
+Flink Kafka Consumer 支持发现动态创建的 Kafka 分区，并使用 Exactly-Once 语义来消费。当作业开始运行，首次检索分区元数据后发现的所有分区会从最早的偏移量开始消费。默认情况下，分区发现是禁用的。如果要启用它，需要设置 `flink.partition-discovery.interval-millis` 为一个非负值，表示发现间隔（以毫秒为单位的）。
 
 #### 2.4.2  主题发现
 
-Flink Kafka Consumer 还能够使用正则表达式匹配 Topic 名称来自动发现 Topic。
-
-Java 版本：
+Flink Kafka Consumer 还能够使用正则表达式匹配 Topic 名称来自动发现 Topic：
 ```java
-final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-
-Properties properties = new Properties();
-properties.setProperty("bootstrap.servers", "localhost:9092");
-properties.setProperty("group.id", "test");
-
 FlinkKafkaConsumer<String> myConsumer = new FlinkKafkaConsumer<>(
     java.util.regex.Pattern.compile("test-topic-[0-9]"),
     new SimpleStringSchema(),
     properties);
-
-DataStream<String> stream = env.addSource(myConsumer);
-...
 ```
-Scala版本：
-```
-val env = StreamExecutionEnvironment.getExecutionEnvironment()
 
-val properties = new Properties()
-properties.setProperty("bootstrap.servers", "localhost:9092")
-properties.setProperty("group.id", "test")
-
-val myConsumer = new FlinkKafkaConsumer[String](
-  java.util.regex.Pattern.compile("test-topic-[0-9]"),
-  new SimpleStringSchema,
-  properties)
-
-val stream = env.addSource(myConsumer)
-...
-```
-在上面的示例中，当作业开始运行时，Consumer 会订阅名称与正则表达式相匹配的所有主题（以 test-topic- 开头并以一位数字结尾）。
+在上面的示例中，当作业开始运行时，Consumer 会订阅名称与正则表达式相匹配的所有 Topic（以 test-topic- 开头并以一位数字结尾）。
 
 ### 2.5 偏移量提交
 
-Flink Kafka Consumer 可以配置如何将偏移量提交回 Kafka Broker。需要注意的是 Flink Kafka Consumer 不需要依赖提交的偏移量来提供容错保证。提交的偏移量仅是用来展示消费者的进度。
-
-有不同的方式配置偏移量提交，具体取决于作业是否启用了检查点：
+Flink Kafka Consumer 可以配置如何将偏移量 Offset 提交回 Kafka Broker。需要注意的是 Flink Kafka Consumer 不需要依赖提交的偏移量 Offset 来提供容错保证。提交的偏移量仅是用来展示消费者的进度。有多种不同的方式来配置偏移量的提交，具体取决于作业是否启用了检查点：
 - 禁用检查点：如果禁用了检查点，那么 Flink Kafka Consumer 依赖于 Kafka 客户端的定期自动提交偏移量的功能。因此，要禁用或启用偏移量提交，只需在 Properties 配置中将 `enable.auto.commit` / `auto.commit.interval.ms` 设置为适当的值。
 - 启用检查点：如果启用检查点，那么 Flink Kafka Consumer 会在检查点完成时提交偏移量存储在检查点状态中。这样可以确保 Kafka Broker 中的已提交偏移量与检查点状态中的偏移量一致。用户可以通过调用 `setCommitOffsetsOnCheckpoints(boolean)` 方法来选择禁用或启用偏移提交（默认情况下为true）。请注意，在这种情况下，Properties 配置中的自动定期提交偏移设置将被忽略。
 
 ### 2.6 时间戳提取与Watermark输出
 
-在许多情况下，记录的时间戳会存在记录本身中或在 ConsumerRecord 的元数据中。另外，用户可能希望周期性地或不定期地发出 Watermark。对于这些情况，Flink Kafka Consumer 可以指定 Watermark 策略。我们可以按照如下所述指定自定义策略，也可以使用内置策略。
-
-Java版本：
+在许多情况下，记录的时间戳会存在记录本身中或在 ConsumerRecord 的元数据中。另外，用户可能希望周期性地或不定期地输出 Watermark。对于这些情况，Flink Kafka Consumer 可以指定 Watermark 策略。我们可以按照如下所述指定自定义策略，也可以使用内置策略。
 ```java
-Properties properties = new Properties();
-properties.setProperty("bootstrap.servers", "localhost:9092");
-properties.setProperty("group.id", "test");
-
-FlinkKafkaConsumer<String> myConsumer =
-    new FlinkKafkaConsumer<>("topic", new SimpleStringSchema(), properties);
+FlinkKafkaConsumer<String> myConsumer = new FlinkKafkaConsumer<>("topic", new SimpleStringSchema(), properties);
 myConsumer.assignTimestampsAndWatermarks(
-    WatermarkStrategy.
-        .forBoundedOutOfOrderness(Duration.ofSeconds(20)));
-
-DataStream<String> stream = env.addSource(myConsumer);
+    WatermarkStrategy.forBoundedOutOfOrderness(Duration.ofSeconds(20))
+);
 ```
 
-### 3. Kafka生产者
+## 3. Kafka 生产者
 
-Flink 的 Kafka 生产者：FlinkKafkaProducer（对于 Kafka 0.11.x 版本为 FlinkKafkaProducer011，对于 Kafka 0.10.x 版本为 FlinkKafkaProducer010) 提供了可以写入一个或多个 Kafka Topic 的功能。
-
-Kafka 生产者的构造函数接受如下参数:
-- 一个默认的输出Topic
+Flink 的 Kafka 生产者：FlinkKafkaProducer（对于 Kafka 0.11.x 版本为 FlinkKafkaProducer011，对于 Kafka 0.10.x 版本为 FlinkKafkaProducer010) 提供了可以写入一个或多个 Kafka Topic 的功能。Kafka 生产者的构造函数接受如下参数:
+- 一个默认的输出 Topic
 - 用于序列数据到 Kafka 的 SerializationSchema / KafkaSerializationSchema
-- Kafka 生产者的配置。需要以下属性：`bootstrap.servers`(逗号分隔的 Kafka broker 列表、`zookeeper.connect`(逗号分隔的 Zookeeper 服务器)(对于 Kafka 0.8 是必需的)
+- Kafka 生产者的配置：
+  - `bootstrap.servers`(逗号分隔的 Kafka broker 列表）
+  - `zookeeper.connect`(逗号分隔的 Zookeeper 服务器)(对于 Kafka 0.8 是必需的)
 - 容错语义
 
-Java版本：
 ```java
 DataStream<String> stream = ...
 
@@ -239,27 +197,12 @@ FlinkKafkaProducer<String> myProducer = new FlinkKafkaProducer<>(
         "my-topic",                  // target topic
         new SimpleStringSchema(),    // serialization schema
         properties,                  // producer config
-        FlinkKafkaProducer.Semantic.EXACTLY_ONCE); // fault-tolerance
-
+        FlinkKafkaProducer.Semantic.EXACTLY_ONCE
+);
 stream.addSink(myProducer);
 ```
 
-Scala版本：
-```
-val stream: DataStream[String] = ...
-
-Properties properties = new Properties
-properties.setProperty("bootstrap.servers", "localhost:9092")
-
-val myProducer = new FlinkKafkaProducer[String](
-        "my-topic",                  // target topic
-        new SimpleStringSchema(),    // serialization schema
-        properties,                  // producer config
-        FlinkKafkaProducer.Semantic.EXACTLY_ONCE) // fault-tolerance
-
-stream.addSink(myProducer)
-```
-#### 3.1 SerializationSchema
+### 3.1 SerializationSchema
 
 Flink Kafka 生产者需要知道如何将 Java/Scala 对象转换为 Kafka 中的二进制数据。KafkaSerializationSchema 可以允许用户指定这样的一个 Schema。每个 Kafka 消息都会调用 `ProducerRecord<byte[], byte[]> serialize(T element, @Nullable Long timestamp)` 方法，生成一个 ProducerRecord 写入 Kafka。
 
@@ -268,13 +211,14 @@ Flink Kafka 生产者需要知道如何将 Java/Scala 对象转换为 Kafka 中�
 - 为每个记录定义Key
 - 指定数据的自定义分区
 
-#### 3.2 容错
+### 3.2 容错
 
-当启用 Flink 的检查点后，FlinkKafkaProducer 与 FlinkKafkaProducer011（适用于Kafka >= 1.0.0 版本的 FlinkKafkaProducer）都可以提供 Exactly-once 的语义保证。FlinkKafkaProducer010 只能提供 At-Least-once 语义的保证。
-
-除了启用 Flink 的检查点之外，我们还可以通过将语义参数传递给 FlinkKafkaProducer 与 FlinkKafkaProducer011（适用于Kafka >= 1.0.0 版本的FlinkKafkaProducer）来选择三种不同的操作模式：
+当启用 Flink 的检查点后，FlinkKafkaProducer 与 FlinkKafkaProducer011（适用于Kafka >= 1.0.0 版本的 FlinkKafkaProducer）都可以提供 Exactly-once 的语义保证。FlinkKafkaProducer010 只能提供 At-Least-once 语义的保证。除了启用 Flink 的检查点之外，我们还可以通过将语义参数传递给 FlinkKafkaProducer 与 FlinkKafkaProducer011（适用于Kafka >= 1.0.0 版本的FlinkKafkaProducer）来选择三种不同的操作模式：
 - Semantic.NONE：Flink 不做任何保证。产生的记录可能会丢失或重复。
 - Semantic.AT_LEAST_ONCE（默认设置）：保证了不会丢失任何记录（可能重复）。
 - Semantic.EXACTLY_ONCE：通过 Kafka 事务提供 Exactly-once 的语义。每当我们使用事务写入 Kafka 时，请不要忘记为所有使用 Kafka 记录的应用程序设置所需的隔离等级（read_committed 或 read_uncommitted，后者为默认值）。
+
+
+> 完整代码请查阅[KafkaToKafkaExample](https://github.com/sjf0115/data-example/blob/master/flink-example-1.11/src/main/java/com/flink/example/stream/connector/kafka/KafkaToKafkaExample.java)
 
 原文:[Apache Kafka Connector](https://ci.apache.org/projects/flink/flink-docs-release-1.11/dev/connectors/kafka.html)

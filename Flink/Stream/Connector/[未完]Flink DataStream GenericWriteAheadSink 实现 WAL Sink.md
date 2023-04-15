@@ -1,5 +1,5 @@
 
-## 工作原理
+## 原理
 
 GenericWriteAheadSink 可以使实现一致性 Sink 更加的方便。这些算子会和 Flink 的检查点机制相结合，致力于将记录以 Exactly-Once 语义写入外部系统。然而，基于 WAL 的 Sink 在某些极端情况下可能会将记录写出多次。因此 GenericWriteAheadSink 并不能百分之百的提供 Exactly-Once 语义保证，而只能做到 At-Least-Once 语义保证。
 
@@ -30,14 +30,17 @@ CheckpointCommitter 可用于解决第二个问题，方法是保存实例是否
 没有关于如何共享资源的规定；所有 Flink 作业可能有一个资源，或者每个作业/操作员/实例分别有一个资源。这意味着资源不能由系统本身清理，因此应保持尽可能小。
 
 
-##
+## 源码分析
 
-```
-public abstract class GenericWriteAheadSink<IN>
-extends AbstractStreamOperator<IN>
-implements OneInputStreamOperator<IN,IN>
+```java
+public abstract class CustomGenericWriteAheadSink<IN> extends AbstractStreamOperator<IN>
+        implements OneInputStreamOperator<IN, IN> {
+
+}
 ```
 GenericWriteAheadSink 实现了一个将其输入元素发送到任意状态后端的通用 Sink。该 Sink 与 Flink 的 checkpointing 机制集成，可以提供 Exactly-Once 语义保证，具体还需要取决于状态后端和 Sink/Committer 的实现。传入进来的记录会存储在 AbstractStateBackend 中，并且仅在检查点完成时提交。
+
+### 构造器
 
 继承 GenericWriteAheadSink 的算子需要提供三个构造器参数：
 ```java
@@ -47,7 +50,56 @@ GenericWriteAheadSink(CheckpointCommitter committer, TypeSerializer<IN> serializ
 - TypeSerializer，用来序列化输入数据。
 - jobID 作业ID，传给 CheckpointCommitter，当应用重启时可以识别commit信息。
 
+### 生命周期管理
 
+```java
+
+```
+
+### 状态处理
+
+初始化状态：
+```java
+public void initializeState(StateInitializationContext context) throws Exception {
+    super.initializeState(context);
+    Preconditions.checkState(this.checkpointedState == null, "The reader state has already been initialized.");
+    // 创建算子 Checkpoint 状态
+    checkpointedState = context.getOperatorStateStore().getListState(
+            new ListStateDescriptor<>("pending-checkpoints", new JavaSerializer<>())
+    );
+    // 子任务Id
+    int subtaskIdx = getRuntimeContext().getIndexOfThisSubtask();
+    // 是否需要从状态中恢复
+    if (context.isRestored()) {
+        LOG.info("Restoring state for the GenericWriteAheadSink (taskIdx={}).", subtaskIdx);
+        for (PendingCheckpoint pendingCheckpoint : checkpointedState.get()) {
+            this.pendingCheckpoints.add(pendingCheckpoint);
+        }
+    } else {
+        LOG.info("No state to restore for the GenericWriteAheadSink (taskIdx={}).", subtaskIdx);
+    }
+}
+```
+生成状态快照：
+```java
+public void snapshotState(StateSnapshotContext context) throws Exception {
+    super.snapshotState(context);
+    Preconditions.checkState(this.checkpointedState != null, "The operator state has not been properly initialized.");
+
+    saveHandleInState(context.getCheckpointId(), context.getCheckpointTimestamp());
+
+    this.checkpointedState.clear();
+
+    try {
+        for (PendingCheckpoint pendingCheckpoint : pendingCheckpoints) {
+            this.checkpointedState.add(pendingCheckpoint);
+        }
+    } catch (Exception e) {
+        checkpointedState.clear();
+        throw new Exception(xxx);
+    }
+}
+```
 
 
 

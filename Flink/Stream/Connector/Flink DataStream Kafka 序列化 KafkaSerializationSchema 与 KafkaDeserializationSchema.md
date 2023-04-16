@@ -22,7 +22,16 @@ public interface KafkaSerializationSchema<T> extends Serializable {
 	ProducerRecord<byte[], byte[]> serialize(T element, @Nullable Long timestamp);
 }
 ```
-目前 KeyedSerializationSchema 已经被标注为 `@Deprecated`，表示已经废弃。将由 KafkaSerializationSchema 来完全取代 KeyedSerializationSchema。Flink 官方推荐使用 KafkaSerializationSchema。KafkaSerializationSchema 可以直接生成 Kafka ProducerRecord 发送给 Kafka，从而使用户能够使用所 Kafka 更多的功能。
+目前 KeyedSerializationSchema 已经被标注为 `@Deprecated`，表示已经废弃。将由 KafkaSerializationSchema 来完全取代 KeyedSerializationSchema，Flink 官方推荐使用 KafkaSerializationSchema。KafkaSerializationSchema 可以直接生成 Kafka ProducerRecord 发送给 Kafka，从而使用户能够使用所 Kafka 更多的功能。
+
+在 Flink 1.11 版本，为了增强序列化接口，增加 open 接口，具体可以参阅[FLIP-124](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=148645988) 和 [FLINK-17306](https://issues.apache.org/jira/browse/FLINK-17306)：
+```java
+public interface KafkaSerializationSchema<T> extends Serializable {
+	default void open(SerializationSchema.InitializationContext context) throws Exception {
+	}
+	ProducerRecord<byte[], byte[]> serialize(T element, @Nullable Long timestamp);
+}
+```
 
 ## 2. 反序列化
 
@@ -37,27 +46,19 @@ public interface KeyedDeserializationSchema<T> extends Serializable, ResultTypeQ
 	T deserialize(byte[] messageKey, byte[] message, String topic, int partition, long offset) throws IOException;
 }
 ```
-在 Flink 1.11 版本，为了增强反序列化接口，增加 open 接口，具体可以参阅[FLIP-124](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=148645988) 和 [FLINK-17306](https://issues.apache.org/jira/browse/FLINK-17306)：
-```java
-public interface KafkaSerializationSchema<T> extends Serializable {
-	default void open(SerializationSchema.InitializationContext context) throws Exception {
-	}
-	ProducerRecord<byte[], byte[]> serialize(T element, @Nullable Long timestamp);
-}
-```
 
 ### 2.1 KafkaDeserializationSchema
 
-在 Flink 1.8 版本，通用的 FlinkKafkaConsumer（在 flink-connector-kafka 中）引入了一个新的 KafkaDeserializationSchema，它可以直接访问 Kafka ConsumerRecord，具体可以查看 [FLINK-8354](https://issues.apache.org/jira/browse/FLINK-8354)。KafkaDeserializationSchema 定义了如何将 Kafka ConsumerRecord 反序列化为数据对象：
+在 Flink 1.8 版本，通用的 FlinkKafkaConsumer（在 flink-connector-kafka 中）引入了一个新的 KafkaDeserializationSchema，它可以直接访问 Kafka 的 ConsumerRecord，具体可以查看 [FLINK-8354](https://issues.apache.org/jira/browse/FLINK-8354)。KafkaDeserializationSchema 定义了如何将 Kafka ConsumerRecord 反序列化为数据对象：
 ```java
 public interface KafkaDeserializationSchema<T> extends Serializable, ResultTypeQueryable<T> {
 	boolean isEndOfStream(T nextElement);
 	T deserialize(ConsumerRecord<byte[], byte[]> record) throws Exception;
 }
 ```
-目前 KeyedDeserializationSchema 已经被标注为 `@Deprecated`，表示已经废弃。将由 KafkaDeserializationSchema 完全取代 KeyedDeserializationSchema。Flink 官方推荐使用 KafkaDeserializationSchema。KafkaDeserializationSchema 可以直接以 Kafka ConsumerRecord 的形式消费 Kafka 中的数据，从而使用户能够使用所 Kafka 更多的功能，比如获取 Topic 以及 Headr 信息等。
+目前 KeyedDeserializationSchema 已经被标注为 `@Deprecated`，表示已经废弃。将由 KafkaDeserializationSchema 完全取代 KeyedDeserializationSchema，Flink 官方推荐使用 KafkaDeserializationSchema。KafkaDeserializationSchema 可以直接以 Kafka ConsumerRecord 的形式消费 Kafka 中的数据，从而使用户能够使用所 Kafka 更多的功能，比如获取 Topic 以及 Headr 信息等。
 
-在 Flink 1.11 版本，为了增强序列化接口，增加 open 接口以及通过 Collector 来支持返回多条数据，具体可以参阅[FLIP-124](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=148645988) 和 [FLINK-17305](https://issues.apache.org/jira/browse/FLINK-17305)：
+在 Flink 1.11 版本，为了增强反序列化接口，增加 open 接口以及通过 Collector 来支持返回多条数据，具体可以参阅[FLIP-124](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=148645988) 和 [FLINK-17305](https://issues.apache.org/jira/browse/FLINK-17305)：
 ```java
 public interface KafkaDeserializationSchema<T> extends Serializable, ResultTypeQueryable<T> {
     default void open(DeserializationSchema.InitializationContext context) throws Exception {}
@@ -78,7 +79,7 @@ KafkaSerializationSchema 和 KafkaDeserializationSchema 都是接口，如果想
 
 ### 3.1 序列化
 
-实现 KafkaSerializationSchema 接口来自定义序列化器比较简单如下所示：
+实现 KafkaSerializationSchema 接口来自定义序列化器比较简单，如下所示：
 ```java
 public class CustomKafkaSerializationSchema implements KafkaSerializationSchema<ProducerRecord<String, String>> {
     @Override

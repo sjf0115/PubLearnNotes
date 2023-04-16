@@ -11,3 +11,4 @@
 
 - [x] [Flink No appenders could be found for logger](https://smartsi.blog.csdn.net/article/details/124740837)
 - [x] [Flink 1.11+ No ExecutorFactory found to execute the application](https://smartsi.blog.csdn.net/article/details/124067922)
+- [x] [Flink 1.13.5 JsonParseException: Unrecognized token 'xxx': was expecting](https://blog.csdn.net/SunnyYoona/article/details/130177719)

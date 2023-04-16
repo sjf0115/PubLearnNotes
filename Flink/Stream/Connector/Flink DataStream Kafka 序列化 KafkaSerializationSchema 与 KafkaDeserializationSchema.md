@@ -1,6 +1,6 @@
 ## 1. 序列化
 
-序列化 Schema 描述了如何将传入的数据对象转换为不同的序列化表示。大多数 Sink（例如 Apache Kafka）需要将数据转为特定格式（例如字节字符串）传递给它们。比如，Apahce kafka 需要将传入的对象转换为字节数组传递给 Kafka。
+序列化 Schema 描述了如何将 Flink 处理的数据类型(Java/Scala对象)转换为 Kafka 可以接受的数据类型。
 
 ### 1.1 KeyedSerializationSchema
 
@@ -25,6 +25,8 @@ public interface KafkaSerializationSchema<T> extends Serializable {
 目前 KeyedSerializationSchema 已经被标注为 `@Deprecated`，表示已经废弃。将由 KafkaSerializationSchema 来完全取代 KeyedSerializationSchema。Flink 官方推荐使用 KafkaSerializationSchema。KafkaSerializationSchema 可以直接生成 Kafka ProducerRecord 发送给 Kafka，从而使用户能够使用所 Kafka 更多的功能。
 
 ## 2. 反序列化
+
+反序列化 Schema 描述了如何将 Kafka 中的数据转换为 Flink 可以处理的数据类型(Java/Scala对象)。
 
 ### 2.1 KeyedDeserializationSchema
 

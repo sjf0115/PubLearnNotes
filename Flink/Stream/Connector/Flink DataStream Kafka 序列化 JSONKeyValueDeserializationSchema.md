@@ -21,7 +21,7 @@ sourceStream.map(new MapFunction<String, WordCount>() {
 
 除了使用这种方式之外，Flink 为我们内置实现了一个 [KafkaSerializationSchema](https://smartsi.blog.csdn.net/article/details/130179661) 来帮我们解析 Kafka 中的 JSON 格式数据，即 JSONKeyValueDeserializationSchema。
 
-> 关系 Flink Kafka 序列化，可以参考阅读[Flink DataStream Kafka 序列化 KafkaSerializationSchema 与 KafkaDeserializationSchema](https://smartsi.blog.csdn.net/article/details/130179661)
+> 关于 Flink Kafka 序列化，可以参考阅读[Flink DataStream Kafka 序列化 KafkaSerializationSchema 与 KafkaDeserializationSchema](https://smartsi.blog.csdn.net/article/details/130179661)
 
 ## 1. 如何使用
 

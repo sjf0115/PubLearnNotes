@@ -77,7 +77,12 @@ public interface CheckpointListener {
 
 ## 2. CheckpointedFunction
 
-这是有状态 transformation 函数的核心接口，这意味着维护状态的函数可以处理多个流记录。虽然存在更轻量级的接口，但该接口在管理 Keyed State 和 Operator State 能提供最大的灵活性。
+这是有状态转换函数的核心接口，这意味着维护状态的函数可以跨多个流记录进行处理。虽然存在更轻量级的接口，但该接口在管理 Keyed State 和 Operator State 能提供最大的灵活性。
+
+
+OperatorStateStore 和 KeyedStateStore提供了对数据结构的访问，Flink应该在其中存储状态，以便透明地管理和检查它，例如org.apache.flink.api.common.state.ValueState或org.apache.flink.api.common.state.ListState。
+注意:KeyedStateStore只能在转换支持键控状态时使用，也就是说，当它应用在键控流上时(在keyBy(…)之后)。
+
 
 ```java
 public interface CheckpointedFunction {
@@ -88,7 +93,7 @@ public interface CheckpointedFunction {
 
 ### 2.1 initializeState
 
-initializeState(FunctionInitializationContext) 方法会在创建 transformation 函数并行实例时调用。该方法提供了对 FunctionInitializationContext 的访问，而它又提供对 OperatorStateStore 和 KeyedStateStore 的访问：
+在分布式执行期间，当创建转换函数的并行实例时，将会调用 `initializeState(FunctionInitializationContext)` 方法。该方法提供了访问 FunctionInitializationContext 的能力，而 FunctionInitializationContext 又提供了访问 OperatorStateStore 和 KeyedStateStore 的能力：
 ```java
 public interface FunctionInitializationContext extends ManagedInitializationContext {
 }
@@ -99,25 +104,55 @@ public interface ManagedInitializationContext {
     KeyedStateStore getKeyedStateStore();
 }
 ```
-OperatorStateStore 和 KeyedStateStore 提供了访问 State 的数据结构，例如，ValueState 或 ListState。此外，不仅可以用来初始化 State，还可以用于处理 State 恢复：
+通过 `isRestored()` 可以判断状态是否是从上一次执行的快照中恢复，如果是返回 true。需要注意的是对于无状态任务，该方法总是返回 false。通过 `getOperatorStateStore()` 方法获取允许注册算子状态 OpeartorState 的 OperatorStateStore。通过 `getKeyedStateStore()` 方法获取允许注册键值状态 KeyedState 的 KeyedStateStore。
+
+OperatorStateStore 和 KeyedStateStore 则又提供了访问状态 State 存储数据结构的能力，例如 `org.apache.flink.api.common.state.ValueState` 或者 `org.apache.flink.api.common.state.ListState`：
 ```java
 public void initializeState(FunctionInitializationContext context) throws Exception {
     // 获取 ListState
-    ListStateDescriptor<Long> descriptor = new ListStateDescriptor<>("state-name", TypeSerializer);
-    this.checkpointedState = context.getOperatorStateStore().getListState(descriptor);
-
-    // State 处理
+    ListStateDescriptor<String> descriptor = new ListStateDescriptor<>(
+        "buffered-elements", TypeInformation.of(new TypeHint<String>() {})
+    );
+    statePerPartition = context.getOperatorStateStore().getListState(descriptor);
+    // 判断是否是从快照中恢复
     if (context.isRestored()) {
-    // 恢复时执行逻辑
+        // 恢复时执行逻辑
+        for (String element : statePerPartition.get()) {
+            bufferedElements.add(element);
+        }
     } else {
-    // 首次运行时执行逻辑
+        // 首次运行时执行逻辑
     }
 }
 ```
 
 ### 2.2 snapshotState
 
-每当生成 transformation 函数的状态快照时，就会调用 snapshotState(FunctionSnapshotContext) 方法。在此方法中，可以确保检查点数据结构（在初始化阶段获得）是最新的，以便生成快照。给定的快照上下文允许访问检查点的元数据。此外，函数可以作为一个 hook 与外部系统交互实现刷新/提交/同步。
+每当触发 Checkpoint 生成转换函数的状态快照时就会调用 `snapshotState(FunctionSnapshotContext)` 方法。该方法提供了访问 FunctionSnapshotContext 的能力，而 FunctionSnapshotContext 又提供了访问检查点元数据的能力：
+```java
+public interface FunctionSnapshotContext extends ManagedSnapshotContext {}
+
+public interface ManagedSnapshotContext {
+    long getCheckpointId();
+    long getCheckpointTimestamp();
+}
+```
+通过 `getCheckpointId()` 方法获取生成快照时的检查点 ID，检查点 ID 保证了检查点之间的严格单调递增。对于完成的两个检查点 A 和 B, `ID_B > ID_A` 表示检查点 B 包含检查点 A，即检查点 B 包含的状态晚于检查点 A。通过 `getCheckpointTimestamp()` 方法返回主节点触发检查点生成快照时的时间戳。
+
+在 `snapshotState` 方法中，一般需要确保检查点数据结构（在 initialization 方法中获取）是最新的，以便生成快照。此外，函数可以作为一个 hook 与外部系统交互实现刷新/提交/同步。如下所示，通过 FunctionSnapshotContext 上下文获取检查点元数据信息，并将最新数据存储在状态中生成快照：
+```java
+public void snapshotState(FunctionSnapshotContext context) throws Exception {
+    long checkpointId = context.getCheckpointId();
+    long checkpointTimestamp = context.getCheckpointTimestamp();
+    int subTask = getRuntimeContext().getIndexOfThisSubtask();
+    statePerPartition.clear();
+    for (String element : bufferedElements) {
+        LOG.info("snapshotState subTask: {}, checkpointId: {}, checkpointTimestamp: {}, element: {}",
+                subTask, checkpointId, checkpointTimestamp, element);
+        statePerPartition.add(element);
+    }
+}
+```
 
 ### 2.3 简写
 

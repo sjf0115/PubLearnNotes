@@ -153,18 +153,46 @@ public void snapshotState(FunctionSnapshotContext context) throws Exception {
     }
 }
 ```
+从代码中可以看出，在 `snapshotState` 中首先清理掉上一次 Checkpoint 触发存储的 OperatorState 的数据，然后再添加并更新本次 Checkpoint 需要的状态数据。
 
 ### 2.3 简写
 
-transformation 函数可以在不实现完整 CheckpointedFunction 接口的情况下与 State 进行交互。这也是实现 CheckpointedFunction 接口的快捷方式。
+转换函数可以在不实现完整 CheckpointedFunction 接口的情况下使用 State。这也是实现 CheckpointedFunction 接口的快捷方式。
 
 #### 2.3.1 Operator 状态
 
-通过直接实现 ListCheckpointed 接口，可以以更简单的方式检查属于函数对象本身的某些状态。
+通过直接实现 ListCheckpointed 接口来访问 OperateState。ListCheckpointed 接口是 CheckpointedFunction 的精简版，仅支持 even-split redistributuion 的 ListSate。实现这个接口是从 OperatorStateStore 中获取默认 ListState 的一种更快捷的方式。但是直接使用 OperatorStateStore 为使用 OperateState 提供了更灵活的选项，例如控制状态对象的序列化，或具有多个命名状态等。
+
+实现 ListCheckpointed 接口与实现 CheckpointedFunction 接口类似，同样需要实现两个方法：
+```java
+public interface ListCheckpointed<T extends Serializable> {
+    List<T> snapshotState(long checkpointId, long timestamp) throws Exception;
+    void restoreState(List<T> state) throws Exception;
+}
+```
+`snapshotState()` 需要返回一个将写入到 checkpoint 的对象列表。如果 OpeartorState 中没有状态时，返回的列表会为空。如果状态不可切分，
+则可以在 `snapshotState()` 中返回 `Collections.singletonList(xxx)`：
+```java
+public List snapshotState(long checkpointId, long timestamp) throws Exception {
+    // localCount 本地 Long 型计数器
+    return Collections.singletonList(localCount);
+}
+```
+`restoreState()` 则需要处理恢复回来的对象列表，将函数或者算子的状态恢复到前一个 Checkpoint 的状态。如果函数的并行实例不恢复任何状态，则状态列表可能为空：
+```java
+public void restoreState(List<Long> state) throws Exception {
+    for (Long count : state) {
+        localCount += count;
+    }
+}
+```
+> 重要提示：当与RichFunction一起实现此接口时，在RichFunction.open(Configuration)之前调用restoreState()方法。
+
+在 Flink 1.11 版本 ListCheckpointed 接口已经标注为 `@Deprecated`，即表示已经废弃，推荐使用 CheckpointedFunction 接口来代替。具体详情请查阅 [FLINK-6258](https://issues.apache.org/jira/browse/FLINK-6258)
 
 #### 2.3.2 Keyed 状态
 
-可以通过 RuntimeContext 方法访问 keyed 状态：
+可以通过 RuntimeContext 方法访问 KeyedState：
 ```java
 public class CountPerKeyFunction<T> extends RichMapFunction<T, T> {
     private ValueState<Long> count;
@@ -249,6 +277,9 @@ public class CountPerKeyFunction<T> extends RichMapFunction<T, T> {
 ```
 
 > 完整请查阅[]()
+
+
+
 
 
 > [CheckpointedFunction](https://ci.apache.org/projects/flink/flink-docs-master/api/java/org/apache/flink/streaming/api/checkpoint/CheckpointedFunction.html)

@@ -4,7 +4,7 @@ Flink 实现操作 OperatorState 的有状态函数，有两种实现方式：
 
 ## 1. CheckpointedFunction
 
-CheckpointedFunction 是实现有状态转换函数的核心接口，这意味着维护状态的函数可以跨多个流记录进行处理。虽然存在更轻量级的 ListCheckpointed 接口（后面会详细解释），但该接口在管理 Keyed State 和 Operator State 能提供最大的灵活性。在这我们主要介绍如何通过 CheckpointedFunction 接口实现操作 OperatorState 的有状态函数，实现 CheckpointedFunction 接口需要实现如下两个方法：
+CheckpointedFunction 是实现有状态转换函数的核心接口，这意味着维护状态的函数可以跨多个流记录进行处理。虽然存在更轻量级的 ListCheckpointed 接口（后面会详细解释），但该接口在管理 KeyedState 和 OperatorState 能提供最大的灵活性。在这我们主要介绍如何通过 CheckpointedFunction 接口实现操作 OperatorState 的有状态函数，实现 CheckpointedFunction 接口需要实现如下两个方法：
 ```java
 public interface CheckpointedFunction {
     void snapshotState(FunctionSnapshotContext context) throws Exception;
@@ -14,7 +14,7 @@ public interface CheckpointedFunction {
 
 ### 2.1 initializeState
 
-当第一次初始化函数或者从之前 Checkpoint 中恢复状态数据时会调用 `initializeState(FunctionInitializationContext)` 方法：
+当第一次初始化函数或者因为故障重启需要从之前 Checkpoint 中恢复状态数据时会调用 `initializeState(FunctionInitializationContext)` 方法：
 ```java
 public void initializeState(FunctionInitializationContext context) throws Exception {
     ListStateDescriptor<String> descriptor = new ListStateDescriptor<>(
@@ -33,7 +33,7 @@ public void initializeState(FunctionInitializationContext context) throws Except
 }
 ```
 
-该方法提供了访问 FunctionInitializationContext 的能力，而 FunctionInitializationContext 又提供了访问 OperatorStateStore 和 KeyedStateStore 的能力：
+该方法提供了访问 FunctionInitializationContext 的能力，而 FunctionInitializationContext 又提供了访问 OperatorStateStore 和 KeyedStateStore 的能力。此外可以通过 `isRestored()` 来判断状态是否是从上一次执行的 Checkpoint 中恢复(如果是返回 true。对于无状态任务，该方法总是返回 false)：
 ```java
 public interface FunctionInitializationContext extends ManagedInitializationContext {
 }
@@ -44,8 +44,6 @@ public interface ManagedInitializationContext {
     KeyedStateStore getKeyedStateStore();
 }
 ```
-通过 `isRestored()` 可以判断状态是否是从上一次执行的快照中恢复，如果是返回 true。需要注意的是对于无状态任务，该方法总是返回 false。
-
 通过 `getOperatorStateStore()` 方法获取允许注册算子状态 OpeartorState 的 OperatorStateStore。通过 `getKeyedStateStore()` 方法获取允许注册键值状态 KeyedState 的 KeyedStateStore。OperatorStateStore 和 KeyedStateStore 则又提供了访问状态 State 存储数据结构的能力，例如 `org.apache.flink.api.common.state.ValueState` 或者 `org.apache.flink.api.common.state.ListState`。
 
 ### 2.2 snapshotState

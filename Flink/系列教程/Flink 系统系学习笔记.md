@@ -51,6 +51,7 @@
 - [ ] [Flink 如何使用算子]()
 - [x] [Flink DataStream 富函数 RichFunction](https://smartsi.blog.csdn.net/article/details/130191889)
 - [x] [Flink DataStream 处理函数 ProcessFunction 和 KeyedProcessFunction](https://smartsi.blog.csdn.net/article/details/126851094)
+- [x] [Flink 通过 ListCheckpointed 和 CheckpointedFunction 实现操作 OperatorState 的有状态函数](https://smartsi.blog.csdn.net/article/details/130298767)
 - [x] [Flink DataStream Split 实现分流](https://smartsi.blog.csdn.net/article/details/126737446)
 - [x] [Flink DataStream 侧输出流 Side Output](https://smartsi.blog.csdn.net/article/details/126737944)
 - [x] [Flink SourceFunction 初了解](https://smartsi.blog.csdn.net/article/details/123342142)

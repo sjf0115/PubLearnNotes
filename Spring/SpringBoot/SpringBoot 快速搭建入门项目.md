@@ -17,6 +17,7 @@
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
     <version>2.7.5</version>
+    <relativePath/> <!-- lookup parent from repository -->
 </parent>
 
 <dependencies>
@@ -75,7 +76,7 @@ Hello SpringBoot!
 ```
 看到上面信息表示我们的 SpringBoot Hello 项目构建成功了。
 
-> 完整代码请查阅 []()
+> 完整代码请查阅 [spring-boot-hello](https://github.com/sjf0115/spring-example/tree/main/spring-boot-hello)
 
 ## 2. Spring Initializr 快速搭建
 
@@ -139,3 +140,5 @@ public class HelloController {
 Hello SpringBoot Initializr!
 ```
 看到上面信息表示我们的 SpringBoot Initializr 项目构建成功了。
+
+> 完整代码请查阅 [spring-boot-initializr](https://github.com/sjf0115/spring-example/tree/main/spring-boot-initializr)

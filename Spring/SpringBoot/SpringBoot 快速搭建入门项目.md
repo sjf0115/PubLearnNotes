@@ -75,6 +75,8 @@ Hello SpringBoot!
 ```
 看到上面信息表示我们的 SpringBoot Hello 项目构建成功了。
 
+> 完整代码请查阅 []()
+
 ## 2. Spring Initializr 快速搭建
 
 此外我们还可以通过 Spring Initializr 来快速搭建一个 SpringBoot 项目，无需手动添加上述 pom 依赖，也无需自己编写引导类，相对更方便一些。在这里我们要搭建一个 SpringBoot Web 工程，实现调用 hello 接口返回 `Hello SpringBoot Initializr!`。

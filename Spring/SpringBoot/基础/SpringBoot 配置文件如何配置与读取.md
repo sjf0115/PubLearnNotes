@@ -85,8 +85,76 @@ msg1: 'hello \n world' # 单引忽略转义字符
 msg2: "hello \n world" # 双引识别转义字符
 ```
 
+## 3. 动态切换配置文件
 
+我们在开发 Spring Boot 应用时，通常同一套程序会被安装到不同环境，比如：开发、测试、生产等。其中数据库地址、服务器端口等配置可能都不同，如果每次打包时，都要修改配置文件，那么非常麻烦。profile 功能则提供了动态配置切换的功能。
 
+### 4.1 profile 配置方式
 
+#### 4.1.1 多 profile 文件方式
 
-。。。
+为每一个环境提供一个配置文件，如下所示为开发、生产环境各提供一个配置文件：
+- `application-dev.properties` 或者 `application-dev.yml`：开发环境
+- `application-prod.properties` 或者 `application-prod.yml`：生产环境
+
+> 需要注意的是格式必须为 `application-xxx.properties` 或者 `application-xxx.yml`
+
+假设我们在开发环境 `application-dev.properties` 配置文件中配置 env 变量为 `dev`：
+```
+env=dev
+```
+在开发环境 `application-prod.properties` 配置文件中配置 env 变量为 `prod`：
+```
+env=prod
+```
+那我们想使用生产环境，具体如何配置呢？可以 `application.properties` 配置文件中配置 `spring.profiles.active` 为 `prod`：
+```
+spring.profiles.active=prod
+```
+
+#### 4.1.2 YAML 多文档方式
+
+使用 `---` 来划分 YAML 文件区域：
+```yml
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+name: lucy
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+name: lily
+
+---
+
+spring:
+  profiles:
+    active: prod
+```
+
+### 4.2 profile 激活方式
+
+- 配置文件方式
+  - 即上面所讲的，在配置文件中配置 `spring.profiles.active=dev`：
+- 虚拟机
+  - 在 VM options 指定 `-Dspring.profiles.active=dev`
+- 命令行参数
+  - `java –jar xxx.jar --spring.profiles.active=dev`
+  - 直接在 Program arguments 配置
+
+## 5. 内置配置加载顺序
+
+Springboot 程序启动时，会从以下位置加载配置文件：
+- `file:./config/`：当前项目下的 `/config` 目录下
+- `file:./`：当前项目的根目录
+- `classpath:/config/`：classpath 的 `/config` 目录
+- `classpath:/`：classpath 的根目录（之前我们用的就是这种）
+
+加载顺序为上文的排列顺序，高优先级配置的属性会生效。

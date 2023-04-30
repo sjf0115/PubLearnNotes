@@ -2,7 +2,7 @@
 
 MyBatis-Plus（简称 MP）是一个 MyBatis 的增强工具，在 MyBatis 的基础上只做增强不做改变，为简化开发、提高效率而生。
 
-> [MyBatis-Plus 中文官网](https://mybatis.plus/)
+> [MyBatis-Plus 中文官网](https://mybatis.plus/) 或者 [MyBatis-Plus](https://www.baomidou.com/)
 
 Mybatis-Plus 是由 163（苞米豆）组织开发并且开源的。
 
@@ -93,8 +93,102 @@ INSERT INTO tb_user (id, name, age, email) VALUES
 
 在 application.yml 配置文件中添加 MySQL 数据库的相关配置：
 ```yml
-
+spring:
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/test
+    name: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
 ```
 
+### 2.4 编码
+
+#### 2.4.1 编写实体类
+
+编写实体类 User：
+```java
+public class User {
+    private Long id;
+    private String name;
+    private Integer age;
+    private String email;
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Integer getAge() {
+        return age;
+    }
+
+    public void setAge(Integer age) {
+        this.age = age;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", age=" + age +
+                ", email='" + email + '\'' +
+                '}';
+    }
+}
+```
+> 也可以使用 Lombok 进行简化
+
+#### 2.4.2 编写Mapper类
+
+编写 dao 包下的 UserDao 接口：
+```java
+@Mapper
+public interface UserDao extends BaseMapper<User> {
+
+}
+```
+
+
+```
+public interface BaseMapper<T> extends Mapper<T> {
+    int insert(T entity);
+
+    int deleteById(Serializable id);
+
+    int deleteById(T entity);
+
+    int deleteByMap(@Param("cm") Map<String, Object> columnMap);
+
+    int delete(@Param("ew") Wrapper<T> queryWrapper);
+
+    int deleteBatchIds(@Param("coll") Collection<?> idList);
+
+    int updateById(@Param("et") T entity);
+
+    int update(@Param("et") T entity, @Param("ew") Wrapper<T> updateWrapper);
+
+    T selectById(Serializable id);
+}
+```
 
 ## 3. 进阶

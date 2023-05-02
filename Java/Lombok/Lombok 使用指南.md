@@ -20,12 +20,59 @@ Lombok 是一种 Java 实用工具，可用来帮助开发人员消除 Java 中�
 
 ### 3.1 `@Getter` 和 `@Setter`
 
-您可以用@Getter和/或@Setter注释任何字段，以让lombok自动生成默认的getter/setter。
-默认getter只是返回字段，如果字段被称为foo，则命名为getFoo(如果字段的类型是布尔型，则命名为isFoo)。如果字段名为foo，则默认setter被命名为setFoo，返回void，并接受一个与该字段相同类型的参数。它只是将字段设置为这个值。
+你可以用 `@Getter` 或者 `@Setter` 注解任何字段，以让 Lombok 自动生成默认的 `getter`/`setter` 方法：
+```java
+public class GetterSetterFieldUser {
+    @Setter @Getter private Long id;
+}
+```
+默认 `getter` 只是返回字段，如上有一个字段为 `id`，那么自动生成的方法命名为 `getId`(如果字段的类型是布尔型，则命名为isXXX)。默认 `setter` 只是返回 `void`，并接受一个与该字段相同类型的参数，对于上面的 `id` 字段，默认 `setter` 被命名为 `setId`。在这种情况下与如下代码等价：
+```java
+public class GetterSetterFieldUser {
+    private Long id;
 
-生成的getter/setter方法将是公共的，除非您显式指定AccessLevel，如下面的示例所示。合法访问级别包括PUBLIC、PROTECTED、PACKAGE和PRIVATE。
+    public GetterSetterFieldUser() {
+    }
 
-你也可以在类上添加 `@Getter` 或者 `@Setter` 注解。在这种情况下，就好像用注解注释了类中的所有非静态字段：
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getId() {
+        return this.id;
+    }
+}
+```
+
+需要注意的是生成的 `getter`/`setter` 方法是 `public` 的，除非你显式指定 AccessLevel，如下面的示例所示：
+```java
+public class GetterSetterFieldUser {
+    @Setter(AccessLevel.PROTECTED)
+    @Getter(AccessLevel.PRIVATE)
+    private String name;
+}
+```
+合法的 AccessLevel 包括 `PUBLIC`、`PROTECTED`、`PACKAGE` 以及 `PRIVATE`。在上面代码中使用 `@Setter` 注解自动生成一个 `PROTECTED` 的 `setName` 方法，使用 `@Getter` 注解自动生成一个 `PRIVATE` 的 `getName` 方法。在这种情况下与如下代码等价：
+```java
+public class GetterSetterFieldUser {
+    private String name;
+
+    public GetterSetterFieldUser() {
+    }
+
+    protected void setName(String name) {
+        this.name = name;
+    }
+
+    private String getName() {
+        return this.name;
+    }
+}
+```
+
+
+
+你也可以在类上添加 `@Getter` 或者 `@Setter` 注解：
 ```java
 @Setter
 @Getter
@@ -35,7 +82,7 @@ public class GetterSetterClassUser {
     private String name;
 }
 ```
-等价于：
+在这种情况下等价于注解了类中的所有非静态字段，与如下代码等价：
 ```java
 public class GetterSetterClassUser {
     private static String school = "北京大学";
@@ -62,9 +109,6 @@ public class GetterSetterClassUser {
     }
 }
 ```
-
-
-
 你总是可以通过使用特殊的AccessLevel来手动禁用任何字段的getter/setter生成。NONE访问级别。这允许你重写类上的@Getter、@Setter或@Data注释的行为。
 
 要在生成的方法上添加注释，可以使用onMethod=@__({@AnnotationsHere});要在生成的setter方法的唯一参数上放置注释，可以使用onParam=@__({@AnnotationsHere})。不过要小心!这是一个实验性的功能。有关更多详细信息，请参阅有关onX特性的文档。

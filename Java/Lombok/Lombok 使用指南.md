@@ -410,7 +410,25 @@ NULL 检查语句会被插入到方法的最顶端。对于构造函数，NULL �
 
 所有生成的 `getter` 和 `setter` 都是 `public` 的。要覆盖访问级别 AccessLevel，可以显式的用 `@Setter` 和 `@Getter` 注解。所有标记为 `transient` 的字段都不会被 `hashCode` 和 `equals` 考虑。所有静态字段都会被完全跳过(不会考虑生成任何方法，也不会为它们生成 `setter`/`getter`)。如果类已经包含与通常生成的任何方法具有相同名称和参数计数的方法，则不会生成该方法，也不会发出警告或错误。例如，如果你已经有一个 `equals`(AnyType参数)方法，那么注解不会生成任何 `equals` 方法，即使从技术上讲，由于具有不同的参数类型，它可能是一个完全不同的方法。同样的规则也适用于构造函数(任何显式构造函数都将阻止 `@Data` 再生成一个)，以及 `toString`、`equals` 以及所有的 `getter` 和 `setter`。
 
-### 3.7 `@Builder`
+### 3.7 `@Value`
+
+`@Value` 是 `@Data` 的不可变形式，相当于为字段添加 final 声明(并且是 private)。此外只生成 getter 方法，不生成 `setter`方法。默认情况下，类本身也是 final 的，因为不可变性不能强加给子类。与 `@Data` 一样，还生成了 `toString()`、`equals()` 和 `hashCode()` 方法，每个字段都有一个 `getter` 方法，此外还生成了一个构造函数，该构造函数涵盖了每个参数(在字段声明中初始化的 final 字段除外)。
+
+在实践中，`@Value` 可以理解为是 `final`、`@ToString`、`@EqualsAndHashCode`、`@AllArgsConstructor`、`@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)` 以及 `@Getter` 的整合简写。如果我们自己显式地包含上述注解相关方法的实现，意味着 Lombok 不再会生成对应部分，也不会发出报错。例如，如果我们自己编写了 `toString`，那么不会发生报错，Lombok 也不会再自动生成 `toString`。此外，如果我们显式编写构造函数，无论参数列表如何，都意味着 Lombok 不再会生成构造函数。如果你确实希望 Lombok 生成全参数构造函数，请向该类添加 `@AllArgsConstructor`。
+
+
+```java
+@Value
+public class ValueUser {
+    private static int age;
+    private final String school;
+    @NonNull
+    private Long id;
+    private String name;
+}
+```
+
+### 3.8 `@Builder`
 
 @Builder是在lombok v0.12.0中作为实验特性引入的。
 

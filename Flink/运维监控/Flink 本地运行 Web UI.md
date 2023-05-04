@@ -36,4 +36,4 @@ StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
 ```
 启动 Flink 程序之后，我们可以打开 http://localhost:8091 查看 WebUI：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-local-web-ui-1.png?raw=true)
+![](../../Image/Flink/flink-local-web-ui-1.png)

@@ -149,67 +149,117 @@ public interface CheckpointedFunction {
 当第一次初始化函数或者因为故障重启需要从之前 Checkpoint 中恢复状态数据时会调用 `initializeState(FunctionInitializationContext)` 方法：
 ```java
 public void initializeState(FunctionInitializationContext context) throws Exception {
-    ListStateDescriptor<String> descriptor = new ListStateDescriptor<>(
-            "buffered-words", TypeInformation.of(new TypeHint<String>() {}));
-    statePerPartition = context.getOperatorStateStore().getListState(descriptor);
-    int subTask = getRuntimeContext().getIndexOfThisSubtask();
-    // 从状态中恢复
+    // 初始化
+    ValueStateDescriptor<Double> stateDescriptor = new ValueStateDescriptor<>("lastTemperature", Double.class);
+    lastTemperatureState = context.getKeyedStateStore().getState(stateDescriptor);
     if (context.isRestored()) {
-        for (String word : statePerPartition.get()) {
-            bufferedWords.add(word);
-        }
-        LOG.info("initializeState subTask: {}, words: {}", subTask, bufferedWords.toString());
-    } else {
-        // 首次运行时执行逻辑
+        lastTemperature = lastTemperatureState.value();
+        LOG.info("sensor initializeState, lastTemperature: {}", lastTemperature);
     }
 }
 ```
-
-该方法提供了访问 FunctionInitializationContext 的能力，而 FunctionInitializationContext 又提供了访问 OperatorStateStore 和 KeyedStateStore 的能力。此外可以通过 `isRestored()` 来判断状态是否是从上一次执行的 Checkpoint 中恢复(如果是返回 true。对于无状态任务，该方法总是返回 false)：
-```java
-public interface FunctionInitializationContext extends ManagedInitializationContext {
-}
-
-public interface ManagedInitializationContext {
-    boolean isRestored();
-    OperatorStateStore getOperatorStateStore();
-    KeyedStateStore getKeyedStateStore();
-}
-```
-通过 `getOperatorStateStore()` 方法获取允许注册算子状态 OpeartorState 的 OperatorStateStore。通过 `getKeyedStateStore()` 方法获取允许注册键值状态 KeyedState 的 KeyedStateStore。OperatorStateStore 和 KeyedStateStore 则又提供了访问状态 State 存储数据结构的能力，例如 `org.apache.flink.api.common.state.ValueState` 或者 `org.apache.flink.api.common.state.ListState`。
+该方法提供了访问 FunctionInitializationContext 的能力，而 FunctionInitializationContext 又提供了访问 KeyedStateStore 的能力。此外可以通过 `isRestored()` 来判断状态是否是从上一次执行的 Checkpoint 中恢复(如果是返回 true。对于无状态任务，该方法总是返回 false)。通过 `getKeyedStateStore()` 方法获取允许注册键值状态 KeyedState 的 KeyedStateStore。KeyedStateStore 则又提供了访问状态 State 存储数据结构的能力，例如 `org.apache.flink.api.common.state.ValueState` 或者 `org.apache.flink.api.common.state.ListState`。
 
 ### 2.2 snapshotState
 
-每当触发 Checkpoint 生成转换函数的状态快照时就会调用 `snapshotState(FunctionSnapshotContext)` 方法。该方法提供了访问 FunctionSnapshotContext 的能力，而 FunctionSnapshotContext 又提供了访问检查点元数据的能力：
-```java
-public interface FunctionSnapshotContext extends ManagedSnapshotContext {}
-
-public interface ManagedSnapshotContext {
-    long getCheckpointId();
-    long getCheckpointTimestamp();
-}
-```
-通过 `getCheckpointId()` 方法获取生成快照时的检查点 ID，检查点 ID 保证了检查点之间的严格单调递增。对于完成的两个检查点 A 和 B, `ID_B > ID_A` 表示检查点 B 包含检查点 A，即检查点 B 包含的状态晚于检查点 A。通过 `getCheckpointTimestamp()` 方法返回主节点触发检查点生成快照时的时间戳。在 `snapshotState` 方法中，一般需要确保检查点数据结构（在 initialization 方法中获取）是最新的，以便生成快照。此外，函数可以作为一个 hook 与外部系统交互实现刷新/提交/同步。如下所示，通过 FunctionSnapshotContext 上下文获取检查点元数据信息，并将最新数据存储在状态中生成快照：
+每当触发 Checkpoint 生成转换函数的状态快照时就会调用 `snapshotState(FunctionSnapshotContext)` 方法。提供了访问检查点元数据的能力。在 `snapshotState` 方法中，一般需要确保检查点数据结构（在 initialization 方法中获取）是最新的，以便生成快照。此外，函数可以作为一个 hook 与外部系统交互实现刷新/提交/同步。如下所示，将最新数据存储在状态中生成快照：
 ```java
 public void snapshotState(FunctionSnapshotContext context) throws Exception {
-    long checkpointId = context.getCheckpointId();
-    int subTask = getRuntimeContext().getIndexOfThisSubtask();
-    // 清空上一次快照的状态
-    statePerPartition.clear();
-    // 生成新快照的状态
-    for (String word : bufferedWords) {
-        statePerPartition.add(word);
-    }
-    LOG.info("snapshotState subTask: {}, checkpointId: {}, words: {}", subTask, checkpointId, bufferedWords.toString());
+    // 获取最新的温度之后更新保存上一次温度的状态
+    //lastTemperatureState.clear();
+    lastTemperatureState.update(lastTemperature);
+    LOG.info("sensor snapshotState, temperature: {}", lastTemperature);
 }
 ```
-从代码中可以看出，在 `snapshotState` 中首先清理掉上一次 Checkpoint 触发存储的 OperatorState 的数据，然后再添加并更新本次 Checkpoint 需要的状态数据。
 
+### 2.3 示例
 
+```java
+public class CheckpointedFunctionKSExample {
+    private static final Logger LOG = LoggerFactory.getLogger(CheckpointedFunctionKSExample.class);
 
+    public static void main(String[] args) throws Exception {
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(2);
 
+        // 每10s一次Checkpoint
+        env.enableCheckpointing(30 * 1000);
 
+        // Socket 输入
+        DataStream<String> stream = env.socketTextStream("localhost", 9100, "\n");
 
+        // 传感器温度流
+        DataStream<Tuple3<String, Double, Double>> alertStream = stream.map(new MapFunction<String, Tuple2<String, Double>>() {
+            @Override
+            public Tuple2<String, Double> map(String value) throws Exception {
+                if(Objects.equals(value, "ERROR")) {
+                    throw new RuntimeException("error dirty data");
+                }
+                String[] params = value.split(",");
+                LOG.info("sensor input, id: {}, temperature: {}", params[0], params[1]);
+                return new Tuple2<>(params[0], Double.parseDouble(params[1]));
+            }
+        }).keyBy(new KeySelector<Tuple2<String, Double>, String>() {
+            @Override
+            public String getKey(Tuple2<String, Double> sensor) throws Exception {
+                return sensor.f0;
+            }
+        }).flatMap(new TemperatureAlertFlatMapFunction(10));// 温度变化超过10度则报警
+        alertStream.print();
 
+        env.execute("CheckpointedFunctionKSExample");
+    }
 
-。。。
+    // FlatMap 的好处是在温度变化不超过阈值的时候不进行输出
+    public static class TemperatureAlertFlatMapFunction implements CheckpointedFunction, FlatMapFunction<Tuple2<String, Double>, Tuple3<String, Double, Double>> {
+        // 温度差报警阈值
+        private double threshold;
+        // 上一次温度
+        private ValueState<Double> lastTemperatureState;
+        private Double lastTemperature;
+        public TemperatureAlertFlatMapFunction(double threshold) {
+            this.threshold = threshold;
+        }
+
+        @Override
+        public void flatMap(Tuple2<String, Double> sensor, Collector<Tuple3<String, Double, Double>> out) throws Exception {
+            String sensorId = sensor.f0;
+            // 当前温度
+            double temperature = sensor.f1;
+            // 是否有保存上一次的温度
+            if (Objects.equals(lastTemperature, null)) {
+                LOG.info("sensor first temperature, id: {}, temperature: {}", sensorId, temperature);
+                return;
+            }
+            double diff = Math.abs(temperature - lastTemperature);
+            if (diff > threshold) {
+                // 温度变化超过阈值
+                LOG.info("sensor alert, id: {}, temperature: {}, lastTemperature: {}, diff: {}", sensorId, temperature, lastTemperature, diff);
+                out.collect(Tuple3.of(sensorId, temperature, diff));
+            } else {
+                LOG.info("sensor no alert, id: {}, temperature: {}, lastTemperature: {}, diff: {}", sensorId, temperature, lastTemperature, diff);
+            }
+            lastTemperature = temperature;
+        }
+
+        @Override
+        public void snapshotState(FunctionSnapshotContext context) throws Exception {
+            // 获取最新的温度之后更新保存上一次温度的状态
+            //lastTemperatureState.clear();
+            lastTemperatureState.update(lastTemperature);
+            LOG.info("sensor snapshotState, temperature: {}", lastTemperature);
+        }
+
+        @Override
+        public void initializeState(FunctionInitializationContext context) throws Exception {
+            // 初始化
+            ValueStateDescriptor<Double> stateDescriptor = new ValueStateDescriptor<>("lastTemperature", Double.class);
+            lastTemperatureState = context.getKeyedStateStore().getState(stateDescriptor);
+            if (context.isRestored()) {
+                lastTemperature = lastTemperatureState.value();
+                LOG.info("sensor initializeState, lastTemperature: {}", lastTemperature);
+            }
+        }
+    }
+}
+```

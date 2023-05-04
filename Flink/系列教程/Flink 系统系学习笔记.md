@@ -9,6 +9,8 @@
 
 - [x] [Flink 安装与启动](https://blog.csdn.net/SunnyYoona/article/details/78276595)
 - [x] [构建 Flink 第一个应用程序](https://blog.csdn.net/SunnyYoona/article/details/126087865)
+- [x] [Flink DataStream 开发打包问题](https://smartsi.blog.csdn.net/article/details/130493516)
+- [x] [Flink 1.13.5 本地运行 ClassNotFoundException: xxx](https://smartsi.blog.csdn.net/article/details/130497239)
 - [x] [Flink 中如何解析与传递参数](https://smartsi.blog.csdn.net/article/details/126534721)
 - [x] [Flink 程序剖析](https://smartsi.blog.csdn.net/article/details/126088002)
 - [x] [Flink 如何指定并发](https://smartsi.blog.csdn.net/article/details/126535786)

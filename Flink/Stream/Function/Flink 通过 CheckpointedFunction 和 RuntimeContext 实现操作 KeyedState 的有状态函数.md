@@ -136,6 +136,74 @@ public class RuntimeContextExample {
 
 ## 2. CheckpointedFunction
 
+上一篇文章 [Flink 通过 ListCheckpointed 和 CheckpointedFunction 实现操作 OperatorState 的有状态函数](https://smartsi.blog.csdn.net/article/details/130298767) 中介绍了如何使用 CheckpointedFunction 实现操作 OperatorState 的有状态函数。CheckpointedFunction 是实现有状态转换函数的核心接口，不仅可以管理 OperatorState 也可以管理 KeyedState。在这我们主要介绍如何通过 CheckpointedFunction 接口实现操作 KeyedState 的有状态函数。同实现操作 OperatorState 的有状态函数一样，实现操作 KeyedState 的有状态函数也需要实现如下两个方法：
+```java
+public interface CheckpointedFunction {
+    void snapshotState(FunctionSnapshotContext context) throws Exception;
+    void initializeState(FunctionInitializationContext context) throws Exception;
+}
+```
+
+### 2.1 initializeState
+
+当第一次初始化函数或者因为故障重启需要从之前 Checkpoint 中恢复状态数据时会调用 `initializeState(FunctionInitializationContext)` 方法：
+```java
+public void initializeState(FunctionInitializationContext context) throws Exception {
+    ListStateDescriptor<String> descriptor = new ListStateDescriptor<>(
+            "buffered-words", TypeInformation.of(new TypeHint<String>() {}));
+    statePerPartition = context.getOperatorStateStore().getListState(descriptor);
+    int subTask = getRuntimeContext().getIndexOfThisSubtask();
+    // 从状态中恢复
+    if (context.isRestored()) {
+        for (String word : statePerPartition.get()) {
+            bufferedWords.add(word);
+        }
+        LOG.info("initializeState subTask: {}, words: {}", subTask, bufferedWords.toString());
+    } else {
+        // 首次运行时执行逻辑
+    }
+}
+```
+
+该方法提供了访问 FunctionInitializationContext 的能力，而 FunctionInitializationContext 又提供了访问 OperatorStateStore 和 KeyedStateStore 的能力。此外可以通过 `isRestored()` 来判断状态是否是从上一次执行的 Checkpoint 中恢复(如果是返回 true。对于无状态任务，该方法总是返回 false)：
+```java
+public interface FunctionInitializationContext extends ManagedInitializationContext {
+}
+
+public interface ManagedInitializationContext {
+    boolean isRestored();
+    OperatorStateStore getOperatorStateStore();
+    KeyedStateStore getKeyedStateStore();
+}
+```
+通过 `getOperatorStateStore()` 方法获取允许注册算子状态 OpeartorState 的 OperatorStateStore。通过 `getKeyedStateStore()` 方法获取允许注册键值状态 KeyedState 的 KeyedStateStore。OperatorStateStore 和 KeyedStateStore 则又提供了访问状态 State 存储数据结构的能力，例如 `org.apache.flink.api.common.state.ValueState` 或者 `org.apache.flink.api.common.state.ListState`。
+
+### 2.2 snapshotState
+
+每当触发 Checkpoint 生成转换函数的状态快照时就会调用 `snapshotState(FunctionSnapshotContext)` 方法。该方法提供了访问 FunctionSnapshotContext 的能力，而 FunctionSnapshotContext 又提供了访问检查点元数据的能力：
+```java
+public interface FunctionSnapshotContext extends ManagedSnapshotContext {}
+
+public interface ManagedSnapshotContext {
+    long getCheckpointId();
+    long getCheckpointTimestamp();
+}
+```
+通过 `getCheckpointId()` 方法获取生成快照时的检查点 ID，检查点 ID 保证了检查点之间的严格单调递增。对于完成的两个检查点 A 和 B, `ID_B > ID_A` 表示检查点 B 包含检查点 A，即检查点 B 包含的状态晚于检查点 A。通过 `getCheckpointTimestamp()` 方法返回主节点触发检查点生成快照时的时间戳。在 `snapshotState` 方法中，一般需要确保检查点数据结构（在 initialization 方法中获取）是最新的，以便生成快照。此外，函数可以作为一个 hook 与外部系统交互实现刷新/提交/同步。如下所示，通过 FunctionSnapshotContext 上下文获取检查点元数据信息，并将最新数据存储在状态中生成快照：
+```java
+public void snapshotState(FunctionSnapshotContext context) throws Exception {
+    long checkpointId = context.getCheckpointId();
+    int subTask = getRuntimeContext().getIndexOfThisSubtask();
+    // 清空上一次快照的状态
+    statePerPartition.clear();
+    // 生成新快照的状态
+    for (String word : bufferedWords) {
+        statePerPartition.add(word);
+    }
+    LOG.info("snapshotState subTask: {}, checkpointId: {}, words: {}", subTask, checkpointId, bufferedWords.toString());
+}
+```
+从代码中可以看出，在 `snapshotState` 中首先清理掉上一次 Checkpoint 触发存储的 OperatorState 的数据，然后再添加并更新本次 Checkpoint 需要的状态数据。
 
 
 

@@ -154,26 +154,24 @@ public void initializeState(FunctionInitializationContext context) throws Except
     lastTemperatureState = context.getKeyedStateStore().getState(stateDescriptor);
     if (context.isRestored()) {
         lastTemperature = lastTemperatureState.value();
-        LOG.info("sensor initializeState, lastTemperature: {}", lastTemperature);
     }
 }
 ```
-该方法提供了访问 FunctionInitializationContext 的能力，而 FunctionInitializationContext 又提供了访问 KeyedStateStore 的能力。此外可以通过 `isRestored()` 来判断状态是否是从上一次执行的 Checkpoint 中恢复(如果是返回 true。对于无状态任务，该方法总是返回 false)。通过 `getKeyedStateStore()` 方法获取允许注册键值状态 KeyedState 的 KeyedStateStore。KeyedStateStore 则又提供了访问状态 State 存储数据结构的能力，例如 `org.apache.flink.api.common.state.ValueState` 或者 `org.apache.flink.api.common.state.ListState`。
+该方法通过 FunctionInitializationContext 提供了访问 KeyedStateStore 的能力。通过 context 的 `getKeyedStateStore()` 方法获取允许注册键值状态 KeyedState 的 KeyedStateStore。KeyedStateStore 则又提供了访问状态 State 存储数据结构的能力，例如 `org.apache.flink.api.common.state.ValueState` 或者 `org.apache.flink.api.common.state.ListState`。此外可以通过 `isRestored()` 来判断状态是否是从上一次执行的 Checkpoint 中恢复(如果是返回 true。对于无状态任务，该方法总是返回 false)。
 
 ### 2.2 snapshotState
 
-每当触发 Checkpoint 生成转换函数的状态快照时就会调用 `snapshotState(FunctionSnapshotContext)` 方法。提供了访问检查点元数据的能力。在 `snapshotState` 方法中，一般需要确保检查点数据结构（在 initialization 方法中获取）是最新的，以便生成快照。此外，函数可以作为一个 hook 与外部系统交互实现刷新/提交/同步。如下所示，将最新数据存储在状态中生成快照：
+每当触发 Checkpoint 生成转换函数的状态快照时就会调用 `snapshotState(FunctionSnapshotContext)` 方法。该方法通过 FunctionSnapshotContext 提供了访问检查点元数据的能力。此外需要确保检查点数据结构（在 initialization 方法中获取）是最新的，以便生成快照。如下所示，将最新数据存储在状态中生成快照：
 ```java
 public void snapshotState(FunctionSnapshotContext context) throws Exception {
     // 获取最新的温度之后更新保存上一次温度的状态
-    //lastTemperatureState.clear();
     lastTemperatureState.update(lastTemperature);
-    LOG.info("sensor snapshotState, temperature: {}", lastTemperature);
 }
 ```
 
 ### 2.3 示例
 
+我们还是以在检测到相邻的两个传感器上报温度值变化超过给定阈值时就发出报警信息为例，看看如何通过 CheckpointedFunction 来操作 KeyedState 从而实现一个有状态函数：
 ```java
 public class CheckpointedFunctionKSExample {
     private static final Logger LOG = LoggerFactory.getLogger(CheckpointedFunctionKSExample.class);
@@ -245,7 +243,6 @@ public class CheckpointedFunctionKSExample {
         @Override
         public void snapshotState(FunctionSnapshotContext context) throws Exception {
             // 获取最新的温度之后更新保存上一次温度的状态
-            //lastTemperatureState.clear();
             lastTemperatureState.update(lastTemperature);
             LOG.info("sensor snapshotState, temperature: {}", lastTemperature);
         }
@@ -263,3 +260,12 @@ public class CheckpointedFunctionKSExample {
     }
 }
 ```
+跟上面的示例一样，为了模拟脏数据异常 Failover，在 flatMap 处理中判断出现的单词是否是 `ERROR`，如果是则抛出一个运行时异常导致作业 Failover 异常重启。在这 TemperatureAlertFlatMapFunction 不再继承 RichFlatMapFunction 而是实现 FlatMapFunction 和 CheckpointedFunction 接口。核心是通过实现 FlatMapFunction 接口的 flatMap 方法完成连续两个温度值变化的判断，通过实现 CheckpointedFunction 接口的 `initializeState` 和 `snapshotState` 方法完成
+状态的初始化以及保存。如下所示是传感器上报温度之后的具体运行信息(经过裁剪)：
+```java
+
+```
+
+
+
+...

@@ -76,3 +76,7 @@ snapshotState 主要是给 OperatorState 使用的，异常原因是 KeyedState 
 
 
 Salva Alcántara 在 snapshotState 方法中对 keyed state 进行了 clear 处理。job 启动后，没有一条数据进入 input streams 时，触发 checkpoint 会报 NPE。Yun Tang 对该问题进行了回复，讲述了 keyed state 和 operator state 的区别，并根据 Salva Alcántara 的业务逻辑推荐他使用 operator state。
+
+
+
+https://www.mail-archive.com/user@flink.apache.org/msg29875.html

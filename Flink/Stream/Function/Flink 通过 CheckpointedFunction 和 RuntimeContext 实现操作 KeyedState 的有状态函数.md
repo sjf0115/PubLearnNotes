@@ -263,8 +263,26 @@ public class CheckpointedFunctionKSExample {
 跟上面的示例一样，为了模拟脏数据异常 Failover，在 flatMap 处理中判断出现的单词是否是 `ERROR`，如果是则抛出一个运行时异常导致作业 Failover 异常重启。在这 TemperatureAlertFlatMapFunction 不再继承 RichFlatMapFunction 而是实现 FlatMapFunction 和 CheckpointedFunction 接口。核心是通过实现 FlatMapFunction 接口的 flatMap 方法完成连续两个温度值变化的判断，通过实现 CheckpointedFunction 接口的 `initializeState` 和 `snapshotState` 方法完成
 状态的初始化以及保存。如下所示是传感器上报温度之后的具体运行信息(经过裁剪)：
 ```java
-
+23:27:55,548 [] - sensor input, id: 1, temperature: 35.4
+23:27:55,562 [] - sensor first temperature, subTask: 0, id: 1, temperature: 35.4
+23:27:59,941 [] - Triggering checkpoint 1
+23:27:59,960 [] - sensor snapshotState, subTask: 1, checkpointId: 1, temperature: null
+23:27:59,961 [] - sensor snapshotState, subTask: 0, checkpointId: 1, temperature: 35.4
+23:28:00,008 [] - Completed checkpoint 1
+23:28:05,199 [] - sensor input, id: 1, temperature: 20.8
+23:28:05,298 [] - sensor alert, subTask: 0, id: 1, temperature: 20.8, lastTemperature: 35.4, diff: 14.599999999999998
+23:28:29,922 [] - Triggering checkpoint 2
+23:28:29,925 [] - sensor snapshotState, subTask: 1, checkpointId: 2, temperature: null
+23:28:29,925 [] - sensor snapshotState, subTask: 0, checkpointId: 2, temperature: 20.8
+23:28:29,939 [] - Completed checkpoint 2
+23:28:39,426 [] - sensor input, id: 2, temperature: 23.5
+23:28:39,485 [] - sensor no alert, subTask: 0, id: 2, temperature: 23.5, lastTemperature: 20.8, diff: 2.6999999999999993
+23:28:59,917 [] - Triggering checkpoint 3
+23:28:59,920 [] - sensor snapshotState, subTask: 0, checkpointId: 3, temperature: 23.5
+23:28:59,920 [] - sensor snapshotState, subTask: 1, checkpointId: 3, temperature: null
+23:28:59,928 [] - Completed checkpoint 3
 ```
+
 
 
 

@@ -18,7 +18,7 @@ GenericWriteAheadSink 完善的内部逻辑使得我们可以相对容易的实�
 
 此外，算子还需要一个方法：
 ```java
-
+protected abstract boolean sendValues(Iterable<IN> values, long checkpointId, long timestamp) throws Exception;
 ```
 GenericWriteAheadSink 会调用 方法将已完成检查点对应的记录写入外部存储系统。该方法接收的参数为针对检查点对应全部记录的 Iterable 对象、检查点ID，以及检查点的生成时间。它会在全部记录写出成功时返回 true，如果失败则返回 false。
 

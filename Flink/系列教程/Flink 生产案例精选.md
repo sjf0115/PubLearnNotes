@@ -18,3 +18,5 @@
   - 稳定性提升
     - Group Window Aggregate 解决数据倾斜
     - 聚合指标调整之后的状态兼容    
+
+- [x] [基于 TiDB + Flink 实现的滑动窗口实时累计指标算法](https://smartsi.blog.csdn.net/article/details/130541896)

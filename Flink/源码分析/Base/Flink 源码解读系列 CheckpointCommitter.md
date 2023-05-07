@@ -2,9 +2,7 @@
 
 CheckpointCommitter 很好的解决了第二个问题，可以通过保存一个实例是否提交了检查点信息来判断是否提交成功。这些数据必须存储在一个后端 Backend(比如分布式文件或者数据库)，即使在重启期间也是持久化的(这就排除了 Flink 的状态机制)，并且所有机器都可以访问。
 
-对于如何共享资源没有强制要求，可以为所有 Flink 作业分配一个资源，或者为每个作业/算子/实例分别分配一个资源。这意味着资源不能由系统本身清理，因此应该尽可能保持小。
-
-## 1. 解析
+## 1. 解读
 
 CheckpointCommitter 是一个抽象类，主要用来保存 Sink 算子实例提交给后端的检查点信息：
 ```java
@@ -42,7 +40,20 @@ CheckpointCommitter 提供了两个变量，一个是作业 ID（jobId），另�
 
 ## 2. 实现
 
-在这我们实现一个基于文件资源的 CheckpointCommitter，即将 Sink 算子实例提交的检查点信息保存到文件中。由于在这我们使用的资源是文件，不需要创建或者关闭一个连接，直接创建文件即可，所以 `open()` 和 `close()` 可以不实现：
+在这我们实现一个基于文件资源的 CheckpointCommitter，即将 Sink 算子实例提交的检查点信息保存到文件中：
+```java
+public class FileCheckpointCommitter extends CheckpointCommitter {
+      // 基础目录路径
+      private final String basePath;
+      // 为不同作业分配的目录路径
+      private String jobBasePath;
+      public FileCheckpointCommitter(String basePath) {
+          this.basePath = basePath;
+      }
+      ...
+}
+```
+由于在这我们使用的资源是文件，不需要创建或者关闭一个连接，直接创建文件即可，所以 `open()` 和 `close()` 可以不实现：
 ```java
 @Override
 public void open() throws Exception {
@@ -107,75 +118,23 @@ public boolean isCheckpointCommitted(int subTaskIdx, long checkpointID) throws E
 ```
 首先判断以作业ID为目录，实例ID命名的文件是否存在，如果连文件都没有则表示该检查点肯定没有提交过。如果对应的文件存在，则需要判断文件中提交的检查点ID是否大于等于指定的检查点ID，如果大于等于，则表示提交过了。
 
-附录-完整实现：
+创建完 FileCheckpointCommitter 之后，简单看一下如何使用：
 ```java
-public class FileCheckpointCommitter extends CheckpointCommitter {
-
-    private static final Logger LOG = LoggerFactory.getLogger(FileCheckpointCommitter.class);
-
-    private String jobBasePath;
-    private final String basePath;
-
-    public FileCheckpointCommitter(String basePath) {
-        this.basePath = basePath;
+private static class StdOutWALSink extends GenericWriteAheadSink<Tuple2<String, Long>> {
+    public StdOutWALSink() throws Exception {
+        super(
+                new FileCheckpointCommitter(System.getProperty("java.io.tmpdir")),
+                Types.<Tuple2<String, Long>>TUPLE(Types.STRING, Types.LONG).createSerializer(new ExecutionConfig()),
+                UUID.randomUUID().toString()
+        );
     }
-
-    @Override
-    public void open() throws Exception {
-        LOG.info("open committer");
-        // no need to open a connection
-    }
-
-    @Override
-    public void close() throws Exception {
-        LOG.info("close committer");
-        // no need to close a connection
-    }
-
-    // 创建资源(在这为文件)
-    @Override
-    public void createResource() throws Exception {
-        this.jobBasePath = this.basePath + "/" + this.jobId;
-        // 当前 JobId 作为提交文件的目录
-        Files.createDirectory(Paths.get(this.jobBasePath));
-        LOG.info("create resource {}", this.jobBasePath);
-    }
-
-    // 提交 Checkpoint(为每个任务实例提交)
-    @Override
-    public void commitCheckpoint(int subTaskIdx, long checkpointID) throws Exception {
-        Path commitPath = Paths.get(this.jobBasePath + "/" + subTaskIdx);
-        // 将 CheckpointID 转换为 16 进制字符串
-        String hexID = "0x" + StringUtils.leftPad(Long.toHexString(checkpointID), 16, "0");
-        // 将 16 进制字符串写进提交文件中
-        Files.write(commitPath, hexID.getBytes());
-        LOG.info("CheckpointId {} (SubTask = {}) commit, path is {}", checkpointID, subTaskIdx, commitPath);
-    }
-
-    // 判断该子任务对应的 Checkpoint 是否已经提交
-    @Override
-    public boolean isCheckpointCommitted(int subTaskIdx, long checkpointID) throws Exception {
-        boolean isCommitted;
-        Path commitPath = Paths.get(this.jobBasePath + "/" + subTaskIdx);
-        if (!Files.exists(commitPath)) {
-            // 提交文件都没有表示没有提交过
-            isCommitted = false;
-        } else {
-            // 从文件中读取提交的 CheckpointId
-            String hexID = Files.readAllLines(commitPath).get(0);
-            Long commitCheckpointID = Long.decode(hexID);
-            // 判断当前 CheckpointID 是否小于等于已提交的 CheckpointID
-            isCommitted = checkpointID <= commitCheckpointID;
-        }
-        if (isCommitted) {
-            LOG.info("CheckpointId {} (SubTask = {}) is committed", checkpointID, subTaskIdx);
-        } else {
-            LOG.info("CheckpointId {} (SubTask = {}) has not committed", checkpointID, subTaskIdx);
-        }
-        return isCommitted;
-    }
+    ...
 }
 ```
+从上面可以看到我们在基于 GenericWriteAheadSink 实现的一个 WAL Sink 中使用 FileCheckpointCommitter 来保存 Sink 算子实例提交给后端的检查点信息。使用比较简单，只需要传递一个保存文件的目录即可，在这我们选择的是系统临时目录。
 
+> 详细代码请查阅：[StdOutWriteAheadSinkExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/sink/wal/StdOutWriteAheadSinkExample.java)
 
-....
+除了我们自己实现的 FileCheckpointCommitter 之外，你也可以查看 Flink 的一个内置实现 [CassandraCommitter](https://github.com/apache/flink/blob/release-1.16.1/flink-connectors/flink-connector-cassandra/src/main/java/org/apache/flink/streaming/connectors/cassandra/CassandraCommitter.java)。
+
+> 完整代码请查阅：[FileCheckpointCommitter](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/state/checkpoint/FileCheckpointCommitter.java)

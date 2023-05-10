@@ -9,30 +9,67 @@ GenericWriteAheadSink 的原理是将接收到的所有记录都追加到由检�
 
 检查点的提交分两步。第一步，Sink 需要将检查点已提交的信息持久化。第二步，删除 WAL 中相应的数据。检查点已提交的信息无法存储在 Flink 应用程序状态中，因为状态本身不具有持久性，并且会在故障恢复时重置状态。实际上，GenericWriteAheadSink 依赖一个名为 CheckpointCommitter 的可插拔组件来控制外部持久化系统存储和查找已提交检查点信息。
 
+需要特别注意的是， GenericWriteAheadSink 无法百分百的提供 Exactly-Once 语义保障，有两种故障会导致记录重复消费：
+- 在运行 `sendValues` 方法时发生故障。如果外部系统不支持原子性的写入多个记录(全写或者全不写)，那么就会出现部分数据已经写入而部分数据没能写入成功。由于此时检查点还没有提交，下次恢复时重写全部记录。
+- 所有记录都已经成功写入，`sendValues` 返回了 true，但是程序在调用 CheckpointCommitter 前出现故障或者 CheckpointCommitter 未能成功提交检查点。这样，在故障恢复期间，未提交的检查点所对应的全部记录都会被重新消费一次。
+
 ## 2. 实现
 
-GenericWriteAheadSink 完善的内部逻辑使得我们可以相对容易的实现基于 WAL 的 Sink。继承自 GenericWriteAheadSink 的算子需要再构造方法中提供三个参数：
+GenericWriteAheadSink 完善的内部逻辑使得我们可以相对容易的实现基于 WAL 的 Sink。继承自 GenericWriteAheadSink 的算子需要在构造方法中提供三个参数：
 - 一个 CheckpointCommitter
 - 一个用于序列化输入记录的 TypeSerializer
 - 一个传递给 CheckpointCommitter，用于应用重启后标识提交信息的作业 ID
-
-此外，算子还需要一个方法：
 ```java
-protected abstract boolean sendValues(Iterable<IN> values, long checkpointId, long timestamp) throws Exception;
+private static class StdOutWALSink extends GenericWriteAheadSink<Tuple2<String, Long>> {
+    // 构造函数
+    public StdOutWALSink() throws Exception {
+        super(
+                // CheckpointCommitter
+                new FileCheckpointCommitter(System.getProperty("java.io.tmpdir")),
+                // 用于序列化输入记录的 TypeSerializer
+                Types.<Tuple2<String, Long>>TUPLE(Types.STRING, Types.LONG).createSerializer(new ExecutionConfig()),
+                // 自定义作业 ID
+                UUID.randomUUID().toString()
+        );
+    }
+}
 ```
-GenericWriteAheadSink 会调用 方法将已完成检查点对应的记录写入外部存储系统。该方法接收的参数为针对检查点对应全部记录的 Iterable 对象、检查点ID，以及检查点的生成时间。它会在全部记录写出成功时返回 true，如果失败则返回 false。
+从上面可以看到内部使用一个名为 FileCheckpointCommitter 的 CheckpointCommitter，将 Sink 算子实例提交的检查点信息保存到文件中，具体实现可以查阅[Flink 源码解读系列 CheckpointCommitter](https://smartsi.blog.csdn.net/article/details/130550211)。
 
+此外，最重要的是需要实现 `sendValues` 方法：
+```java
+@Override
+protected boolean sendValues(Iterable<Tuple2<String, Long>> words, long checkpointId, long timestamp) throws Exception {
+    // 输出到外部系统 在这为 StdOut 标准输出
+    // 每次 Checkpoint 完成之后通过 notifyCheckpointComplete 调用该方法
+    int subtask = getRuntimeContext().getIndexOfThisSubtask();
+    for (Tuple2<String, Long> word : words) {
+        System.out.println("StdOut> " + word);
+        LOG.info("checkpointId {} (subTask = {}) send word: {}", checkpointId, subtask, word);
+    }
+    return true;
+}
+```
+GenericWriteAheadSink 会调用 `sendValues` 方法将已完成检查点 `checkpointId` 对应的全部记录写入外部存储系统。该方法第一个参数是检查点 `checkpointId` 对应全部记录的 Iterable 对象 `words`、检查点ID `checkpointId` 以及检查点的生成时间 `timestamp`。在这我们简单实现了一个写标准输出的 WAL Sink，输出该检查点对应的全部记录。在全部记录写出成功时返回 true，如果失败则返回 false。
 
-抽象类GenericWriteAheadSink实现了缓存数据。在收到上游的消息时，会将消息存储在state中(保存于taskowned目录下)，收到全局一致快照完成的notify后，调用sendValues(Iterable<IN> values, long checkpointId, long timestamp)方法向下游系统发送global commit的消息。
+> 你可以简单理解 GenericWriteAheadSink 实现了一个缓存，在收到上游的记录时，先将消息存储在状态中，再收到 Checkpoint 完成通知后，调用 `sendValues` 方法向外部系统输出缓冲的全部记录。GenericWriteAheadSink 相当于缓存了一个 Checkpoint 间隔的记录。
 
-
+需要注意的是，GenericWriteAheadSink 没有实现 SinkFunction 接口。因此我们无法使用 `DataStream.addSink()` 方法添加一个继承自 GenericWriteAheadSink 的 Sink，而是要使用 `DataStream.transform()` 方法：
+```java
+// WAL Sink 输出 需要等 Checkpoint 完成再输出
+result.transform(
+    "StdOutWriteAheadSink",
+    Types.TUPLE(Types.STRING, Types.LONG),
+    new StdOutWALSink()
+);
+```
 
 ## 3. 源码分析
 
+CustomGenericWriteAheadSink 是一个抽象类：
 ```java
 public abstract class CustomGenericWriteAheadSink<IN> extends AbstractStreamOperator<IN>
         implements OneInputStreamOperator<IN, IN> {
-
 }
 ```
 GenericWriteAheadSink 实现了一个将其输入元素发送到任意状态后端的通用 Sink。该 Sink 与 Flink 的 checkpointing 机制集成，可以提供 Exactly-Once 语义保证，具体还需要取决于状态后端和 Sink/Committer 的实现。传入进来的记录会存储在 AbstractStateBackend 中，并且仅在检查点完成时提交。

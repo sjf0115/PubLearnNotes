@@ -1,5 +1,6 @@
+- [x] [Flink 源码解读系列 CheckpointCommitter](https://smartsi.blog.csdn.net/article/details/126924422)
 - [x] [Flink 源码解读系列 DataStream 数据流元素 StreamElement](https://smartsi.blog.csdn.net/article/details/126881550)
 - [x] [Flink 源码解读系列 DataStream 带 Watermark 生成的时间戳分配器](https://smartsi.blog.csdn.net/article/details/126797894)
 - [x] [Flink 源码解读系列 DataStream 窗口 Winow 实现](https://smartsi.blog.csdn.net/article/details/126574164)
 - [x] [Flink 源码解读系列 DataStream 窗口分配器 WinowAssigner](https://smartsi.blog.csdn.net/article/details/126594720)
-- [Flink 源码解读系列 DataStream 时间服务管理器 TimeServiceManager 设计与实现](https://smartsi.blog.csdn.net/article/details/126924337)
+- [x] [Flink 源码解读系列 DataStream 时间服务管理器 TimeServiceManager 设计与实现](https://smartsi.blog.csdn.net/article/details/126924337)

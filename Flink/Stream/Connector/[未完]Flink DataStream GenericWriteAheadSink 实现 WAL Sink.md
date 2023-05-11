@@ -65,34 +65,38 @@ result.transform(
 
 ## 3. 源码分析
 
-CustomGenericWriteAheadSink 是一个抽象类：
+GenericWriteAheadSink 是一个抽象类：
 ```java
-public abstract class CustomGenericWriteAheadSink<IN> extends AbstractStreamOperator<IN>
+public abstract class GenericWriteAheadSink<IN> extends AbstractStreamOperator<IN>
         implements OneInputStreamOperator<IN, IN> {
 }
 ```
 GenericWriteAheadSink 实现了一个将其输入元素发送到任意状态后端的通用 Sink。该 Sink 与 Flink 的 checkpointing 机制集成，可以提供 Exactly-Once 语义保证，具体还需要取决于状态后端和 Sink/Committer 的实现。传入进来的记录会存储在 AbstractStateBackend 中，并且仅在检查点完成时提交。
 
-### 3.1 构造器
+### 3.1 构造器 GenericWriteAheadSink
 
-继承 GenericWriteAheadSink 的算子需要提供三个构造器参数：
+继承自 GenericWriteAheadSink 的算子需要在构造方法中提供三个参数：
+- 一个 CheckpointCommitter
+- 一个用于序列化输入记录的 TypeSerializer
+- 一个传递给 CheckpointCommitter，用于应用重启后标识提交信息的作业 ID
 ```java
-GenericWriteAheadSink(CheckpointCommitter committer, TypeSerializer<IN> serializer, String jobID)
+public GenericWriteAheadSink(CheckpointCommitter committer, TypeSerializer<IN> serializer, String jobID) throws Exception {
+    this.committer = Preconditions.checkNotNull(committer);
+    this.serializer = Preconditions.checkNotNull(serializer);
+    this.id = UUID.randomUUID().toString();
+    this.committer.setJobId(jobID);
+    this.committer.createResource();
+}
 ```
-- CheckpointCommitter，Checkpoint 提交器
-- TypeSerializer，用来序列化输入数据。
-- jobID 作业ID，传给 CheckpointCommitter，当应用重启时可以识别commit信息。
+此外，还在构造函数中调用 CheckpointCommitter 的 `createResource` 方法来创建资源(可以是分布式存储，也可以是数据库)，后续用来存储提交的检查点信息。
 
-### 3.2 生命周期管理
+### 3.2 初始化状态 initializeState
 
+当第一次初始化函数或者因为故障重启需要从之前 Checkpoint 中恢复状态数据时会调用 `initializeState()` 方法：
 ```java
+private transient ListState<PendingCheckpoint> checkpointedState;
+private final Set<PendingCheckpoint> pendingCheckpoints = new TreeSet<>();
 
-```
-
-### 3.3 状态处理
-
-初始化状态：
-```java
 public void initializeState(StateInitializationContext context) throws Exception {
     super.initializeState(context);
     Preconditions.checkState(this.checkpointedState == null, "The reader state has already been initialized.");
@@ -108,12 +112,52 @@ public void initializeState(StateInitializationContext context) throws Exception
         for (PendingCheckpoint pendingCheckpoint : checkpointedState.get()) {
             this.pendingCheckpoints.add(pendingCheckpoint);
         }
-    } else {
-        LOG.info("No state to restore for the GenericWriteAheadSink (taskIdx={}).", subtaskIdx);
     }
 }
 ```
-生成状态快照：
+通过该方法访问 OperatorStateStore 获取一个 ListState 来存储待提交的检查点 PendingCheckpoint(包含了检查点ID，当前子任务ID，检查点生成时间以及状态句柄)。然后通过 `isRestored()` 方法来判断状态是否是从上一次成功的 Checkpoint 中恢复(如果是返回 true），将从状态中恢复的待提交检查点 PendingCheckpoint 保存在 pendingCheckpoints 集合中。如果是第一次初始化函数则不会从 Checkpoint 中进行恢复。
+
+### 3.3 打开 open
+
+`open()` 方法在处理任何元素之前调用，主要包含算子的一些初始化逻辑，例如为 FileCheckpointCommitter 设置算子ID以及获取 CheckpointStorage 等：
+```java
+public void open() throws Exception {
+    super.open();
+    committer.setOperatorId(id);
+    committer.open();
+    checkpointStorage = getContainingTask().getCheckpointStorage();
+    cleanRestoredHandles();
+}
+
+private void cleanRestoredHandles() throws Exception {
+    synchronized (pendingCheckpoints) {
+        Iterator<PendingCheckpoint> pendingCheckpointIt = pendingCheckpoints.iterator();
+        while (pendingCheckpointIt.hasNext()) {
+            PendingCheckpoint pendingCheckpoint = pendingCheckpointIt.next();
+            if (committer.isCheckpointCommitted(pendingCheckpoint.subtaskId, pendingCheckpoint.checkpointId)) {
+                pendingCheckpoint.stateHandle.discardState();
+                pendingCheckpointIt.remove();
+            }
+        }
+    }
+}
+```
+此外该方法中最重要的是调用 `cleanRestoredHandles()` 方法来遍历从状态中恢复的所有待提交的检查点。通过 FileCheckpointCommitter 的 `isCheckpointCommitted` 方法来检查哪些已经提交到外部存储系统了，如果已经提交了则将它们从 pendingCheckpoints 列表中删除并清除状态句柄。
+
+### 3.4 元素处理 processElement
+
+```java
+public void processElement(StreamRecord<IN> element) throws Exception {
+    IN value = element.getValue();
+    if (out == null) {
+        out = checkpointStorage.createTaskOwnedStateStream();
+    }
+    serializer.serialize(value, new DataOutputViewStreamWrapper(out));
+}
+```
+
+### 3.5 生成状态快照 snapshotState
+
 ```java
 public void snapshotState(StateSnapshotContext context) throws Exception {
     super.snapshotState(context);
@@ -133,22 +177,67 @@ public void snapshotState(StateSnapshotContext context) throws Exception {
     }
 }
 ```
-### 3.4 CheckpointCommitter
+### 3.6 检查点完成通知 CheckpointCommitter
 
 CheckpointCommitter 类用于保存 Sink 算子实例已将检查点提交到状态后端的信息。
 
-```java
+```
+public void notifyCheckpointComplete(long checkpointId) throws Exception {
+    super.notifyCheckpointComplete(checkpointId);
+    synchronized (pendingCheckpoints) {
+        Iterator<PendingCheckpoint> pendingCheckpointIt = pendingCheckpoints.iterator();
+        while (pendingCheckpointIt.hasNext()) {
+            PendingCheckpoint pendingCheckpoint = pendingCheckpointIt.next();
+            long pastCheckpointId = pendingCheckpoint.checkpointId;
+            int subtaskId = pendingCheckpoint.subtaskId;
+            long timestamp = pendingCheckpoint.timestamp;
+            StreamStateHandle streamHandle = pendingCheckpoint.stateHandle;
 
+            if (pastCheckpointId <= checkpointId) {
+                try {
+                  if (!committer.isCheckpointCommitted(subtaskId, pastCheckpointId)) {
+                    try (FSDataInputStream in = streamHandle.openInputStream()) {
+                      //  判断是否发送成功
+                      boolean success =
+                          sendValues(
+                              new ReusingMutableToRegularIteratorWrapper<>(
+                                  new InputViewIterator<>(new DataInputViewStreamWrapper(in), serializer),
+                                  serializer
+                              ),
+                              pastCheckpointId,
+                              timestamp
+                          );
+                      // 发送成功
+                      if (success) {
+                          committer.commitCheckpoint(subtaskId, pastCheckpointId);
+                          streamHandle.discardState();
+                          pendingCheckpointIt.remove();
+                      }
+                    }
+                  } else {
+                      streamHandle.discardState();
+                      pendingCheckpointIt.remove();
+                  }
+                } catch (Exception e) {
+                    LOG.error("Could not commit checkpoint.", e);
+                    break;
+                }
+            }
+        }
+    }
+}
 ```
 
 
 当前的检查点机制不适合依赖于不支持回滚的后端的接收器。在处理这样的系统时，在尝试获得完全一次语义时，既不能在创建快照时提交数据（因为另一个接收器实例可能失败，导​​致对相同数据的重放），也不能在接收到检查点完成通知时（因为随后的失败将使我们不知道数据是否已提交）。
 
-CheckpointCommitter 可用于解决第二个问题，方法是保存实例是否提交了属于某个检查点的所有数据。这些数据必须存储在一个后端，该后端在重试后是持久的（这排除了 Flink 的状态机制），并且可以从所有机器（如数据库或分布式文件）访问。
+### 3.7 关闭 close
 
-没有关于如何共享资源的规定；所有 Flink 作业可能有一个资源，或者每个作业/操作员/实例分别有一个资源。这意味着资源不能由系统本身清理，因此应保持尽可能小。
-
-
+```java
+public void close() throws Exception {
+    committer.close();
+}
+```
 
 
 

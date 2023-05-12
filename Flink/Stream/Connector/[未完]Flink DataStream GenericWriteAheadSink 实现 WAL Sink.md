@@ -146,7 +146,10 @@ private void cleanRestoredHandles() throws Exception {
 
 ### 3.4 元素处理 processElement
 
+`processElement()` 方法用来处理到达的元素记录 StreamRecord，并将其写入到检查点持久化流中：
 ```java
+private transient CheckpointStorageWorkerView checkpointStorage;
+
 public void processElement(StreamRecord<IN> element) throws Exception {
     IN value = element.getValue();
     if (out == null) {
@@ -155,18 +158,17 @@ public void processElement(StreamRecord<IN> element) throws Exception {
     serializer.serialize(value, new DataOutputViewStreamWrapper(out));
 }
 ```
+从上面代码中可以看到通过 CheckpointStorageWorkerView 创建一个流来持久化检查点状态数据，需要注意的是数据只跟任务有关系，与检查点的生命周期没有关系。当创建持久数据的检查点被删除后而无法立即删除数据时，建议使用此方法，例如预写日志。对于这些情况，只有在数据写入到目标系统后才能删除状态，这有时可能需要比一个检查点更长的时间(如果目标系统暂时无法跟上)。作业管理器不拥有这种状态的生命周期，这也意味着这些数据的清理完全交由任务来责任。
 
 ### 3.5 生成状态快照 snapshotState
 
+每当触发检查点生成状态快照时就会调用 `snapshotState()` 方法：
 ```java
 public void snapshotState(StateSnapshotContext context) throws Exception {
     super.snapshotState(context);
     Preconditions.checkState(this.checkpointedState != null, "The operator state has not been properly initialized.");
-
     saveHandleInState(context.getCheckpointId(), context.getCheckpointTimestamp());
-
     this.checkpointedState.clear();
-
     try {
         for (PendingCheckpoint pendingCheckpoint : pendingCheckpoints) {
             this.checkpointedState.add(pendingCheckpoint);
@@ -176,30 +178,49 @@ public void snapshotState(StateSnapshotContext context) throws Exception {
         throw new Exception(xxx);
     }
 }
-```
-### 3.6 检查点完成通知 CheckpointCommitter
 
-CheckpointCommitter 类用于保存 Sink 算子实例已将检查点提交到状态后端的信息。
-
+private void saveHandleInState(final long checkpointId, final long timestamp) throws Exception {
+    if (out != null) {
+        int subtaskIdx = getRuntimeContext().getIndexOfThisSubtask();
+        // 关闭流并返回流中的数据
+        StreamStateHandle handle = out.closeAndGetHandle();
+        // 根据检查点ID、时间戳、当前子任务ID以及状态句柄生成
+        PendingCheckpoint pendingCheckpoint = new PendingCheckpoint(checkpointId, subtaskIdx, timestamp, handle);
+        if (pendingCheckpoints.contains(pendingCheckpoint)) {
+            handle.discardState();
+        } else {
+            pendingCheckpoints.add(pendingCheckpoint);
+        }
+        out = null;
+    }
+}
 ```
+上面我们知道每当一个记录到达时都会调用 `processElement()` 方法来处理，并写入检查点持久化流中。在生成状态快照时关闭流并返回流中的数据组装成状态句柄。另外根据当前检查点ID、时间戳、当前子任务ID来生成 PendingCheckpoint，并存入待提交检查点集合中等待写入算子状态中。
+
+### 3.6 检查点完成通知 notifyCheckpointComplete
+
+当检查点完成时会调用 `notifyCheckpointComplete()` 方法来周知该检查点已完成，核心完成输出每个待提交检查点缓冲的数据并进行提交：
+```java
 public void notifyCheckpointComplete(long checkpointId) throws Exception {
     super.notifyCheckpointComplete(checkpointId);
     synchronized (pendingCheckpoints) {
+        // 待提交的检查点
         Iterator<PendingCheckpoint> pendingCheckpointIt = pendingCheckpoints.iterator();
         while (pendingCheckpointIt.hasNext()) {
             PendingCheckpoint pendingCheckpoint = pendingCheckpointIt.next();
+            // 该检查点的相关信息
             long pastCheckpointId = pendingCheckpoint.checkpointId;
             int subtaskId = pendingCheckpoint.subtaskId;
             long timestamp = pendingCheckpoint.timestamp;
             StreamStateHandle streamHandle = pendingCheckpoint.stateHandle;
-
+            // 将当前检查点之前的检查点进行提交
             if (pastCheckpointId <= checkpointId) {
                 try {
+                  // 判断是否已经提交
                   if (!committer.isCheckpointCommitted(subtaskId, pastCheckpointId)) {
-                    try (FSDataInputStream in = streamHandle.openInputStream()) {
-                      //  判断是否发送成功
-                      boolean success =
-                          sendValues(
+                    try (`FSDataInputStream` in = streamHandle.openInputStream()) {
+                      // 调用用户自己实现的输出外部系统逻辑方法
+                      boolean success = sendValues(
                               new ReusingMutableToRegularIteratorWrapper<>(
                                   new InputViewIterator<>(new DataInputViewStreamWrapper(in), serializer),
                                   serializer
@@ -207,8 +228,8 @@ public void notifyCheckpointComplete(long checkpointId) throws Exception {
                               pastCheckpointId,
                               timestamp
                           );
-                      // 发送成功
                       if (success) {
+                          // 发送成功
                           committer.commitCheckpoint(subtaskId, pastCheckpointId);
                           streamHandle.discardState();
                           pendingCheckpointIt.remove();
@@ -229,8 +250,6 @@ public void notifyCheckpointComplete(long checkpointId) throws Exception {
 ```
 
 
-当前的检查点机制不适合依赖于不支持回滚的后端的接收器。在处理这样的系统时，在尝试获得完全一次语义时，既不能在创建快照时提交数据（因为另一个接收器实例可能失败，导​​致对相同数据的重放），也不能在接收到检查点完成通知时（因为随后的失败将使我们不知道数据是否已提交）。
-
 ### 3.7 关闭 close
 
 ```java
@@ -238,13 +257,3 @@ public void close() throws Exception {
     committer.close();
 }
 ```
-
-
-
-
-
-
-
-
-
-...

@@ -129,7 +129,7 @@ SQL Mapper 映射文件中定义了 SQL 查询语句实现与数据库的交互�
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <!-- namespace 命名空间 -->
-<mapper namespace="com.mybatis.example.UserMapper">
+<mapper namespace="com.mybatis.example.mapper.UserMapper">
     <!-- 查询所有的用户  id 唯一标识 resultType 返回类型-->
     <select id="selectAll" resultType="com.mybatis.example.pojo.User">
         select * from tb_user;
@@ -140,9 +140,9 @@ SQL Mapper 映射文件中定义了 SQL 查询语句实现与数据库的交互�
     </select>
 </mapper>
 ```
-我们在命名空间 `com.mybatis.example.UserMapper` 中定分别定义了名为 `selectAll` 和 `selectById` 的映射语句。这样你就可以用全限定名 `com.mybatis.example.UserMapper.selectAll` 和 `com.mybatis.example.UserMapper.selectById` 来调用映射语句分别完成所有用户的查询和根据指定的 Id 的用户查询，如下所示(后面会详细介绍)：
+我们在命名空间 `com.mybatis.example.mapper.UserMapper` 中定分别定义了名为 `selectAll` 和 `selectById` 的映射语句。这样你就可以用全限定名 `com.mybatis.example.mapper.UserMapper.selectAll` 和 `com.mybatis.example.mapper.UserMapper.selectById` 来调用映射语句分别完成所有用户的查询和根据指定的 Id 的用户查询，如下所示(后面会详细介绍)：
 ```java
-User user = session.selectOne("com.mybatis.example.UserMapper.selectById", 1);
+User user = session.selectOne("com.mybatis.example.mapper.UserMapper.selectById", 1);
 ```
 
 > 命名空间的作用有两个，一个是利用更长的全限定名来将不同的语句隔离开来，同时也实现我们下面要说的 Mapper 接口绑定(下面详细介绍)。就算你觉得暂时用不到接口绑定，你也应该遵循这里的规定，以防哪天你改变了主意。 长远来看，只要将命名空间置于合适的 Java 包命名空间之中，你的代码会变得更加整洁，也有利于你更方便地使用 MyBatis。
@@ -246,21 +246,23 @@ SqlSession session = sqlSessionFactory.openSession();
 
 // 查询所有的用户
     // 参数是 SQL 语句的唯一标识 Mapper.xml 文件中定义
-List<User> users = session.selectList("com.mybatis.example.UserMapper.selectAll");
+List<User> users = session.selectList("com.mybatis.example.mapper.UserMapper.selectAll");
 for (User user : users) {
     System.out.println("全部用户: " + user);
 }
 
 // 根据指定的ID查询用户
-User user = session.selectOne("com.mybatis.example.UserMapper.selectById", 1);
+User user = session.selectOne("com.mybatis.example.mapper.UserMapper.selectById", 1);
 System.out.println("目标用户: " + user);
 ```
 
-> 我们在命名空间 `com.mybatis.example.UserMapper` 中定分别定义了唯一标识为 `selectAll` 和 `selectById` 的 SQL 映射语句。这样你就可以用全限定名 `com.mybatis.example.UserMapper.selectAll` 和 `com.mybatis.example.UserMapper.selectById` 来调用映射语句分别完成所有用户的查询和根据指定的 Id 的用户查询。
+> 我们在命名空间 `com.mybatis.example.mapper.UserMapper` 中定分别定义了唯一标识为 `selectAll` 和 `selectById` 的 SQL 映射语句。这样你就可以用全限定名 `com.mybatis.example.mapper.UserMapper.selectAll` 和 `com.mybatis.example.mapper.UserMapper.selectById` 来调用映射语句分别完成所有用户的查询和根据指定的 Id 的用户查询。
 
-#### 5.3.2 指定接口
+> 完整代码请查阅：[MybatisQuickStart](https://github.com/sjf0115/spring-example/blob/main/mybatis-quick-start/src/main/java/com/mybatis/example/MybatisQuickStart.java)
 
-你可能会注意到，上面这种方式和用全限定名调用 Java 对象的方法类似。将上面的该命名直接映射到在命名空间中同名的映射器 Mapper 类，并将已映射的 SELECT 语句匹配到对应名称、参数和返回类型的方法：
+#### 5.3.2 Mapper 代理开发
+
+你可能会注意到，上面这种方式和用全限定名调用 Java 对象的方法类似。将上面的命名直接映射到在命名空间中同名的映射器 Mapper 类，并将已映射的 SELECT 语句匹配到对应名称、参数和返回类型的方法：
 ```java
 public interface UserMapper {
     List<User> selectAll();
@@ -272,16 +274,24 @@ public interface UserMapper {
 ```java
 // 查询所有的用户
 UserMapper mapper = session.getMapper(UserMapper.class);
-List<User> users2 = mapper.selectAll();
-for (User user2 : users2) {
-    System.out.println("全部用户: " + user2);
+List<User> users = mapper.selectAll();
+for (User user : users) {
+    System.out.println("全部用户: " + user);
 }
 
 // 根据指定的ID查询用户
-User user2 = mapper.selectById(1);
-System.out.println("目标用户: " + user2);
+User user = mapper.selectById(1);
+System.out.println("目标用户: " + user);
 ```
 这种方法有很多优势，首先它不依赖于字符串字面值，会更安全一点；其次，如果你的 IDE 有代码补全功能，那么代码补全可以帮你快速选择到映射好的 SQL 语句。
 
 
-> 完整代码请查阅：[MybatisQuickStart](https://github.com/sjf0115/spring-example/blob/main/mybatis-quick-start/src/main/java/com/mybatis/example/MybatisQuickStart.java)
+我们总结一下使用 Mapper 代理开发必须满足的要求：
+- 定义与 SQL 映射文件同名的 Mapper 接口
+- 设置 SQL 映射文件的 namespace 属性为 Mapper 接口全限定名
+
+![](../../../Image/Mybatis/mybatis-quick-start-1.png)
+
+- 在 Mapper 接口中定义的方法名与 SQL 映射文件中 SQL 语句的 id 保持一致，参数类型和返回值类型也要保持一致
+
+> 完整代码请查阅：[MybatisQuickStartMapper](https://github.com/sjf0115/spring-example/blob/main/mybatis-quick-start/src/main/java/com/mybatis/example/MybatisQuickStartMapper.java)

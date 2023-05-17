@@ -1,17 +1,17 @@
-## 1. 查询 User 表汇总所有的数据
-
-- 创建 User 表，添加数据
+实现一个简单的 MyBatis 快速入门项目，可以根据如下几步来快速完成：
+- 数据准备：创建 `tb_user` 表，添加数据
 - 创建模块，导致坐标
-- 编写 Mybatis 核心配置文件：替换连接信息，解决硬编码问题
-- 编写 SQL 映射文件：统一管理 SQL 语句，解决硬编码问题
+- 编写 Mybatis 核心配置文件 `mybatis-config.xml`：替换连接信息，解决硬编码问题
+- 编写 SQL 映射文件 `UserMapper.xml`：统一管理 SQL 语句
 - 编码
-  - 定义 POJO 类
-  - 加载核心配置文件，获取 SqlSessionFactory 对象
-  - 获取 SqlSession 对象，执行 SQL 语句
+  - 定义 POJO 类 `User`
+  - 加载核心配置文件，获取 `SqlSessionFactory` 对象
+  - 获取 `SqlSession` 对象，执行 SQL 语句
   - 释放资源
 
-## 1. 创建 MySQL 数据表
+## 1. 准备数据
 
+在这我们在 test 数据库中创建 tb_user 数据表并添加 5 条记录用来测试：
 ```sql
 CREATE DATABASE IF NOT EXISTS test;
 USE test;
@@ -23,9 +23,13 @@ CREATE TABLE IF NOT EXISTS `tb_user` (
   `email` varchar(50) DEFAULT NULL COMMENT '邮箱',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+INSERT INTO tb_user VALUES (1, 'Jone', 18, 'jone@163.com');
+INSERT INTO tb_user VALUES (2, 'Jack', 20, 'jack@163.com');
+INSERT INTO tb_user VALUES (3, 'Tom', 28, 'tom@163.com');
+INSERT INTO tb_user VALUES (4, 'Sandy', 21, 'sandy@163.com');
+INSERT INTO tb_user VALUES (5, 'Billie', 24, 'billie@163.com');
 ```
-
-
 
 ## 2. 配置依赖
 
@@ -75,7 +79,7 @@ CREATE TABLE IF NOT EXISTS `tb_user` (
 
 ## 3. 配置 Mybatis XML 配置文件
 
-Mybatis XML 配置文件中包含了对 MyBatis 系统的核心设置，包括获取数据库连接实例的数据源（DataSource）以及决定事务作用域和控制方式的事务管理器（TransactionManager）。后面会再探讨 XML 配置文件的详细内容，这里先给出一个简单的示例，如下是 mybatis-config.xml 配置文件：
+Mybatis XML 配置文件中包含了对 MyBatis 系统的核心设置，包括获取数据库连接实例的数据源（DataSource）以及决定事务作用域和控制方式的事务管理器（TransactionManager）。后面会再探讨 XML 配置文件的详细内容，这里先给出一个简单的示例，如下是快速部署项目的 `mybatis-config.xml` 配置文件：
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE configuration
@@ -108,7 +112,7 @@ Mybatis XML 配置文件中包含了对 MyBatis 系统的核心设置，包括�
     </environments>
 
     <mappers>
-        <!-- 下一步会具体介绍 -->
+        <!-- 映射器配置 下一步会具体介绍 -->
         <mapper resource="UserMapper.xml"/>
     </mappers>
 </configuration>
@@ -117,7 +121,7 @@ Mybatis XML 配置文件中包含了对 MyBatis 系统的核心设置，包括�
 
 ## 4. SQL Mapper 映射文件
 
-一个语句既可以通过 XML 定义，也可以通过注解定义。我们先看看 XML 定义语句的方式，事实上 MyBatis 提供的所有特性都可以利用基于 XML 的映射语言来实现，这使得 MyBatis 在过去的数年间得以流行。
+SQL Mapper 映射文件中定义了 SQL 查询语句实现与数据库的交互，主要目的是实现 SQL 的统一管理。一个 SQL 语句既可以通过 XML 定义，也可以通过注解定义。因为 MyBatis 提供的所有特性都可以利用基于 XML 的映射语言来实现，所以在这我们先看看 XML 如何定义语句的。 如下所示，在模块的 resources 目录下创建映射配置文件 `UserMapper.xml`：
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
@@ -126,7 +130,7 @@ Mybatis XML 配置文件中包含了对 MyBatis 系统的核心设置，包括�
 
 <!-- namespace 命名空间 -->
 <mapper namespace="com.mybatis.example.UserMapper">
-    <!-- 查询所有的用户 -->
+    <!-- 查询所有的用户  id 唯一标识 resultType 返回类型-->
     <select id="selectAll" resultType="com.mybatis.example.pojo.User">
         select * from tb_user;
     </select>
@@ -136,10 +140,14 @@ Mybatis XML 配置文件中包含了对 MyBatis 系统的核心设置，包括�
     </select>
 </mapper>
 ```
-通过上面的代码，我们完成了两个查询语句的配置，一个是查询所有的用户，一个是根据指定的 Id 查询用户。
+我们在命名空间 `com.mybatis.example.UserMapper` 中定分别定义了名为 `selectAll` 和 `selectById` 的映射语句。这样你就可以用全限定名 `com.mybatis.example.UserMapper.selectAll` 和 `com.mybatis.example.UserMapper.selectById` 来调用映射语句分别完成所有用户的查询和根据指定的 Id 的用户查询，如下所示(后面会详细介绍)：
+```java
+User user = session.selectOne("com.mybatis.example.UserMapper.selectById", 1);
+```
 
+> 命名空间的作用有两个，一个是利用更长的全限定名来将不同的语句隔离开来，同时也实现我们下面要说的 Mapper 接口绑定(下面详细介绍)。就算你觉得暂时用不到接口绑定，你也应该遵循这里的规定，以防哪天你改变了主意。 长远来看，只要将命名空间置于合适的 Java 包命名空间之中，你的代码会变得更加整洁，也有利于你更方便地使用 MyBatis。
 
-配置完 配置文件之后，别忘记在 mybatis-config.xml 配置中添加 mapper
+配置完 配置文件之后，别忘记在 `mybatis-config.xml` 配置中添加 mapper：
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE configuration
@@ -157,7 +165,7 @@ Mybatis XML 配置文件中包含了对 MyBatis 系统的核心设置，包括�
 
 ### 5.1 定义 POJO 类
 
-创建对应的实体类：
+从 SQL 映射文件 `UserMapper.xml` 可以看到两个查询语句的返回类型都是 POJO 类 `User`，所以在这创建对应的 POJO 类：
 ```java
 public class User {
     // 主键ID
@@ -217,23 +225,21 @@ public class User {
 
 每个基于 MyBatis 的应用都是以一个 SqlSessionFactory 的实例为核心的。SqlSessionFactory 的实例可以通过 SqlSessionFactoryBuilder 获得。而 SqlSessionFactoryBuilder 则可以从 XML 配置文件或一个预先配置的 Configuration 实例来构建出 SqlSessionFactory 实例。
 
-从 XML 文件中构建 SqlSessionFactory 的实例非常简单，建议使用类路径下的资源文件进行配置。 但也可以使用任意的输入流（InputStream）实例，比如用文件路径字符串或 file:// URL 构造的输入流。MyBatis 包含一个名叫 Resources 的工具类，它包含一些实用方法，使得从类路径或其它位置加载资源文件更加容易。
-
+从 XML 文件中构建 SqlSessionFactory 的实例非常简单，建议使用类路径下的资源文件进行配置。但也可以使用任意的输入流（InputStream）实例，比如用文件路径字符串或 `file:// URL` 构造的输入流。MyBatis 包含一个名叫 Resources 的工具类，它包含一些实用方法，使得从类路径或其它位置加载资源文件更加容易：
 ```java
 String resource = "mybatis-config.xml";
 InputStream inputStream = Resources.getResourceAsStream(resource);
 SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
 ```
-首先是加载 Mybatis 的核心配置文件 `mybatis-config.xml`，因为该配置文件是在 resource 根目录下，所以可以直接使用 `mybatis-config.xml` 文件名即可。
-
+因为 `mybatis-config.xml` 配置文件是在 resource 根目录下，所以可以直接使用文件名来加载 Mybatis 的核心配置文件。
 
 ### 5.3 获取 SqlSession 执行 SQL
 
-既然有了 SqlSessionFactory，顾名思义，我们可以从中获得 SqlSession 的实例。SqlSession 提供了在数据库执行 SQL 命令所需的所有方法。
+既然有了 SqlSessionFactory，顾名思义，我们可以从中获得 SqlSession 的实例。SqlSession 提供了在数据库执行 SQL 命令所需的所有方法。有两种方式来执行 SQL 命令，具体如下所示。
 
 #### 5.3.1 指定 SQL 语句唯一标识
 
-你可以通过 SqlSession 实例的 `selectList` 和 `selectOne` 方法来分别执行查询所有用户以及根据指定用户ID查询用户的 SQL 语句，在这你需要指定 SQL 语句在 UserMapper.xml 文件中定义的 SQL 唯一标识，具体如下所示：
+你可以通过 SqlSession 实例的 `selectList` 和 `selectOne` 方法来分别执行查询所有用户以及根据指定用户ID查询用户的 SQL 语句，在这你需要指定 SQL 语句在 UserMapper.xml 文件中定义的 SQL 唯一标识(或者全限定名)，具体如下所示：
 ```java
 // 获取 SqlSession 对象
 SqlSession session = sqlSessionFactory.openSession();
@@ -250,16 +256,19 @@ User user = session.selectOne("com.mybatis.example.UserMapper.selectById", 1);
 System.out.println("目标用户: " + user);
 ```
 
+> 我们在命名空间 `com.mybatis.example.UserMapper` 中定分别定义了唯一标识为 `selectAll` 和 `selectById` 的 SQL 映射语句。这样你就可以用全限定名 `com.mybatis.example.UserMapper.selectAll` 和 `com.mybatis.example.UserMapper.selectById` 来调用映射语句分别完成所有用户的查询和根据指定的 Id 的用户查询。
+
 #### 5.3.2 指定接口
 
-诚然，这种方式能够正常工作，对使用旧版本 MyBatis 的用户来说也比较熟悉。但现在有了一种更简洁的方式，即使用和指定语句的参数和返回值相匹配的接口，在这为 UserMapper：
+你可能会注意到，上面这种方式和用全限定名调用 Java 对象的方法类似。将上面的该命名直接映射到在命名空间中同名的映射器 Mapper 类，并将已映射的 SELECT 语句匹配到对应名称、参数和返回类型的方法：
 ```java
 public interface UserMapper {
     List<User> selectAll();
     User selectById(@Param("id") int id);
 }
 ```
-现在你的代码不仅更清晰，更加类型安全，还不用担心可能出错的字符串字面值以及强制类型转换：
+
+因此你就可以像上面那样，不费吹灰之力地在对应的映射器接口调用方法，如下所示：
 ```java
 // 查询所有的用户
 UserMapper mapper = session.getMapper(UserMapper.class);
@@ -272,8 +281,7 @@ for (User user2 : users2) {
 User user2 = mapper.selectById(1);
 System.out.println("目标用户: " + user2);
 ```
+这种方法有很多优势，首先它不依赖于字符串字面值，会更安全一点；其次，如果你的 IDE 有代码补全功能，那么代码补全可以帮你快速选择到映射好的 SQL 语句。
 
 
-
-
-...
+> 完整代码请查阅：[MybatisQuickStart](https://github.com/sjf0115/spring-example/blob/main/mybatis-quick-start/src/main/java/com/mybatis/example/MybatisQuickStart.java)

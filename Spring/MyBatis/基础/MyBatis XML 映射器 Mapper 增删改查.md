@@ -197,24 +197,6 @@ public class SelectStudent {
 | keyColumn	| 设置生成键值在表中的列名，在某些数据库（像 PostgreSQL）中，当主键列不是表中的第一列的时候，是必须设置的。如果生成列不止一个，可以用逗号分隔多个属性名称。|
 | timeout	| 这个设置是在抛出异常之前，驱动程序等待数据库返回请求结果的秒数。默认值为未设置（unset）（依赖数据库驱动）。|
 
-
-首先，如果你的数据库支持自动生成主键（比如 MySQL 和 SQL Server），那么你可以设置 `useGeneratedKeys='true'`，然后再把 `keyProperty` 设置为目标属性即可。例如，如果上面的 Author 表已经在 id 列上使用了自动生成，那么语句可以修改为：
-```xml
-<insert id="insertAuthor" useGeneratedKeys="true" keyProperty="id">
-  insert into Author (username,password,email,bio)
-  values (#{username},#{password},#{email},#{bio})
-</insert>
-```
-如果你的数据库还支持多行插入, 你也可以传入一个 Author 数组或集合，并返回自动生成的主键：
-```xml
-<insert id="insertAuthor" useGeneratedKeys="true" keyProperty="id">
-  insert into Author (username, password, email, bio) values
-  <foreach item="item" collection="list" separator=",">
-    (#{item.username}, #{item.password}, #{item.email}, #{item.bio})
-  </foreach>
-</insert>
-```
-
 ### 2.2 示例
 
 第一步编写 Mapper 接口方法，如下提供了插入一个学生的方法：
@@ -306,6 +288,23 @@ public class InsertStudent {
 ```
 执行完之后再查看数据库发现数据已经插入成功了。
 
+
+首先，如果你的数据库支持自动生成主键（比如 MySQL 和 SQL Server），那么你可以设置 `useGeneratedKeys='true'`，然后再把 `keyProperty` 设置为目标属性即可。例如，如果上面的 Author 表已经在 id 列上使用了自动生成，那么语句可以修改为：
+```xml
+<insert id="insertAuthor" useGeneratedKeys="true" keyProperty="id">
+  insert into Author (username,password,email,bio)
+  values (#{username},#{password},#{email},#{bio})
+</insert>
+```
+如果你的数据库还支持多行插入, 你也可以传入一个 Author 数组或集合，并返回自动生成的主键：
+```xml
+<insert id="insertAuthor" useGeneratedKeys="true" keyProperty="id">
+  insert into Author (username, password, email, bio) values
+  <foreach item="item" collection="list" separator=",">
+    (#{item.username}, #{item.password}, #{item.email}, #{item.bio})
+  </foreach>
+</insert>
+```
 
 ## 3. 更新:UPDATE
 

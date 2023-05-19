@@ -211,7 +211,7 @@ public interface StudentMapper {
 ```xml
 <mapper namespace="com.mybatis.example.mapper.StudentMapper">
     <!-- 插入 -->
-    <insert id="addStudent" useGeneratedKeys="true" keyProperty="id">
+    <insert id="addStudent">
         insert into tb_student (stu_id, stu_name, status)
         values (#{stuId}, #{stuName}, #{status});
     </insert>
@@ -288,23 +288,32 @@ public class InsertStudent {
 ```
 执行完之后再查看数据库发现数据已经插入成功了。
 
-
-首先，如果你的数据库支持自动生成主键（比如 MySQL 和 SQL Server），那么你可以设置 `useGeneratedKeys='true'`，然后再把 `keyProperty` 设置为目标属性即可。例如，如果上面的 Author 表已经在 id 列上使用了自动生成，那么语句可以修改为：
+如果在数据插入数据局成功后，需要获取插入数据库主键的值怎么实现呢？如果你的数据库支持自动生成主键（比如 MySQL 和 SQL Server），那么你可以设置 `useGeneratedKeys='true'`，然后再把 `keyProperty` 设置为目标属性即可。例如，如果上面的 `tb_student` 表已经在 id 列上使用了自动生成主键，那么语句可以修改为：
 ```xml
-<insert id="insertAuthor" useGeneratedKeys="true" keyProperty="id">
-  insert into Author (username,password,email,bio)
-  values (#{username},#{password},#{email},#{bio})
-</insert>
+<mapper namespace="com.mybatis.example.mapper.StudentMapper">
+    <!-- 插入 -->
+    <insert id="addStudent" useGeneratedKeys="true" keyProperty="id">
+        insert into tb_student (stu_id, stu_name, status)
+        values (#{stuId}, #{stuName}, #{status});
+    </insert>
+</mapper>
 ```
-如果你的数据库还支持多行插入, 你也可以传入一个 Author 数组或集合，并返回自动生成的主键：
+这样修改之后我们就可以获取插入数据库主键的值：
+```java
+mapper.addStudent(stu);
+System.out.println("主键: " + stu.getId());
+```
+
+如果你的数据库还支持多行插入, 你也可以传入一个 Student 的数组或集合，并返回自动生成的主键：
 ```xml
-<insert id="insertAuthor" useGeneratedKeys="true" keyProperty="id">
-  insert into Author (username, password, email, bio) values
-  <foreach item="item" collection="list" separator=",">
-    (#{item.username}, #{item.password}, #{item.email}, #{item.bio})
+<insert id="addStudents" useGeneratedKeys="true" keyProperty="id">
+  insert into tb_student (stu_id, stu_name, status) values
+  <foreach item="students" collection="list" separator=",">
+    (#{students.stuId}, #{students.stuName}, #{students.status})
   </foreach>
 </insert>
 ```
+> 对应的 Mapper 方法为 `void addStudents(List<Student> students);`
 
 ## 3. 更新:UPDATE
 

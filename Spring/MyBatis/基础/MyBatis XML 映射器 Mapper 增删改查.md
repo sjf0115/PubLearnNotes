@@ -317,17 +317,116 @@ System.out.println("主键: " + stu.getId());
 
 ## 3. 更新:UPDATE
 
+### 3.1 UPDATE 元素
+
 ```xml
 <update
-  id="updateAuthor"
-  parameterType="domain.blog.Author"
-  flushCache="true"
-  statementType="PREPARED"
+  id="updateStudent"
+  parameterType="com.mybatis.example.pojo.Student"
   timeout="20">
 ```
 
+| 属性     | 描述     |
+| :------------- | :------------- |
+| id       | 在命名空间中唯一的标识符，可以被用来引用这条语句 |
+| parameterType	| 传入参数的类全限定名或别名。这个属性是可选的，因为 MyBatis 可以通过类型处理器（TypeHandler）推断出具体传入的参数，默认值为未设置（unset）|
+| flushCache | 将其设置为 true 后，只要语句被调用，都会导致本地缓存和二级缓存被清空，默认值：false。|
+| statementType	| 可选 STATEMENT，PREPARED 或 CALLABLE。这会让 MyBatis 分别使用 Statement，PreparedStatement 或 CallableStatement，默认值：PREPARED。|
+| useGeneratedKeys | 会令 MyBatis 使用 JDBC 的 getGeneratedKeys 方法来取出由数据库内部生成的主键（比如：像 MySQL 和 SQL Server 这样的关系型数据库管理系统的自动递增字段），默认值：false。|
+| keyProperty	| 指定能够唯一识别对象的属性，MyBatis 会使用 getGeneratedKeys 的返回值或 insert 语句的 selectKey 子元素设置它的值，默认值：未设置（unset）。如果生成列不止一个，可以用逗号分隔多个属性名称。 |
+| keyColumn	| 设置生成键值在表中的列名，在某些数据库（像 PostgreSQL）中，当主键列不是表中的第一列的时候，是必须设置的。如果生成列不止一个，可以用逗号分隔多个属性名称。|
+| timeout	| 这个设置是在抛出异常之前，驱动程序等待数据库返回请求结果的秒数。默认值为未设置（unset）（依赖数据库驱动）。|
+
+### 3.2 示例
+
+第一步编写 Mapper 接口方法，如下提供了更新学生信息的方法：
+```java
+package com.mybatis.example.mapper;
+public interface StudentMapper {
+    // 更新
+    int updateStudent(Student stu);
+}
+```
+第二步编写 SQL 映射文件，需要注意的是 namespace 命名空间需要与上面的  Mapper 接口路径保持一致(id与方法名称保持一致)，否则在使用 Mapper 代理开发的时候会抛出异常：
+```xml
+<mapper namespace="com.mybatis.example.mapper.StudentMapper">
+    <!-- 更新 -->
+    <update id="updateStudent" parameterType="com.mybatis.example.pojo.Student">
+        update tb_student set
+          stu_id = #{stuId},
+          stu_name = #{stuName},
+          status = #{status}
+        where id = #{id}
+    </update>
+</mapper>
+```
+
+第三步编写执行方法：
+```java
+public class UpdateStudent {
+    public static void main(String[] args) throws IOException {
+        // 加载 Mybatis 的核心配置文件 mybatis-config.xml
+        String resource = "mybatis-config.xml";
+        InputStream inputStream = Resources.getResourceAsStream(resource);
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+
+        // 获取 SqlSession
+        SqlSession session = sqlSessionFactory.openSession(true);
+        StudentMapper mapper = session.getMapper(StudentMapper.class);
+
+        // 更新一个学生信息
+        Student stu = new Student();
+        stu.setId(3);
+        stu.setStuId(10002);
+        stu.setStuName("C罗-3");
+        stu.setStatus(1);
+        int num = mapper.updateStudent(stu);
+        System.out.println("成功修改 " + num + " 行数据");
+
+        // 释放资源
+        session.close();
+    }
+}
+```
+执行完上述方法在查看数据库可以看到 id 为 3 的姓名已经修改为了 `C罗-3`，具体输出信息如下：
+```
+[DEBUG]  [main] c.m.e.m.S.updateStudent - ==>  Preparing: update tb_student SET stu_id = ?, stu_name = ?, status = ? where id = ?
+[DEBUG]  [main] c.m.e.m.S.updateStudent - ==> Parameters: 10002(Integer), C罗-10002(String), 1(Integer), 3(Integer)
+[DEBUG]  [main] c.m.e.m.S.updateStudent - <==    Updates: 1
+```
+通过代码和运行日志中可以看出调用 `updateStudent` 方法会更新 Student 的全部字段，如果某个字段没有设置值会导致该字段为 null。那我们如何实现只修改指定字段呢？只需要修改 XML 映射器文件即可：
+```xml
+<mapper namespace="com.mybatis.example.mapper.StudentMapper">
+    <!-- 更新 -->
+    <!-- 通过 set 和 if 元素实现动态更新字段 -->
+    <update id="updateStudent" parameterType="com.mybatis.example.pojo.Student">
+        update tb_student
+        <set>
+            <if test="stuId != null">
+                stu_id = #{stuId},
+            </if>
+            <if test="stuName != null and stuName != ''">
+                stu_name = #{stuName},
+            </if>
+            <if test="status != null">
+                status = #{status}
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>
+```
+修改完 XML 映射器再次运行输出如下日志：
+```
+[DEBUG]  [main] c.m.e.m.S.updateStudent - ==>  Preparing: update tb_student SET stu_name = ? where id = ?
+[DEBUG]  [main] c.m.e.m.S.updateStudent - ==> Parameters: C罗-3(String), 3(Integer)
+[DEBUG]  [main] c.m.e.m.S.updateStudent - <==    Updates: 1
+```
 
 ## 4. 删除:DELETE
+
+### 4.1 DELETE 元素
 
 ```xml
 <delete
@@ -336,4 +435,98 @@ System.out.println("主键: " + stu.getId());
   flushCache="true"
   statementType="PREPARED"
   timeout="20">
+```
+
+| 属性     | 描述     |
+| :------------- | :------------- |
+| id       | 在命名空间中唯一的标识符，可以被用来引用这条语句 |
+| parameterType	| 传入参数的类全限定名或别名。这个属性是可选的，因为 MyBatis 可以通过类型处理器（TypeHandler）推断出具体传入的参数，默认值为未设置（unset）|
+| flushCache | 将其设置为 true 后，只要语句被调用，都会导致本地缓存和二级缓存被清空，默认值：false。|
+| statementType	| 可选 STATEMENT，PREPARED 或 CALLABLE。这会让 MyBatis 分别使用 Statement，PreparedStatement 或 CallableStatement，默认值：PREPARED。|
+| timeout	| 这个设置是在抛出异常之前，驱动程序等待数据库返回请求结果的秒数。默认值为未设置（unset）（依赖数据库驱动）。|
+
+### 4.2 示例
+
+第一步编写 Mapper 接口方法，如下提供了更新学生信息的方法：
+```java
+package com.mybatis.example.mapper;
+public interface StudentMapper {
+    // 删除指定学生
+    int deleteStudentById(int id);
+}
+```
+第二步编写 SQL 映射文件，需要注意的是 namespace 命名空间需要与上面的  Mapper 接口路径保持一致(id与方法名称保持一致)，否则在使用 Mapper 代理开发的时候会抛出异常：
+```xml
+<mapper namespace="com.mybatis.example.mapper.StudentMapper">
+    <!-- 删除 -->
+    <delete id="deleteStudentById" parameterType="int">
+        delete from tb_student where id = #{id}
+    </delete>
+</mapper>
+```
+
+第三步编写执行方法：
+```java
+public class DeleteStudent {
+    public static void main(String[] args) throws IOException {
+        // 加载 Mybatis 的核心配置文件 mybatis-config.xml
+        String resource = "mybatis-config.xml";
+        InputStream inputStream = Resources.getResourceAsStream(resource);
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+
+        // 获取 SqlSession
+        SqlSession session = sqlSessionFactory.openSession(true);
+        StudentMapper mapper = session.getMapper(StudentMapper.class);
+
+        // 删除一个学生信息
+        int id = 4;
+        int num = mapper.deleteStudentById(id);
+        System.out.println("成功删除 " + num + " 行数据");
+
+        // 释放资源
+        session.close();
+    }
+}
+```
+上述方式一次只能删除一个学生，如果我们想批量同时删除多个学生如何实现呢？首先提供一个批量删除的 Mapper 接口方法，如下所示：
+```java
+package com.mybatis.example.mapper;
+public interface StudentMapper {
+    // 批量删除学生
+    int deleteStudentByIds(@Param("ids") List<Integer> ids);
+}
+```
+第二步修改 SQL 映射文件支持批量删除学生，唯一标识与上面的接口路径保持一致：
+```xml
+<mapper namespace="com.mybatis.example.mapper.StudentMapper">
+    <!-- 批量删除学生 -->
+    <delete id="deleteStudentByIds" parameterType="int">
+        delete from tb_student where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
+```
+最后执行如下方法来测试：
+```java
+public class BatchDeleteStudent {
+    public static void main(String[] args) throws IOException {
+        // 加载 Mybatis 的核心配置文件 mybatis-config.xml
+        String resource = "mybatis-config.xml";
+        InputStream inputStream = Resources.getResourceAsStream(resource);
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+
+        // 获取 SqlSession
+        SqlSession session = sqlSessionFactory.openSession(true);
+        StudentMapper mapper = session.getMapper(StudentMapper.class);
+
+        // 批量删除学生信息
+        int num = mapper.deleteStudentByIds(Lists.newArrayList(3,5));
+        System.out.println("成功删除 " + num + " 行数据");
+
+        // 释放资源
+        session.close();
+    }
+}
 ```

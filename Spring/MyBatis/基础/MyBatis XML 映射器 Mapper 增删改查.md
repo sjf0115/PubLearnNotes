@@ -1,36 +1,30 @@
-MyBatis 的真正强大在于它的语句映射，这是它的魔力所在。由于它的异常强大，映射器的 XML 文件就显得相对简单。如果拿它跟具有相同功能的 JDBC 代码进行对比，你会立即发现省掉了将近 95% 的代码。MyBatis 致力于减少使用成本，让用户能更专注于 SQL 代码。
+MyBatis 的真正强大在于它的语句映射，这是它的魔力所在。由于它的异常强大，映射器的 XML 文件就显得相对简单。如果拿它跟具有相同功能的 JDBC 代码进行对比，你会立即发现省掉了将近 95% 的代码。MyBatis 致力于减少使用成本，让用户能更专注于 SQL 代码。SQL 映射文件只有很少的几个顶级元素（按照应被定义的顺序列出）：
+- cache：命名空间的缓存配置。
+- cache-ref：引用其它命名空间的缓存配置。
+- resultMap：描述如何从数据库结果集中加载对象，是最复杂也是最强大的元素。
+- sql：可被其它语句引用的可重用语句块。
+- insert：映射插入语句。
+- update：映射更新语句。
+- delete：映射删除语句。
+- select：映射查询语句。
 
-SQL 映射文件只有很少的几个顶级元素（按照应被定义的顺序列出）：
-cache – 该命名空间的缓存配置。
-cache-ref – 引用其它命名空间的缓存配置。
-resultMap – 描述如何从数据库结果集中加载对象，是最复杂也是最强大的元素。
-parameterMap – 老式风格的参数映射。此元素已被废弃，并可能在将来被移除！请使用行内参数映射。文档中不会介绍此元素。
-sql – 可被其它语句引用的可重用语句块。
-insert – 映射插入语句。
-update – 映射更新语句。
-delete – 映射删除语句。
-select – 映射查询语句。
-
-
+这篇文章我们主要讲述如何使用 `insert`、`delete`、`update`、`select` 元素来完成增删改查。为了更好的演示，需要先使用如下语句来初始化数据：
 ```sql
 -- 删除tb_student表
-drop table if exists tb_student;
+DROP TABLE IF EXISTS tb_student;
+
 -- 创建tb_student表
-create table tb_student (
+CREATE TABLE tb_student (
     -- id 主键
-    id int primary key auto_increment,
-    stu_id int comment '学生编号',
-    stu_name varchar(20) comment '学生姓名',
-    status int comment '状态：0:删除, 1:未删除'
-);
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    stu_id INT NOT NULL COMMENT '学生编号',
+    stu_name VARCHAR(50) NOT NULL COMMENT '学生姓名',
+    status INT NOT NULL COMMENT '状态：0:删除, 1:未删除'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- 添加数据
-insert into tb_brand (stu_id, stu_name, status) values
-  ('10001', '梅西', 1),
-  ('10002', 'C罗', 1),
-  ('10003', '哈兰德', 1);
+INSERT INTO tb_student (stu_id, stu_name, status) VALUES ('10001', '梅西', 1);
 ```
-
 
 ## 1. 查询:SELECT
 
@@ -41,7 +35,7 @@ insert into tb_brand (stu_id, stu_name, status) values
     SELECT * FROM tb_user WHERE id = #{id};
 </select>
 ```
-这个语句名为 `selectById`，接受一个用户 Id 的参数，并返回一个 POJO 类型的 User 对象，其中的键是列名，值便是结果行中的对应值。需要注意的是参数符号：
+这个语句名为 `selectById`，接受一个用户 Id 的参数，并返回一个 POJO 类型的 User 对象。需要注意的是参数符号：
 ```
 #{id}
 ```
@@ -52,10 +46,11 @@ String selectPerson = "SELECT * FROM tb_user WHERE id = ?";
 PreparedStatement ps = conn.prepareStatement(selectPerson);
 ps.setInt(1,id);
 ```
+有了简单认知之后，我们具体来看一下 SELECT 元素的属性以及如何使用。
 
 ### 1.1 SELECT 元素
 
-SELECT 元素允许你配置很多属性来配置每条语句的行为细节：
+SELECT 元素允许你配置很多属性来配置每条语句的执行细节：
 ```xml
 <select
   id="selectById"
@@ -144,7 +139,7 @@ public class SelectStudent {
 - 对不一致的列名起别名，与实体类保持一致
 - 使用 ResultMap 进行映射
 
-为了演示两种方式，查询所有的用户使用的是第一种方式，根据指定的 Id 查询用户使用的是第二种方式
+为了演示两种方式，查询所有的用户使用的是第一种方式，根据指定的 Id 查询用户使用的是第二种方式：
 ```xml
 <mapper namespace="com.mybatis.example.mapper.StudentMapper">
     <!-- 1 查询所有的用户 使用别名方式 -->
@@ -170,7 +165,11 @@ public class SelectStudent {
 目标学生: Student{id=1, stuId=10001, stuName='梅西', status=1}
 ```
 
+> 完整代码请查阅： [SelectStudent](https://github.com/sjf0115/spring-example/blob/main/mybatis-quick-start/src/main/java/com/mybatis/example/demo/SelectStudent.java)
+
 ## 2. 插入:INSERT
+
+下面来看一下 INSERT 元素的属性以及如何使用。
 
 ### 2.1 INSERT 元素
 
@@ -243,7 +242,7 @@ public class InsertStudent {
     }
 }
 ```
-根据上面的执行方法输出如下信息，同时查询数据库并没有插入这一条记录：
+根据上面的执行方法输出如下信息，但是查询数据库并没有插入这一条记录：
 ```java
 [DEBUG]  [main] o.a.i.t.j.JdbcTransaction - Opening JDBC Connection
 [DEBUG]  [main] o.a.i.d.p.PooledDataSource - Created connection 558187323.
@@ -288,6 +287,8 @@ public class InsertStudent {
 ```
 执行完之后再查看数据库发现数据已经插入成功了。
 
+> 完整代码请查阅： [InsertStudent](https://github.com/sjf0115/spring-example/blob/main/mybatis-quick-start/src/main/java/com/mybatis/example/demo/InsertStudent.java)
+
 如果在数据插入数据局成功后，需要获取插入数据库主键的值怎么实现呢？如果你的数据库支持自动生成主键（比如 MySQL 和 SQL Server），那么你可以设置 `useGeneratedKeys='true'`，然后再把 `keyProperty` 设置为目标属性即可。例如，如果上面的 `tb_student` 表已经在 id 列上使用了自动生成主键，那么语句可以修改为：
 ```xml
 <mapper namespace="com.mybatis.example.mapper.StudentMapper">
@@ -307,15 +308,19 @@ System.out.println("主键: " + stu.getId());
 如果你的数据库还支持多行插入, 你也可以传入一个 Student 的数组或集合，并返回自动生成的主键：
 ```xml
 <insert id="addStudents" useGeneratedKeys="true" keyProperty="id">
-  insert into tb_student (stu_id, stu_name, status) values
-  <foreach item="students" collection="list" separator=",">
-    (#{students.stuId}, #{students.stuName}, #{students.status})
-  </foreach>
+    insert into tb_student (stu_id, stu_name, status) values
+    <foreach item="student" collection="list" separator=",">
+        (#{student.stuId}, #{student.stuName}, #{student.status})
+    </foreach>
 </insert>
 ```
 > 对应的 Mapper 方法为 `void addStudents(List<Student> students);`
 
+> 完整代码请查阅： [BatchInsertStudent](https://github.com/sjf0115/spring-example/blob/main/mybatis-quick-start/src/main/java/com/mybatis/example/demo/BatchInsertStudent.java)
+
 ## 3. 更新:UPDATE
+
+下面来看一下 UPDATE 元素的属性以及如何使用。
 
 ### 3.1 UPDATE 元素
 
@@ -388,6 +393,8 @@ public class UpdateStudent {
     }
 }
 ```
+> 完整代码请查阅： [UpdateStudent](https://github.com/sjf0115/spring-example/blob/main/mybatis-quick-start/src/main/java/com/mybatis/example/demo/UpdateStudent.java)
+
 执行完上述方法在查看数据库可以看到 id 为 3 的姓名已经修改为了 `C罗-3`，具体输出信息如下：
 ```
 [DEBUG]  [main] c.m.e.m.S.updateStudent - ==>  Preparing: update tb_student SET stu_id = ?, stu_name = ?, status = ? where id = ?
@@ -425,6 +432,8 @@ public class UpdateStudent {
 ```
 
 ## 4. 删除:DELETE
+
+下面来看一下 DELETE 元素的属性以及如何使用。
 
 ### 4.1 DELETE 元素
 
@@ -488,6 +497,9 @@ public class DeleteStudent {
     }
 }
 ```
+
+> 完整代码请查阅： [DeleteStudent](https://github.com/sjf0115/spring-example/blob/main/mybatis-quick-start/src/main/java/com/mybatis/example/demo/DeleteStudent.java)
+
 上述方式一次只能删除一个学生，如果我们想批量同时删除多个学生如何实现呢？首先提供一个批量删除的 Mapper 接口方法，如下所示：
 ```java
 package com.mybatis.example.mapper;
@@ -530,3 +542,5 @@ public class BatchDeleteStudent {
     }
 }
 ```
+
+> 完整代码请查阅： [BatchDeleteStudent](https://github.com/sjf0115/spring-example/blob/main/mybatis-quick-start/src/main/java/com/mybatis/example/demo/BatchDeleteStudent.java)

@@ -19,7 +19,7 @@ MyBatis 是一个简化和实现了 Java 数据持久化层的开源框架，抽
 
 Java 通过 JDBC API 来操作关系型数据库，但是 JDBC 是一个非常底层的 API，我们需要编写大量的代码来完成对数据库的操作。下面我们使用 JDBC API 来操作数据库，对表 tb_student 实现简单的 SELECT 和 INSERT 操作。假设 tb_studnet 表有 `id`、`stu_id`、`stu_name`、`status` 字段，具体如下所示：
 ```sql
-DROP TABLE IF EXISTS `student`;
+DROP TABLE IF EXISTS tb_student;
 CREATE TABLE tb_student (
     -- id 主键
     id INT PRIMARY KEY AUTO_INCREMENT,

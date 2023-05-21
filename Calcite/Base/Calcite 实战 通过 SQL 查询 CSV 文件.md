@@ -3,7 +3,7 @@
 
 ### 1.1  CSV 文件
 
-要想将 CSV 集成到 Calcite 当中，首先要让 Calcite 能够识别这些文件，但是 Calcite 并不知道这些文件是什么，需要因此对 CSV 文件的格式进行定义。CSV 文件的第一行是元数据信息，采用 `FieldName1:FieldType,FieldNameN:FieldType` 的格式存储，跟 Excel 中的表头信息比较类似，通过这种方式告诉了 Calcite 文件的字段名称和字段类型。如下是 sales.csv 的示例：
+要想将 CSV 集成到 Calcite 当中，首先要让 Calcite 能够识别这些文件，但是 Calcite 并不知道这些文件是什么，需要因此对 CSV 文件的格式进行定义。CSV 文件的第一行是元数据信息，采用 `FieldName1:FieldType,FieldNameN:FieldType` 的格式存储，跟 Excel 中的表头信息比较类似，通过这种方式告诉了 Calcite 文件的字段名称和字段类型。如下是 `sales.csv` 的示例：
 ```
 DEPTNO:int,NAME:string
 10,"Sales"
@@ -13,7 +13,7 @@ DEPTNO:int,NAME:string
 
 ### 1.2 配置文件
 
-有了 CSV 文件之后，我们需要定义一个 model 配置文件，如下是一个示例：
+有了 CSV 文件之后，我们需要定义一个 `model` 配置文件，如下是一个示例：
 ```json
 {
   "version": "1.0",
@@ -31,12 +31,17 @@ DEPTNO:int,NAME:string
 }
 ```
 在分析 model 配置文件之前，先了解几个重要的概念：
-- Schema，是 Table 和 Function 的名称空间，是一个可嵌套的结构。Schema 还可以有 subSchema，理论上可以无限嵌套。Schema 可以理解成传统关系型数据库中的 `Database`，Database 下面还有 Table。在 Calcite 中，顶层的 Schema 是 root，自定义的 Schema 是 root 的 subSchema，同时还可以设置 defaultSchema，类似传统关系型数据库中的默认数据库。
-- Table：就是数据库中的表。在 Table 中描述了字段名以及相应的类型、表的统计信息，例如表有多少条记录等等，这里先不展开讲。
+- `Schema`：是 Table 和 Function 的名称空间，是一个可嵌套的结构。Schema 还可以有 subSchema，理论上可以无限嵌套。Schema 可以理解成传统关系型数据库中的 `Database`，`Database` 下面还有 Table。在 Calcite 中，顶层的 Schema 是 root，自定义的 Schema 是 root 的 subSchema，同时还可以设置 defaultSchema，类似传统关系型数据库中的默认数据库。
+- `Table`：就是数据库中的表。在 Table 中描述了字段名以及相应的类型、表的统计信息，例如表有多少条记录等等，这里先不展开讲。
 
-再来看这份 model 文件，就比较清晰了。描述了多少个 Schema、每个 Schema 是如何创建的以及默认的 Schema 是什么。defaultSchema 属性设置默认 Schema。schemas 是数组类型，每一项代表一个 Schema 描述信息，在描述信息中有一个关键的属性 factory，表示创建 Schema 的工厂类。
+默认情况下，数据模型的配置文件使用 JSON 文件格式存储的。再来看这份 model 文件，就比较清晰了。配置文件描述了多少个 Schema、每个 Schema 是如何创建的以及默认的 Schema 是什么：
+- defaultSchema 属性设置默认 Schema。
+- schemas 是数组类型，每一项代表一个 Schema 描述信息
+  - name：定义了 Schema 的名称，在这命名为 `SALES`。
+  - type：由于类型是我们自己定义的，因此类型为 `custom`。
+  - factory：表示创建 Schema 的工厂类，在这设置 CSV 文件的 Schema 工厂类路径为 `com.calcite.example.adapter.csv.SimpleCsvSchemaFactory`。
 
-这样 Calcite 就可以知道这些 CSV 文件长什么样子，要用什么方式去调用、解析。默认情况下，这个数据模型的配置文件使用 JSON 文件格式存储的。我们当默认的 Schema 命名为 `SALES`，由于类型是我们自己定义的，因此类型为 `custom`。针对 CSV 文件的 Schema 工厂类路径为 `com.calcite.example.adapter.csv.CsvSchemaFactory`。
+这样 Calcite 就可以知道这些 CSV 文件长什么样子，要用什么方式去调用、解析。
 
 ## 2. 搭建
 
@@ -49,6 +54,7 @@ DEPTNO:int,NAME:string
 
 ### 2.1 引入 POM 依赖
 
+需要引入如下坐标依赖：
 ```xml
 <!-- calcite -->
 <dependency>
@@ -127,7 +133,7 @@ protected Map<String, Table> getTableMap() {
         if (csvSource == null) {
             continue;
         }
-        // 每个文件对应一个 Table
+        // 根据文件创建对应的 Table
         final Table table = new SimpleCsvTable(source, null);
         builder.put(csvSource.relative(baseSource).path(), table);
     }
@@ -168,15 +174,52 @@ AbstractTable 默认已经帮我们实现了 getStatistic 和 getJdbcTableType�
 
 ### 3.1 定义字段类型和名称
 
-先获取数据类型和名称，即单表结构，从csv文件头中获取（当前文件头需要我们自己定义，包括规则我们也可以定制化）。
+先获取数据类型和名称，即单表结构，从 csv 文件头中获取（当前文件头需要我们自己定义，包括规则我们也可以定制化）。
 ```java
-
+public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+    if (protoRowType != null) {
+        return protoRowType.apply(typeFactory);
+    }
+    if (rowType == null) {
+        rowType = SimpleCsvEnumerator.deduceRowType((JavaTypeFactory) typeFactory, source, null);
+    }
+    return rowType;
+}
 ```
 
 ### 3.2 定义如何读取 Csv 文件
 
+```java
+public Enumerable<@Nullable Object[]> scan(DataContext root) {
+    JavaTypeFactory typeFactory = root.getTypeFactory();
+    // 字段类型
+    List<RelDataType> fieldTypes = new ArrayList<>();
+    SimpleCsvEnumerator.deduceRowType(typeFactory, source, fieldTypes);
+    // 字段？
+    List<Integer> fields = ImmutableIntList.identity(fieldTypes.size());
 
+    final AtomicBoolean cancelFlag = DataContext.Variable.CANCEL_FLAG.get(root);
+    return new AbstractEnumerable<@Nullable Object[]>() {
+        @Override
+        public Enumerator<@Nullable Object[]> enumerator() {
+            return new SimpleCsvEnumerator<>(source, cancelFlag, fieldTypes, fields);
+        }
+    };
+}
+```
 
+实现读取 CSV 的逻辑
+
+Enumerator 是 Linq 风格的迭代器，它有4个方法：
+```java
+public interface Enumerator<T> extends AutoCloseable {
+    T current();
+    boolean moveNext();
+    void reset();
+    void close();
+}
+```
+`current` 返回游标所指的当前记录，需要注意的是 `current` 并不会改变游标的位置，这一点和 iterator 是不同的，在 iterator 相对应的是 next 方法，每一次调用都会将游标移动到下一条记录，current 则不会，Enumerator 是在调用 moveNext 方法时才会移动游标。moveNext 方法将游标指向下一条记录，并获取当前记录供 current 方法调用，如果没有下一条记录则返回false。
 
 
 

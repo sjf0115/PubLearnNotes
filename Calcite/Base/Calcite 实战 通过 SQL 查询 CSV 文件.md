@@ -221,7 +221,17 @@ public interface Enumerator<T> extends AutoCloseable {
 ```
 `current` 返回游标所指的当前记录，需要注意的是 `current` 并不会改变游标的位置，这一点和 iterator 是不同的，在 iterator 相对应的是 next 方法，每一次调用都会将游标移动到下一条记录，current 则不会，Enumerator 是在调用 moveNext 方法时才会移动游标。moveNext 方法将游标指向下一条记录，并获取当前记录供 current 方法调用，如果没有下一条记录则返回false。
 
+CsvEnumerator 是读取 CSV 文件的迭代器，它还得需要一个 RowConverter，因为 CSV 中都是 String 类型，使用 RowConverter 转化成相应的类型。在moreNext方法中，有Stream和谓词下推filter部分的实现，在本文只关注如下几行代码：
+```java
+final String[] strings = reader.readNext();
+if (strings == null) {
+  current = null;
+  return false;
 
+}
+current = rowConverter.convertRow(strings);
+return true;
+```
 
 
 。。。。

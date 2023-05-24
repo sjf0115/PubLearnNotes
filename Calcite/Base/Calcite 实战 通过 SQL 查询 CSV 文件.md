@@ -208,9 +208,9 @@ public Enumerable<@Nullable Object[]> scan(DataContext root) {
 }
 ```
 
-实现读取 CSV 的逻辑
+## 4. 自定义实现 Enumerator
 
-Enumerator 是 Linq 风格的迭代器，它有4个方法：
+在上面的自定义实现 Table 逻辑中并没有真正实现读取 Csv 文件的逻辑，而是交由 Enumerator 来实现。Enumerator 是 Linq 风格的迭代器，它有4个方法：
 ```java
 public interface Enumerator<T> extends AutoCloseable {
     T current();

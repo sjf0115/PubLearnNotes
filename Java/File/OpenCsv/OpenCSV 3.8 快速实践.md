@@ -116,6 +116,9 @@ try {
     }
 }
 ```
+
+> 完整代码请查阅： [CsvReaderLineExample](https://github.com/sjf0115/data-example/blob/opencsv-3.8/common-example/src/main/java/com/common/example/file/csv/CsvReaderLineExample.java)
+
 以上 CSVReader 的例子很容易理解。重要的一点是关闭 CSVReader 以避免内存泄漏。下一个 CSVReader 示例是使用 CSVReader 的 `readAll()` 方法一次性读取所有数据：
 ```java
 CSVReader reader = null;
@@ -151,6 +154,8 @@ try {
 }
 ```
 
+> 完整代码请查阅： [CsvReaderAllExample](https://github.com/sjf0115/data-example/blob/opencsv-3.8/common-example/src/main/java/com/common/example/file/csv/CsvReaderAllExample.java)
+
 ## 4. CsvToBean
 
 大多数情况下，我们希望将 CSV 转换为 Java 对象。在这种情况下，我们可以使用 CsvToBean。下面是一个简单的示例，展示了如何将 CSV 文件转换为 Employee 对象列表：
@@ -180,7 +185,11 @@ try {
     }
 }
 ```
-`ColumnPositionMappingStrategy` 对象用于将 CSV 数据行索引映射到 Employee 对象字段。有时我们的 CSV 文件有标题行，例如我们可以有如下的 `emps-header.csv`：
+`ColumnPositionMappingStrategy` 对象用于将 CSV 数据行索引映射到 Employee 对象字段。
+
+> 完整代码请查阅： [CsvToBeanExample](https://github.com/sjf0115/data-example/blob/opencsv-3.8/common-example/src/main/java/com/common/example/file/csv/CsvToBeanExample.java)
+
+有时我们的 CSV 文件有标题行，例如我们可以有如下的 `emps-header.csv`：
 ```
 id,name,age,country
 1,Pankaj Kumar,20,India
@@ -214,6 +223,8 @@ try {
 }
 ```
 
+> 完整代码请查阅： [CsvToBeanHeaderStrategyExample](https://github.com/sjf0115/data-example/blob/opencsv-3.8/common-example/src/main/java/com/common/example/file/csv/CsvToBeanHeaderStrategyExample.java)
+
 ## 5. CSVWriter
 
 让我们看一下 CSVWriter 的例子，将 Java 对象写入 CSVWriter 并最终写入 csv 文件中：
@@ -244,6 +255,9 @@ try {
     }
 }
 ```
+
+> 完整代码请查阅： [CsvWriterExample](https://github.com/sjf0115/data-example/blob/opencsv-3.8/common-example/src/main/java/com/common/example/file/csv/CsvWriterExample.java)
+
 通过上述代码写入到 `emps-output.csv` 中的数据如下所示：
 ```
 "id","name","age","country"
@@ -271,12 +285,46 @@ id,name,age,country
 
 ## 6. BeanToCsv
 
+大多数情况下，我们希望将 Java 对象写入 CSV。在这种情况下，我们可以使用 BeanToCsv。下面是一个简单的示例，展示了如何将 Employee 对象列表写入 CSV 文件：
+```java
+CSVWriter writer = null;
+try {
+    writer = new CSVWriter(
+            new FileWriter("/opt/data/emps-output.csv"),
+            CSVWriter.DEFAULT_SEPARATOR,
+            CSVWriter.NO_QUOTE_CHARACTER,
+            CSVWriter.NO_ESCAPE_CHARACTER,
+            CSVWriter.DEFAULT_LINE_END
+    );
 
+    // 映射策略
+    ColumnPositionMappingStrategy<Employee> mappingStrategy = new ColumnPositionMappingStrategy();
+    mappingStrategy.setType(Employee.class);
+    mappingStrategy.setColumnMapping(new String[] {"id","name","age","country"});
 
-## 7. OpenCSV CSVWriter ResultSet
+    // 写入文件Bean
+    List<Employee> emps = Lists.newArrayList();
+    Employee emp1 = new Employee("1", "Pankaj Kumar", 20, "India");
+    Employee emp2 = new Employee("2", "David Dan", 40, "USA");
+    Employee emp3 = new Employee("3", "Lisa Ray", 28, "Germany");
+    emps.add(emp1);
+    emps.add(emp2);
+    emps.add(emp3);
 
-## 8. OpenCSV Annotation
+    // 写入 CSV 文件
+    BeanToCsv<Employee> beanToCsv = new BeanToCsv<>();
+    beanToCsv.write(mappingStrategy, writer, emps);
+} catch (IOException e) {
+    e.printStackTrace();
+} finally {
+    if (writer != null) {
+        try {
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
 
-
-
-> 原文:[OpenCSV CSVReader CSVWriter Example](https://www.digitalocean.com/community/tutorials/opencsv-csvreader-csvwriter-example)
+> 完整代码请查阅： [BeanToCsvExample](https://github.com/sjf0115/data-example/blob/opencsv-3.8/common-example/src/main/java/com/common/example/file/csv/BeanToCsvExample.java)

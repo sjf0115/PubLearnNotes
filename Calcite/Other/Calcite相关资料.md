@@ -58,3 +58,5 @@
 - [ ] [介绍Calcite最好的PPT](https://mp.weixin.qq.com/s/QLI88ZRefuTNjkb_n6pGgA)
 - [ ] [SQL 抽象语法树及改写场景应用](https://xie.infoq.cn/article/01dab1c8d137221eb9c1e005d)
 - [ ] [通过SQL即可让监控分析更简单更高效](https://www.toutiao.com/article/6725619503163507204)
+- [ ] [Parsing database Query with Apache Calcite](https://blog.knoldus.com/parsing-database-query-with-apache-calcite/)
+- [ ] [从使用者角度看Apache Calcite](https://shenzhu.github.io/calcite-user-perspective/)

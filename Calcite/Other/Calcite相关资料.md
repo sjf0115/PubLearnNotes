@@ -27,6 +27,12 @@
 - [ ] [Apache Calcite 若干概念说明](https://zhuanlan.zhihu.com/p/65701467)
 - [ ] [Apache Calcite 处理流程详解（一）](https://matt33.com/2019/03/07/apache-calcite-process-flow/)
 - [ ] [Apache Calcite 优化器详解（二）](https://matt33.com/2019/03/17/apache-calcite-planner/)
+- [ ] [Apache Calcite系列（一）：整体流程解析](https://zhuanlan.zhihu.com/p/614668529)
+- [ ] [Apache Calcite系列（二）：SQL Parser](https://zhuanlan.zhihu.com/p/615666402)
+- [ ] [Apache Calcite系列（三）：SQL查询优化](https://zhuanlan.zhihu.com/p/618995585)
+- [ ] [Apache Calcite系列（四）：物理计划执行](https://zhuanlan.zhihu.com/p/619729392)
+- [ ] [Apache Calcite系列（五）：数据库驱动实现](https://zhuanlan.zhihu.com/p/623014972)
+- [ ] [Apache Calcite系列（六）：Kylin查询原理分析](https://zhuanlan.zhihu.com/p/623062311)
 - [ ] [如何在 Apache Calcite 注册函数](https://zhuanlan.zhihu.com/p/65472726)
 - [ ] [Apache Calcite Join 处理 - I (执行器 & 简单 Reorder)](https://zhuanlan.zhihu.com/p/67725127)
 - [ ] [Apache Calcite中定制自已SQL解析器](https://zhuanlan.zhihu.com/p/65345335)
@@ -60,3 +66,12 @@
 - [ ] [通过SQL即可让监控分析更简单更高效](https://www.toutiao.com/article/6725619503163507204)
 - [ ] [Parsing database Query with Apache Calcite](https://blog.knoldus.com/parsing-database-query-with-apache-calcite/)
 - [ ] [从使用者角度看Apache Calcite](https://shenzhu.github.io/calcite-user-perspective/)
+- [ ] [flink sql 知其所以然（六）| flink sql 约会 calcite（看这篇就够了）](https://cloud.tencent.com/developer/article/1972170)
+- [ ] [Redis SQL & JDBC with Apache Calcite](https://www.youtube.com/watch?v=RYybkMTGzcE)
+- [ ] [Apache Calcite Tutorial](https://codetinkering.com/apache-calcite-tutorial/)
+- [ ] [Parsing and planning SQL queries with Apache Calcite – Part 1](https://blog.mireo.com/from-a-string-to-the-thing-parsing-and-planning-sql-queries-with-apache-calcite-part-1)
+- [ ] [Calcite parser config介绍](https://cloud.tencent.com/developer/article/2169871)
+
+
+
+。。。

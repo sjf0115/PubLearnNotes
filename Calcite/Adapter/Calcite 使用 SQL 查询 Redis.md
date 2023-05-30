@@ -20,20 +20,20 @@ Calcite 的 Redis 适配器可以让你使用 SQL 来查询 Redis 中的数据�
       },
       "tables": [
         {
-          "name": "json_01",
-          "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+          "name": "students_json",
+          "factory": "com.calcite.example.adapter.redis.RedisTableFactory",
           "operand": {
             "dataFormat": "json",
             "fields": [
               {
-                "name": "DEPTNO",
+                "name": "id",
                 "type": "varchar",
-                "mapping": "DEPTNO"
+                "mapping": "id"
               },
               {
-                "name": "NAME",
+                "name": "name",
                 "type": "varchar",
-                "mapping": "NAME"
+                "mapping": "name"
               }
             ]
           }
@@ -97,25 +97,31 @@ format 参数用于指定 Redis 中数据的格式。目前支持 `csv`、`json`
 
 JSON 格式解析一个 Redis 字符串值，并使用映射将字段转换为多个列：
 ```
-127.0.0.1:6379> LPUSH json_02 {"DEPTNO":10,"NAME":"Sales1"}
+127.0.0.1:6379> LPUSH students_json '{"id":"1001","name":"Lucy"}'
+127.0.0.1:6379> LPUSH students_json
+```
+
+```
+127.0.0.1:6379> LPUSH students_json_2 '{"id":"1001","name":"Lucy"}'
+127.0.0.1:6379> LPUSH students_json_2 '{"id":"1002","name":"Tom"}'
 ```
 
 ```json
 {
-  "name": "json_01",
-  "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+  "name": "students_json",
+  "factory": "com.calcite.example.adapter.redis.RedisTableFactory",
   "operand": {
     "dataFormat": "json",
     "fields": [
       {
-        "name": "DEPTNO",
+        "name": "id",
         "type": "varchar",
-        "mapping": "DEPTNO"
+        "mapping": "id"
       },
       {
-        "name": "NAME",
+        "name": "name",
         "type": "varchar",
-        "mapping": "NAME"
+        "mapping": "name"
       }
     ]
   }
@@ -155,21 +161,26 @@ JSON 格式解析一个 Redis 字符串值，并使用映射将字段转换为�
 
 ### csv
 
+```
+127.0.0.1:6379> LPUSH students_csv "1001:Lucy"
+127.0.0.1:6379> LPUSH students_csv "1002:Tom"
+```
+
 ```json
 {
-  "name": "csv_01",
-  "factory": "org.apache.calcite.adapter.redis.RedisTableFactory",
+  "name": "students_csv",
+  "factory": "com.calcite.example.adapter.redis.RedisTableFactory",
   "operand": {
     "dataFormat": "csv",
     "keyDelimiter": ":",
     "fields": [
       {
-        "name": "EMPNO",
+        "name": "id",
         "type": "varchar",
         "mapping": 0
       },
       {
-        "name": "NAME",
+        "name": "name",
         "type": "varchar",
         "mapping": 1
       }
@@ -186,5 +197,4 @@ keyDelimiter 用于分割值，默认值是冒号，分割值用于映射字段�
 
 
 
-
-...
+> 参考：[Redis adapter](https://calcite.apache.org/docs/redis_adapter.html)

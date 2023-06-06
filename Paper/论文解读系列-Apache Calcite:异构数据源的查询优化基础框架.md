@@ -180,8 +180,112 @@ FROM mongo_raw.zips;
 
 ### 7.2 流
 
-Calcite 为流查询提供了一流的支持，通过一组特定于流的标准 SQL 扩展，包括 STREAM 扩展以及窗口扩展。
+Calcite 为流查询提供了一流的支持，通过一组特定于流的标准 SQL 扩展，包括 STREAM 扩展以及窗口扩展，在 JOIN 或者其他操作中通过窗口表达式来隐式引入。这些扩展受到连续查询语言（Continuous Query Language）的启发，并试图跟标准 SQL 有效集成起来。STREAM 明确告诉诉用户对新增的记录感兴趣而不是已有的。
+```sql
+SELECT STREAM rowtime, productId, units
+FROM orders
+WHERE units > 25;
+```
+如没有指定关键字 STREAM ，对流的查询就会变成常规的 SQL 查询，表示系统应该处理从流中已接收到的数据，而不是新接收的数据。由于流固有的无界特性，窗口被用来解除阻塞操作符，如聚合和 JOIN。Calcite 的流扩展使用 SQL 分析函数来表达滑动和级联窗口聚合，如下例所示：
+```sql
+SELECT
+  STREAM rowtime, productId, units,
+  SUM(units) OVER (ORDER BY rowtime
+    PARTITION BY productId
+    RANGE INTERVAL '1' HOUR PRECEDING) unitsLastHour
+FROM Orders;
+```
+滚动（Tumbling），跳跃（hopping）和会话窗口（session）函数可以使用 `TUMBLE`, `HOPPING`, `SESSION`函数以及一些工具函数（ `TUMBLE_END` 和 `HOP_END` ）来支持，这几个关键可以在 GROUP BY 或 SELECT 中来使用。
+```sql
+SELECT
+  STREAM TUMBLE_END(rowtime, INTERVAL '1' HOUR) AS rowtime,
+  productId,
+  COUNT(*) AS c,
+  SUM(units) AS units
+FROM orders
+GROUP BY TUMBLE(rowtime, INTERVAL '1' HOUR), productId;
+```
+涉及窗口聚合的流查询需要在 GROUP BY 子句或 ORDER BY 子句中写单调或准单调表达式。可以在关联 JOIN 子句中使用隐式（时间）窗口表达式来支持复杂的流与流之间的关联查询。
+```sql
+SELECT STREAM o.rowtime, o.productId, o.orderId, s.rowtime, AS shipTime
+FROM orders AS o
+JOIN shipments AS s
+ON o.orderId = s.orderId AND s.rowtime BETWEEN o.rowtime AND o.rowtime + INTERVAL '1' HOUR
+```
+在隐式窗口的情况下，Calcite 的查询计划器会验证表达式是否是单调的。
 
+### 7.3 地理空间数据
+
+利用 Calcite 关系代数，Calcite 初步提供地理空间数据查询的能力支持。在核心实现中，Calcite 添加了 GEOMETRY 关键字，该关键字实现了对不同地理空间对象的封装，包括点（points）、曲线（curves）以及多边型（polygons）。后续 Calcite 将会完全符合 OpenGIS Simple Feature Access 规范，该规范定义地理空间数据的 SQL 接口标准。下面示例是查询阿姆斯特丹市的国家：
+```sql
+SELECT name
+FROM (
+    SELECT name,
+      ST_GeomFromText('POLYGON((4.82 52.43, 4.97 52.43, 4.97 52.33, 4.82 52.33, 4.82 52.43))') AS "Amsterdam",
+      ST_GeomFromText(boundary) AS "Country"
+    FROM country
+)
+WHERE ST_Contains("Country", "Amsterdam");
+```
+
+### 7.4 集成 Java 语言查询
+
+除了关系数据库之外，Calcite 还可以支持查询多种数据源。但是它的目标不仅仅是支持 SQL 语言。虽然 SQL 仍然是主要的数据库语言，但许多程序员倾向于语言集成语言，如 LINQ。与嵌入在 Java 或 C++ 代码中的 SQL 不同，语言集成查询语言允许程序员只使用一种语言编写所有代码。Calcite 为 Java 提供了语言集成查询 (或简称为 LINQ4J)，它严格遵循 Microsoft 的 LINKQ 为.NET 语言制定的约定。
+
+## 8. 业界及学术界使用
+
+Calcite 被广泛采用，特别是在业界的开源项目中。由于 Calcite 提供了一定的集成灵活性，这些项目要么选择：
+- 将 Calcite 嵌入到它们的核心代码中，即将其用作类库
+- 实现一个 Calcite 适配器进行联合查询处理。
+
+此外，我们看到学术界越来越多的使用 Calcite 作为数据管理项目开发的基石。在下面，我们会描述不同的系统是如何使用 Calcite。
+
+### 8.1 嵌入式 Calcite
+
+表 1 展示了使用 Calcite 作为核心类库的软件列表，包括：
+- 向用户提供的查询语言接口；
+- 是否使用 Calcite 的 JDBC 驱动；
+- 是否使用 Calcite 中的 SQL 解析器和校验器；
+- 是否使用 Calcite 的查询关系代数表示对数据的操作；
+- 依赖 Calcite 执行的引擎，例如集成 Calcite 的本地引擎，Calcite 操作符，或任何其他项目。
+
+![](4)
+
+Drill 是一个基于 Dremel 的系统，灵活的数据处理引擎。其内部采用无模式 Schema 的 JSON 文档数据模型。类似于 SQL++，Drill 有自己的 SQL 方言，包含了对半结构化数据查询的扩展。
+
+Hive 最初是因为作为 MapReduce 编程模型之上的 SQL 接口而流行起来。后来 Hive 朝着交互式的 SQL 查询引擎方向演进，并采用 Calcite 作为其规则及成本优化器。Hive 没有使用 Calcite 的 JDBC 驱动程序、SQL 解析器和验证器，而是使用自己的实现。Hive 将查询转换为 Calcite 操作符，优化后转换为 Hive 的物理代数。Hive 操作符可以被多个引擎执行，最流行的是 Apache Tez 和 ApacheSpark。
+
+Apache Solr 是建立在 Apache Lucene 库之上的一个流行的全文分布式搜索平台。Solr 向用户公开了多个查询接口，包括类 REST 的 HTTP/XML 以及 JSON 接口。此外，Solr与 Calcite 集成来提供 SQL 能力。
+
+Apache Phoenix 和 Apache Kylink 均是在 Apache HBase 上构建的，Apache HBase 是一款分布式 KV 存储模型，是在 BigTable 基础之上构建。Phoenix 提供了一个 SQL 接口和编排层来查询 HBase。相反，Kylin 专注于 OLAP 的 SQL 查询，通过声明物化视图和 HBase 中的数据构建 cubes，因此基于这些 cubes，可以使用 Calcite 优化器重写输入查询。在 Kylin 中，查询计划使用 Calcite 本地操作符和 HBase 组合来执行。
+
+最近，Calcite 在流处理系统方面变理流行起来。诸如，Apache Apex，Flink，Apache Samza 以及 Storm 均集成了 Calcite，使其组件能够向用户提供流式 SQL 接口。最后，其他的商业系统也有采用 Calcite，例如 MapD，Lingual 和 Qubole Quark。
+
+### 8.2 Calcite 适配器
+
+不再是将 Calcite 当作类库来使用，其他的系统集成 Calcite 时，采用实现 Calcite 提供的适配器接口来读取它们的数据源。表 2 展示了 Calcite 中支持的适配器列表。实现这些适配器最关键是要实现 converter 组件，该组件负责将推送给系统的代数表达式转换成该系统支持的查询语言。表 2 还显示了 Calcite 将代数表达式转换成的目标语言。
+
+![](5)
+
+JDBC 适配器支持多种 SQL 方言的生成，包括比较流行的数据库管理系统 PostgreSQL 以及 MySQL。反过来，Cassandra 则有类 SQL 查询语言 CQL。而 Apache Pig 则在 Pig Latin 中生成自己的查询表达式。Apahce Spark 的适配器采用 Java RDD 接口。最后，Druid，ElasticSearch 以及 Splunk 则是通过 REST HTTP 接口来进行查询，由 Calcite 生成的查询表达式为 JSOM 或 XML 格式的。
+
+### 8.3 研究中使用
+
+在研究场景下，Calcite 可以作为精准医疗和临床分析场景下的一种选择。在这些场景中，需要对异构医疗数据进行逻辑整合和对齐，这样有助于基于患者更全面的病史和基因组谱来评估最佳治疗方案。数据主要存放在科学数据库中，主要涉及患者的电子病历，各类结构化、半结构化报告（肿瘤学、精神病学、实验室测试、放射学等）、成像、信号以及序列数据。在这些情况下，Calcite 的统一查询接口和灵活的适配器架构能够很好地提供支持。正在进行的研究旨在为数组和文本源引入新的适配器以及能够支持高效连接异构数据源。
+
+## 9. 未来工作
+
+将来 Calcite 将专注于新功能的研发以及适配器架构的扩展上：
+- 加强 Calcite 作为独立引擎的设计。这需要支持 DDL，物化视图，索引以及约束。
+- 持续改进计划器的设计和灵活性。包括模块化，用户可定制计划器。
+- 将新的参数化方法纳入优化器的设计。
+- 支持扩展的 SQL 命令，函数，工具，完全符合 OpenGIS 规范。
+- 为非关系型数据源提供新的适配器。
+- 性能分析和检测的改进。
+
+## 10. 结论
+
+在数据使用上，新兴的数据管理实践和相关分析继续朝着多样化和异质的场景发展。同时，通过 SQL 方式获取数据的关系型数据源仍然是企业获取数据的基本方法。在这种分歧的情况，Apache Calcite 扮点着独特的角色，其不仅能够支持传统、常见的数据处理，也支持其他数据源处理，包括半结构化、流式和地理空间数据。另外，Apache Calcite 专注于灵活、可适配和可扩展的设计哲学也成为一个重要的因素，在大量的开源框架中，使其成为被广泛采用的查询优化器。Apache Calcite 动态且灵活的查询优化器和适配器架构使其能够被嵌入到各种数据处理框架中，包括：Hive，Drill，MapD，Flink。Apache Calcite 支持异质数据处理，同时其关系函数在功能和性能，也在不断得到提升。
 
 
 原文：[Apache Calcite: A Foundational Framework for Optimized Query Processing Over Heterogeneous Data Sources](https://arxiv.org/pdf/1802.10233.pdf)

@@ -36,7 +36,7 @@
 - [ ] [如何在 Apache Calcite 注册函数](https://zhuanlan.zhihu.com/p/65472726)
 - [ ] [Apache Calcite Join 处理 - I (执行器 & 简单 Reorder)](https://zhuanlan.zhihu.com/p/67725127)
 - [ ] [Apache Calcite中定制自已SQL解析器](https://zhuanlan.zhihu.com/p/65345335)
-- [ ] [译文：Apache Calcite：一个为异构数据源的优化查询处理而生的基础框架（1）](https://mp.weixin.qq.com/s/D7wpB9TBLwNBem0gIN4XgA)
+- [x] [译文：Apache Calcite：一个为异构数据源的优化查询处理而生的基础框架（1）](https://mp.weixin.qq.com/s/D7wpB9TBLwNBem0gIN4XgA)
 - [ ] [译文：Apache Calcite：一个为异构数据源的优化查询处理而生的基础框架（2）](https://mp.weixin.qq.com/s/P2vl5OzrBUgXhgYa4X3lPg)
 - [ ] [Apache Calcite官方文档中文版- 进阶-1. 适配器](https://blog.51cto.com/u_1196740/2160570)
 - [ ] [Apache Calcite教程 -目录](https://blog.csdn.net/QXC1281/article/details/89070285)

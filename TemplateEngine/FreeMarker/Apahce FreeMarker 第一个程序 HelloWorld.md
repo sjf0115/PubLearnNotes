@@ -29,7 +29,7 @@ cfg.setDirectoryForTemplateLoading(new File(path));
 
 需要注意的是不需要重复创建 `Configuration` 实例；它的代价很高，尤其是会丢失缓存。Configuration 实例就是应用级别的单例。当使用多线程应用程序(比如Web网站)，Configuration 实例中的设置就不能被修改。它们可以被视作为 "有效的不可改变的" 对象， 也可以继续使用 安全发布 技术 (参考 JSR 133 和相关的文献)来保证实例对其它线程也可用。比如， 通过 final 或 volatile 字段来声明实例，或者通过线程安全的IoC容器，但不能作为普通字段。 (Configuration 中不处理修改设置的方法是线程安全的。)
 
-## 3. 创建数据模型
+## 4. 创建数据模型
 
 在简单的示例中我们可以使用 java.lang 和 java.util 包中的类，还可以自定义 Java Bean 来构建数据对象：
 - 使用 java.lang.String 来构建字符串。
@@ -109,7 +109,7 @@ root.put("address", new Address("山东", "淄博"));
 ```
 在这种情况下模板文件是不用修改的，比如 `${address.prov}` 在两种情况下都是适用的。
 
-## 4. 获取模板
+## 5. 获取模板
 
 模板代表了 `freemarker.template.Template` 实例。典型的做法是从 Configuration 实例中获取一个 Template 实例。无论什么时候你需要一个模板实例，都可以使用它的 getTemplate 方法来获取。如下所示在之前设置的 `templates` 目录下的 `HelloWorld.ftl` 模板文件中获取模板：
 ```java
@@ -117,7 +117,7 @@ Template template = cfg.getTemplate("HelloWorld.ftl");
 ```
 当调用这个方法的时候，将会创建一个 `HelloWorld.ftl` 的 Template 实例，通过读取 `templates/HelloWorld.ftl` 文件，之后解析(编译)。Template 实例以解析后的形式存储模板，而不是以源文件的文本形式。
 
-## 5. 合并模板和数据模型
+## 6. 合并模板和数据模型
 
 `数据模型+模板` 才会产出输出，我们有了一个数据模型 (root) 和一个模板 (template)， 为了得到输出就需要合并它们。这通过模板的 process 方法来完成。它用数据模型 root 和 Writer 对象作为参数，然后向 Writer 对象写入产生的内容。为简单起见，这里我们只做标准的输出：
 ```java

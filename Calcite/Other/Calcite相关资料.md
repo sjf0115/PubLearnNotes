@@ -71,7 +71,7 @@
 - [ ] [Apache Calcite Tutorial](https://codetinkering.com/apache-calcite-tutorial/)
 - [ ] [Parsing and planning SQL queries with Apache Calcite – Part 1](https://blog.mireo.com/from-a-string-to-the-thing-parsing-and-planning-sql-queries-with-apache-calcite-part-1)
 - [ ] [Calcite parser config介绍](https://cloud.tencent.com/developer/article/2169871)
-
+- [ ] [如何描述一种语言？](https://mp.weixin.qq.com/s/dvv7BQeYzdTBNbcwqO-mNQ)
 
 
 。。。

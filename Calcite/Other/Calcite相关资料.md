@@ -72,6 +72,11 @@
 - [ ] [Parsing and planning SQL queries with Apache Calcite – Part 1](https://blog.mireo.com/from-a-string-to-the-thing-parsing-and-planning-sql-queries-with-apache-calcite-part-1)
 - [ ] [Calcite parser config介绍](https://cloud.tencent.com/developer/article/2169871)
 - [ ] [如何描述一种语言？](https://mp.weixin.qq.com/s/dvv7BQeYzdTBNbcwqO-mNQ)
+- [ ] [From Calcite to Tampering with Flink SQL](https://www.jianshu.com/p/2d4a2035ad1b)
+- [ ] [一文搞懂 Flink SQL 执行过程](https://xie.infoq.cn/article/0160a08e99087dc664ecbb7b5)
+- [ ] [Flink 源码阅读笔记（15）- Flink SQL 整体执行框架](https://blog.jrwang.me/2019/flink-source-code-sql-overview/)
+- [ ] [Flink DDL SQL with Calcite](https://miaowenting.site/2019/11/10/Flink-DDL-SQL-with-Calcite/)
+- [ ] [FlinkSQL的字段血缘解决方案](https://zhuanlan.zhihu.com/p/628376451)
 
 
 。。。

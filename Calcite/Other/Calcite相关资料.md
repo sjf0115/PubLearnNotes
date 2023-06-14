@@ -77,6 +77,18 @@
 - [ ] [Flink 源码阅读笔记（15）- Flink SQL 整体执行框架](https://blog.jrwang.me/2019/flink-source-code-sql-overview/)
 - [ ] [Flink DDL SQL with Calcite](https://miaowenting.site/2019/11/10/Flink-DDL-SQL-with-Calcite/)
 - [ ] [FlinkSQL的字段血缘解决方案](https://zhuanlan.zhihu.com/p/628376451)
+- [ ] [Calcite - 看懂 Parser.jj 中的 SqlSelect](https://cloud.tencent.com/developer/article/1824956?from=15425&areaSource=102001.15&traceId=hrNh6EuA08BhQIhd6IqzK)
+- [ ] [【Flink SQL】如何解析和校验 Flink SQL](https://www.jianshu.com/p/bb80451dd768)
+- [ ] [Flink源码阅读(六) 自研SQL引擎的实现方法](https://juejin.cn/post/6936732677605163038)
+- [ ] [Flink源码阅读(五) FLink SQL之解析流程](https://juejin.cn/post/6936374991114108965/)
+- [ ] [Flink SQL 原理解析 (1)](http://hackershell.cn/?p=1530)
+- [ ] [基于Calcite解析Flink SQL列级数据血缘](https://www.jianshu.com/p/6a14c846e331)
+- [ ] [Apache Calcite SQL解析及语法扩展](https://zhuanlan.zhihu.com/p/509681717)
+- [ ] [【Flink SQL】如何利用 Calcite 扩展 Flink Function 语法](https://www.jianshu.com/p/efcb2586b5aa)
+
+
+
+
 
 
 。。。

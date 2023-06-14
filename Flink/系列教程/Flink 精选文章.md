@@ -175,7 +175,7 @@
 - [ ] [​实战：Flink 1.12 维表 Join Hive 最新分区功能体验](https://mp.weixin.qq.com/s/yh4StVZ68aqfHFlMH_Sadw)
 - [ ] [Flink集成Hive之快速入门--以Flink1.12为例](https://mp.weixin.qq.com/s/DQ_8o9EHogVASHySb-QSSA)
 - [ ] [Implementing a Custom Source Connector for Table API and SQL - Part One](https://flink.apache.org/2021/09/07/connector-table-sql-api-part1.html)
-
+- [ ] [Flink Kafka Connector 实现机制简析](http://hackershell.cn/?p=1453)
 
 ### 12. SQL
 

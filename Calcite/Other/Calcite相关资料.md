@@ -81,13 +81,14 @@
 - [ ] [【Flink SQL】如何解析和校验 Flink SQL](https://www.jianshu.com/p/bb80451dd768)
 - [ ] [Flink源码阅读(六) 自研SQL引擎的实现方法](https://juejin.cn/post/6936732677605163038)
 - [ ] [Flink源码阅读(五) FLink SQL之解析流程](https://juejin.cn/post/6936374991114108965/)
-- [ ] [Flink SQL 原理解析 (1)](http://hackershell.cn/?p=1530)
+- [x] [Flink SQL 原理解析 (1)](https://smartsi.blog.csdn.net/article/details/131219980)
 - [ ] [基于Calcite解析Flink SQL列级数据血缘](https://www.jianshu.com/p/6a14c846e331)
 - [ ] [Apache Calcite SQL解析及语法扩展](https://zhuanlan.zhihu.com/p/509681717)
 - [ ] [【Flink SQL】如何利用 Calcite 扩展 Flink Function 语法](https://www.jianshu.com/p/efcb2586b5aa)
-
-
-
+- [ ] [FlinkSQL 数据权限之数据脱敏解决方案](https://mp.weixin.qq.com/s/6y6UeYLLUDH8wCuJoFS33w)
+- [ ] [【Flink】第三十二篇：Flink SQL 字段血缘中树的构建与遍历](https://mp.weixin.qq.com/s/y3RHZs3Fb-4a_uqgpb2HxQ)
+- [ ] [【Flink】第二十七篇：三天撸了一个 Flink SQL 字段血缘算法](https://mp.weixin.qq.com/s/liTG35nbfIec-jrpp3Wh0A)
+- [ ] [FlinkSQL字段血缘解决方案及源码](https://mp.weixin.qq.com/s/ub3_so6q-0N78Sri9CVUew)
 
 
 

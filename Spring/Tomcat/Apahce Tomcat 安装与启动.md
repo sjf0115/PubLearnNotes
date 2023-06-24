@@ -47,3 +47,15 @@ Tomcat started.
 在浏览器中访问 `http://localhost:8080` 即可看到提示：
 
 ![](../../Image/Spring/apache-tomcat-setup-2.png)
+
+## 3. 修改端口号
+
+通过上面我们知道默认端口号为 8080，但很容易发生冲突，所以一般会修改默认的端口号，在这我们修改为 8070：
+```xml
+<Connector port="8070" protocol="HTTP/1.1"
+               connectionTimeout="20000"
+               redirectPort="8443"
+               maxParameterCount="1000"
+               />
+```
+这样修改之后，我们就可以通过 `http://localhost:8070/` 访问了。

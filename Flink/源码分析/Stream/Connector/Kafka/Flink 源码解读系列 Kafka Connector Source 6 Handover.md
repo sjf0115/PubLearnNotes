@@ -1,9 +1,18 @@
+Handover 是一个实用程序，用于将数据（记录缓冲区）和异常从生产者线程移交给消费者线程。类似于一个'大小为一的阻塞队列'，并在不中断线程的情况下提供一些关于异常报告、关闭和唤醒线程的额外功能。该类用于 Flink Kafka Consumer 中，用于在运行 KafkaConsumer 类的线程和主线程之间进行数据和异常的交接。
 
-
-
-Handover 是一个实用程序，用于将数据（记录缓冲区）和异常从生产者线程移交给消费者线程。它实际上像一个'大小为一的阻塞队列'，并在不中断线程的情况下提供一些关于异常报告、关闭和唤醒线程的额外功能。该类用于 Flink Kafka Consumer 中，用于在运行 KafkaConsumer 类的线程和主线程之间进行数据和异常的交接。
-
-Handover 底层封装的是一个 ConsumerRecords 对象。
+从代码可以看出 Handover 本质上是一个 ConsumerRecords 对象封装：
+```java
+@ThreadSafe
+@Internal
+public final class Handover implements Closeable {
+    private final Object lock = new Object();
+    private ConsumerRecords<byte[], byte[]> next;
+    private Throwable error;
+    private boolean wakeupProducer;
+    ...
+}
+```
+下面我们具体看一下 Handover 能具体做什么？
 
 ## 1. 生产元素
 

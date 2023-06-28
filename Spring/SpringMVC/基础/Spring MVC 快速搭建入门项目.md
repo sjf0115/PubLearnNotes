@@ -6,14 +6,14 @@
 <dependency>
     <groupId>org.springframework</groupId>
     <artifactId>spring-webmvc</artifactId>
-    <version>6.0.3</version>
+    <version>5.2.10.RELEASE</version>
 </dependency>
 
 <!-- Servlet -->
 <dependency>
-    <groupId>jakarta.servlet</groupId>
-    <artifactId>jakarta.servlet-api</artifactId>
-    <version>6.0.0</version>
+    <groupId>javax.servlet</groupId>
+    <artifactId>javax.servlet-api</artifactId>
+    <version>3.1.0</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -64,5 +64,33 @@ public class ServletContainerInitConfig extends AbstractDispatcherServletInitial
     }
 }
 ```
+## 5. 配置 Tomcat
+
+你可以选择使用 Tomcat 插件(`tomcat7-maven-plugin`)来代替安装本地 Tomcat:
+```xml
+<build>
+    <plugins>
+        <!-- Tomcat7 插件-->
+        <plugin>
+            <groupId>org.apache.tomcat.maven</groupId>
+            <artifactId>tomcat7-maven-plugin</artifactId>
+            <version>2.2</version>
+            <!-- 插件配置 -->
+            <configuration>
+                <port>8070</port>
+                <path>/</path>
+                <uriEncoding>UTF-8</uriEncoding>
+            </configuration>
+        </plugin>
+    </plugins>
+</build>
+```
+
+
 
 ## 5. 使用浏览器测试
+
+在浏览器中打开 `http://localhost:8070/hello`，出现如下内容：
+```json
+{"data": "Hello SpringMVC!"}
+```

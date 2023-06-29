@@ -38,7 +38,7 @@ org.apache.tomcat.util.bcel.classfile.ClassFormatException: Invalid byte tag in 
 
 ## 2. 解决方案
 
-通过上面的代码很容易发现是 Tomcat 和 Jackson 不兼容导致的。检查原因时发现，使用了 Tomcat 插件导致：
+通过上面的代码很容易发现是 Tomcat 和 Jackson 不兼容导致的。在这我们使用的是 Tomcat 插件：
 ```xml
 <build>
     <plugins>
@@ -62,18 +62,152 @@ org.apache.tomcat.util.bcel.classfile.ClassFormatException: Invalid byte tag in 
 
 jackson-databind 版本过高，那么通过降低 jackson-databind 的版本来解决：
 ```xml
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.9.8</version>
+</dependency>
+```
+### 2.2 scope 指定 provided
 
+在 pom.xml 文件导入 jackson-databind 依赖时 scope 指定 provided，让 jackson-databind 依赖只在编译时有效。
+```xml
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.13.5</version>
+    <scope>provided</scope>
+</dependency>
 ```
 
+### 2.3 升级 Tomcat
 
+tomcat7-maven-plugin 插件最新版本是 2.2，默认运行 7.0.47 的 Tomcat，在这升级到 7.0.86：
+```xml
+<properties>
+    <tomcat.version>7.0.86</tomcat.version>
+</properties>
 
+<build>
+    <plugins>
+        <!-- Tomcat7 插件-->
+        <plugin>
+            <groupId>org.apache.tomcat.maven</groupId>
+            <artifactId>tomcat7-maven-plugin</artifactId>
+            <!-- 插件配置 -->
+            <configuration>
+                <port>8070</port>
+                <path>/</path>
+                <uriEncoding>UTF-8</uriEncoding>
+            </configuration>
 
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.tomcat.embed</groupId>
+                    <artifactId>tomcat-embed-core</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-util</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-coyote</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-api</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
 
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-jdbc</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
 
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-dbcp</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
 
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-servlet-api</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
 
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-jsp-api</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
 
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-jasper</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
 
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-jasper-el</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
 
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-el-api</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
 
-。。。
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-catalina</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-tribes</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-catalina-ha</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-annotations-api</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.tomcat</groupId>
+                    <artifactId>tomcat-juli</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.tomcat.embed</groupId>
+                    <artifactId>tomcat-embed-logging-juli</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.tomcat.embed</groupId>
+                    <artifactId>tomcat-embed-logging-log4j</artifactId>
+                    <version>${tomcat.version}</version>
+                </dependency>
+            </dependencies>
+        </plugin>
+    </plugins>
+</build>
+```
+> 你也可以尝试使用 tomcat8-maven-plugin 插件

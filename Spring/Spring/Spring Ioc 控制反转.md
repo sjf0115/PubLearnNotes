@@ -15,3 +15,20 @@ IoC（Inversion of Control）控制反转。在 Java 开发中，IoC 意味着�
 - 应用上下文（application由org.springframework.context.ApplicationContext 接口定义）；
 
 基于 BeanFactory 之上构建，并提供面向应用的服务，例如从属性文件解析文本信息的能力，以及发布应用事件给感兴趣的事件监听者的能力。 虽然我们可以在Bean 工厂和应用上下文两者之间任选一种，但Bean 工厂对于大多数应用来说往往太低级了，因此应用上下文要比Bean 工厂更受欢迎。我们会把精力集中在应用上下文的使用上，不再浪费时间讨论Bean 工厂。
+
+
+
+public class BookServiceImpl implements BookService {
+    private BookDao bookDao;
+
+    @Override
+    public void save() {
+        System.out.println("bookService save ....");
+        bookDao.save();
+    }
+
+    // 通过 setter 方法实现依赖注入
+    public void setBookDao(BookDao bookDao) {
+        this.bookDao = bookDao;
+    }
+}

@@ -67,152 +67,73 @@ public class Book {
 
 注意 value 属性的使用，为它设置数字类型的值和设置String 类型的值并没有任何不同。Spring 将根据 Bean 属性的类型自动判断 value 值的正确类型。因为 Bean 的 id 属性为 Integer 类型，Spring 在调用 `setId()` 方法之前会自动将字符串 '1' 转换成 Integer 型。
 
-## 2. 引用其他Bean
+## 2. 引用其他 Bean
 
-在setter注入中引用其他Bean，跟构造器注入引用其他Bean基本一致，都要借助ref属性来实现。
-
-我们来为Student设置一个学校School类：
-
-public class School {
-
-private String name;
- 
-public void setName(String name) {
-this.name = name;
-}
-}
-
-
-private String name;
-private int age;
-private School school;
-
-
-public void setName(String name) {
-this.name = name;
-}
- 
-public void setAge(int age) {
-this.age = age;
-}
- 
-public void setSchool(School school) {
-this.school = school;
-}
-
-使用之前要我们必须在Spring 中将它声明为一个Bean，同时为学校赋值一个名字西电：
-
-<bean id = "xidian" class = "com.sjf.bean.School">
-<property name = "name" value = "西电"/>
-</bean>
-
-声明了school之后，那么现在就可以将它赋给Student了。使用setter 注入为school 属性设值：
-
-<bean id = "yoona" class = "com.sjf.bean.Student">
-<property name="name" value = "yoona"/>
-<property name="age" value = "24" />
-<property name="school" ref="xidian"></property>
-</bean>
-
-<bean id = "xidian" class = "com.sjf.bean.School">
-<property name = "name" value = "西电"/>
-</bean>
-
-3. 注入内部Bean
-
-
-我们已经看到yoona该学生有了考进西电大学。不仅yoona可以考上西电大学，其他学生也可以通过自己的努力考上该大学。所以说不同Student（学生）可以共享一个School（学校）。事实上，在应用中与其他Bean 共享Bean是非常普遍的。
-
-
-<bean id = "yoona" class = "com.sjf.bean.Student">
-<property name="name" value = "yoona"/>
-<property name="age" value = "24" />
-<property name="school" ref="xidian"></property>
-</bean>
- 
-<bean id = "xiaosi" class = "com.sjf.bean.Student">
-<property name="name" value = "xiaosi"/>
-<property name="age" value = "21" />
-<property name="school" ref="xidian"></property>
-</bean>
-
-<bean id = "xidian" class = "com.sjf.bean.School">
-<property name = "name" value = "西电"/>
-</bean>
-
-但是当我们说个人兴趣的时候，就不能与其他人共享了，每一个人都有自己的兴趣喜好，我们将使用一种很好用的Spring 技术：内部Bean（inner bean）。内部Bean 是定义在其他Bean 内部的Bean。
-
-
-package com.sjf.bean;
- 
-public class Hobby {
-
-private String desc;
- 
-public void setDesc(String desc) {
-this.desc = desc;
-}
- 
-@Override
-public String toString() {
-return desc;
-}
-}
-
-
-package com.sjf.bean;
- 
-/**
-* 学生实体类
-* @author sjf0115
-*
-*/
+在 setter 注入中引用其他 Bean，跟构造器注入引用其他 Bean 基本一致，都要借助 ref 属性来实现。我们来为 Student 设置一个最喜欢读的书 Book 类：
+```java
 public class Student {
+    private int id;
+    private String name;
+    private Book book;
 
-private String name;
-private int age;
-private Hobby hobby;
+    public Student() {
+    }
 
+    public Student(int id, String name, Book book) {
+        this.id = id;
+        this.name = name;
+        this.book = book;
+    }
 
-public void setName(String name) {
-this.name = name;
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Book getBook() {
+        return book;
+    }
+
+    public void setBook(Book book) {
+        this.book = book;
+    }
+
+    @Override
+    public String toString() {
+        return "Student{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", book=" + book +
+                '}';
+    }
 }
- 
-public void setAge(int age) {
-this.age = age;
-}
-
-public void setHobby(Hobby hobby) {
-this.hobby = hobby;
-}
- 
-@Override
-public String toString() {
-StringBuilder stringBuilder = new StringBuilder();
-stringBuilder.append("个人详细信息如下：" + "\n");
-stringBuilder.append("name：" + name + "\n");
-stringBuilder.append("age：" + age + "\n");
-stringBuilder.append("hobby：" + hobby.toString());
-return stringBuilder.toString();
-}
-
-}
-
-进行如下配置，我们把Hobby声明为内部Bean：
-
-<bean id = "yoona" class = "com.sjf.bean.Student">
-<property name="name" value = "xiaosi"/>
-<property name="age" value = "21" />
-<property name="hobby">
-<bean class = "com.sjf.bean.Hobby">
-<property name="desc" value = "喜欢踢足球，打羽毛球"/>
+```
+使用之前要我们先在 Spring 中将它声明为一个 Bean，使用 setter 为 book 注入为属性设值：
+```xml
+<!-- setter 注入-->
+<bean id="book" class="com.spring.example.domain.Book">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 Mybatis"/>
 </bean>
-</property>
+
+<bean id="student" class="com.spring.example.domain.Student">
+    <property name="id" value="10001"/>
+    <property name="name" value="Lucy"/>
+    <property name="book" ref="book"/>
 </bean>
-
-正如你所见到的，内部Bean 是通过直接声明一个<bean> 元素作为<property>元素的子节点而定义的。内部Bean 并不仅限于setter 注入，我们还可以把内部Bean 装配到构造方法的入参中。
-
-注意到内部Bean 没有ID 属性。虽然为内部Bean 配置一个ID 属性是完全合法的，但是并没有太大必要，因为我们永远不会通过名字来引用内部Bean。这也突出了使用内部Bean 的最大缺点：它们不能被复用。内部Bean 仅适用于一次注入，而且也不能被其他Bean 所引用。
+```
 
 
 参考：《Spring实战》

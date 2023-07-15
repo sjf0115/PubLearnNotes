@@ -18,402 +18,424 @@ Spring 的自动装配功能可以让 Spring 容器依据某种规则，为指�
 | byType	    | 按类型自动装配。把与 Bean 属性具有相同类型的其他 Bean 自动装配到 Bean 对应属性中。如果没有跟属性的类型相匹配的 Bean，则该属性不进行匹配。|
 | constructor	| 把与 Bean 的构造器入参具有相同类型的其他 Bean 自动装配到 Bean 构造器对应入中。|
 
+为了演示不同类型的自动装配策略，我们需要定义 Book 和 Student 实体类：
+```java
+public class Book {
+  private Integer id;
+  private String type;
+  private String name;
 
-package com.sjf.bean;
-/**
-* 学生实体类
-* @author sjf0115
-*
-*/
+  public Book() {
+  }
+
+  public Book(Integer id, String type, String name) {
+      System.out.println("调用 Book#Book(Integer id, String type, String name)");
+      this.id = id;
+      this.type = type;
+      this.name = name;
+  }
+
+  public Integer getId() {
+      return id;
+  }
+
+  public void setId(Integer id) {
+      System.out.println("调用 Book#setId(Integer id)");
+      this.id = id;
+  }
+
+  public String getType() {
+      return type;
+  }
+
+  public void setType(String type) {
+      System.out.println("调用 Book#setType(String type)");
+      this.type = type;
+  }
+
+  public String getName() {
+      return name;
+  }
+
+  public void setName(String name) {
+      System.out.println("调用 Book#setName(String name)");
+      this.name = name;
+  }
+
+  @Override
+  public String toString() {
+      return "Book{" +
+              "id=" + id +
+              ", type='" + type + '\'' +
+              ", name='" + name + '\'' +
+              '}';
+  }
+}
+
 public class Student {
+    private int id;
+    private String name;
+    private Book book;
 
-private String name;
-private int age;
-private School school;
+    public Student() {
+    }
 
-public String getName() {
-return name;
-}
-public void setName(String name) {
-this.name = name;
-}
-public int getAge() {
-return age;
-}
-public void setAge(int age) {
-this.age = age;
-}
-public School getSchool() {
-return school;
-}
-public void setSchool(School school) {
-this.school = school;
-}
-@Override
-public String toString() {
-StringBuilder sb = new StringBuilder();
-sb.append("name：" + name + " age：" + age );
-if(school != null){
-sb.append(" school：" + school.getName() + "[" + school.getLocation() + "]");
-}//if
-return sb.toString();
-}
-}
+    public Student(int id, String name, Book book) {
+        System.out.println("调用 Student(int id, String name, Book book)");
+        this.id = id;
+        this.name = name;
+        this.book = book;
+    }
 
+    public Student(Book book) {
+        System.out.println("调用 Student(Book book)");
+        this.book = book;
+    }
 
-package com.sjf.bean;
-/**
-* 学校实体类
-* @author sjf0115
-*
-*/
-public class School {
-private String name;
-private String location;
+    public int getId() {
+        return id;
+    }
 
-public String getName() {
-return name;
+    public void setId(int id) {
+        System.out.println("调用 Student#setId(int id)");
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        System.out.println("调用 Student#setName(String name)");
+        this.name = name;
+    }
+
+    public Book getBook() {
+        return book;
+    }
+
+    public void setBook(Book book) {
+        System.out.println("调用 Student#setBook(Book book)");
+        this.book = book;
+    }
+
+    @Override
+    public String toString() {
+        return "Student{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", book=" + book +
+                '}';
+    }
 }
-public void setName(String name) {
-this.name = name;
-}
-public String getLocation() {
-return location;
-}
-public void setLocation(String location) {
-this.location = location;
-}
-@Override
-public String toString() {
-return "name：" + name + " location：" + location;
-}
-}
+```
 
-1. no
-这是Spring的默认情况，不自动装配。Bean的引用必须通过XML文件中的</ref>元素或者ref属性手动设定。大多数情况下我们推荐使用这种方式，因为这种方式使文档更加明确简洁。
-2. byName 
+### 2.1 no
 
-这种情况，Bean 设置 autowire属性为"byName"，Spring会自动寻找与属性名字相同的bean（即寻找某些Bean，其id必须同该属性名字相同），找到后，通过调用setXXX方法将其注入属性。
-
-
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
-
-<bean id = "yoona" class = "com.sjf.bean.Student" autowire="byName">
-<property name="name" value="yoona"/>
-<property name="age" value="24"/>
+`autowire="no"` 是 Spring 的默认配置，表示不自动装配。此时我们必须通过 `<constructor-arg>` 和 `<property>` 元素的 `</ref>` 元素或者 ref 属性维护 Bean 的依赖关系。如下所示我们通过构造器注入的方式配置了两个 Bean：
+```xml
+<bean id="book" class="com.spring.example.domain.Book">
+    <constructor-arg value="1"/>
+    <constructor-arg value="计算机理论"/>
+    <constructor-arg value="深入理解 Mybatis"/>
 </bean>
 
-<bean id = "school" class="com.sjf.bean.School">
-<property name="name" value="西安电子科技大学"/>
-<property name="location" value="西安"/>
+<bean id="student" class="com.spring.example.domain.Student" autowire="no">
+    <constructor-arg value="10001"/>
+    <constructor-arg value="Lucy"/>
+    <constructor-arg ref="book"/>
 </bean>
-</beans>
+```
+使用如下代码测试一下：
+```java
+public static void main(String[] args) {
+    // 加载配置文件得到上下文对象 即 容器对象
+    ApplicationContext ctx = new ClassPathXmlApplicationContext("di/applicationContext-autowire-no.xml");
 
-运行：
-
-name：yoona   age：24   school：西安电子科技大学[西安]
-
-在这个实例中yoona Bean的school属性名字 与 School Bean（西安电子科技大学）的 id 属性是一样的。通过配置autowire属性，Spring就可以利用此信息自动装配yoona的school属性。
-
-约定：
-
-为属性自动装配ID与该属性的名字相同的Bean。通过设置autowire的属性为"byName"，Spring将特殊对待 Bean的所有属性，为这些属性查找与其名字相同的Spring Bean。因为id具有唯一性，所以不可能存在有多个Bean 的id与其属性名字相同而造成冲突的情况。根据byName自动装配结果是要么找到一个Bean，要么一个也找不到。
-
-缺点：
-
-必须假设Bean的名字（ID）与其他Bean的属性的名字一样。
-
-
-假设我们下面bean名字（id）改成"school1"，这样就与yoona Bean的school属性名字不一样，school属性就得不到装配。
-
-<bean id = "school1" class="com.sjf.bean.School">
-<property name="name" value="西安电子科技大学"/>
-<property name="location" value="西安"/>
-</bean>
-
-3. byType
-
-byType自动装配的工作方式类似于byName自动装配，只不过不再是匹配属性的名字而是检查属性的类型。当我们尝试使用byType自动装配时，Spring会寻找哪一个Bean的类型与属性的类型匹配。找到后，通过调用setXXX方法将其注入。
-
-对于上面那个把Bean的名字（id）改成"school1"的情况，byName已经不能寻找到相应的Bean。在这里我们设置 autowire属性为"byType"。
-
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
-
-<bean id = "yoona" class = "com.sjf.bean.Student" autowire="byType">
-<property name="name" value="yoona"/>
-<property name="age" value="24"/>
-</bean>
-
-<bean id = "school1" class="com.sjf.bean.School">
-<property name="name" value="西安电子科技大学"/>
-<property name="location" value="西安"/>
-</bean>
-</beans>
-
-
-运行：
-
-
-name：yoona   age：24   school：西安电子科技大学[西安]
-
-在这个实例中我们设置 autowire属性为"byType"，Spring容器会寻找哪一个Bean的类型与school属性的类型匹配。如果匹配就把Bean 装配到yoona的属性中去。school1 Bean（西安电子科技大学）将自动被装配到yoona的school属性中，因为school属性的类型与school1 Bean的类型都是com.sjf.bean.School类型。
-
-局限性：
-
-如果Spring寻找到多个Bean，它们的类型与需要自动装配的属性的类型都能匹配，它不会智能的挑选一个，则会抛出异常。所以，应用中只允许存在一个Bean与需要自动装配的属性类型相匹配。
-
-
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
-
-<bean id = "yoona" class = "com.sjf.bean.Student" autowire="byType">
-<property name="name" value="yoona"/>
-<property name="age" value="24"/>
-</bean>
-
-<bean id = "xidianSchool" class="com.sjf.bean.School">
-<property name="name" value="西安电子科技大学"/>
-<property name="location" value="西安"/>
-</bean>
-<bean id = "shandaSchool" class="com.sjf.bean.School">
-<property name="name" value="山东大学"/>
-<property name="location" value="山东"/>
-</bean>
-</beans>
-假如说，XML中出现了上述情况：有两个Bean与需要自动装配的属性的类型相匹配，则会抛出异常：
-
-No qualifying bean of type [com.sjf.bean.School] is defined: expected single matching bean but found 2: xidianSchool,shandaSchool  
-
-应对措施：
-
-为了避免因为使用byType自动装配而带来的歧义，Spring为我们提供了两种选择：可以为自动装配标示一个首选Bean，或者可以取消某个Bean自动装配的候选资格。
-3.1 标示首先Bean
-
-为自动装配标示一个首先Bean，可以使用<bean>元素的primary属性。如果只有一个自动装配的候选Bean的primary属性为true，那么该Bean将比其他候选Bean优先被选择。
-
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
-
-<bean id = "yoona" class = "com.sjf.bean.Student" autowire="byType">
-<property name="name" value="yoona"/>
-<property name="age" value="24"/>
-</bean>
-
-<bean id = "xidianSchool" class="com.sjf.bean.School" primary="false">
-<property name="name" value="西安电子科技大学"/>
-<property name="location" value="西安"/>
-</bean>
-<bean id = "shandaSchool" class="com.sjf.bean.School" primary="true">
-<property name="name" value="山东大学"/>
-<property name="location" value="山东"/>
-</bean>
-</beans>
-
-运行结果：
-
-name：yoona   age：24   school：山东大学[山东]
-
-诧异点：
-
-primary属性很怪异的一点是：它的默认设置为true。意思就是说自动装配的所有的候选Bean都是首选Bean。所以，为了使用primary属性，我们不得不把所有的非首选的Bean的primary属性设置为false。
-3.2 取消Bean自动装配候选资格
-
-为取消某个Bean的自动装配的候选资格，可以使用<bean>元素的autowire-candidate属性。如果我们希望排除某些Bean，可以设置这些Bean的autowire-candidate属性为false。
-
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
-
-<bean id = "yoona" class = "com.sjf.bean.Student" autowire="byType">
-<property name="name" value="yoona"/>
-<property name="age" value="24"/>
-</bean>
-
-<bean id = "xidianSchool" class="com.sjf.bean.School" >
-<property name="name" value="西安电子科技大学"/>
-<property name="location" value="西安"/>
-</bean>
-<bean id = "shandaSchool" class="com.sjf.bean.School" autowire-candidate="false">
-<property name="name" value="山东大学"/>
-<property name="location" value="山东"/>
-</bean>
-</beans>
-
-运行结果：
-
-name：yoona   age：24   school：西安电子科技大学[西安]
-4. constructor 自动装配
-
-Course实体类：
-
-package com.sjf.bean;
- 
-public class Course {
-private String name;
-private double score;
-private Student student;
-
-public Course(Student student) {
-this.student = student;
+    // 引用类型
+    Student student = (Student) ctx.getBean("student");
+    System.out.println(student);
 }
+```
+实际运行输出如下所示：
+```
+调用 Book(Integer id, String type, String name)
+调用 Student(int id, String name, Book book)
+Student{id=10001, name='Lucy', book=Book{id=1, type='计算机理论', name='深入理解 Mybatis'}}
+```
 
-public String getName() {
-return name;
-}
- 
-public void setName(String name) {
-this.name = name;
-}
- 
-public double getScore() {
-return score;
-}
- 
-public void setScore(double score) {
-this.score = score;
-}
- 
-public Student getStudent() {
-return student;
-}
- 
-public void setStudent(Student student) {
-this.student = student;
-}
- 
-@Override
-public String toString() {
-return "courseName：" + name + " score：" + score + " student：" + (student != null ? student.getName() : "null");
-}
-}
+> 上述就是通过构造器注入的方式实现获取 Student 对象，具体可以查阅[Spring 依赖注入之构造器注入](https://smartsi.blog.csdn.net/article/details/131694035)
 
-如果通过构造器注入来配置Bean，那么我们可以移除<constructor-arg>元素，由Spring在应用上下文中自动选择Bean注入到构造器入参中。
+### 2.2 byName 
 
-<bean id = "course" class = "com.sjf.bean.Course" autowire="constructor">
-<property name="name" value="英语"/>
-<property name="score" value="91"/>
-</bean>
- 
-<bean id = "yoona" class = "com.sjf.bean.Student">
-<property name="name" value="yoona"/>
-<property name="age" value="24"/>
+byName 装配方式需要设置 autowire 属性为 "byName"，Spring 会自动寻找与属性名字相同的 bean（即寻找某些 Bean，其 id 必须同该属性名字相同），找到后，通过调用 setXXX 方法将其注入属性：
+```xml
+<!--  通过 setter 手动装配  -->
+<bean id="book" class="com.spring.example.domain.Book">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 Mybatis"/>
 </bean>
 
-运行结果：
+<!--  简单类型 id、name 通过 setter 手动装配  -->
+<!--  引用类型 book 通过 setter 自动装配  -->
+<bean id="student" class="com.spring.example.domain.Student" autowire="byName">
+    <property name="id" value="10001"/>
+    <property name="name" value="Lucy"/>
+</bean>
+```
+在这个实例中 `student` Bean 的 book 属性名字 与 book Bean 的 id 属性是一样的。通过配置 autowire 属性，Spring 就可以利用此信息自动装配。实际运行效果如下所示：
+```java
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Student#setId(int id)
+调用 Student#setName(String name)
+调用 Student#setBook(Book book)
+Student{id=10001, name='Lucy', book=Book{id=1, type='计算机理论', name='深入理解 Mybatis'}}
+```
 
-courseName：英语   score：91.0   student：yoona  
+需要注意的是为属性自动装配 ID 与该属性的名字相同的 Bean。通过设置 autowire 的属性为"byName"，Spring 将特殊对待 Bean的所有属性，为这些属性查找与其名字相同的 Spring Bean。因为id具有唯一性，所以不可能存在有多个 Bean 的 id 与其属性名字相同而造成冲突的情况。根据 byName 自动装配结果是要么找到一个Bean，要么一个也找不到。
 
-在这个实例中，我们对name属性和score属性通过setter方式注入，student属性通过构造器方式注入。在course Bean的声明中，<constructor-arg>元素不见了（对于student属性），而autowire属性设置为"constructor"。这样的话，Spring会去审视Course的构造器，并尝试在Spring配置中寻找匹配Course某一构造器所有参数的Bean。我们定义了一个yoona Bean，它正好与Course 中的一个构造器参数相匹配。因此，当构造 course Bean时，Spring使用这个构造器，并把yoona Bean作为入参传入。
+缺点就是 Bean 的名字（ID）与其他 Bean 的属性的名字必须保持一致。假设我们 Book 类对应的 bean 名字（id）改成"book2"：
+```xml
+<bean id="book2" class="com.spring.example.domain.Book">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 Mybatis"/>
+</bean>
+```
+这样就与 Student Bean 的 book 属性名字不一样，book 属性就得不到装配：
+```java
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Student#setId(int id)
+调用 Student#setName(String name)
+Student{id=10001, name='Lucy', book=null}
+```
 
-局限性：
+### 2.3 byType
 
-和byType自动装配有相同的局限性。当发现多个Bean匹配某个构造器入参时，Spring不会尝试猜测哪一个Bean更适合自动装配。此外，如果一个类有多个构造器，它们都满足自动装配的条件时，Spring也不会尝试哪一个构造器更适合使用。
-注意：
+byType 自动装配的工作方式类似于 byName 自动装配，只不过不再是匹配属性的名字而是检查属性的类型。当我们尝试使用 byType 自动装配时，Spring 会寻找哪一个 Bean 的类型与属性的类型匹配。找到后，通过调用 setXXX 方法将其注入。对于上面那个把 Bean 的名字（id）改成 "book2" 的情况，byName 已经不能寻找到相应的 Bean。在这里我们设置 autowire 属性为 "byType"：
+```xml
+<!--  通过 setter 手动装配  -->
+<bean id="book2" class="com.spring.example.domain.Book">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 Mybatis"/>
+</bean>
 
-当使用constructor自动装配策略时，我们必须让Spring自动装配构造器中的所有入参，我们不能混合使用constructor自动装配策略和<constructor-arg>元素。
-5. 最佳自动装配（Spring3 报错 估计弃用了）
+<!--  简单类型通过 setter 手动装配  -->
+<!--  引用类型通过 setter 自动装配  -->
+<bean id="student" class="com.spring.example.domain.Student" autowire="byType">
+    <property name="id" value="10001"/>
+    <property name="name" value="Lucy"/>
+</bean>
+```
 
-如果想自动装配Bean，但是又不能决定使用哪一种类型的自动装配。我们可以设置autowire属性为autodetect，交由Spring决定。
-6. 默认自动装配 default-autowire
+实际运行效果如下所示：
+```java
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Student#setId(int id)
+调用 Student#setName(String name)
+调用 Student#setBook(Book book)
+Student{id=10001, name='Lucy', book=Book{id=1, type='计算机理论', name='深入理解 Mybatis'}}
+```
+在这个实例中我们设置 autowire 属性为 "byType"，Spring 容器会寻找哪一个 Bean 的类型与 book 属性的类型匹配。如果匹配就把 Bean 装配到 student 的属性中去。id 为 `book2` 的 Bean将自动被装配到 `student` 的 book 属性中，因为 book 属性的类型与 `book2` Bean 的类型都是 com.spring.example.domain.Book 类型。
 
-如果需要为Spring应用上下文中的每一个Bean（或者其中的大多数）都配置相同的autowire属性，那么就可以要求Spring为它所创建的所有Bean应用相同的自动装配策略来简化配置。只需要在<beans>元素上增加一个default-autowire属性：
+需要注意的是如果 Spring 寻找到多个Bean，它们的类型与需要自动装配的属性的类型都能匹配，它不会智能的挑选一个，则会抛出异常。所以，应用中只允许存在一个 Bean 与需要自动装配的属性类型相匹配：
+```xml
+<!--  存在两个 Book 对应的 Bean  -->
+<bean id="book2" class="com.spring.example.domain.Book">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 Mybatis"/>
+</bean>
 
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd"
-default-autowire="byName">
-</beans>
+<bean id="spring-book" class="com.spring.example.domain.Book">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 Spring"/>
+</bean>
 
-默认情况下default-autowire属性设置为none，表示所有的Bean都不使用自动装配策略，除非Bean自己配置了autowire属性。在这里我们把default-autowire设置为byName，即希望每一个Bean的所有属性都是用byName的自动装配策略进行自动装配。
+<!--  简单类型通过 setter 手动装配  -->
+<!--  引用类型通过 setter 自动装配  -->
+<bean id="student" class="com.spring.example.domain.Student" autowire="byType">
+    <property name="id" value="10001"/>
+    <property name="name" value="Lucy"/>
+</bean>
+```
+如上面所示有两个 Bean 与需要自动装配的属性的类型相匹配，这种情况下会抛出异常：
+```java
+Caused by: org.springframework.beans.factory.NoUniqueBeanDefinitionException: No qualifying bean of type 'com.spring.example.domain.Book' available: expected single matching bean but found 2: book2,spring-book
+	at org.springframework.beans.factory.config.DependencyDescriptor.resolveNotUnique(DependencyDescriptor.java:220)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1285)
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1227)
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireByType(AbstractAutowireCapableBeanFactory.java:1509)
+	... 13 more 
+```
+为了避免因为使用 byType 自动装配而带来的歧义，Spring 为我们提供了两种选择：可以为自动装配标示一个首选 Bean，或者可以取消某个 Bean 自动装配的候选资格。
 
-注意：
+#### 2.3.1 标示首先Bean
 
-不能因为我们配置了一个默认的自动装配策略，就意味着所有的Bean只能使用这个默认的自动装配策略。我们还可以使用<bean>元素的autowire属性来覆盖<beans>元素所配置的默认自动装配策略。
+为自动装配标示一个首先 Bean，可以使用 `<bean>` 元素的 primary 属性。如果只有一个自动装配的候选 Bean 的 primary 属性为 true，那么该 Bean 将比其他候选 Bean 优先被选择：
+```xml
 
+<bean id="mybatis-book" class="com.spring.example.domain.Book">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 Mybatis"/>
+</bean>
 
+<bean id="springboot-book" class="com.spring.example.domain.Book">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 SpringBoot"/>
+</bean>
+
+<!--  指定首先 Bean  -->
+<bean id="spring-book" class="com.spring.example.domain.Book" primary="true">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 Spring"/>
+</bean>
+
+<!--  简单类型通过 setter 手动装配  -->
+<!--  引用类型通过 setter 自动装配  -->
+<bean id="student" class="com.spring.example.domain.Student" autowire="byType">
+    <property name="id" value="10001"/>
+    <property name="name" value="Lucy"/>
+</bean>
+```
+实际运行效果如下所示：
+```java
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Student#setId(int id)
+调用 Student#setName(String name)
+调用 Student#setBook(Book book)
+Student{id=10001, name='Lucy', book=Book{id=1, type='计算机理论', name='深入理解 Spring'}}
+```
+如果 id="spring-book" Bean 的 primary 属性设置为 'tue'，实际运行效果如下所示：
+```java
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Student#setId(int id)
+调用 Student#setName(String name)
+调用 Student#setBook(Book book)
+Student{id=10001, name='Lucy', book=Book{id=1, type='计算机理论', name='深入理解 SpringBoot'}}
+```
+
+#### 2.3.2 取消 Bean 自动装配候选资格
+
+为取消某个 Bean 的自动装配的候选资格，可以使用 `<bean>` 元素的 `autowire-candidate` 属性。如果我们希望排除某些 Bean，可以设置这些 Bean 的 autowire-candidate 属性为 false：
+```xml
+<!--  取消 Bean 候选资格  -->
+<bean id="mybatis-book" class="com.spring.example.domain.Book" autowire-candidate="false">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 Mybatis"/>
+</bean>
+
+<!--  取消 Bean 候选资格  -->
+<bean id="springboot-book" class="com.spring.example.domain.Book" autowire-candidate="false">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 SpringBoot"/>
+</bean>
+
+<!--  首先 Bean  -->
+<bean id="spring-book" class="com.spring.example.domain.Book">
+    <property name="id" value="1"/>
+    <property name="type" value="计算机理论"/>
+    <property name="name" value="深入理解 Spring"/>
+</bean>
+
+<!--  简单类型通过 setter 手动装配  -->
+<!--  引用类型通过 setter 自动装配  -->
+<bean id="student" class="com.spring.example.domain.Student" autowire="byType">
+    <property name="id" value="10001"/>
+    <property name="name" value="Lucy"/>
+</bean>
+```
+实际运行效果如下所示：
+```java
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Book#setId(Integer id)
+调用 Book#setType(String type)
+调用 Book#setName(String name)
+调用 Student#setId(int id)
+调用 Student#setName(String name)
+调用 Student#setBook(Book book)
+Student{id=10001, name='Lucy', book=Book{id=1, type='计算机理论', name='深入理解 Spring'}}
+```
+
+### 2.4. constructor 自动装配
+
+如果通过构造器注入来配置 Bean，那么我们可以移除 `<constructor-arg>` 元素，由 Spring 在应用上下文中自动选择 Bean 注入到构造器入参中。在未使用 constructor 自动装配之前，student Bean 的 book 属性通过 `constructor-arg` 元素的 ref 属性注入：
+```xml
+<bean id="book" class="com.spring.example.domain.Book">
+    <constructor-arg value="1"/>
+    <constructor-arg value="计算机理论"/>
+    <constructor-arg value="深入理解 Mybatis"/>
+</bean>
+
+<bean id="student" class="com.spring.example.domain.Student">
+    <constructor-arg value="10001"/>
+    <constructor-arg value="Lucy"/>
+    <constructor-arg ref="book"/>
+</bean>
+```
+下面是重新声明的 student Bean，在这个 Bean 中 book 属性的 `<constructor-arg>` 元素消失不见了，而 autowire 属性设置为 constructor：
+```xml
+<!--  简单类型通过 setter 手动装配  -->
+<!--  引用类型通过构造器自动装配  -->
+<bean id="student" class="com.spring.example.domain.Student" autowire="constructor">
+    <property name="id" value="10001"/>
+    <property name="name" value="Lucy"/>
+</bean>
+```
+> 当使用 constructor 自动装配策略时，我们必须让 Spring 自动装配构造器中的所有入参，我们不能混合使用 constructor 自动装配策略和 `<constructor-arg>` 元素。所以在这简单类型的 id、name 属性通过 setter 方法手动装配注入。
+
+在这个示例中，简单类型的 id、name 属性通过 setter 方法手动装配注入，引用类型的 book 属性可以通过构造器自动装配。这就告诉 Spring 去审视 Student 的构造器，并尝试在 Spring 配置中寻找匹配 book 属性的构造器。为此我们在 Book 实体类中添加如下构造器：
+```java
+public Student(Book book) {
+    this.book = book;
+}
+```
+当构造 student Bean 时，Spring 使用这个构造器，并把 book Bean 作为参数传入。实际运行效果如下所示：
+```java
+调用 Book#Book(Integer id, String type, String name)
+调用 Student(Book book)
+调用 Student#setId(int id)
+调用 Student#setName(String name)
+Student{id=10001, name='Lucy', book=Book{id=1, type='计算机理论', name='深入理解 Mybatis'}}
+```
+
+需要注意的是和 byType 自动装配一样，都有相同的局限性。当发现多个 Bean 匹配某个构造器入参时，Spring不会尝试猜测哪一个 Bean 更适合自动装配。此外，如果一个类有多个构造器，它们都满足自动装配的条件时，Spring 也不会尝试哪一个构造器更适合使用。
+
+当使用 constructor 自动装配策略时，我们必须让 Spring 自动装配构造器中的所有入参，我们不能混合使用 constructor 自动装配策略和 `<constructor-arg>` 元素。
 
 参考：《Spring实战》
-
-
-
-package com.sjf.bean;
-/**
-* 学生实体类
-* @author sjf0115
-*
-*/
-public class Student {
-
-private String name;
-private int age;
-private School school;
-
-public String getName() {
-return name;
-}
-public void setName(String name) {
-this.name = name;
-}
-public int getAge() {
-return age;
-}
-public void setAge(int age) {
-this.age = age;
-}
-public School getSchool() {
-return school;
-}
-public void setSchool(School school) {
-this.school = school;
-}
-@Override
-public String toString() {
-StringBuilder sb = new StringBuilder();
-sb.append("name：" + name + " age：" + age );
-if(school != null){
-sb.append(" school：" + school.getName() + "[" + school.getLocation() + "]");
-}//if
-return sb.toString();
-}
-}
-
-
-package com.sjf.bean;
-/**
-* 学校实体类
-* @author sjf0115
-*
-*/
-public class School {
-private String name;
-private String location;
-
-public String getName() {
-return name;
-}
-public void setName(String name) {
-this.name = name;
-}
-public String getLocation() {
-return location;
-}
-public void setLocation(String location) {
-this.location = location;
-}
-@Override
-public String toString() {
-return "name：" + name + " location：" + location;
-}
-}

@@ -1,24 +1,14 @@
 ## 1. 简介
-从 Spring 2.5 开始，我们就可以使用注解的自动装配方式装配 Spring Bean 的属性。使用注解自动装配方式与在 XML 中使用 Autowire 属性自动装配没有太大区别。那为啥还要研发出这样一种装配方式？肯定有它独特的地方：使用注解自动装配方式允许更细粒度的自动装配，我们可以选择性的标注某一个属性对其应用自动装配。
 
-2. 启用注解装配
-Spring容器默认禁用注解装配。所以，在使用基于注解的自动装配前，我们需要在Spring配置中启用它。最简单的启用方式是使用Spring的context命名空间配置的<context:annotation-config>元素。
+从 Spring 2.5 开始，我们就可以使用注解的自动装配方式装配 Spring Bean 的属性。使用注解自动装配方式与在 XML 中使用 autowire 属性自动装配没有太大区别。那为啥还要研发出这样一种装配方式？肯定有它独特的地方：使用注解自动装配方式允许更细粒度的自动装配，我们可以选择性的标注某一个属性对其应用自动装配。
 
-转存失败
-重新上传
-取消
+## 2. 启用注解装配
 
-<?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xmlns:context="http://www.springframework.org/schema/context"
-xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
-<context:annotation-config/>
- 
-</beans>
-<context:annotation-config/>元素告诉Spring我们打算使用基于注解的自动装配。一旦装配完成，我们就可以对代码添加注解，表示Spring应该为属性，方法和构造器进行自动装配。
-3. 使用@Autowired
+Spring 容器默认禁用注解装配。所以，在使用基于注解的自动装配前，我们需要在 Spring 配置中启用它。最简单的启用方式是使用 Spring 的 context 命名空间配置的 `<context:annotation-config>` 元素。
+
+
+
+## 3. 使用@Autowired
 
 @Autowired
 public void setSchool(School school) {

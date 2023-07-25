@@ -357,7 +357,25 @@ javaTypeResolver 是配置 JDBC 与 java 的类型转换规则，或者你也可
     <property name="forceBigDecimals" value="false"/>
 </javaTypeResolver>
 
+#### 5.2.4 javaModelGenerator
 
+配置 po 生成的包路径和项目路径,如下
+
+```xml
+<!-- 生成模型的包名和位置 -->
+<javaModelGenerator targetPackage="com.spring.example.model" targetProject="./src/main/generated-sources">
+    <property name="enableSubPackages" value="true" />
+    <property name="trimStrings" value="true" />
+</javaModelGenerator>
+```
+
+#### 5.2.5 sqlMapGenerator
+
+
+#### 5.2.6 javaClientGenerator
+
+
+#### 5.2.7 table
 
 
 

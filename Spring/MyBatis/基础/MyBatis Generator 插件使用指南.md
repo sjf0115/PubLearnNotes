@@ -267,20 +267,20 @@ jdbc.jdbcUrl=jdbc:mysql://localhost:3306/test?useSSL=false&amp;characterEncoding
     </javaTypeResolver>
 
     <!-- 生成模型的包名和位置 -->
-    <javaModelGenerator targetPackage="com.spring.example.model" targetProject="./src/main/generated-sources">
+    <javaModelGenerator targetPackage="com.spring.example.model" targetProject="src/main/generated-sources">
         <property name="enableSubPackages" value="true" />
         <property name="trimStrings" value="true" />
     </javaModelGenerator>
 
     <!-- 生成映射文件的包名和位置 -->
-    <sqlMapGenerator targetPackage="com.spring.example.mapper" targetProject="./src/main/generated-sources">
+    <sqlMapGenerator targetPackage="com.spring.example.mapper" targetProject="src/main/generated-sources">
         <property name="enableSubPackages" value="true" />
     </sqlMapGenerator>
 
     <!-- 生成DAO的包名和位置 -->
     <javaClientGenerator type="XMLMAPPER"
                          targetPackage="com.spring.example.dao"
-                         targetProject="./src/main/generated-sources">
+                         targetProject="src/main/generated-sources">
         <property name="enableSubPackages" value="true" />
     </javaClientGenerator>
 
@@ -349,34 +349,253 @@ MyBatis Generator 需要链接数据库，所以需要配置 jdbcConnection，�
 
 #### 5.2.3 javaTypeResolver
 
-javaTypeResolver 是配置 JDBC 与 java 的类型转换规则，或者你也可以不用配置，使用它默认的转换规则。
-
-就算配置也只能配置 bigDecimal 类型和时间类型的转换
-
+javaTypeResolver 用于配置 JDBC 与 Java 的类型转换规则，或者你也可以不用配置，使用它默认的转换规则。该标签只包含一个 type 属性，用于指定 org.mybatis.generator.api.JavaTypeResolver 接口的实现类。具体配置如下所示：
+```xml
 <javaTypeResolver>
     <property name="forceBigDecimals" value="false"/>
 </javaTypeResolver>
+```
+
+此外 javaTypeResolver 标签支持 0 或 N 个 property 标签，可选属性有：
+
+| 属性     | 功能描述     | 默认值 |
+| :------------- | :------------- | :------------- |
+| forceBigDecimals | 是否强制把所有的数字类型强制使用 java.math.BigDecimal 类型表示	| false |
+| useJSR310Types | 是否支持JSR310，主要是JSR310的新日期类型	| false |
+
+如果 useJSR310Types 属性设置为 true，那么生成代码的时候类型映射关系如下（主要针对日期时间类型）：
+
+| 数据库（JDBC）类型     | Java类型     |
+| :------------- | :------------- |
+| DATE | java.time.LocalDate |
+| TIME | java.time.LocalTime |
+| TIMESTAMP | java.time.LocalDateTime |
+| TIME_WITH_TIMEZONE | java.time.OffsetTime |
+| TIMESTAMP_WITH_TIMEZONE | java.time.OffsetDateTime |
+
 
 #### 5.2.4 javaModelGenerator
 
-配置 po 生成的包路径和项目路径,如下
-
+javaModelGenerator 主要用于控制实体（Model）类的代码生成行为，具体配置如下所示：
 ```xml
 <!-- 生成模型的包名和位置 -->
-<javaModelGenerator targetPackage="com.spring.example.model" targetProject="./src/main/generated-sources">
+<javaModelGenerator targetPackage="com.spring.example.model" targetProject="src/main/generated-sources">
     <property name="enableSubPackages" value="true" />
     <property name="trimStrings" value="true" />
 </javaModelGenerator>
 ```
+它支持的属性如下：
+
+| 属性     | 功能描述     | 是否必须 | 备注 |
+| :------------- | :------------- | :------------- | :------------- |
+| targetPackage  | 生成的实体类的包名 | Y | com.spring.example.model |
+| targetProject  | 生成的实体类文件相对于项目（根目录）的位置 | Y | src/main/generated-sources |
+
+此外 javaModelGenerator 还可以支持 0 或 N 个 property 标签。
 
 #### 5.2.5 sqlMapGenerator
 
+sqlMapGenerator 主要用于控制 XML 映射文件的代码生成行为。具体配置如下所示：
+```xml
+<!-- 生成映射文件的包名和位置 -->
+<sqlMapGenerator targetPackage="com.spring.example.mapper" targetProject="src/main/generated-sources">
+    <property name="enableSubPackages" value="true" />
+</sqlMapGenerator>
+```
+它支持的属性如下：
+
+| 属性     | 功能描述     | 是否必须 | 备注 |
+| :------------- | :------------- | :------------- | :------------- |
+| targetPackage  | 生成的XML映射文件的包名 | Y | com.spring.example.mapper |
+| targetProject  | 生成的XML映射文件相对于项目（根目录）的位置 | Y | src/main/generated-sources |
+
+此外 sqlMapGenerator 标签支持 0 或 N 个 property 标签。
 
 #### 5.2.6 javaClientGenerator
 
+javaClientGenerator 主要用于控制 DAO Mapper 接口的代码生成行为。具体配置如下所示：
+```xml
+<!-- 生成DAO的包名和位置 -->
+<javaClientGenerator type="XMLMAPPER"
+                     targetPackage="com.spring.example.dao"
+                     targetProject="src/main/generated-sources">
+    <property name="enableSubPackages" value="true" />
+</javaClientGenerator>
+```
+它支持的属性如下：
+
+| 属性     | 功能描述     | 是否必须 | 备注 |
+| :------------- | :------------- | :------------- | :------------- |
+| type  | Mapper接口生成策略 | Y | 比如 XMLMAPPER、ANNOTATEDMAPPER |
+| targetPackage  | 生成的 DAO 接口的包名 | Y | com.spring.example.dao |
+| targetProject  | 生成的 DAO 接口相对于项目（根目录）的位置 | Y | src/main/generated-sources |
+
+type 属性的可选值如下：
+- ANNOTATEDMAPPER：Mapper 接口生成的时候依赖于注解和 SqlProviders（也就是纯注解实现），不会生成 XML 映射文件。
+- XMLMAPPER：Mapper 接口生成接口方法，对应的实现代码生成在 XML 映射文件中（也就是纯映射文件实现）。
+- MIXEDMAPPER：Mapper 接口生成的时候复杂的方法实现生成在 XML 映射文件中，而简单的实现通过注解和 SqlProviders 实现（也就是注解和映射文件混合实现）。
+
+需要注意的是：
+- context 标签的 targetRuntime 属性指定为 MyBatis3Simple 时，type 只能选用 ANNOTATEDMAPPER 或者 XMLMAPPER。
+- context 标签的 targetRuntime 属性指定为 MyBatis3 时，type 可以选用 ANNOTATEDMAPPER、XMLMAPPER 或者 MIXEDMAPPER。
+
+此外 javaClientGenerator 支持 0 或 N 个 property。
 
 #### 5.2.7 table
 
+一个 table 对应一张表，如果想同时生成多张表，需要配置多个 table。具体配置如下所示：
+```xml
+<!-- 要生成哪些表 -->
+<table tableName="tb_book" domainObjectName="Book"
+       enableCountByExample="false"
+       enableUpdateByExample="false"
+       enableDeleteByExample="false"
+       enableSelectByExample="false"
+       selectByExampleQueryId="false"></table>
+```
+它支持的属性比较多，列举部分如下：
 
+| 属性     | 功能描述     | 是否必须 | 备注 |
+| :------------- | :------------- | :------------- | :------------- |
+| tyschemape  | 数据库 Schema | N | Oracle 需要配置, Mysql 不需要配置 |
+| tableName   | 数据库表名称   | Y | tb_book |
+| domainObjectName   | 表对应的实体类名称 | N | 可以通过.指定包路径。如果指定了 example.Book，则包名为 example，实体类名称为 Book |
+| mapperName  | 表对应的 Mapper 接口类名称 | N | 可以通过.指定包路径。如果指定了 example.BookMapper，则包名为 example，Mapper 接口类名称为 BookMapper |
+| sqlProviderName  | 动态 SQL 提供类 SqlProvider 的类名称 | N |  |
+| enableInsert | 是否允许生成 insert 方法 | N | 默认值为 true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置 |
+| enableSelectByPrimaryKey | 是否允许生成 selectByPrimaryKey 方法 | N | 默认值为 true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
+| enableUpdateByPrimaryKey | 是否允许生成 updateByPrimaryKey 方法 | N | 默认值为 true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
+| enableDeleteByPrimaryKey | 是否允许生成 deleteByPrimaryKey 方法 | N | 默认值为 true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
+| selectByPrimaryKeyQueryId | value 指定对应的主键列提供列表查询功能 | N | 执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
+| selectByExampleQueryId | value指定对应的查询ID提供列表查询功能 | N | 执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
+| enableSelectByExample | 是否允许生成 selectByExample 方法 | N | 默认值为true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置 |
+| enableDeleteByExample | 是否允许生成 deleteByExample 方法 | N | 默认值为true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
+| enableCountByExample | 是否允许生成 countByExample 方法 | N | 默认值为true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
+| enableUpdateByExample | 是否允许生成 updateByExample 方法 | N | 默认值为true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
 
-...
+附：
+
+> pom.xml
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>spring-example</artifactId>
+        <groupId>org.example</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>mybatis-generator</artifactId>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <mybatis.generator.version>1.4.2</mybatis.generator.version>
+    </properties>
+
+    <dependencies>
+        <!-- MySQL 驱动 -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.mybatis.generator</groupId>
+                <artifactId>mybatis-generator-maven-plugin</artifactId>
+                <version>${mybatis.generator.version}</version>
+
+                <!-- 插件配置 -->
+                <configuration>
+                    <!-- 输出详细信息 -->
+                    <verbose>true</verbose>
+                    <!-- 覆盖生成文件 -->
+                    <overwrite>true</overwrite>
+                    <!-- 定义配置文件 -->
+                    <configurationFile>${basedir}/src/main/resources/generator-configuration.xml</configurationFile>
+                    <!-- 将当前pom的依赖项添加到生成器的类路径中 -->
+                    <includeCompileDependencies>true</includeCompileDependencies>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+> generator-configuration.xml
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<generatorConfiguration>
+
+    <!--  引入 JDBC 配置 -->
+    <properties resource="jdbc.properties"/>
+
+    <context id="default" targetRuntime="MyBatis3" defaultModelType="flat">
+
+        <commentGenerator>
+            <!-- 这个元素用来去除指定生成的注释中是否包含生成的日期 false:表示保护 -->
+            <!-- 如果生成日期，会造成即使修改一个字段，整个实体类所有属性都会发生变化，不利于版本控制，所以设置为true -->
+            <property name="suppressDate" value="true"/>
+            <!-- 是否排除自动生成的注释 true：是 ： false:否 -->
+            <property name="suppressAllComments" value="true"/>
+        </commentGenerator>
+
+        <!--数据库链接URL，用户名、密码 -->
+        <jdbcConnection driverClass="${jdbc.driverClass}"
+                        connectionURL="${jdbc.jdbcUrl}"
+                        userId="${jdbc.user}"
+                        password="${jdbc.password}">
+        </jdbcConnection>
+
+        <javaTypeResolver>
+            <property name="forceBigDecimals" value="false"/>
+        </javaTypeResolver>
+
+        <!-- 生成模型的包名和位置 -->
+        <javaModelGenerator targetPackage="com.spring.example.model" targetProject="src/main/generated-sources">
+            <property name="enableSubPackages" value="true" />
+            <property name="trimStrings" value="true" />
+        </javaModelGenerator>
+
+        <!-- 生成映射文件的包名和位置 -->
+        <sqlMapGenerator targetPackage="com.spring.example.mapper" targetProject="src/main/generated-sources">
+            <property name="enableSubPackages" value="true" />
+        </sqlMapGenerator>
+
+        <!-- 生成DAO的包名和位置 -->
+        <javaClientGenerator type="XMLMAPPER"
+                             targetPackage="com.spring.example.dao"
+                             targetProject="src/main/generated-sources">
+            <property name="enableSubPackages" value="true" />
+        </javaClientGenerator>
+
+        <!-- 要生成哪些表 -->
+        <table tableName="tb_book" domainObjectName="Book"
+               enableCountByExample="true"
+               enableUpdateByExample="false"
+               enableDeleteByExample="false"
+               enableSelectByExample="false"
+               selectByExampleQueryId="false"></table>
+
+    </context>
+</generatorConfiguration>
+```
+> jdbc.properties
+
+```xml
+jdbc.user=root
+jdbc.password=root
+jdbc.driverClass=com.mysql.jdbc.Driver
+jdbc.jdbcUrl=jdbc:mysql://localhost:3306/test?useSSL=false&amp;characterEncoding=utf8
+```

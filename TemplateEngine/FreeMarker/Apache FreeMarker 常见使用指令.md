@@ -43,7 +43,7 @@
 
 ### 1.3 创建空间变量
 
-如果你知道命名空间的话，可以使用 assign 指令在命名空间中创建变量。默认在当前的命名空间 (也就是和标签所在模板关联的命名空间)中创建变量。但如果你是用了 `in namespacehash` 表达式，那么你可以在另外一个命名空间创建/替换变量。具体语法如下所示：
+如果你知道[命名空间](https://smartsi.blog.csdn.net/article/details/132006100)的话，可以使用 assign 指令在命名空间中创建变量。默认在当前的命名空间 (也就是和标签所在模板关联的命名空间)中创建变量。但如果你是用了 `in namespacehash` 表达式，那么你可以在另外一个命名空间创建/替换变量。具体语法如下所示：
 ```xml
 <#assign 变量名=值 ... in namespacehash>
 ```
@@ -53,11 +53,11 @@
 <#assign bgColor="red" in common_namespace>
 ```
 
-> 完整代码请查阅:[]()
+> 完整代码请查阅:[AssignExample](https://github.com/sjf0115/common-example/blob/master/freemarker/src/main/java/com/freemarker/example/directive/AssignExample.java)
 
 ## 2. if elseif else 逻辑判断指令
 
-可以使用 if， elseif 和 else 指令来条件判断是否越过模板的一个部分。具体语法规则如下所示：
+可以使用 if、elseif 以及 else 指令来条件判断是否越过模板的一个部分。具体语法规则如下所示：
 ```
 <#if condition>
   ...
@@ -72,7 +72,7 @@
 ```
 > elseif 和 else 是可选的。
 
-condition 必须计算成布尔值，否则错误将会中止模板处理。elseif 和 else 必须出现在 if 内部 (也就是，在 if 的开始标签和结束标签之间)。 if 中可以包含任意数量的 elseif(包括0个) 而且结束时 else 是可选的。具体如下所示：
+在这里 condition 必须计算成布尔值，否则会报错中止模板处理。需要注意的是 elseif 和 else 必须出现在 if 内部 (也就是，在 if 的开始标签和结束标签之间)。if 中可以包含任意数量的 elseif(包括0个) 而且结束时 else 是可选的。具体如下所示：
 ```
 <#assign score = 92>
 <#if score lt 60 >
@@ -129,6 +129,8 @@ condition 必须计算成布尔值，否则错误将会中止模板处理。else
 </#if>
 ```
 
+> 完整代码请查阅:[IFExample](https://github.com/sjf0115/common-example/blob/master/freemarker/src/main/java/com/freemarker/example/directive/IFExample.java)
+
 ## 3. list 遍历指令
 
 要想在 FreeMarker 中遍历 list，必须通过使用 list 指令，具体语法如下所示：
@@ -139,7 +141,7 @@ condition 必须计算成布尔值，否则错误将会中止模板处理。else
     Part executed when there are 0 items
 </#list>
 ```
-其中 sequence 是集合(collection)的表达式，item 是循环变量的名字，不能是表达式。当在遍历 sequence 时，会将遍历变量的值保存到 item 中。具体如下所示：
+在这里 sequence 是集合(collection)的表达式，item 是循环变量的名字，不能是表达式。当在遍历 sequence 时，会将遍历变量的值保存到 item 中。具体如下所示：
 ```
 用法1： 遍历 List
 <#assign users = ["张三","李四","王五"]>
@@ -220,8 +222,9 @@ users 中保存了多个用户，我们在遍历 users 的时候，将遍历到�
 
 IT 部门所有的同事：<#list users as user >${user}<#sep>,</#list>
 ```
-
 上面的 `<#sep>, </#list>` 是 `<#sep>, </#sep></#list>` 的简写；如果将它放到被包含的指令关闭的位置时，sep 结束标签可以忽略。
+
+> 完整代码请查阅:[ListExample](https://github.com/sjf0115/common-example/blob/master/freemarker/src/main/java/com/freemarker/example/directive/ListExample.java)
 
 ## 4. macro 自定义指令
 
@@ -287,6 +290,8 @@ IT 部门所有的同事：<#list users as user >${user}<#sep>,</#list>
 </#macro>
 ```
 
+> 完整代码请查阅:[MacroExample](https://github.com/sjf0115/common-example/blob/master/freemarker/src/main/java/com/freemarker/example/directive/MacroExample.java)
+
 ## 5. nested 占位指令
 
 nested 指令执行自定义指令开始和结束标签中间的模板片段。嵌套的片段可以包含模板中任意合法的内容。具体语法如下所示：
@@ -337,6 +342,8 @@ nested 相当于占位符,一般结合 macro 指令一起使用。可以将自�
     4. 2 Last!
 ```
 
+> 完整代码请查阅:[NestedExample](https://github.com/sjf0115/common-example/blob/master/freemarker/src/main/java/com/freemarker/example/directive/NestedExample.java)
+
 ## 6. import 导入指令
 
 import 指令可以引入一个库。也就是说，它创建一个新的命名空间，然后在那个命名空间中执行给定路径的模板。可以使用引入的空间中的指令。具体语法如下所示：
@@ -360,6 +367,8 @@ import 指令可以引入一个库。也就是说，它创建一个新的命名�
 <#-- 使用命名空间中的指令 -->
 <@common.cfb num=7/>
 ```
+
+> 完整代码请查阅:[ImportExample](https://github.com/sjf0115/common-example/blob/master/freemarker/src/main/java/com/freemarker/example/directive/ImportExample.java)
 
 ## 7. include 包含指令
 
@@ -388,6 +397,8 @@ This is a include ftl
 Copyright 2001-2002 Lucy
 All rights reserved.
 ```
+
+> 完整代码请查阅:[IncludeExample](https://github.com/sjf0115/common-example/blob/master/freemarker/src/main/java/com/freemarker/example/directive/IncludeExample.java)
 
 ## 8. function 自定义方法变量
 
@@ -434,3 +445,5 @@ ${x} + ${y} = ${add(10, 20)}
 用法2：验证无return指令
 (10 + 20)/2 =
 ```
+
+> 完整代码请查阅:[FunctionExample](https://github.com/sjf0115/common-example/blob/master/freemarker/src/main/java/com/freemarker/example/directive/FunctionExample.java)

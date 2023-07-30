@@ -22,7 +22,7 @@ Delta Lake 将其定义为：Delta Lake is an open-source storage layer that bri
 
 首先，这类技术它的定位是在计算引擎之下，又在存储之上。其次，它是一种数据存储格式，Delta Lake 称其为 "storage layer"，而 Iceberg 则称其为 "table format"。在我看来，这类技术是介于计算引擎和数据存储格式中间的数据组织格式。通过特定的方式将数据和元数据组织起来，因此称之为数据组织格式更为合理，而 Iceberg 将其定义为表格式也直观地反映出了它的定位和功能，下文将此类技术统称为"表格式”。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Iceberg/why-i-choose-iceberg-1.png?raw=true)
+![](../../Image/Iceberg/why-i-choose-iceberg-1.png)
 
 ## 3. 为什么需要表格式
 
@@ -50,7 +50,7 @@ Hive 提出了分区的概念 - 利用某几个列作为分区值来组织数据
 
 ## 4. 什么是Iceberg
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Iceberg/why-i-choose-iceberg-2.png?raw=true)
+![](../../Image/Iceberg/why-i-choose-iceberg-2.png)
 
 Iceberg 官网这样介绍：Apache Iceberg is an open table format for huge analytic datasets. Iceberg adds tables to Presto and Spark that use a high-performance format that works just like a SQL table.
 
@@ -70,7 +70,7 @@ Iceberg 提供了锁的机制来提供 ACID 的能力，在每次元数据更新
 - 首先，每次写操作都会产生一个新的快照（snapshot），快照始终是往后线性递增，确保了线性一致性。而读操作只会读取已经存在了的快照，对于正在生成的快照读操作是不可见的。
 - 每一个快照拥有表在那一时刻所有的数据和元数据，因此提供了用户回溯（time travel）表数据的能力。利用 Iceberg 的 time travel 能力，用户可以读取那一时刻的数据，同时也提供了用户快照回滚和数据重放的能力。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Iceberg/why-i-choose-iceberg-3.png?raw=true)
+![](../../Image/Iceberg/why-i-choose-iceberg-3.png)
 
 ### 5.3 解耦
 

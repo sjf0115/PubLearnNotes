@@ -29,6 +29,7 @@
 - [x] [Hive 如何启动 HiveServer2](https://smartsi.blog.csdn.net/article/details/75322224)
 - [X] [Hive 通过 Jdbc 连接 HiveServer2](https://smartsi.blog.csdn.net/article/details/128402139)
 - [x] [Hive 元数据服务 MetaStore](https://smartsi.blog.csdn.net/article/details/124440004)
+- [x] [Apache Hive 通过 JDBC Storage Handler 联邦查询](https://smartsi.blog.csdn.net/article/details/132015320)
 
 ## 2. 原理
 

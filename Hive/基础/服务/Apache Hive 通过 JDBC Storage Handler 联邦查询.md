@@ -1,7 +1,7 @@
 ---
 layout: post
 author: 过往记忆
-title: <转>Apache Hive 联邦查询
+title: Apache Hive 通过 JDBC Storage Handler 联邦查询
 date: 2021-01-10 21:02:01
 tags:
   - Hive
@@ -27,7 +27,7 @@ permalink: hive-query-federation
 
 需要注意的是，目前 JdbcStorageHandler 仅仅支持从 JDBC 数据源读取数据，还不支持支持将数据写入到 JDBC 数据源。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-query-federation-1.jpg?raw=true)
+![](../../../Image/Hive/hive-query-federation-1.jpg)
 
 ## 2. JdbcStorageHandler 支持 CBO（Cost-based optimizer）
 
@@ -52,11 +52,11 @@ LIMIT 100;
 ```
 上面这条 SQL 在优化前的执行计划，如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-query-federation-2.jpg?raw=true)
+![](../../../Image/Hive/hive-query-federation-2.jpg)
 
 其中绿色的框框是在 MySQL 或者 PostgreSQL 里面执行的，橘色的是在 Hive 执行的。从上图可以看出，三次扫描的文件直接返回到 Hive 处理，这样效率是很低下的，其实我们可以对其进行算子下沉优化，经过 Apache Calcite 的 CBO 优化之后，执行计划如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-query-federation-3.jpg?raw=true)
+![](../../../Image/Hive/hive-query-federation-3.jpg)
 
 对应的 SQL 执行如下：
 ```sql
@@ -110,9 +110,5 @@ TBLPROPERTIES (
 正如上述所示，create table 当前需要指定 JDBC 表的模式。[HIVE-21060](https://issues.apache.org/jira/browse/HIVE-21060) 引入了一种可以对基于 JDBC 外部表自动发现模式的功能，这样我们就不必在 create table 命令中声明它。
 
 [HIVE-21059](https://issues.apache.org/jira/browse/HIVE-21059) 的工作是对外部 catalog 的支持。 外部 catalog 将允许在 Metastore 中创建指向外部 mysql 数据库的 catalog。并且通过此 catalog，我们可以在 Hive 查询中使用里面的所有表。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 原文:[Apache Hive 联邦查询（Query Federation）](https://www.iteblog.com/archives/2524.html)

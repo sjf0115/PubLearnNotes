@@ -239,16 +239,105 @@ template.execute("CREATE TABLE `tb_book_2` (\n" +
 template.execute("DROP TABLE `tb_book_2`;");
 ```
 
-### 4.2 DML-增加
+### 4.2 DML-插入
 
-JdbcTemplate 中以 update 开头的方法，用来执行增、删、改操作。update 方法只能执行单语句，如果想批量执行增加、删除、修改操作可以使用 batchUpdate。
-
-
-
+JdbcTemplate 中以 update 开头的方法，用来执行增、删、改操作。update 方法只能执行单语句，如果想批量执行增加、删除、修改操作可以使用 batchUpdate。先看一个最简单的情况，没有参数直接在 SQL 中写死：
+```java
+String sql = "INSERT INTO tb_book (type, name, description) VALUES('计算机理论', '深入理解 JdbcTemplate', '1')";
+int nums = template.update(sql);
+System.out.println("成功插入" + nums + "条记录");
+```
+一般最常用的还是在 SQL 中动态指定变量，这个使用可以使用 `?` 占位符：
+```java
+String sql = "INSERT INTO tb_book (type, name, description) VALUES(?, ?, ?)";
+String type = "计算机理论";
+String name = "深入理解 JdbcTemplate";
+String desc = "2";
+int nums2 = template.update(sql, type, name, desc);
+System.out.println("成功插入" + nums2 + "条记录");
+```
+此外也还可以通过 PreparedStatementSetter 来设置参数，它是个函数式接口，内部有个 setValues 方法会传递一个 PreparedStatement参数：
+```java
+String sql = "INSERT INTO tb_book (type, name, description) VALUES(?, ?, ?)";
+String type = "计算机理论";
+String name = "深入理解 JdbcTemplate";
+String desc = "3";
+int nums3 = template.update(sql, new PreparedStatementSetter() {
+    @Override
+    public void setValues(PreparedStatement ps) throws SQLException {
+        ps.setString(1, type);
+        ps.setString(2, name);
+        ps.setString(3, desc);
+    }
+});
+System.out.println("成功插入" + nums3 + "条记录");
+```
+有时候我们可能还需要返回插入行的自增ID，这个时候可以使用如下语句来获取：
+```java
+String sql = "INSERT INTO tb_book (type, name, description) VALUES(?, ?, ?)";
+String type = "计算机理论";
+String name = "深入理解 JdbcTemplate";
+String desc = "4";
+KeyHolder keyHolder = new GeneratedKeyHolder();
+int nums4 = template.update(new PreparedStatementCreator() {
+    @Override
+    public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
+        //手动创建PreparedStatement，注意第二个参数：Statement.RETURN_GENERATED_KEYS
+        PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+        ps.setString(1, type);
+        ps.setString(2, name);
+        ps.setString(3, desc);
+        return ps;
+    }
+}, keyHolder);
+System.out.println("成功插入" + nums4 + "条记录");
+System.out.println("新记录id：" + keyHolder.getKey().intValue());
+```
+上面几个示例一次只能操作一条记录，如果想批量插入多条记录怎么办呢？可以使用 batchUpdate 方法来批量操作，具体如下所示：
+```java
+String sql = "INSERT INTO tb_book (type, name, description) VALUES(?, ?, ?)";
+List<Object[]> books = Arrays.asList(
+        new Object[]{"计算机理论", "深入理解 JdbcTemplate", "51"},
+        new Object[]{"计算机理论", "深入理解 JdbcTemplate", "52"},
+        new Object[]{"计算机理论", "深入理解 JdbcTemplate", "53"},
+        new Object[]{"计算机理论", "深入理解 JdbcTemplate", "54"});
+int[] numsBatch = template.batchUpdate(sql, books);
+for (int num : numsBatch) {
+    System.out.println("批量插入" + num + "条记录");
+}
+```
 
 ### 4.2 DML-删除
 
+JdbcTemplate 中删除操作与插入操作一样，都是以 update 开头的方法来执行单语句操作，使用 batchUpdate 执行批量操作。下面具体演示一个删除操作，详细可以参考插入操作：
+```java
+// 加载配置文件得到上下文对象 即 容器对象
+ApplicationContext ctx = new ClassPathXmlApplicationContext("applicationContext-xml.xml");
+// 获取 JDBCTemplate 数据源是通过 XML 注入
+JdbcTemplate template = (JdbcTemplate) ctx.getBean("jdbcTemplate");
+
+// 执行 SQL
+int startId = 15;
+int endId = 24;
+int nums = template.update("DELETE FROM tb_book WHERE id >= ? AND id <= ?", startId, endId);
+System.out.println("成功删除" + nums + "条记录");
+```
+
 ### 4.3 DML-修改
+
+JdbcTemplate 中修改操作与插入操作一样，都是以 update 开头的方法来执行单语句操作，使用 batchUpdate 执行批量操作。下面具体演示一个更新操作，详细可以参考插入操作：
+```java
+// 加载配置文件得到上下文对象 即 容器对象
+ApplicationContext ctx = new ClassPathXmlApplicationContext("applicationContext-xml.xml");
+// 获取 JDBCTemplate 数据源是通过 XML 注入
+JdbcTemplate template = (JdbcTemplate) ctx.getBean("jdbcTemplate");
+
+// 执行 SQL
+String name = "深入理解 JdbcTemplate";
+int id = 26;
+int nums = template.update("Update tb_book SET name = ? WHERE id = ?", name, id);
+System.out.println("成功更新" + nums + "条记录");
+```
 
 ### 4.4 DML-查询
 

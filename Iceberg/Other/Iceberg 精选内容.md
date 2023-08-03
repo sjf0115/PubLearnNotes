@@ -7,7 +7,7 @@
 - [ ] [数据湖Iceberg | Apache Iceberg快速入门](https://mp.weixin.qq.com/s/LuvN5u9CBPj5AJ_SgJiHsw)
 - [ ] [数据湖Iceberg | 如何正确使用Iceberg](https://mp.weixin.qq.com/s/QBIozrtOF5rVnQjneBFS0g)
 - [ ] [High Throughput Ingestion with Iceberg](https://medium.com/adobetech/high-throughput-ingestion-with-iceberg-ccf7877a413f)
-- [ ] [Apache iceberg：Netflix 数据仓库的基石](https://mp.weixin.qq.com/s/acWcoZ25zDXetA3ewypG2g)
+- [x] [Apache iceberg：Netflix 数据仓库的基石](https://smartsi.blog.csdn.net/article/details/132034395)
 
 
 ## 2， 案例

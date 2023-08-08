@@ -341,6 +341,144 @@ System.out.println("成功更新" + nums + "条记录");
 
 ### 4.4 DML-查询
 
+以 query 开头的方法，用来执行查询操作：
+
+![](../../Image/Spring/spring-jdbctemplate-2.png)
+
+| 方法 | 说明 |
+| :------------- | :------------- |
+| execute | 单语句执行，一般用来执行 DDL 语句 |
+| query | 将查询结果集封装为 JavaBean 对象 |
+| queryForObject | 将查询结果集封装为对象 |
+| queryForList | 将查询结果集封装为 List 集合 |
+| queryForMap | 将查询结果集封装为 Map 集合 |
+| queryForRowSet | 将查询结果集封装为 SqlRowSet |
+| update | 执行单语句的更新操作，一般用来执行插入、更新或删除语句 |
+| batchUpdate | 批量执行多个更新操作 |
+
+
+#### 4.1 query
+
+```java
+<T> T query(String sql, ResultSetExtractor<T> rse)
+void query(String sql, RowCallbackHandler rch)
+<T> List<T> query(String sql, RowMapper<T> rowMapper)
+<T> T query(PreparedStatementCreator psc, ResultSetExtractor<T> rse)
+<T> T query(String sql, @Nullable PreparedStatementSetter pss, ResultSetExtractor<T> rse)
+<T> T query(String sql, Object[] args, int[] argTypes, ResultSetExtractor<T> rse)
+<T> T query(String sql, @Nullable Object[] args, ResultSetExtractor<T> rse)
+<T> T query(String sql, ResultSetExtractor<T> rse, @Nullable Object... args)
+void query(PreparedStatementCreator psc, RowCallbackHandler rch)
+void query(String sql, @Nullable PreparedStatementSetter pss, RowCallbackHandler rch)
+void query(String sql, Object[] args, int[] argTypes, RowCallbackHandler rch)
+void query(String sql, @Nullable Object[] args, RowCallbackHandler rch)
+void query(String sql, RowCallbackHandler rch, @Nullable Object... args)
+<T> List<T> query(PreparedStatementCreator psc, RowMapper<T> rowMapper)
+<T> List<T> query(String sql, @Nullable PreparedStatementSetter pss, RowMapper<T> rowMapper)
+<T> List<T> query(String sql, Object[] args, int[] argTypes, RowMapper<T> rowMapper)
+<T> List<T> query(String sql, @Nullable Object[] args, RowMapper<T> rowMapper)
+<T> List<T> query(String sql, RowMapper<T> rowMapper, @Nullable Object... args)
+```
+
+
+
+
+#### 4.2 queryForObject
+
+> 单行单列 返回单值对象
+
+根据指定的查询 SQL 返回得到一个结果对象，需要指定返回对象的类型以及具体的查询参数：
+```java
+<T> T queryForObject(String sql, Class<T> requiredType)
+<T> T queryForObject(String sql, Class<T> requiredType, @Nullable Object... args)
+<T> T queryForObject(String sql, @Nullable Object[] args, Class<T> requiredType)
+<T> T queryForObject(String sql, Object[] args, int[] argTypes, Class<T> requiredType)
+```
+需要注意的是该查询只能查询返回结果是单行单列的查询。返回的结果将直接映射到相应的对象类型。具体如下所示：
+```java
+String sql = "SELECT name FROM tb_book WHERE id = ?";
+String name = template.queryForObject(sql, String.class, 1);
+System.out.println(name);
+```
+此外需要注意的是若 queryForObject 查询无结果时会报错：
+```java
+Exception in thread "main" org.springframework.dao.EmptyResultDataAccessException: Incorrect result size: expected 1, actual 0
+```
+即 queryForObject 方法要求必须返回一条记录。
+
+> 单行多列 借助 RowMapper 返回 JavaBean 对象
+
+返回单行单列的情况在业务中比较少见，一般都是要返回多列数据。queryForObject 方法可以借助 RowMapper 返回一个 JavaBean 对象，从而返回多列数据：
+```java
+<T> T queryForObject(String sql, RowMapper<T> rowMapper)
+<T> T queryForObject(String sql, RowMapper<T> rowMapper, @Nullable Object... args)
+<T> T queryForObject(String sql, @Nullable Object[] args, RowMapper<T> rowMapper)
+<T> T queryForObject(String sql, Object[] args, int[] argTypes, RowMapper<T> rowMapper)
+```
+RowMapper 会将查询到的一行记录转换为 JavaBean 对象。具体如下示例：
+```java
+String sql = "SELECT id, type, name, description FROM tb_book WHERE id = ?";
+Book book = template.queryForObject(sql, new RowMapper<Book>() {
+    @Override
+    public Book mapRow(ResultSet rs, int rowNum) throws SQLException {
+        Book b = new Book();
+        b.setId(rs.getInt(1));
+        b.setType(rs.getString(2));
+        b.setName(rs.getString(3));
+        b.setDescription(rs.getString(4));
+        return b;
+    }
+}, 1);
+System.out.println(book);
+```
+需要注意的是若 queryForObject 查询无结果时同样还会报错。
+
+#### 4.3 queryForList
+
+> 多行单列 返回单值对象
+
+上面的方法只能查询单行单列，如果查询多行的话，可以选择如下方法：
+```java
+<T> List<T> queryForList(String sql, Class<T> elementType);
+<T> List<T> queryForList(String sql, Class<T> elementType, @Nullable Object... args);
+<T> List<T> queryForList(String sql, Object[] args, Class<T> elementType);
+<T> List<T> queryForList(String sql, Object[] args, int[] argTypes, Class<T> elementType);
+```
+需要注意的是上面 T 虽然是泛型，但是只支持 Integer 和 String 这种单数据类型，不支持自定义 Bean。所以只能用来查询单列数据。具体看如下示例：
+```java
+String sql = "SELECT name FROM tb_book WHERE id > ?";
+List<String> list = template.queryForList(sql, String.class, 30);
+System.out.println(list);
+```
+
+#### 4.4 queryForMap
+
+
+
+#### 4.4 queryForRowSet
+
+> 多行多列 返回值为 SqlRowSet
+
+根据指定的查询 SQL 返回得到一个 SqlRowSet 对象，可以指定查询参数：
+```java
+SqlRowSet queryForRowSet(String sql)
+SqlRowSet queryForRowSet(String sql, @Nullable Object... args)
+SqlRowSet queryForRowSet(String sql, Object[] args, int[] argTypes)
+```
+SqlRowSet 对象是一个集合对象，也就是说该方法可以查询多条记录。具体如下示例：
+```java
+String sql = "SELECT id, type, name FROM tb_book WHERE id > ?";
+SqlRowSet rowSet = template.queryForRowSet(sql, 30);
+
+while (rowSet.next()) {
+    int id = rowSet.getInt(1);
+    String type = rowSet.getString(2);
+    String name = rowSet.getString(3);
+    System.out.println("ID: " + id + ", type: " + type + ", name: " + name);
+}
+```
+
+
 
 
 

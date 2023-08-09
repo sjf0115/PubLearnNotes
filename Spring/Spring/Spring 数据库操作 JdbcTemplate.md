@@ -356,34 +356,7 @@ System.out.println("成功更新" + nums + "条记录");
 | update | 执行单语句的更新操作，一般用来执行插入、更新或删除语句 |
 | batchUpdate | 批量执行多个更新操作 |
 
-
-#### 4.1 query
-
-```java
-<T> T query(String sql, ResultSetExtractor<T> rse)
-void query(String sql, RowCallbackHandler rch)
-<T> List<T> query(String sql, RowMapper<T> rowMapper)
-<T> T query(PreparedStatementCreator psc, ResultSetExtractor<T> rse)
-<T> T query(String sql, @Nullable PreparedStatementSetter pss, ResultSetExtractor<T> rse)
-<T> T query(String sql, Object[] args, int[] argTypes, ResultSetExtractor<T> rse)
-<T> T query(String sql, @Nullable Object[] args, ResultSetExtractor<T> rse)
-<T> T query(String sql, ResultSetExtractor<T> rse, @Nullable Object... args)
-void query(PreparedStatementCreator psc, RowCallbackHandler rch)
-void query(String sql, @Nullable PreparedStatementSetter pss, RowCallbackHandler rch)
-void query(String sql, Object[] args, int[] argTypes, RowCallbackHandler rch)
-void query(String sql, @Nullable Object[] args, RowCallbackHandler rch)
-void query(String sql, RowCallbackHandler rch, @Nullable Object... args)
-<T> List<T> query(PreparedStatementCreator psc, RowMapper<T> rowMapper)
-<T> List<T> query(String sql, @Nullable PreparedStatementSetter pss, RowMapper<T> rowMapper)
-<T> List<T> query(String sql, Object[] args, int[] argTypes, RowMapper<T> rowMapper)
-<T> List<T> query(String sql, @Nullable Object[] args, RowMapper<T> rowMapper)
-<T> List<T> query(String sql, RowMapper<T> rowMapper, @Nullable Object... args)
-```
-
-
-
-
-#### 4.2 queryForObject
+#### 4.4.1 queryForObject
 
 > 单行单列 返回单值对象
 
@@ -433,11 +406,11 @@ System.out.println(book);
 ```
 需要注意的是若 queryForObject 查询无结果时同样还会报错。
 
-#### 4.3 queryForList
+#### 4.4.2 queryForList
 
-> 多行单列 返回单值对象
+> 多行单列 返回单列 List 对象
 
-上面的方法只能查询单行单列，如果查询多行的话，可以选择如下方法：
+上面的方法只能查询单行单列，如果查询多行的话，可以选择 queryForList 方法。根据指定的查询 SQL 返回一个 List 结果对象，需要指定返回对象的类型以及具体的查询参数：
 ```java
 <T> List<T> queryForList(String sql, Class<T> elementType);
 <T> List<T> queryForList(String sql, Class<T> elementType, @Nullable Object... args);
@@ -451,11 +424,26 @@ List<String> list = template.queryForList(sql, String.class, 30);
 System.out.println(list);
 ```
 
-#### 4.4 queryForMap
+#### 4.4.3 queryForMap
 
+> 单行多列 返回多列的 Map 对象
 
+除了可以返回 List 结果对象之外，也可以返回一个 Map 结果对象，需要指定具体的查询参数：
+```java
+Map<String, Object> queryForMap(String sql)
+Map<String, Object> queryForMap(String sql, Object[] args, int[] argTypes)
+Map<String, Object> queryForMap(String sql, @Nullable Object... args)
+```
+需要注意的是 queryForMap 只能返回单条记录，但是可以查询多列字段：
+```java
+String sql = "SELECT id, name, type FROM tb_book WHERE id = ?";
+Map<String, Object> map = template.queryForMap(sql, 30);
+for (String k : map.keySet()) {
+    System.out.println(k + ":" + map.get(k));
+}
+```
 
-#### 4.4 queryForRowSet
+#### 4.4.4 queryForRowSet
 
 > 多行多列 返回值为 SqlRowSet
 
@@ -469,7 +457,6 @@ SqlRowSet 对象是一个集合对象，也就是说该方法可以查询多条�
 ```java
 String sql = "SELECT id, type, name FROM tb_book WHERE id > ?";
 SqlRowSet rowSet = template.queryForRowSet(sql, 30);
-
 while (rowSet.next()) {
     int id = rowSet.getInt(1);
     String type = rowSet.getString(2);
@@ -478,8 +465,95 @@ while (rowSet.next()) {
 }
 ```
 
+#### 4.4.5 query
 
+最后一类方法是 query 方法，相比其他方法功能比较强大。目前可选的方法如下所示：
+```java
+// RowMapper
+<T> List<T> query(String sql, RowMapper<T> rowMapper)
+<T> List<T> query(String sql, RowMapper<T> rowMapper, @Nullable Object... args)
+<T> List<T> query(String sql, @Nullable Object[] args, RowMapper<T> rowMapper)
+<T> List<T> query(String sql, Object[] args, int[] argTypes, RowMapper<T> rowMapper)
+<T> List<T> query(String sql, @Nullable PreparedStatementSetter pss, RowMapper<T> rowMapper)
+<T> List<T> query(PreparedStatementCreator psc, RowMapper<T> rowMapper)
+// ResultSetExtractor
+<T> T query(String sql, ResultSetExtractor<T> rse)
+<T> T query(String sql, ResultSetExtractor<T> rse, @Nullable Object... args)
+<T> T query(String sql, @Nullable Object[] args, ResultSetExtractor<T> rse)
+<T> T query(String sql, Object[] args, int[] argTypes, ResultSetExtractor<T> rse)
+<T> T query(String sql, @Nullable PreparedStatementSetter pss, ResultSetExtractor<T> rse)
+<T> T query(PreparedStatementCreator psc, ResultSetExtractor<T> rse)
+// RowCallbackHandler
+void query(String sql, RowCallbackHandler rch)
+void query(String sql, RowCallbackHandler rch, @Nullable Object... args)
+void query(String sql, @Nullable Object[] args, RowCallbackHandler rch)
+void query(String sql, Object[] args, int[] argTypes, RowCallbackHandler rch)
+void query(PreparedStatementCreator psc, RowCallbackHandler rch)
+void query(String sql, @Nullable PreparedStatementSetter pss, RowCallbackHandler rch)
+```
 
+对于 query 方法的使用，根据结果的不同处理方式划分如下三种：
+- RowMapper
+- ResultSetExtractor
+- RowCallbackHandler
 
+##### 4.4.5.1 RowMapper
 
-...
+上面介绍过借助 RowMapper 可以将一行数据库记录转换为 JavaBean 对象，从而实现输出多列数据。具体如下所示：
+```java
+String sql = "SELECT id, type, name, description FROM tb_book WHERE id > ?";
+List<Book> books = template.query(sql, new RowMapper<Book>() {
+    @Override
+    public Book mapRow(ResultSet rs, int rowNum) throws SQLException {
+        Book b = new Book();
+        b.setId(rs.getInt(1));
+        b.setType(rs.getString(2));
+        b.setName(rs.getString(3));
+        b.setDescription(rs.getString(4));
+        return b;
+    }
+}, 10);
+```
+
+##### 4.4.5.2 ResultSetExtractor
+
+也可以借助 ResultSetExtractor 将多行数据库记录转换为 JavaBean List 对象，从而实现输出多行多列数据。具体如下所示：
+```java
+String sql = "SELECT id, type, name, description FROM tb_book WHERE id > ?";
+List<Book> books = template.query(sql, new ResultSetExtractor<List<Book>>() {
+    @Override
+    public List<Book> extractData(ResultSet rs) throws SQLException, DataAccessException {
+        List<Book> books = new ArrayList<>();
+        while (rs.next()) {
+            Book b = new Book();
+            b.setId(rs.getInt(1));
+            b.setType(rs.getString(2));
+            b.setName(rs.getString(3));
+            b.setDescription(rs.getString(4));
+            books.add(b);
+        }
+        return books;
+    }
+}, 10);
+```
+可以看到与 RowMapper 的区别是：RowMapper 每次只传入一条记录，n次转换；而 ResultSetExtractor 方式是传入全部记录，1次转换。
+
+##### 4.4.5.3 RowCallbackHandler
+
+此外还有一种 RowCallbackHandler 回调方式，这种方式下 query 方法不返回结果，但是需要传入一个回调对象，查询到结果之后，会自动调用。具体如下所示：
+```java
+String sql = "SELECT id, type, name, description FROM tb_book WHERE id > ?";
+template.query(sql, new RowCallbackHandler() {
+    @Override
+    public void processRow(ResultSet rs) throws SQLException {
+        while (rs.next()) {
+            Book book = new Book();
+            book.setId(rs.getInt(1));
+            book.setType(rs.getString(2));
+            book.setName(rs.getString(3));
+            book.setDescription(rs.getString(4));
+            System.out.println(book);
+        }
+    }
+},10);
+```

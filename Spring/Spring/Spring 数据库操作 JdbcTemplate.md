@@ -72,6 +72,7 @@ Spring JdbcTemplate 具体是什么呢？Spring JdbcTemplate 是 Spring 框架�
 
 ### 2.2 创建数据库表和实体类
 
+创建如下数据库表：
 ```sql
 CREATE TABLE `tb_book` (
     `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -81,7 +82,7 @@ CREATE TABLE `tb_book` (
     PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 ```
-
+创建如下实体类：
 ```java
 public class Book {
     private Integer id;

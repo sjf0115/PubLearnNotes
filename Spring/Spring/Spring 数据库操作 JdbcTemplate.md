@@ -30,9 +30,9 @@ try {
     }
 }
 ```
-> 详细代码请查阅：[]()
+> 详细代码请查阅：[JdbcSelectExample](https://github.com/sjf0115/common-example/blob/master/jdbc/src/main/java/com/jdbc/example/mysql/JdbcSelectExample.java)
 
-通过 JDBC 接口访问数据库每次需要获取数据库连接、创建 PreparedStatement、执行SQL查询，最后关闭连接等等，操作还是比较繁琐的。Spring 中提供了一个对象，对 Jdbc 操作进行了封装，使其更简单，这就是本文要讲的 Spring JdbcTemplate。
+通过 JDBC 接口访问数据库每次需要获取数据库连接、创建 PreparedStatement、执行SQL查询，最后关闭连接等等，操作还是比较繁琐的。Spring 为我们提供了一个对象，对 Jdbc 操作进行了封装，使其更简单。这就是本文要讲的 Spring JdbcTemplate。
 
 Spring JdbcTemplate 具体是什么呢？Spring JdbcTemplate 是 Spring 框架中提供的一个对象，是对原始 JDBC API 对象的简单封装。用于和数据库交互，实现对表的 CRUD 操作。好处是 Spring 为我们提供了很多的操作模板，例如操作关系型数据的 JdbcTemplate 和 HibernateJdbcTemplate，操作 NoSQL 数据库的 RedisTemplate，操作消息队列的 JmsTemplate 等。
 
@@ -242,7 +242,7 @@ template.execute("DROP TABLE `tb_book_2`;");
 
 ### 4.2 DML-插入
 
-JdbcTemplate 中以 update 开头的方法，用来执行增、删、改操作。update 方法只能执行单语句，如果想批量执行增加、删除、修改操作可以使用 batchUpdate。先看一个最简单的情况，没有参数直接在 SQL 中写死：
+JdbcTemplate 中以 update 开头的方法，用来执行增、删、改操作。update 方法只能执行单语句，如果想批量执行增加、删除、修改操作可以使用 batchUpdate。所以我们可以使用 update 或者 batchUpdate 方法来执行插入操作。先看一个最简单的情况，没有参数直接在 SQL 中写死：
 ```java
 String sql = "INSERT INTO tb_book (type, name, description) VALUES('计算机理论', '深入理解 JdbcTemplate', '1')";
 int nums = template.update(sql);
@@ -341,21 +341,6 @@ System.out.println("成功更新" + nums + "条记录");
 ```
 
 ### 4.4 DML-查询
-
-以 query 开头的方法，用来执行查询操作：
-
-![](../../Image/Spring/spring-jdbctemplate-2.png)
-
-| 方法 | 说明 |
-| :------------- | :------------- |
-| execute | 单语句执行，一般用来执行 DDL 语句 |
-| query | 将查询结果集封装为 JavaBean 对象 |
-| queryForObject | 将查询结果集封装为对象 |
-| queryForList | 将查询结果集封装为 List 集合 |
-| queryForMap | 将查询结果集封装为 Map 集合 |
-| queryForRowSet | 将查询结果集封装为 SqlRowSet |
-| update | 执行单语句的更新操作，一般用来执行插入、更新或删除语句 |
-| batchUpdate | 批量执行多个更新操作 |
 
 #### 4.4.1 queryForObject
 

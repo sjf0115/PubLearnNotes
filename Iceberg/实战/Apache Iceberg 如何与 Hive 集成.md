@@ -285,25 +285,82 @@ FROM customers
 
 ### 4.3 INSERT OVERWRITE
 
-INSERT OVERWRITE 可以用查询结果替换表中的数据。覆盖是冰山表的原子操作。对于非分区表，总是删除表的内容。对于分区表，包含SELECT查询生成的行的分区将被替换。
+INSERT OVERWRITE 可以用查询结果替换表中的数据。覆盖是 Iceberg 表的一个原子操作。对于非分区表，会删除表的内容；对于分区表，包含 SELECT 查询生成行的分区会被替换。
 ```sql
 INSERT OVERWRITE TABLE target SELECT * FROM source;
 ```
 
-
-
 ### 4.4 QUERYING METADATA TABLES
+
+Hive 支持对 Iceberg 元数据表的查询。这些表可以作为普通的 Hive 表使用，因此可以使用投影/连接/过滤器等。如果要引用元数据表，需要使用表的全名，例如 `<DB_NAME>.<TABLE_NAME>.<METADATA_TABLE_NAME>`。目前 Hive 中可用的元数据表如下:
+- files
+- entries
+- snapshots
+- manifests
+- partitions
+
+```sql
+SELECT * FROM default.table_a.files;
+```
 
 ### 4.5 TIMETRAVEL
 
+Hive 支持基于快照 id 和基于时间的时间旅行查询。对于视图，可以使用投影/连接/过滤器等。该函数的语法如下:
+```sql
+SELECT * FROM table_a FOR SYSTEM_TIME AS OF '2021-08-09 10:35:57';
+SELECT * FROM table_a FOR SYSTEM_VERSION AS OF 1234567;
+```
+您可以使用 Hive 中的 ALTER table 语句来过期 Iceberg 表快照。您应该定期过期快照，以删除不再需要的数据文件，并减少表元数据的大小。每次从 Hive 写入 Iceberg 表都会创建一个表的新快照或版本。快照可以用于时间旅行查询，或者可以将表回滚到任何有效的快照。快照会不断累积，直到 expire_snapshots 操作过期。对时间戳为 `2021-12-09 05:39:18.689000000` 的快照进行过期处理：
+```sql
+ALTER TABLE test_table EXECUTE expire_snapshots('2021-12-09 05:39:18.689000000');
+```
+
 ### 4.6 Type compatibility
+
+Hive 和 Iceberg 支持不同的数据类型。Iceberg 可以自动执行类型转换，但不是针对所有组合，因此在设计表中列的类型之前，您应该需要了解 Iceberg 中的类型转换。您可以通过 Hadoop 配置启用自动转换(默认未启用):
+
+| 配置 key     | 默认值     | 描述 |
+| :------------- | :------------- | :------------- |
+| iceberg.mr.schema.auto.conversion | false | Hive是否应该执行类型自动转换 |
 
 ### 4.7 Hive type to Iceberg type
 
+此类型转换表描述了如何将 Hive 类型转换为 Iceberg 类型。这种转换既适用于创建 Iceberg 表，也适用于通过 Hive 写入 Iceberg 表。
+
+| Hive | Iceberg | 备注 |
+| :------------- | :------------- | :------------- |
+| boolean  | boolean | |
+| short	| integer	| auto-conversion |
+| byte	| integer	| auto-conversion |
+| integer	| integer | |
+| long	| long | |
+| float	| float | |
+| double	| double | |
+| date	| date |  |
+| timestamp	| timestamp | without timezone |
+| timestamplocaltz	| timestamp with timezone	| Hive 3 only |
+| interval_year_month	| | not supported |
+| interval_day_time	| | not supported |
+| char	| string	| auto-conversion |
+| varchar	| string	| auto-conversion |
+| string	| string | |
+| binary	| binary | |
+| decimal	| decimal | |
+| struct	| struct | |
+| list	| list | |
+| map	| map | |
+| union	| | not supported |
+
 ### 4.8 Table rollback
 
-
-
+回滚 Iceberg 表的数据到旧表快照的状态。回滚到指定时间戳之前的最后一个快照:
+```sql
+ALTER TABLE ice_t EXECUTE ROLLBACK('2022-05-12 00:00:00')
+```
+回滚到指定快照ID:
+```sql
+ALTER TABLE ice_t EXECUTE ROLLBACK(1111);
+```
 
 
 

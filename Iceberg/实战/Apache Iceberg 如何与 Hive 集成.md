@@ -1,15 +1,12 @@
 
+> Hive 版本：2.3.4
+> Iceberg 版本：
 
 Iceberg 支持通过 Hive 使用 StorageHandler 来读写 Iceberg 表。
 
 ## 1. 环境准备
 
-| Hive 版本  | 官方推荐Hive版本  | Iceberg 版本 |
-| :------------- | :------------- | :------------- |
-| 2.x | 2.3.8 | 0.8.0-incubating – 1.1.0 |
-| 3.x | 3.1.2 | 0.10.0 – 1.1.0 |
-
-Iceberg 与 Hive 2 和 Hive 3.1.2/3 的集成，支持以下特性：
+Iceberg 可以与 Hive 2.x 和 Hive 3.1.2/3 兼容，并支持以下特性：
 - 创建表
 - 删除表
 - 读取表
@@ -17,13 +14,9 @@ Iceberg 与 Hive 2 和 Hive 3.1.2/3 的集成，支持以下特性：
 
 > 需要注意的是 DML 操作只支持 MapReduce 执行引擎。
 
-### 1.1 Hive 4.0.0-alpha-1
+> Hive 4.0.0-alpha-1 包含了 Iceberg 0.13.1。不需要额外下载 jar 文件。
 
-Hive 4.0.0-alpha-1 包含了 Iceberg 0.13.1。不需要额外下载 jar 文件。
-
-### 1.2 Hive 2.3.x, Hive 3.1.x
-
-为了在 Hive 中使用 Iceberg，HiveIcebergStorageHandler 以及支持类需要在 Hive 类路径中可用。这些都可以由 iceberg-hive-runtime jar 文件来提供。如果使用的是 Hive shell，你可以通过如下语句来实现：
+在 Hive 2.x 和 Hive 3.1.2/3 版本中，为了在 Hive 中使用 Iceberg，HiveIcebergStorageHandler 以及支持类需要在 Hive 类路径中可用。这些都可以由 iceberg-hive-runtime jar 文件来提供。如果使用的是 Hive shell，你可以通过如下语句来实现：
 ```
 add jar /opt/jar/iceberg-hive-runtime-1.3.1.jar;
 ```
@@ -63,7 +56,36 @@ STORED BY 'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler';
 
 INSERT INTO iceberg_test1 values(1);
 ```
-查看HDFS可以发现，表目录在默认的 hive 仓库路径下。
+创建表之后可以查看表的详细信息：
+```sql
+CREATE TABLE `iceberg_test1`(
+  `i` int COMMENT 'from deserializer')
+ROW FORMAT SERDE
+  'org.apache.iceberg.mr.hive.HiveIcebergSerDe'
+STORED BY
+  'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler'
+LOCATION
+  'hdfs://localhost:9000/user/hive/warehouse/iceberg.db/iceberg_test1'
+TBLPROPERTIES (
+  'current-schema'='{"type":"struct","schema-id":0,"fields":[{"id":1,"name":"i","required":false,"type":"int"}]}',
+  'current-snapshot-id'='1098862127872192306',
+  'current-snapshot-summary'='{"added-data-files":"1","added-records":"1","added-files-size":"404","changed-partition-count":"1","total-records":"1","total-files-size":"404","total-data-files":"1","total-delete-files":"0","total-position-deletes":"0","total-equality-deletes":"0"}',
+  'current-snapshot-timestamp-ms'='1692142879041',
+  'engine.hive.enabled'='true',
+  'external.table.purge'='TRUE',
+  'last_modified_by'='wy',
+  'last_modified_time'='1692142861',
+  'metadata_location'='hdfs://localhost:9000/user/hive/warehouse/iceberg.db/iceberg_test1/metadata/00001-5c66312c-42ab-4298-bb80-de1902a356ba.metadata.json',
+  'previous_metadata_location'='hdfs://localhost:9000/user/hive/warehouse/iceberg.db/iceberg_test1/metadata/00000-85bb7d43-ad8c-421f-9d41-9da4011e5522.metadata.json',
+  'snapshot-count'='1',
+  'table_type'='ICEBERG',
+  'transient_lastDdlTime'='1692142861',
+  'uuid'='d1a076ca-9d58-4239-a3fc-1e36a2c6872b'
+)
+```
+> 后续会专门讲解一下对应的元数据文件
+
+可以看到表目录在默认的 hive 仓库路径下。
 
 ### 2.2 指定 Catalog 类型
 
@@ -78,9 +100,9 @@ INSERT INTO iceberg_test1 values(1);
 下面是一些使用 Hive CLI 的示例。如下所示注册一个名为 iceberg_hive 的 HiveCatalog:
 ```sql
 SET iceberg.catalog.iceberg_hive.type=hive;
-SET iceberg.catalog.iceberg_hive.uri=thrift://example.com:9083;
+SET iceberg.catalog.iceberg_hive.uri=thrift://localhost:9083;
 SET iceberg.catalog.iceberg_hive.clients=10;
-SET iceberg.catalog.iceberg_hive.warehouse=hdfs://example.com:8020/warehouse;
+SET iceberg.catalog.iceberg_hive.warehouse=hdfs://localhost:9000/user/hive/warehouse;
 
 CREATE TABLE iceberg_test2 (i int)
 STORED BY 'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler'

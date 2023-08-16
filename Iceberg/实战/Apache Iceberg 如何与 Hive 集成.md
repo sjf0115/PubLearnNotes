@@ -97,6 +97,8 @@ TBLPROPERTIES (
 | iceberg.catalog.<catalog_name>.catalog-impl	| Catalog 的实现类, 如果上面的 type 没有设置，则此参数必须设置 |
 | iceberg.catalog.<catalog_name>.<key>	| Catalog 的其他配置项 |
 
+#### 2.2.1 Hive
+
 下面是一些使用 Hive CLI 的示例。如下所示注册一个名为 iceberg_hive 的 HiveCatalog:
 ```sql
 SET iceberg.catalog.iceberg_hive.type=hive;
@@ -110,18 +112,75 @@ TBLPROPERTIES('iceberg.catalog'='iceberg_hive');
 
 INSERT INTO iceberg_test2 values(1);
 ```
+创建表之后可以查看表的详细信息：
+```sql
+CREATE TABLE `iceberg_test2`(
+  `i` int COMMENT 'from deserializer')
+ROW FORMAT SERDE
+  'org.apache.iceberg.mr.hive.HiveIcebergSerDe'
+STORED BY
+  'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler'
+LOCATION
+  'hdfs://localhost:9000/user/hive/warehouse/iceberg.db/iceberg_test2'
+TBLPROPERTIES (
+  'current-schema'='{"type":"struct","schema-id":0,"fields":[{"id":1,"name":"i","required":false,"type":"int"}]}',
+  'current-snapshot-id'='7431247190671036215',
+  'current-snapshot-summary'='{"added-data-files":"1","added-records":"1","added-files-size":"404","changed-partition-count":"1","total-records":"1","total-files-size":"404","total-data-files":"1","total-delete-files":"0","total-position-deletes":"0","total-equality-deletes":"0"}',
+  'current-snapshot-timestamp-ms'='1692143521627',
+  'engine.hive.enabled'='true',
+  'external.table.purge'='TRUE',
+  'iceberg.catalog'='iceberg_hive',
+  'last_modified_by'='wy',
+  'last_modified_time'='1692143506',
+  'metadata_location'='hdfs://localhost:9000/user/hive/warehouse/iceberg.db/iceberg_test2/metadata/00001-f5f12084-6ab5-48e7-b9fd-b4b2d1343d5e.metadata.json',
+  'previous_metadata_location'='hdfs://localhost:9000/user/hive/warehouse/iceberg.db/iceberg_test2/metadata/00000-61b4ac8a-92b0-4420-9a26-9e82f2582920.metadata.json',
+  'snapshot-count'='1',
+  'table_type'='ICEBERG',
+  'transient_lastDdlTime'='1692143506',
+  'uuid'='2c35f375-089e-4948-b59a-ed1053dd6a43')
+```
+与使用默认 HiveCatalog 相比，TBLPROPERTIES 中多了个一个 `iceberg.catalog` 配置。
+
+#### 2.2.2 Hadoop
+
 如下所示注册一个名为 iceberg_hadoop 的 HadoopCatalog:
 ```sql
 SET iceberg.catalog.iceberg_hadoop.type=hadoop;
-SET iceberg.catalog.iceberg_hadoop.warehouse=hdfs://example.com:8020/warehouse;
+SET iceberg.catalog.iceberg_hadoop.warehouse=hdfs://localhost:9000/user/hadoop/warehouse;
 
 CREATE TABLE iceberg_test3 (i int)
 STORED BY 'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler'
-LOCATION 'hdfs://hadoop1:8020/warehouse/iceberg-hadoop/default/iceberg_test3'
+LOCATION 'hdfs://localhost:9000/user/hadoop/warehouse/iceberg/iceberg_test3'
 TBLPROPERTIES('iceberg.catalog'='iceberg_hadoop');
 
 INSERT INTO iceberg_test3 values(1);
 ```
+
+> 需要注意的是 LOCATION 路径为 `{iceberg.catalog.iceberg_hadoop.warehouse}/{database}/{table}` 的格式
+
+创建表之后可以查看表的详细信息：
+```sql
+CREATE TABLE `iceberg_test3`(
+  `i` int COMMENT 'from deserializer')
+ROW FORMAT SERDE
+  'org.apache.iceberg.mr.hive.HiveIcebergSerDe'
+STORED BY
+  'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler'
+WITH SERDEPROPERTIES (
+  'serialization.format'='1')
+LOCATION
+  'hdfs://localhost:9000/user/hadoop/warehouse/iceberg/iceberg_test3'
+TBLPROPERTIES (
+  'external.table.purge'='TRUE',
+  'iceberg.catalog'='iceberg_hadoop',
+  'last_modified_by'='wy',
+  'last_modified_time'='1692144472',
+  'table_type'='ICEBERG',
+  'transient_lastDdlTime'='1692144472')
+```
+相比之前，这个变化还是比较大的。
+
+#### 2.2.3 Glue
 
 如下所示注册一个名为 iceberg_glue 的 GlueCatalog:
 ```sql
@@ -131,7 +190,7 @@ SET iceberg.catalog.iceberg_glue.lock.table=myGlueLockTable;
 
 CREATE TABLE iceberg_test4 (i int)
 STORED BY 'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler'
-LOCATION 'hdfs://hadoop1:8020/warehouse/iceberg-hadoop/default/iceberg_test3'
+LOCATION 'hdfs://localhost:9000/user/hadoop/warehouse/iceberg/iceberg_test3'
 TBLPROPERTIES('iceberg.catalog'='iceberg_glue');
 
 INSERT INTO iceberg_test3 values(1);
@@ -143,8 +202,25 @@ INSERT INTO iceberg_test3 values(1);
 ```sql
 CREATE EXTERNAL TABLE iceberg_test5 (i int)
 STORED BY 'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler'
-LOCATION 'hdfs://hadoop1:8020/warehouse/iceberg-hadoop/default/iceberg_test3'
+LOCATION 'hdfs://localhost:9000/user/hadoop/warehouse/iceberg/iceberg_test3'
 TBLPROPERTIES ('iceberg.catalog'='location_based_table');
+```
+创建表之后可以查看表的详细信息：
+```sql
+CREATE EXTERNAL TABLE `iceberg_test5`(
+  `i` int COMMENT 'from deserializer')
+ROW FORMAT SERDE
+  'org.apache.iceberg.mr.hive.HiveIcebergSerDe'
+STORED BY
+  'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler'
+WITH SERDEPROPERTIES (
+  'serialization.format'='1')
+LOCATION
+  'hdfs://localhost:9000/user/hadoop/warehouse/iceberg/iceberg_test3'
+TBLPROPERTIES (
+  'iceberg.catalog'='location_based_table',
+  'table_type'='ICEBERG',
+  'transient_lastDdlTime'='1692146162')
 ```
 
 ## 3. DDL
@@ -155,88 +231,174 @@ Hive 2.3.x 和 Hive 3.1.x 并不能完全支持下面所有的特性。详情请
 
 ### 3.1 CREATE TABLE
 
-#### 3.1.1 非分区表
+#### 3.1.1 创建外部表
 
-使用 Hive CREATE EXTERNAL TABLE 命令可以创建 Iceberg 表，需要指定如下所示的 storage handler:
+可以使用 Hive 的 CREATE EXTERNAL TABLE 命令可以创建 Iceberg 外部表:
 ```sql
-CREATE EXTERNAL TABLE x (i int) STORED BY ICEBERG;
+CREATE EXTERNAL TABLE iceberg_external_test1 (i int)
+STORED BY 'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler';
 ```
-如果您希望使用 CREATE TABLE 创建外部表，则需要在集群上配置 MetaStoreMetadataTransformer，并将 CREATE TABLE 命令转换为创建外部表。例如:
+可以使用 describe formatted 命令查看表的具体信息：
 ```sql
-CREATE TABLE x (i int) STORED BY ICEBERG;
+hive (iceberg)> describe formatted iceberg_external_test1;
+OK
+# col_name            	data_type           	comment
+
+i                   	int                 	from deserializer
+
+# Detailed Table Information
+Database:           	iceberg
+Owner:              	wy
+CreateTime:         	Wed Aug 16 12:16:00 CST 2023
+LastAccessTime:     	UNKNOWN
+Retention:          	0
+Location:           	hdfs://localhost:9000/user/hive/warehouse/iceberg.db/iceberg_external_test1
+Table Type:         	EXTERNAL_TABLE
+Table Parameters:
+	EXTERNAL            	TRUE
+	current-schema      	{\"type\":\"struct\",\"schema-id\":0,\"fields\":[{\"id\":1,\"name\":\"i\",\"required\":false,\"type\":\"int\"}]}
+	engine.hive.enabled 	true
+	external.table.purge	TRUE
+	metadata_location   	hdfs://localhost:9000/user/hive/warehouse/iceberg.db/iceberg_external_test1/metadata/00000-79196afd-8d5a-4d81-9441-a02c002fc527.metadata.json
+	numFiles            	0
+	numRows             	0
+	rawDataSize         	0
+	snapshot-count      	0
+	storage_handler     	org.apache.iceberg.mr.hive.HiveIcebergStorageHandler
+	table_type          	ICEBERG
+	totalSize           	0
+	transient_lastDdlTime	1692159360
+	uuid                	e2865dcf-1df4-4bc6-893c-e058345fd800
+
+# Storage Information
+SerDe Library:      	org.apache.iceberg.mr.hive.HiveIcebergSerDe
+InputFormat:        	org.apache.iceberg.mr.hive.HiveIcebergInputFormat
+OutputFormat:       	org.apache.iceberg.mr.hive.HiveIcebergOutputFormat
+Compressed:         	No
+Num Buckets:        	0
+Bucket Columns:     	[]
+Sort Columns:       	[]
 ```
-您可以在创建表时指定文件格式(例如，Avro、Parquet、ORC)。如果不指定默认是 Parquet:
+通过 Table Type 可以看到该表是一个外部表 EXTERNAL_TABLE。
+
+#### 3.1.2 创建内部表
+
+可以使用 Hive 的 CREATE TABLE 命令可以创建 Iceberg 内部表:
 ```sql
-CREATE TABLE x (i int) STORED BY ICEBERG STORED AS ORC;
+CREATE TABLE iceberg_internal_test1 (i int)
+STORED BY 'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler';
 ```
-
-#### 3.1.2 分区表
-
-您可以使用创建非分区表的命令来创建分区表:
+可以使用 describe formatted 命令查看表的具体信息：
 ```sql
-CREATE TABLE x (i int) PARTITIONED BY (j int) STORED BY ICEBERG;
+hive (iceberg)> describe formatted iceberg_internal_test1;
+OK
+# col_name            	data_type           	comment
+
+i                   	int                 	from deserializer
+
+# Detailed Table Information
+Database:           	iceberg
+Owner:              	wy
+CreateTime:         	Wed Aug 16 12:21:34 CST 2023
+LastAccessTime:     	UNKNOWN
+Retention:          	0
+Location:           	hdfs://localhost:9000/user/hive/warehouse/iceberg.db/iceberg_internal_test1
+Table Type:         	MANAGED_TABLE
+Table Parameters:
+	current-schema      	{\"type\":\"struct\",\"schema-id\":0,\"fields\":[{\"id\":1,\"name\":\"i\",\"required\":false,\"type\":\"int\"}]}
+	engine.hive.enabled 	true
+	external.table.purge	TRUE
+	metadata_location   	hdfs://localhost:9000/user/hive/warehouse/iceberg.db/iceberg_internal_test1/metadata/00000-035cc7ba-f225-46e6-a57a-0941e54aff65.metadata.json
+	numFiles            	0
+	numRows             	0
+	rawDataSize         	0
+	snapshot-count      	0
+	storage_handler     	org.apache.iceberg.mr.hive.HiveIcebergStorageHandler
+	table_type          	ICEBERG
+	totalSize           	0
+	transient_lastDdlTime	1692159694
+	uuid                	7ef7d4b5-b9c0-49ae-9cb2-43d8ec574255
+
+# Storage Information
+SerDe Library:      	org.apache.iceberg.mr.hive.HiveIcebergSerDe
+InputFormat:        	org.apache.iceberg.mr.hive.HiveIcebergInputFormat
+OutputFormat:       	org.apache.iceberg.mr.hive.HiveIcebergOutputFormat
+Compressed:         	No
+Num Buckets:        	0
+Bucket Columns:     	[]
+Sort Columns:       	[]
 ```
-> 生成的表不会在 HMS 中创建分区，而是将分区数据转换为 Iceberg 标识分区。
+通过 Table Type 可以看到该表是一个内部表 MANAGED_TABLE。
 
-使用 DESCRIBE 命令获取有关 Iceberg 标识分区的信息:
+#### 3.1.3 创建分区表
+
+可以在使用 Hive 的 CREATE TABLE 或者 CREATE EXTERNAL TABLE 命令时通过 PARTITIONED BY 语句指定分区:
 ```sql
-DESCRIBE x;
+CREATE TABLE iceberg_partition_test1 (i int)
+PARTITIONED BY (dt String)
+STORED BY 'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler';
+
+INSERT INTO iceberg_partition_test1 values(1, '20230815');
 ```
-结果如下所示：
+Hive 语法创建分区表，不会在 HMS 中创建分区，而是将分区数据转换为 Iceberg 标识分区。这种情况下不能使用 Iceberg 的分区转换，例如：days(timestamp)，如果想要使用 Iceberg 格式表的分区转换标识分区，需要使用 Spark 或者 Flink 引擎创建表。
 
-| col_name | data_type | comment |
-| :------------- | :------------- | :------------- |
-| Item One       | Item Two       | |
+### 3.2 CREATE TABLE AS SELECT ?
 
-### 3.2 CREATE TABLE AS SELECT
-
-CREATE TABLE AS SELECT 操作类似于本地 Hive 操作，但有一个重要的区别。Iceberg 表和对应的 Hive 表是在查询执行开始时创建的。当查询完成时数据才被插入/提交。因此，在一段短暂的时间内，表已经存在，但不包含任何数据。
-
+`CREATE TABLE AS SELECT` 操作类似于本地 Hive 操作，但有一个重要的区别。Iceberg 表和对应的 Hive 表是在查询执行开始时创建的。当查询完成时数据才被插入/提交。因此，在一段短暂的时间内，表已经存在，但不包含任何数据。
 ```sql
-CREATE TABLE target PARTITIONED BY SPEC (year(year_field), identity_field) STORED BY ICEBERG AS
-    SELECT * FROM source;
+CREATE TABLE iceberg_partition_test2
+AS SELECT * FROM iceberg_partition_test1;
+```
+需要注意的是 CREATE-TABLE-AS-SELECT 模式不支持分区，否则会抛出如下异常：
+```sql
+FAILED: SemanticException [Error 10068]: CREATE-TABLE-AS-SELECT does not support partitioning in the target table
+```
+此外也不支持创建外部表：
+```sql
+FAILED: SemanticException [Error 10070]: CREATE-TABLE-AS-SELECT cannot create external table
 ```
 
 ### 3.3 CREATE TABLE LIKE TABLE
 
+你可以通过 CREATE TABLE LIKE TABLE 命令来复制表结构。如果你已经有一个表，现在想创建一个一模一样的表，这个时候这个方法就很省时省力了：
 ```sql
-CREATE TABLE target LIKE source STORED BY ICEBERG;
+CREATE TABLE iceberg_partition_test3 LIKE iceberg_partition_test1
+STORED BY 'org.apache.iceberg.mr.hive.HiveIcebergStorageHandler';
+```
+需要注意的是复制时，只会复制表结构，不会复制表中的数据。
+
+### 3.4 ALTER TABLE
+
+#### 3.4.1 表属性 ?
+
+只支持 HiveCatalog 表修改表属性。对于 HiveCatalog 表，Iceberg 表属性和存储在 HMS 中的 Hive 表属性保持同步。如下所示修改 `external.table.purge` 属性为 FALSE：
+```sql
+ALTER TABLE iceberg_external_test1 SET TBLPROPERTIES('external.table.purge'='FALSE');
 ```
 
-### 3.4 CREATE EXTERNAL TABLE overlaying an existing Iceberg table
-
 ```sql
-
-```
-
-### 3.5 ALTER TABLE
-
-#### 3.5.1 表属性
-
-对于 HiveCatalog 表，Iceberg 表属性和存储在 HMS 中的 Hive 表属性保持同步。
-```sql
-ALTER TABLE t SET TBLPROPERTIES('...'='...');
+FAILED: SemanticException [Error 10134]: ALTER TABLE cannot be used for a non-native table iceberg_partition_test1
 ```
 
 > 需要注意的是此功能不适用于其他 Catalog 实现。
 
-#### 3.5.2 Schema 演化
+#### 3.4.2 Schema 演化
 
 Hive 表 Schema 与 Iceberg 表保持同步。如果外部源(Impala/Spark/Java API/等)改变了 Schema，Hive 表会立即反映出这些变化。使用 Hive 命令修改表 Schema：
 ```sql
 -- 增加列
-ALTER TABLE orders ADD COLUMNS (nickname string);
+ALTER TABLE iceberg_partition_test3 ADD COLUMNS (nickname string);
 -- 重命名列
-ALTER TABLE orders CHANGE COLUMN item fruit string;
+ALTER TABLE iceberg_partition_test3 CHANGE COLUMN i age int;
 -- 修改列的顺序
-ALTER TABLE orders CHANGE COLUMN quantity quantity int AFTER price;
+ALTER TABLE iceberg_partition_test3 CHANGE COLUMN quantity quantity int AFTER price;
 -- 修改列的类型
-ALTER TABLE orders CHANGE COLUMN price price long;
+ALTER TABLE iceberg_partition_test3 CHANGE COLUMN price price long;
 -- 删除列 使用 REPLACE COLUMN 移除列
-ALTER TABLE orders REPLACE COLUMNS (remaining string);
+ALTER TABLE iceberg_partition_test3 REPLACE COLUMNS (remaining string);
 ```
 
-#### 3.5.3 分区演化
+#### 3.4.3 分区演化
 
 使用以下命令修改分区 Schema:
 ```sql
@@ -246,7 +408,7 @@ ALTER TABLE default.customers SET PARTITION SPEC (last_name);
 ALTER TABLE order SET PARTITION SPEC (month(ts));
 ```
 
-#### 3.5.4 表的迁移
+#### 3.4.4 表的迁移
 
 您可以使用以下命令将 Avro/Parquet/ORC 外部表迁移到 Iceberg表:
 ```sql
@@ -254,11 +416,11 @@ ALTER TABLE t SET TBLPROPERTIES ('storage_handler'='org.apache.iceberg.mr.hive.H
 ```
 在迁移期间，数据文件不会更改，只会创建适当的 Iceberg 元数据文件。迁移完成后，将表作为普通 Iceberg 表处理。
 
-### 3.6 TRUNCATE TABLE
+### 3.5 TRUNCATE TABLE
 
 使用如下命令清空表：
 ```sql
-TRUNCATE TABLE t;
+TRUNCATE TABLE iceberg_partition_test1;
 ```
 需要注意的是不允许指定分区。
 
@@ -266,7 +428,8 @@ TRUNCATE TABLE t;
 
 使用如下命令删除表：
 ```sql
-DROP TABLE [IF EXISTS] table_name [PURGE];
+DROP TABLE IF EXISTS iceberg_partition_test3;
+DROP TABLE IF EXISTS iceberg_partition_test2 PURGE;
 ```
 
 ### 3.8 METADATA LOCATION

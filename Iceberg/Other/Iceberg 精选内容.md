@@ -8,7 +8,11 @@
 - [ ] [数据湖Iceberg | 如何正确使用Iceberg](https://mp.weixin.qq.com/s/QBIozrtOF5rVnQjneBFS0g)
 - [ ] [High Throughput Ingestion with Iceberg](https://medium.com/adobetech/high-throughput-ingestion-with-iceberg-ccf7877a413f)
 - [x] [Apache iceberg：Netflix 数据仓库的基石](https://smartsi.blog.csdn.net/article/details/132034395)
-
+- [ ] [Iceberg顶层设计揭秘-FileIO：云原生表](https://mp.weixin.qq.com/s/LT4vpp1ZsL7ewkuhyHC6Ng)
+- [ ] [Iceberg 的指路灯: Iceberg 开放表格式规范](https://mp.weixin.qq.com/s/L5Ak4hiMk2L4I8ifq8N6bA)
+- [ ] [图文带你理解 Apache Iceberg 时间旅行是如何实现的？](https://mp.weixin.qq.com/s/58Si-DIpd3dA2UfGaXvmtQ)
+- [ ] [一条数据在 Apache Iceberg 之旅：写过程分析](https://mp.weixin.qq.com/s/1BOcvD5m-7sFXtKPJnT7hg)
+- [ ] [Apache Iceberg 是如何解决小文件问题的？](https://mp.weixin.qq.com/s/MUdck-a6EGagreAJDfH-3A)
 
 ## 2， 案例
 
@@ -23,7 +27,3 @@
 - [ ] [Adobe 基于 Iceberg 的数据湖性能提升实践](https://mp.weixin.qq.com/s/iNy1oQDu__gE2F_qkUHsoQ)
 - [ ] [深度对比Delta、Iceberg和Hudi三大开源数据湖方案](https://mp.weixin.qq.com/s/mYwaGszQGod_o6f3p2QbDw)
 - [ ] [汽车之家：基于 Flink + Iceberg 的湖仓一体架构实践](https://mp.weixin.qq.com/s/Pva3akfF4cAXPK6UN4SYcA)
-- [ ] [图文带你理解 Apache Iceberg 时间旅行是如何实现的？](https://mp.weixin.qq.com/s/58Si-DIpd3dA2UfGaXvmtQ)
-- [ ] [一条数据在 Apache Iceberg 之旅：写过程分析](https://mp.weixin.qq.com/s/1BOcvD5m-7sFXtKPJnT7hg)
-- [ ] [Apache Iceberg 是如何解决小文件问题的？](https://mp.weixin.qq.com/s/MUdck-a6EGagreAJDfH-3A)
-- [ ]

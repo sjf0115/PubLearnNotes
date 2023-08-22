@@ -203,3 +203,5 @@
 - [ ] [Uber如何使用Apache Hudi近实时分析全球网络](https://mp.weixin.qq.com/s/-xizcoDOfca9CyWs6cGNXQ)
 - [ ] [超100PB！看Uber如何玩转ApacheHudi数据湖](https://mp.weixin.qq.com/s/Bow8bVTSgxwBv9hzteH8gw)
 - [ ] [贝壳找房利用Hudi构建准实时数仓的实践与挑战](https://mp.weixin.qq.com/s/npcgFN6GCZsotEOuA8lSEg)
+- [ ] [字节跳动基于 Apache Hudi 的湖仓一体方案及应用实践](https://mp.weixin.qq.com/s/JLToe8jsaA12putpQ0TuKA)
+- [ ] [Apache Hudi在腾讯的落地与应用](https://mp.weixin.qq.com/s/OCLIso3oHvpGBB10fuuTyw)

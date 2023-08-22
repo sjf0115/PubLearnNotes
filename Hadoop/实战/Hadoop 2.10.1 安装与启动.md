@@ -13,7 +13,7 @@ permalink: hadoop-2.10.1-setup-and-start
 
 ### 1. SSH
 
-参考博文：[Hadoop]SSH免密码登录以及失败解决方案（http://blog.csdn.net/sunnyyoona/article/details/51689041#t1）
+参考博文：[Hadoop SSH免密码登录以及失败解决方案](http://blog.csdn.net/sunnyyoona/article/details/51689041#t1)
 
 ### 2. 下载与解压缩
 
@@ -131,10 +131,6 @@ Hadoop 的各个组件均可利用 `XML` 文件进行配置。`core-site.xml` �
         <value>mapreduce_shuffle</value>
     </property>
 </configuration>
-```
-运行`Hadoop`的时候可能会找不到`jdk`，需要我们修改`hadoop.env.sh`脚本文件，唯一需要修改的环境变量就是`JAVE_HOME`，其他选项都是可选的：
-```
-export JAVA_HOME=/home/xiaosi/opt/jdk-1.8.0
 ```
 
 ### 4. 运行

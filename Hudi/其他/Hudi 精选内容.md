@@ -70,6 +70,10 @@
 - [ ] [Apache Hudi如何加速传统批处理模式？](https://mp.weixin.qq.com/s/NoS8VeYJSZcKQnDVICAorQ)
 - [ ] [Powering Uber's global network analytics pipelines in real-time with Apache Hudi | Uber](https://www.youtube.com/watch?v=1w3IpavhSWA&t=705s)
 - [ ] [Building a Large-scale Transactional Data Lake Using Apache Hudi](https://www.youtube.com/watch?v=J6EcGiExx7M)
+- [ ] [Hudi配合Spark使用有哪些坑](https://mp.weixin.qq.com/s/7SGkX4xhBZPf2A2l7vAhvQ)
+- [ ] [Apache Hudi集成Spark SQL抢先体验](https://mp.weixin.qq.com/s/1ElF9fh5k7j7HD_3HKRDqQ)
+- [ ] [Apache Hudi与Hive集成手册](https://mp.weixin.qq.com/s/TksSvRC1Hof1Io1iuEpJzQ)
+- [ ] [数据湖（五）：Hudi与Hive集成](https://mp.weixin.qq.com/s/nqLh54ZGr6wCTgLQuxYIvQ)
 
 ### 3.2 CDC
 

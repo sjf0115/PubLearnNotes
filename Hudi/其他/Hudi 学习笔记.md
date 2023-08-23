@@ -1,2 +1,3 @@
 - [x] [Hudi 基本概念](https://smartsi.blog.csdn.net/article/details/132388637)
 - [x] [Apache Hudi：新一代流式数据湖台](https://smartsi.blog.csdn.net/article/details/132380225)
+- [x] [Apache Hudi 典型应用场景知多少](https://smartsi.blog.csdn.net/article/details/132438013)

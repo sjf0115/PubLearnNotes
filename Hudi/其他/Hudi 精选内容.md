@@ -12,7 +12,7 @@
 - [ ] [Apache Hudi入门指南](https://mp.weixin.qq.com/s/sxS2XfEZf6EgM7aZlrMidQ)
 - [ ] [Apache Hudi 设计与架构最强解读](https://mp.weixin.qq.com/s/KbKKclT3oaNEnU--OI3f4Q)
 - [ ] [一文了解Apache Hudi架构、工具和最佳实践](https://mp.weixin.qq.com/s/WrrIiiY5q_VBc-4hL-cWhg)
-- [ ] [大数据技术变革正当时，Apache Hudi了解下？](https://mp.weixin.qq.com/s/JCrnpACBbhSrrscqgto5HA)
+- [x] [大数据技术变革正当时，Apache Hudi了解下？](https://mp.weixin.qq.com/s/JCrnpACBbhSrrscqgto5HA)
 - [ ] [基于Apache Hudi构建数据湖的典型应用场景介绍](https://mp.weixin.qq.com/s/pT9iXtGS4xUOzIkD7rIXJw)
 - [x] [Apache Hudi 典型应用场景知多少](https://smartsi.blog.csdn.net/article/details/132438013)
 - [ ] [使用Apache Hudi构建下一代Lakehouse](https://mp.weixin.qq.com/s/-QieRgCnqDCFs3onKOQCeQ)

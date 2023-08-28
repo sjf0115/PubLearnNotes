@@ -94,23 +94,28 @@ https://blog.csdn.net/weixin_38136584/article/details/128476360
 
 
 
-
-
-
-[INFO] Building hudi-utilities_2.12 0.12.3                              [18/50]
-[INFO] --------------------------------[ jar ]---------------------------------
-[WARNING] Failure to transfer net.minidev:json-smart/maven-metadata.xml from http://mvnrepo.alibaba-inc.com/mvn/repository was cached in the local repository, resolution will not be reattempted until the update interval of tbmirror-all has elapsed or updates are forced. Original error: Could not transfer metadata net.minidev:json-smart/maven-metadata.xml from/to tbmirror-all (http://mvnrepo.alibaba-inc.com/mvn/repository): Connect to mvnrepo.alibaba-inc.com:80 [mvnrepo.alibaba-inc.com/59.82.112.179] failed: Operation timed out (Connection timed out)
-[WARNING] Failure to transfer net.minidev:json-smart/maven-metadata.xml from https://repo.rdc.aliyun.com/repository/25532-release-U4bww5/ was cached in the local repository, resolution will not be reattempted until the update interval of rdc-releases-aliyun has elapsed or updates are forced. Original error: Could not transfer metadata net.minidev:json-smart/maven-metadata.xml from/to rdc-releases-aliyun (https://repo.rdc.aliyun.com/repository/25532-release-U4bww5/): Access denied to: https://repo.rdc.aliyun.com/repository/25532-release-U4bww5/net/minidev/json-smart/maven-metadata.xml , ReasonPhrase:Forbidden.
-[WARNING] Failure to transfer net.minidev:json-smart/maven-metadata.xml from https://repo.rdc.aliyun.com/repository/25532-snapshot-Of0qds/ was cached in the local repository, resolution will not be reattempted until the update interval of rdc-snapshots-aliyun has elapsed or updates are forced. Original error: Could not transfer metadata net.minidev:json-smart/maven-metadata.xml from/to rdc-snapshots-aliyun (https://repo.rdc.aliyun.com/repository/25532-snapshot-Of0qds/): Access denied to: https://repo.rdc.aliyun.com/repository/25532-snapshot-Of0qds/net/minidev/json-smart/maven-metadata.xml , ReasonPhrase:Forbidden.
-Downloading from tbmirror-all: http://mvnrepo.alibaba-inc.com/mvn/repository/io/confluent/kafka-avro-serializer/5.3.4/kafka-avro-serializer-5.3.4.pom
-Downloading from rdc-releases-aliyun: https://repo.rdc.aliyun.com/repository/25532-release-U4bww5/io/confluent/kafka-avro-serializer/5.3.4/kafka-avro-serializer-5.3.4.pom
-Downloading from rdc-snapshots-aliyun: https://repo.rdc.aliyun.com/repository/25532-snapshot-Of0qds/io/confluent/kafka-avro-serializer/5.3.4/kafka-avro-serializer-5.3.4.pom
-Downloading from tbmirror-all: http://mvnrepo.alibaba-inc.com/mvn/repository/io/confluent/common-config/5.3.4/common-config-5.3.4.pom
-Downloading from rdc-releases-aliyun: https://repo.rdc.aliyun.com/repository/25532-release-U4bww5/io/confluent/common-config/5.3.4/common-config-5.3.4.pom
-Downloading from rdc-snapshots-aliyun: https://repo.rdc.aliyun.com/repository/25532-snapshot-Of0qds/io/confluent/common-config/5.3.4/common-config-5.3.4.pom
-Downloading from tbmirror-all: http://mvnrepo.alibaba-inc.com/mvn/repository/io/confluent/common-utils/5.3.4/common-utils-5.3.4.pom
-Downloading from rdc-releases-aliyun: https://repo.rdc.aliyun.com/repository/25532-release-U4bww5/io/confluent/common-utils/5.3.4/common-utils-5.3.4.pom
-Downloading from rdc-snapshots-aliyun: https://repo.rdc.aliyun.com/repository/25532-snapshot-Of0qds/io/confluent/common-utils/5.3.4/common-utils-5.3.4.pom
-Downloading from tbmirror-all: http://mvnrepo.alibaba-inc.com/mvn/repository/io/confluent/kafka-schema-registry-client/5.3.4/kafka-schema-registry-client-5.3.4.pom
-Downloading from rdc-releases-aliyun: https://repo.rdc.aliyun.com/repository/25532-release-U4bww5/io/confluent/kafka-schema-registry-client/5.3.4/kafka-schema-registry-client-5.3.4.pom
-Downloading from rdc-snapshots-aliyun: https://repo.rdc.aliyun.com/repository/25532-snapshot-Of0qds/io/confluent/kafka-schema-registry-client/5.3.4/kafka-schema-registry-client-5.3.4.pom
+```java
+[INFO] hudi-flink1.14.x ................................... SUCCESS [ 43.313 s]
+[INFO] hudi-flink1.15.x ................................... SUCCESS [ 43.991 s]
+[INFO] hudi-kafka-connect ................................. FAILURE [  7.439 s]
+[INFO] hudi-flink1.13-bundle .............................. SKIPPED
+[INFO] hudi-kafka-connect-bundle .......................... SKIPPED
+[INFO] hudi-spark2_2.12 ................................... SKIPPED
+[INFO] hudi-spark2-common 0.12.3 .......................... SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 30:52 min
+[INFO] Finished at: 2023-08-28T08:03:52+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal com.github.os72:protoc-jar-maven-plugin:3.11.4:run (default) on project hudi-kafka-connect: protoc-jar failed for /Users/wy/software/hudi-0.12.3/hudi-kafka-connect/src/main/resources/ControlMessage.proto. Exit code 2 -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+[ERROR]
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <goals> -rf :hudi-kafka-connect
+```

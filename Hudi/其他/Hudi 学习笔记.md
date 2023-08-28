@@ -3,3 +3,4 @@
 - [x] [Apache Hudi 典型应用场景知多少](https://smartsi.blog.csdn.net/article/details/132438013)
 - [x] [Apache Hudi 在腾讯的落地与应用](https://smartsi.blog.csdn.net/article/details/132442418)
 - [x] [数据湖在快手的生产实践](https://smartsi.blog.csdn.net/article/details/131930422)
+- [x] [基于 Apache Hudi 构建数据湖的典型应用场景介绍](https://smartsi.blog.csdn.net/article/details/132487280)

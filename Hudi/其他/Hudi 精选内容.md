@@ -86,16 +86,16 @@
 
 ### 3.3 原理
 
-- [ ] [详解Apache Hudi灵活的Payload机制](https://mp.weixin.qq.com/s/xhZCVHw5WhePDUPKns6J_g)
+
 - [ ] [一文带你了解Lakehouse的并发控制：我们是否过于乐观？](https://mp.weixin.qq.com/s/CqfCx_HCiob0nDNn-ALkCQ)
 - [ ] [查询性能提升3倍！Apache Hudi 查询优化了解下？](https://mp.weixin.qq.com/s/ZjFJaH20y0n-xz_VXt5bxw)
 - [x] [一文彻底弄懂Apache Hudi不同表类型](https://smartsi.blog.csdn.net/article/details/132487426)
+- [x] [一文彻底理解Apache Hudi的清理服务](https://smartsi.blog.csdn.net/article/details/132531325)
 - [ ] [Apache Hudi中自定义序列化和数据写入逻辑](https://mp.weixin.qq.com/s/ZmFZVM1XGEEIpmdpONMHTA)
 - [ ] [如何将数据更快导入Apache Hudi？](https://mp.weixin.qq.com/s/yez2xHnw3iB7chripozY0w)
 - [ ] [Apache Hudi内核之文件标记机制深入解析](https://mp.weixin.qq.com/s/pEO9lFyVFpvKk5cl-vF83w)
 - [ ] [更进一步节省空间！Apache Hudi支持虚拟键](https://mp.weixin.qq.com/s/E7IfnqYJ2IIMjKefVFpkpQ)
 - [ ] [通过Z-Order技术加速Hudi大规模数据集分析方案](https://mp.weixin.qq.com/s/qos-QGfJbP36qwq9h1lUkQ)
-- [ ] [一文彻底理解Apache Hudi的清理服务](https://mp.weixin.qq.com/s/jIm0P6GnYXMdG6kyg_8bjA)
 - [ ] [17张图带你彻底理解Hudi Upsert原理](https://mp.weixin.qq.com/s/BYHwv16A7LAKZMnOZ8y6mA)
 - [ ] [一文彻底掌握Apache Hudi的主键和分区配置](https://mp.weixin.qq.com/s/A59QDz7W06uCM_yZkmkYQw)
 - [ ] [Apache Hudi如何智能处理小文件问题](https://mp.weixin.qq.com/s/rvCF-pUbKdFzud80hP8b5A)
@@ -127,6 +127,7 @@
 
 ## 5. 源码分析
 
+- [ ] [详解Apache Hudi灵活的Payload机制](https://mp.weixin.qq.com/s/xhZCVHw5WhePDUPKns6J_g)
 - [ ] [Apache Hudi索引实现分析（五）之基于List的IndexFileFilter](https://mp.weixin.qq.com/s/1ugQmTZuKACW_0y2AlVn1Q)
 - [ ] [Apache Hudi索引实现分析（四）之基于Tree的IndexFileFilter](https://mp.weixin.qq.com/s/7K4Z8-uVPynb9qTicbSjqA)
 - [ ] [Apache Hudi索引实现分析（三）之HBaseIndex](https://mp.weixin.qq.com/s/lJJNObbbdojp5NqHkX-cLA)

@@ -36,12 +36,19 @@
 ### 3.3 性能
 
 - [ ] [Spark Streaming 反压（Back Pressure）机制介绍](https://www.iteblog.com/archives/2323.html)
+- [ ] [Spark Streaming 调优实践](https://mp.weixin.qq.com/s/YpP4a8Xcu23lhYRjWOFbdQ)
 
-### 3.4 特性
+### 3.4 入门
 
 - [ ] [Faster Stateful Stream Processing in Apache Spark Streaming](https://www.databricks.com/blog/2016/02/01/faster-stateful-stream-processing-in-apache-spark-streaming.html)
+- [ ] [【Spark 系列九】Spark Streaming 详解](https://mp.weixin.qq.com/s/ieYDNC5a904kS5u6GU_n1w)
+
+
 
 ## 4. Structured Streaming
 
 - [ ] [专访朱诗雄：Apache Spark中的全新流式引擎Structured Streaming](https://mp.weixin.qq.com/s/gp9MTKWbgHQ7b7QR5pNSnA)
 - [ ] [Spark Structured Streaming 2021年最新进展的总结](https://mp.weixin.qq.com/s/rS9xASvJfKvZ3ZE0j3366w)
+- [ ] [【Spark 系列十】Spark Structured Streaming 详解](https://mp.weixin.qq.com/s/eObBeMxW_x-ItBaEvTqwQg)
+- [ ] [Apache Spark 3.1 中 Structured Streaming 方面的改进](https://mp.weixin.qq.com/s/vSl6Vby2fr5iYqnhc4sy0Q)
+- [ ] [如何使用 Spark 3.0 中新加的 Structured Streaming UI 来进行异常分析](https://mp.weixin.qq.com/s/cHu9bFQ1kKgpHevCpApX0Q)

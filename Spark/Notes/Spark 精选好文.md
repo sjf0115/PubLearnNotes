@@ -45,6 +45,12 @@
 - [ ] [【Spark 系列九】Spark Streaming 详解](https://mp.weixin.qq.com/s/ieYDNC5a904kS5u6GU_n1w)
 - [ ] [Spark Streaming的优化之路——从Receiver到Direct模式](https://mp.weixin.qq.com/s/UPdu4rLmibeRMEEeOEH5Ag)
 - [ ] [Spark Streaming 是如何提交任务的](https://mp.weixin.qq.com/s/xYKX9SiP_mYCk5Xp2XNcwQ)
+- [ ] [Introducing Stream-Stream Joins in Apache Spark 2.3](https://www.databricks.com/blog/2018/03/13/introducing-stream-stream-joins-in-apache-spark-2-3.html)
+- [ ] [Diving into Apache Spark Streaming's Execution Model](https://www.databricks.com/blog/2015/07/30/diving-into-apache-spark-streamings-execution-model.html)
+- [ ] [Native Support of Session Window in Spark Structured Streaming](https://www.databricks.com/blog/2021/10/12/native-support-of-session-window-in-spark-structured-streaming.html)
+- [ ] [New Visualizations for Understanding Apache Spark Streaming Applications](https://www.databricks.com/blog/2015/07/08/new-visualizations-for-understanding-apache-spark-streaming-applications.html)
+
+
 
 ### 3.5 Connector
 
@@ -57,3 +63,24 @@
 - [ ] [【Spark 系列十】Spark Structured Streaming 详解](https://mp.weixin.qq.com/s/eObBeMxW_x-ItBaEvTqwQg)
 - [ ] [Apache Spark 3.1 中 Structured Streaming 方面的改进](https://mp.weixin.qq.com/s/vSl6Vby2fr5iYqnhc4sy0Q)
 - [ ] [如何使用 Spark 3.0 中新加的 Structured Streaming UI 来进行异常分析](https://mp.weixin.qq.com/s/cHu9bFQ1kKgpHevCpApX0Q)
+- [ ] [Introducing Low-latency Continuous Processing Mode in Structured Streaming in Apache Spark 2.3](https://www.databricks.com/blog/2018/03/20/low-latency-continuous-processing-mode-in-structured-streaming-in-apache-spark-2-3-0.html)
+- [ ] [Event-time Aggregation and Watermarking in Apache Spark’s Structured Streaming](https://www.databricks.com/blog/2017/05/08/event-time-aggregation-watermarking-apache-sparks-structured-streaming.html)
+- [ ] [Spark Structured Streaming](https://www.databricks.com/blog/2016/07/28/structured-streaming-in-apache-spark.html)
+- [ ] [What’s New in Apache Spark™ 3.1 Release for Structured Streaming](https://www.databricks.com/blog/2021/04/27/whats-new-in-apache-spark-3-1-release-for-structured-streaming.html)
+- [ ] [A look at the new Structured Streaming UI in Apache Spark 3.0](https://www.databricks.com/blog/2020/07/29/a-look-at-the-new-structured-streaming-ui-in-apache-spark-3-0.html)
+- [ ] [Multiple Stateful Operators in Structured Streaming](https://www.databricks.com/blog/multiple-stateful-operators-structured-streaming)
+- [ ] [Structured Streaming: A Year in Review](https://www.databricks.com/blog/2022/02/07/structured-streaming-a-year-in-review.html)
+- [ ] [Processing Data in Apache Kafka with Structured Streaming in Apache Spark 2.2](https://www.databricks.com/blog/2017/04/26/processing-data-in-apache-kafka-with-structured-streaming-in-apache-spark-2-2.html)
+- [ ] [Real-Time End-to-End Integration with Apache Kafka in Apache Spark’s Structured Streaming](https://www.databricks.com/blog/2017/04/04/real-time-end-to-end-integration-with-apache-kafka-in-apache-sparks-structured-streaming.html)
+- [ ] [Working with Complex Data Formats with Structured Streaming in Apache Spark 2.1](https://www.databricks.com/blog/2017/02/23/working-complex-data-formats-structured-streaming-apache-spark-2-1.html)
+- [ ] [Real-time Streaming ETL with Structured Streaming in Apache Spark 2.1
+](https://www.databricks.com/blog/2017/01/19/real-time-streaming-etl-structured-streaming-apache-spark-2-1.html)
+- [ ] [How to use SparkSession in Apache Spark 2.0](https://www.databricks.com/blog/2016/08/15/how-to-use-sparksession-in-apache-spark-2-0.html)
+- [ ] []()
+- [ ] []()
+- [ ] []()
+- [ ] []()
+- [ ] []()
+
+
+。。。

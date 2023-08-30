@@ -23,6 +23,7 @@
 - [ ] [Spark Streaming 实时计算在甜橙金融监控系统中的应用及优化](https://mp.weixin.qq.com/s/Kv1Qq4118I2itYwPYyQUoA)
 - [ ] [Spark Streaming实时计算在链家网的实践](https://mp.weixin.qq.com/s/fSrWF4PFZkvky7rkeCf46w)
 - [ ] [Spark Streaming在小米数据流应用中的Checkpoint相关问题](https://mp.weixin.qq.com/s/axD5FN1g7PIe9JsFu7lHKQ)
+- [ ] [如何保障Spark Streaming作业的长时间运行](https://mp.weixin.qq.com/s/y0cAC4wMgGGAnyAnvIVLCA)
 
 ### 3.2 容错
 
@@ -42,8 +43,12 @@
 
 - [ ] [Faster Stateful Stream Processing in Apache Spark Streaming](https://www.databricks.com/blog/2016/02/01/faster-stateful-stream-processing-in-apache-spark-streaming.html)
 - [ ] [【Spark 系列九】Spark Streaming 详解](https://mp.weixin.qq.com/s/ieYDNC5a904kS5u6GU_n1w)
+- [ ] [Spark Streaming的优化之路——从Receiver到Direct模式](https://mp.weixin.qq.com/s/UPdu4rLmibeRMEEeOEH5Ag)
+- [ ] [Spark Streaming 是如何提交任务的](https://mp.weixin.qq.com/s/xYKX9SiP_mYCk5Xp2XNcwQ)
 
+### 3.5 Connector
 
+- [ ] [实用计：Spark Streaming消费Kafka数据的两种方案](https://mp.weixin.qq.com/s/HNJc00zL5N5PNxkfRPYNFw)
 
 ## 4. Structured Streaming
 

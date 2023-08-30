@@ -1,11 +1,8 @@
-
-与RDD类似，转换操作允许修改来自输入DStream的数据。DStreams支持很多在常规Spark RDD上可用的转换操作。 一些常见的如下：
-
-#### 1. 常见转换操作
+与 RDD 类似，转换操作允许修改来自输入 DStream 的数据。DStreams 支持很多在 Spark RDD 上常规可用的转换操作。一些常见的如下：
 
 转换操作|描述
 ---|---
-map(func)|对DStream中的每个元素应用给定函数，返回各个元素输出的元素组成的DStream
+map(func)| 对 DStream 中的每个元素应用给定函数，返回各个元素输出的元素组成的 DStream
 flatMap(func)|对DStream中的每个元素应用给定函数，返回各个元素输出的迭代器组成的DStream
 filter(func)|返回由给定DStream中通过筛选的元素组成的DStream
 union(otherStream)|返回一个新的DStream，它包含源DStream和otherDStream中元素的并集
@@ -13,15 +10,11 @@ count()|通过计算源DStream的每个RDD中的元素数量，返回只包含�
 reduceByKey(func, [numTasks])|将每个批次中键相同的记录归约
 groupByKey()|将每个批次中的记录根据键分组
 
+> 尽管这些函数看起来好像作用在整个流上一样，但是事实上每个DStream在内部是由许多RDD(批次)组成的，且无状态转化操作是分别应用到每个RDD上的．例如reduceByKey会归约每个时间区间中的数据，但不会归约不同区间之间的数据．
 
-==备注==
+## 1. UpdateStateByKey 操作
 
-尽管这些函数看起来好像作用在整个流上一样，但是事实上每个DStream在内部是由许多RDD(批次)组成的，且无状态转化操作是分别应用到每个RDD上的．例如reduceByKey会归约每个时间区间中的数据，但不会归约不同区间之间的数据．
-
-
-#### 2. UpdateStateByKey 操作
-
-`updateStateByKey`操作允许你在使用新信息持续更新时可以保持任意状态。有时，我们需要在DStream中跨批次维护状态(例如，跟踪用户访问网站的会话)．针对这种情况，`updateStateByKey`为我们提供了对一个状态变量的访问，用于键值对形式的DStream．要使用`updateStateByKey`，你将不得不做两个步骤：
+`updateStateByKey` 操作允许你在使用新信息持续更新时可以保持任意状态。有时，我们需要在DStream中跨批次维护状态(例如，跟踪用户访问网站的会话)．针对这种情况，`updateStateByKey`为我们提供了对一个状态变量的访问，用于键值对形式的DStream．要使用`updateStateByKey`，你将不得不做两个步骤：
 
 - 定义状态 - 状态可以是任意数据类型。
 - 定义状态更新函数 - 使用指定函数会告诉你如何使用以前的状态以及来自输入流的新值来更新状态。
@@ -74,7 +67,7 @@ runningCounts = pairs.updateStateByKey(updateFunction)
 
 请注意，使用updateStateByKey需要配置检查点目录，这在[检查点部分](http://spark.apache.org/docs/latest/streaming-programming-guide.html#checkpointing)将详细讨论。
 
-#### 2.2 Transform 操作
+## 2. Transform 操作
 
 `Transform`操作符，可以让你直接操作其内部的RDD．`Transform`操作（以及其变体如`transformWith`）允许你对DStream提供任意一个RDD到RDD函数． 这个函数会在数据流中的每个批次中被调用，生成一个新的流．它可使用任何未在DStream API中公开的RDD操作。例如，将数据流中每个批次数据与其他数据集进行聚合的功能不会直接在DStream API中开放。 但是，你可以轻松地使用`Transform`来做到这一点。 这使得非常强大的可能性。 例如，可以通过将输入数据流与预先计算的垃圾邮件信息(也可能是由Spark生成)进行聚合进行实时数据清理，然后基于它进行过滤。
 
@@ -111,7 +104,7 @@ cleanedDStream = wordCounts.transform(lambda rdd: rdd.join(spamInfoRDD).filter(.
 请注意，提供的函数在每个批次间隔被调用(the supplied function gets called in every batch interval)(其调用时间间隔与批次间隔是相同的)。这允许你基于时间改变对RDD操作，如在不同批次调用不同的RDD操作，设置不同的分区数，广播变量等．
 
 
-#### 2.3 Window 操作
+## 3. Window 操作
 
 `Spark Streaming`还提供了窗口计算，允许你在数据的滑动窗口上应用转换操作．下图说明了这个滑动窗口：
 
@@ -159,11 +152,11 @@ reduceByKeyAndWindow(func, windowLength, slideInterval, [numTasks])|基于(K, V)
 reduceByKeyAndWindow(func, invFunc, windowLength, slideInterval, [numTasks])|和前面的reduceByKeyAndWindow() 类似，只是这个版本会用之前滑动窗口计算结果，递增地计算每个窗口的归约结果。当新的数据进入窗口时，这些values会被输入func做归约计算，而这些数据离开窗口时，对应的这些values又会被输入 invFunc 做”反归约”计算。举个简单的例子，就是把新进入窗口数据中各个单词个数“增加”到各个单词统计结果上，同时把离开窗口数据中各个单词的统计个数从相应的统计结果中“减掉”。不过，你的自己定义好”反归约”函数，即：该算子不仅有归约函数（见参数func），还得有一个对应的”反归约”函数（见参数中的 invFunc）。和前面的reduceByKeyAndWindow() 类似，该算子也有一个可选参数numTasks来指定并行任务数。注意，这个算子需要配置好检查点（checkpointing）才能用。
 countByValueAndWindow(windowLength, slideInterval, [numTasks])|基于包含(K, V)键值对的DStream，返回新的包含(K, Long)键值对的DStream。其中的Long value都是滑动窗口内key出现次数的计数。和前面的reduceByKeyAndWindow() 类似，该算子也有一个可选参数numTasks来指定并行任务数。
 
-#### 2.4. Join 操作
+## 4. Join 操作
 
 最后，强调的是，你可以轻松地在`Spark Streaming`中执行不同类型的连接。
 
-##### 2.4.1 Stream-stream joins
+### 4.1 Stream-stream joins
 
 流可以非常容易地与其他流Join。
 
@@ -205,7 +198,7 @@ windowedStream1 = stream1.window(20)
 windowedStream2 = stream2.window(60)
 joinedStream = windowedStream1.join(windowedStream2)
 ```
-##### 2.4.2 Stream-dataset joins
+### 4.2 Stream-dataset joins
 
 这在前面执行DStream.transform操作时已经展示过了. 这是另一个窗口流与数据集进行连接的例子．
 
@@ -238,4 +231,3 @@ joinedStream = windowedStream.transform(lambda rdd: rdd.join(dataset))
 实际上，在上面代码里，你可以动态地改变进行连接的数据集（dataset）.传给`tranform`操作的函数会在每个批次重新求值，所以每次该函数都会使用当前的数据集，`dataset`指向的数据集．
 
 DStream转换操作完整列表可在API文档中找到。 对于Scala API，请参阅[DStream](http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.streaming.dstream.DStream)和[PairDStreamFunction](http://spark.apache.org/docs/latest/api/scala/index.html#org.apache.spark.streaming.dstream.PairDStreamFunctions)。 对于Java API，请参阅[JavaDStream](http://spark.apache.org/docs/latest/api/java/index.html?org/apache/spark/streaming/api/java/JavaDStream.html)和[JavaPairDStream](http://spark.apache.org/docs/latest/api/java/index.html?org/apache/spark/streaming/api/java/JavaPairDStream.html)。 对于Python API，请参阅[DStream](http://spark.apache.org/docs/latest/api/python/pyspark.streaming.html#pyspark.streaming.DStream)。
-

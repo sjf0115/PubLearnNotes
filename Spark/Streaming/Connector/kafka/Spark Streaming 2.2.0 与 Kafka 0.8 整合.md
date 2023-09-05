@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Spark Streaming 与 Kafka0.8 整合
+title: Spark Streaming 与 Kafka 0.8 整合
 date: 2018-03-16 11:28:01
 tags:
   - Spark
@@ -26,9 +26,7 @@ permalink: spark-streaming-kafka-0-8-integration
 
 ## 1. 基于 Receiver 的方法
 
-第一种方法是使用 Receiver 来接收 Kafka 中的数据，是通过 Kafka 高级消费者 API 实现的。与所有接收方一样，通过 Receiver 从 Kafka 接收的数据存储在 Spark Executors 中，然后由 Spark Streaming 启动的作业处理数据。
-
-但是，在默认配置下，这种方法可能会在失败时丢失数据（请参阅[接收器的可靠性](http://spark.apache.org/docs/2.2.0/streaming-programming-guide.html#receiver-reliability)）。为确保数据不丢失，不得不另外启用 Spark Streaming 中的 `Write Ahead Logs` 功能（在 Spark 1.2 中引入）。将所有收到的 Kafka 数据保存在分布式文件系统（例如HDFS）的 `Write Ahead Logs` 中，以便在发生故障时恢复所有数据。有关 `Write Ahead Logs` 的更多详细信息，请参阅流编程指南中的[部署](http://spark.apache.org/docs/2.2.0/streaming-programming-guide.html#deploying-applications)章节。
+第一种方法是使用 Receiver 来接收 Kafka 中的数据，通过 Kafka 的高级消费者 API 实现的。与所有接收方一样，通过 Receiver 从 Kafka 接收的数据存储在 Spark Executors 中，然后由 Spark Streaming 启动的作业处理数据。但是，在默认配置下，这种方法可能会在失败时丢失数据（请参阅[接收器的可靠性](http://spark.apache.org/docs/2.2.0/streaming-programming-guide.html#receiver-reliability)）。为确保数据不丢失，必须启用 Spark Streaming 中的预写日志 `Write Ahead Logs` 功能（在 Spark 1.2 中引入）。将所有收到的 Kafka 数据保存在分布式文件系统（例如 HDFS）的预写日志中，以便在发生故障时恢复所有数据。有关 `Write Ahead Logs` 的更多详细信息，请参阅流编程指南中的[部署](http://spark.apache.org/docs/2.2.0/streaming-programming-guide.html#deploying-applications)章节。
 
 接下来，我们将讨论如何在流应用程序中使用这种方法。
 
@@ -38,7 +36,7 @@ permalink: spark-streaming-kafka-0-8-integration
 ```xml
 <dependency>
     <groupId>org.apache.spark</groupId>
-    <artifactId>spark-streaming_2.11</artifactId>
+    <artifactId>spark-streaming-kafka-0-8_2.11</artifactId>
     <version>2.2.0</version>
 </dependency>
 ```
@@ -54,18 +52,18 @@ JavaPairReceiverInputDStream<String, String> kafkaStream =
     [ZK quorum], [consumer group id], [per-topic number of Kafka partitions to consume]);
 ```
 
-默认情况下，Python API 会将 Kafka 数据解码为 UTF8 编码的字符串。你可以指定自定义解码函数，将 Kafka 记录中的字节数组解码为任意任意数据类型。 查看[API文档](http://spark.apache.org/docs/2.3.0/api/python/pyspark.streaming.html#pyspark.streaming.kafka.KafkaUtils)。
+默认情况下，Python API 会将 Kafka 数据解码为 UTF8 编码的字符串。你可以指定自定义解码函数，将 Kafka 记录中的字节数组解码为任意任意数据类型。 查看[API文档](http://spark.apache.org/docs/2.2.0/api/python/pyspark.streaming.html#pyspark.streaming.kafka.KafkaUtils)。
 
-请记住:
-- Kafka 中的 topic partition 区与 Spark Streaming 中生成的 RDD partition 没有关系。因此增加 KafkaUtils.createStream() 中特定 topic partition 的数量仅仅增加了在单个接收器中消费 topic 使用的线程数。但是这并没有增加 Spark 在处理数据的并行度。
+在这需要记住的是:
+- Kafka 中的 Topic 分区与 Spark Streaming 中生成的 RDD partition 没有关系。因此增加 KafkaUtils.createStream() 中特定 topic partition 的数量仅仅增加了在单个接收器中消费 topic 使用的线程数。但是这并没有增加 Spark 在处理数据的并行度。
 - 可以用不同的 groups 和 topics 来创建多个 Kafka 输入 DStream，用于使用多个接收器并行接收数据。之后可以利用 union 来合并成一个 Dstream。
 - 如果你使用 HDFS 等副本文件系统去启用 `Write Ahead Logs`，那么接收到的数据已经在日志中备份。因此，输入流的存储级别为 StorageLevel.MEMORY_AND_DISK_SER（即使用KafkaUtils.createStream（...，StorageLevel.MEMORY_AND_DISK_SER））。
 
 ### 1.3 部署
 
-与任何 Spark 应用程序一样，spark-submit 用于启动你的应用程序。但是，Scala/Java　应用程序和 Python 应用程序的细节略有不同。对于 Scala 和 Java 应用程序，如果你使用 SBT 或 Maven 进行项目管理，需要将 spark-streaming-kafka-0-8_2.11 及其依赖项打包到应用程序 JAR 中。同时确保 spark-core_2.11 和 spark-streaming_2.11 被标记为 provided 依赖关系，因为这些已经存在 Spark 的安装中。最后使用 spark-submit 启动你的应用程序。
+与任何 Spark 应用程序一样，spark-submit 用于启动你的应用程序。但是，Scala/Java　应用程序和 Python 应用程序的细节略有不同。对于 Scala 和 Java 应用程序，如果你使用 SBT 或 Maven 进行项目管理，需要将 `spark-streaming-kafka-0-8_2.11` 及其依赖项打包到应用程序 JAR 中。同时确保 `spark-core_2.11` 和 `spark-streaming_2.11` 被标记为 provided 依赖关系，因为这些已经存在 Spark 的安装中。最后使用 spark-submit 启动你的应用程序。
 
-对于缺乏　SBT/Maven 项目管理的 Python 应用程序，可以使用 --packages 直接将 spark-streaming-kafka-0-8_2.11 及其依赖添加到 spark-submit 中，如下所示：
+对于缺乏　SBT/Maven 项目管理的 Python 应用程序，可以使用 `--packages` 直接将 `spark-streaming-kafka-0-8_2.11` 及其依赖添加到 spark-submit 中，如下所示：
 ```
 ./bin/spark-submit --packages org.apache.spark:spark-streaming-kafka-0-8_2.11:2.3.0 ...
 ```
@@ -75,12 +73,12 @@ JavaPairReceiverInputDStream<String, String> kafkaStream =
 
 ## 2. 不使用 Receiver 的方法
 
-这种新的没有接收器的 "直接" 方法已在 Spark 1.3 中引入，以确保更强大的端到端保证。这个方法不使用接收器接收数据，而是定期查询 Kafka 每个 topic+partition 中的最新偏移量，并相应地定义了要在每个批次中要处理的偏移量范围。当处理数据的作业启动后，Kafka 的简单消费者API用于从 Kafka 中读取定义的偏移量范围（类似于从文件系统读取文件）。请注意，此特征是在 Spark 1.3 中为 Scala 和 Java API 引入的，Python API 在 Spark 1.4 中引入。
+这种新的没有接收器的 "直接" 方法已在 Spark 1.3 中引入，以确保更强大的端到端保证。这个方法不使用接收器接收数据，而是定期查询 Kafka 每个 topic+partition 中的最新偏移量，并相应地定义了要在每个批次中要处理的偏移量范围。当处理数据的作业启动后，使用 Kafka 的简单消费者 API 从 Kafka 中读取定义的偏移量范围（类似于从文件系统读取文件）。请注意，此特征是在 Spark 1.3 中为 Scala 和 Java API 引入的，Python API 在 Spark 1.4 中引入。
 
 与基于 Receiver 的方法相比，该方法具有以下优点：
-- 简化并行：不需要创建多个 Kafka 输入 Stream 然后将其合并。使用 directStream ， Spark Streaming 将创建与可以消费的 Kafka partition 一样多的 RDD partition，这些 partition 将全部从 Kafka 并行读取数据。 因此，Kafka 和 RDD partition 之间有一对一的映射关系，这更易于理解和调整。
-- 效率：在第一种方法中实现零数据丢失需要将数据存储在 `Write Ahead Log` 中，这会进行数据的拷贝。这样效率比较低下，因为数据被有效地复制了两次 - 一次是 Kafka 进行的，另一次是通过 Write Ahead Log 进行的。因为没有　Receiver，所以第二种方法不存在这个问题，因此不需要 `Write Ahead Log`。只要我们 Kafka 的数据保留足够长的时间，就可以从 Kafka 恢复信息。
-- Exactly-once 语义：第一种方法使用 Kafka 的高级API在 Zookeeper 中存储消费的偏移量。这是传统的从　Kafka　上消费数据的方式。尽管这种方法（结合 `Write Ahead Log` 使用）可以确保零数据丢失（即 at-least once 语义），但在某些失败情况下，有一些记录可能会消耗两次。发生这种情况是因为 Spark Streaming 可靠接收的数据与 Zookeeper 跟踪的偏移之间不一致。因此，在第二种方法中，我们使用不使用 Zookeeper 的简单 Kafka API。在其检查点内，Spark Streaming 跟踪偏移量。这消除了 Spark Streaming 和 Zookeeper/Kafka 之间的不一致性，因此 Spark Streaming 每条记录在即使发生故障时也可以确切地收到一次。为了实现输出结果的 exactly-once 语义，将数据保存到外部数据存储区的输出操作必须是幂等的，或者是保存结果和偏移量的原子事务（请参阅主程序中输出操作的语义指南获取更多信息）。
+- 简化并行：不需要创建多个 Kafka 输入 Stream 然后将其合并。使用 directStream，Spark Streaming 可以创建与 Kafka partition 一样多的 RDD partition，这些 partition 将全部从 Kafka 并行读取数据。因此，Kafka 和 RDD partition 之间有一对一的映射关系，这更易于理解和调整。
+- 效率：在第一种方法中实现零数据丢失需要将数据存储在 `Write Ahead Log` 中，这会进行数据的拷贝。这样效率比较低下，因为数据被复制了两次：一次是 Kafka 进行的，另一次是通过 Write Ahead Log 进行的。因为没有 Receiver，所以第二种方法不存在这个问题，因此不需要 `Write Ahead Log`。只要我们 Kafka 的数据保留足够长的时间，就可以从 Kafka 恢复信息。
+- Exactly-once 语义：第一种方法使用 Kafka 的高级 API 在 Zookeeper 中存储消费的偏移量。这是从　Kafka　中消费数据的传统方式。尽管这种方法（结合 `Write Ahead Log` 使用）可以确保零数据丢失（即 At-Least Once 语义），但在某些失败情况下，有一些记录可能会消费两次。发生这种情况是因为 Spark Streaming 可靠接收的数据与 Zookeeper 跟踪的偏移之间不一致。因此，在第二种方法中，我们使用简单 Kafka API，不再依赖 Zookeeper。在其检查点内，Spark Streaming 跟踪偏移量。这消除了 Spark Streaming 和 Zookeeper/Kafka 之间的不一致性，因此 Spark Streaming 每条记录在即使发生故障时也可以确切地收到一次。为了实现输出结果的 exactly-once 语义，将数据保存到外部数据存储区的输出操作必须是幂等的，或者是保存结果和偏移量的原子事务（请参阅主程序中[输出操作的语义指南](https://spark.apache.org/docs/2.2.0/streaming-programming-guide.html#semantics-of-output-operations)获取更多信息）。
 
 请注意，这种方法的一个缺点是它不会更新 Zookeeper 中的偏移量，因此基于 Zookeeper 的 Kafka 监控工具不会显示进度。但是，你可以在每个批次中访问由此方法处理的偏移量，并自己更新　Zookeeper（请参见下文）。
 
@@ -88,11 +86,13 @@ JavaPairReceiverInputDStream<String, String> kafkaStream =
 
 ### ２.1 引入
 
-对于使用 SBT/Maven 项目定义的 Scala/Java 应用程序，请引入如下工件（请参阅主编程指南中的[Linking](http://spark.apache.org/docs/2.3.0/streaming-programming-guide.html#linking)部分以获取更多信息）。
-```
-groupId = org.apache.spark
-artifactId = spark-streaming-kafka-0-8_2.11
-version = 2.3.0
+对于使用 SBT/Maven 项目定义的 Scala/Java 应用程序，请引入如下依赖：
+```xml
+<dependency>
+    <groupId>org.apache.spark</groupId>
+    <artifactId>spark-streaming-kafka-0-8_2.11</artifactId>
+    <version>2.2.0</version>
+</dependency>
 ```
 ### ２.2 编程
 
@@ -135,4 +135,4 @@ System.out.println(
 
 这与第一种方法相同。
 
-原文：http://spark.apache.org/docs/2.3.0/streaming-kafka-0-8-integration.html
+原文：[Spark Streaming + Kafka Integration Guide (Kafka broker version 0.8.2.1 or higher)](https://spark.apache.org/docs/2.2.0/streaming-kafka-0-8-integration.html)

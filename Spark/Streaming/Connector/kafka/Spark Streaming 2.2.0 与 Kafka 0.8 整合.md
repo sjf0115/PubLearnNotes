@@ -12,8 +12,6 @@ permalink: spark-streaming-kafka-0-8-integration
 ---
 
 > Spark 版本 2.2.0
-
-> Spark版本： 2.3.0
 > Kafka版本：0.8
 
 在这篇文章我们主要讲解一下如何配置 Spark Streaming 来接收 Kafka 的数据，一共有两种方法：
@@ -106,9 +104,7 @@ JavaPairInputDStream<String, String> directKafkaStream =
         [map of Kafka parameters], [set of topics to consume]);
 ```
 
-你还可以将 messageHandler 传递给 createDirectStream 来访问 MessageAndMetadata，其包含了当前消息的元数据，并可以将其转换为任意所需的类型。
-
-在 Kafka 参数中，必须指定 metadata.broker.list 或 bootstrap.servers。默认情况下，它将从每个 Kafka 分区的最新偏移量开始消费。如果你将 Kafka 参数中的 `auto.offset.reset` 配置为 `smallest`，那么它将从最小偏移量开始消费。
+你还可以将 messageHandler 传递给 createDirectStream 来访问 MessageAndMetadata，其包含了当前消息的元数据，并可以将其转换为任意所需的类型。在 Kafka 参数中，必须指定 metadata.broker.list 或 bootstrap.servers。默认情况下，它将从每个 Kafka 分区的最新偏移量开始消费。如果你将 Kafka 参数中的 `auto.offset.reset` 配置为 `smallest`，那么它将从最小偏移量开始消费。
 
 你也可以使用 KafkaUtils.createDirectStream 的其他变体从任意偏移量开始消费。此外，如果你想访问每个批次中消费的偏移量，你可以执行以下操作：
 ```java

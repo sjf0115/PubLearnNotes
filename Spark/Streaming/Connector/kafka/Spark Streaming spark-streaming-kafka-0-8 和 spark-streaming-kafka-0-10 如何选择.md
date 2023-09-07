@@ -2,7 +2,7 @@ Kafka 在 0.8 和 0.10 之间引入了一种新的消费者 API，因此 Spark S
 - spark-streaming-kafka-0-8
 - spark-streaming-kafka-0-10
 
-需要根据 Kafka 版本以及所需的功能选择正确的依赖包。需要注意的是 与 0.8 的集成（spark-streaming-kafka-0-8）可以兼容 Kafka 0.8 版本之后的版本，但是与 0.10 的集成（spark-streaming-kafka-0-10）与 Kafka 0.10 版本之前的版本不兼容。
+需要根据 Kafka 版本以及所需的功能选择正确的依赖包。需要注意的是与 0.8 的集成（spark-streaming-kafka-0-8）可以兼容 Kafka 0.8 版本之后的版本，但是与 0.10 的集成（spark-streaming-kafka-0-10）与 Kafka 0.10 版本之前的版本不兼容。
 
 ## 1. spark-streaming-kafka-0-8
 

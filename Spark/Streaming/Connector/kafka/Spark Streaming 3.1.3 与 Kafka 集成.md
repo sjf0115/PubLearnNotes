@@ -93,15 +93,53 @@ Kafka 在失败情况下的交付语义取决于如何以及何时存储偏移�
 
 ### 7.1 Checkpoints
 
-如果要启用 Spark Checkpoints，偏移量可以存储在 Checkpoints 中。这很容易实现，但也有缺点。你的输出操作必须是幂等的，因为你会得到重复的输出;事务不是一种选择。此外，如果应用程序代码发生更改，则无法从检查点恢复。对于计划的升级，您可以通过同时运行新代码和旧代码来缓解这种情况(因为输出无论如何都需要是幂等的，它们不应该冲突)。但是对于需要更改代码的计划外故障，您将丢失数据，除非您有另一种方法来识别已知的良好起始偏移量。
+如果要启用 Spark Checkpoints，偏移量可以存储在 Checkpoints 中。这很容易实现，但也有缺点。你的输出操作必须是幂等的，因为你会得到重复的输出。此外，如果应用程序代码发生更改，则无法从检查点恢复。对于有计划的升级，您可以通过同时运行新代码和旧代码来缓解这种情况(因为输出无论如何都需要是幂等的，它们不应该冲突)。但是对于需要更改代码的计划外故障，可能会丢失数据，除非您有另一种方法来识别已知的良好起始偏移量。
 
+### 7.2 Kafka
 
+Kafka 有一个偏移量提交 API，可以将偏移量存储在一个特殊的 Kafka Topic 中。默认情况下，新消费者 API 会定期自动提交偏移量。这几乎肯定不是您想要的，因为消费者成功轮询的消息 Spark 可能还没有输出。这就是为什么上面的流示例将 `enable.auto.commit` 设置为 false 的原因。你可以在知道你的输出已经被存储之后，使用 commitAsync API 向 Kafka 提交偏移量。与 Checkpoints 相比，Kafka 是一个持久的存储，无论你的应用程序代码如何变化，存储的 Offset 都不会丢失。然而，Kafka 不是事务性的，所以你的输出仍然必须是幂等的。
 
+```java
+stream.foreachRDD(rdd -> {
+  OffsetRange[] offsetRanges = ((HasOffsetRanges) rdd.rdd()).offsetRanges();
+  // some time later, after outputs have completed
+  ((CanCommitOffsets) stream.inputDStream()).commitAsync(offsetRanges);
+});
+```
 
+### 7.3 自己的存储
 
+对于支持事务的数据存储，在同一个事务中保存偏移量可以使结果和偏移量保持同步，即使在出现故障的情况下也是如此。如果您注意检测重复或跳过的偏移范围，则回滚事务可以防止重复或丢失的消息影响结果。这相当于 Exactly-Once 语义。甚至对于聚合产生的输出也可以使用这种策略，因为聚合通常很难使其幂等。
 
+```java
+// The details depend on your data store, but the general idea looks like this
 
+// begin from the offsets committed to the database
+Map<TopicPartition, Long> fromOffsets = new HashMap<>();
+for (resultSet : selectOffsetsFromYourDatabase)
+  fromOffsets.put(new TopicPartition(resultSet.string("topic"), resultSet.int("partition")), resultSet.long("offset"));
+}
 
+JavaInputDStream<ConsumerRecord<String, String>> stream = KafkaUtils.createDirectStream(
+  streamingContext,
+  LocationStrategies.PreferConsistent(),
+  ConsumerStrategies.<String, String>Assign(fromOffsets.keySet(), kafkaParams, fromOffsets)
+);
+
+stream.foreachRDD(rdd -> {
+  OffsetRange[] offsetRanges = ((HasOffsetRanges) rdd.rdd()).offsetRanges();
+
+  Object results = yourCalculation(rdd);
+
+  // begin your transaction
+
+  // update results
+  // update offsets where the end of existing offsets matches the beginning of this batch of offsets
+  // assert that offsets were updated correctly
+
+  // end your transaction
+});
+```
 
 
 

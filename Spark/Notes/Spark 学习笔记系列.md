@@ -16,6 +16,7 @@
 - [x] [Spark Streaming 核心抽象 DStream](https://smartsi.blog.csdn.net/article/details/59124906)
 - [x] [Spark Streaming 初始化 StreamingContext](https://smartsi.blog.csdn.net/article/details/59124645)
 - [x] [Spark Streaming 如何使用 UpdateStateByKey 实现有状态应用](https://smartsi.blog.csdn.net/article/details/132778404)
+- [x] [Spark Streaming 如何使用 MapWithState 实现有状态应用](https://smartsi.blog.csdn.net/article/details/132787728)
 
 ### 3.2 Connector
 

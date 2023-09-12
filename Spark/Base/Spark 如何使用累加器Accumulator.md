@@ -11,7 +11,7 @@ categories: Spark
 permalink: spark-base-how-to-use-accumulator
 ---
 
-Accumulator 是 Spark 提供的累加器，累加器可以用来实现计数器（如在 MapReduce 中）或者求和。Spark 本身支持数字类型的累加器，程序员可以添加对新类型的支持。
+Accumulator 是 Spark 提供的用来实现计数器或者求和的累加器。Spark 本身支持数字类型的累加器，此外还可以添加对新类型的支持。
 
 ### 1. 内置累加器
 

@@ -31,3 +31,8 @@
 ### 3.4 容错
 
 - [x] [Spark Streaming 容错改进与零数据丢失](https://smartsi.blog.csdn.net/article/details/127246265)
+
+### 3.5 案例
+
+- [x] [携程如何基于 Spark Streaming 构建实时计算平台](https://smartsi.blog.csdn.net/article/details/132791729)
+- [x] [Spark Streaming在小米数据流应用中的Checkpoint相关问题](https://smartsi.blog.csdn.net/article/details/132840899)

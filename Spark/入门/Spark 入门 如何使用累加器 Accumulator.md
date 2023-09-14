@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Spark 如何使用累加器 Accumulator
+title: Spark 入门 如何使用累加器 Accumulator
 date: 2018-06-04 20:28:01
 tags:
   - Spark
@@ -23,7 +23,7 @@ Accumulator<Double> doubleAccumulator2 = sparkContext.accumulator(0.0, "Double A
 Accumulator<Integer> intAccumulator2 = sparkContext.accumulator(0, "Int Accumulator 2");java
 ```
 
-在 Spark2.0.0 之后的版本中，之前的的 Accumulator 已被废除，用 AccumulatorV2 代替:
+在 Spark 2.0.0 之后的版本中，之前的的 Accumulator 已被废除，用 AccumulatorV2 代替:
 ```
 @deprecated("use AccumulatorV2", "2.0.0")
 class Accumulator[T] private[spark] (
@@ -87,7 +87,7 @@ sparkContext.sc().register(longAccumulator, "Long Accumulator");
 ```
 > LongAccumulator DoubleAccumulator 都继承自 AccumulatorV2
 
-Spark内置了数值型累加器(例如，Long，Double类型)，我们还可以通过继承 AccumulatorV2 来创建我们自己类型的累加器。
+Spark 内置了数值型累加器(例如，Long，Double类型)，我们还可以通过继承 AccumulatorV2 来创建我们自己类型的累加器。
 
 ### 2. 自定义累加器
 

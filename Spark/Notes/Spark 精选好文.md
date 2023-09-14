@@ -9,6 +9,7 @@
 - [ ] [深入浅出Spark：血统（DAG）](https://mp.weixin.qq.com/s/djHe9fz7IfX3O8ivAxodTw)
 - [ ] [深入浅出Spark（三）：Spark调度系统之“权力的游戏”](https://mp.weixin.qq.com/s/8vNw3e_aAtui9zZKSV6DXw)
 - [ ] [Spark 3.0新特性在FreeWheel核心业务数据团队的应用与实战](https://mp.weixin.qq.com/s/EBNscgvA89OsFgUhn8qgYg)
+- [ ] [Spark技术在唯品会财务系统重构中的实践总结](https://mp.weixin.qq.com/s/BT6sXZlHcufAFLgTONCHsg)
 
 ## 2. Spark SQL
 
@@ -81,6 +82,7 @@
 - [ ] []()
 - [ ] []()
 - [ ] []()
+- [ ] [Spark-StructuredStreaming checkpointLocation分析、优化耗时](https://mp.weixin.qq.com/s/uHgRbeiqxChKqG7WK3tTaQ)
 
 
 。。。

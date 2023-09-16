@@ -15,7 +15,7 @@ Spark 的难点之一就是理解跨集群执行代码时变量和方法的作�
 
 ### 1. Example
 
-考虑下面简单的 RDD 元素求和示例，以下行为可能会有所不同，具体取决于是否在同一个 JVM 内执行。一个常见的例子是以本地模式运行Spark(`--master = local [n]`)并将 Spark 应用程序部署到集群中(例如，通过 spark-submit 到 YARN)：
+考虑下面简单的 RDD 元素求和示例，执行结果可能会因为环境不同而有所不同，具体取决于是否在同一个 JVM 内执行。一个常见的例子是以本地模式运行Spark(`--master = local [n]`)并将 Spark 应用程序部署到集群中(例如，通过 spark-submit 到 YARN)：
 
 Java版本:
 ```java

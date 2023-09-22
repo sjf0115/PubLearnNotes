@@ -6,6 +6,7 @@
 - [x] [Spark 在 Yarn 上运行 Spark 应用程序](https://smartsi.blog.csdn.net/article/details/126065601)
 - [x] [Spark 入门 引入 Spark](https://smartsi.blog.csdn.net/article/details/72923835)
 - [x] [Spark 入门 初始化 Spark](https://smartsi.blog.csdn.net/article/details/72928463)
+- [x] [Spark 入门 弹性分布式数据集(RDD)](https://smartsi.blog.csdn.net/article/details/73135996)
 - [x] [Spark 入门 共享变量](https://smartsi.blog.csdn.net/article/details/132844400)
 
 ## 2. Spark SQL

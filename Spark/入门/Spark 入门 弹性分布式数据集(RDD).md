@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Spark 入门 创建 RDD
+title: Spark 入门 弹性分布式数据集(RDD)
 date: 2018-03-12 19:13:01
 tags:
   - Spark

@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Spark2.3.0 初始化
+title: Spark 入门 初始化
 date: 2018-03-12 16:28:01
 tags:
   - Spark
@@ -10,6 +10,8 @@ tags:
 categories: Spark
 permalink: spark-base-initializing-spark
 ---
+
+> Spark 版本: 3.1.3
 
 ### 1. 初始化
 
@@ -57,8 +59,6 @@ appName 参数是应用程序在集群UI上显示的名称。master 是 Spark，
  ./bin/spark-shell --master local[4] --packages "org.example:example:0.1"
 ```
 可以执行 `spark-shell --help` 获取完整的选项列表。`spark-shell` 调用的是更常用的[`spark-submit`脚本](http://blog.csdn.net/sunnyyoona/article/details/55271395)。
-
-> Spark 版本: 2.3.0
 
 
 原文：http://spark.apache.org/docs/2.3.0/rdd-programming-guide.html#initializing-spark

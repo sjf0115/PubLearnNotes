@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Spark2.3.0 RDD操作
+title: Spark 入门 RDD 操作
 date: 2018-03-12 19:13:01
 tags:
   - Spark
@@ -11,7 +11,9 @@ categories: Spark
 permalink: spark-base-rdd-operations
 ---
 
-RDD支持两种类型的操作：
+> > Spark版本: 3.1.3
+
+RDD 支持两种类型的操作：
 - 转换操作(transformations): 从现有数据集创建一个新数据集
 - 动作操作(actions): 在数据集上进行计算后将值返回给驱动程序
 
@@ -506,8 +508,4 @@ dd
 
 > 修改foreach（）之外的变量而不是累加器可能会导致未定义的行为。有关更多详细信息，请参阅了解[闭包](http://spark.apache.org/docs/2.3.0/rdd-programming-guide.html#understanding-closures-)
 
-
-> Spark版本:2.3.0
-
-
-原文：http://spark.apache.org/docs/2.3.0/rdd-programming-guide.html#rdd-operations
+原文：[RDD Operations](https://spark.apache.org/docs/3.1.3/rdd-programming-guide.html#rdd-operations)

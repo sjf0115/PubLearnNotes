@@ -11,6 +11,7 @@
 - [x] [Spark 入门 RDD 持久化](https://smartsi.blog.csdn.net/article/details/73348202)
 - [x] [Spark 入门 Shuffle 操作](https://smartsi.blog.csdn.net/article/details/133265569)
 - [x] [Spark 入门 共享变量](https://smartsi.blog.csdn.net/article/details/132844400)
+- [x] [Spark 入门 如何使用累加器 Accumulator](https://smartsi.blog.csdn.net/article/details/133693669)
 
 ## 2. Spark SQL
 

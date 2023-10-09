@@ -15,15 +15,15 @@ Accumulator 是 Spark 提供的用来实现计数器或者求和的累加器。S
 
 ### 1. 内置累加器
 
-在 Spark2.0.0 版本之前，我们可以通过调用 `SparkContext.intAccumulator()` 或 `SparkContext.doubleAccumulator()` 来创建一个 Int 或 Double 类型的累加器：
+在 Spark 2.0.0 版本之前，我们可以通过调用 `SparkContext.intAccumulator()` 或 `SparkContext.doubleAccumulator()` 来创建一个 Int 或 Double 类型的累加器：
 ```java
 Accumulator<Double> doubleAccumulator = sparkContext.doubleAccumulator(0.0, "Double Accumulator");
 Accumulator<Integer> intAccumulator = sparkContext.intAccumulator(0, "Int Accumulator");
 Accumulator<Double> doubleAccumulator2 = sparkContext.accumulator(0.0, "Double Accumulator 2");
-Accumulator<Integer> intAccumulator2 = sparkContext.accumulator(0, "Int Accumulator 2");java
+Accumulator<Integer> intAccumulator2 = sparkContext.accumulator(0, "Int Accumulator 2");
 ```
 
-在 Spark 2.0.0 之后的版本中，之前的的 Accumulator 已被废除，用 AccumulatorV2 代替:
+在 Spark 2.0.0 之后的版本中，之前的的 Accumulator 已被废除需要用 AccumulatorV2 代替:
 ```
 @deprecated("use AccumulatorV2", "2.0.0")
 class Accumulator[T] private[spark] (
@@ -54,33 +54,39 @@ def doubleAccumulator(initialValue: Double, name: String): Accumulator[java.lang
 def accumulator(initialValue: Double, name: String): Accumulator[java.lang.Double] =
   doubleAccumulator(initialValue, name)    
 ```
-我们可以通过调用 `sparkContext.sc().longAccumulator()` 或 `sparkContext.sc().doubleAccumulator()` 来创建一个 Long 或 Double 类型的累加器：
+通过 AccumulatorV2 方式创建累加器需要调用 `sparkContext.sc().longAccumulator()` 或 `sparkContext.sc().doubleAccumulator()` 方法来创建，如下所示创建一个 Long 和 Double 类型的累加器：
 ```java
 DoubleAccumulator doubleAccumulator = sparkContext.sc().doubleAccumulator("Double Accumulator");
 LongAccumulator longAccumulator = sparkContext.sc().longAccumulator("Long Accumulator");
 ```
-看一下这两个方法具体的实现：
+上述两个方法的具体实现如下所示：
 ```java
-/**
- * Create and register a long accumulator, which starts with 0 and accumulates inputs by `add`.
- */
-def longAccumulator: LongAccumulator = {
-  val acc = new LongAccumulator
-  register(acc)
-  acc
+public LongAccumulator longAccumulator() {
+    LongAccumulator acc = new LongAccumulator();
+    this.register(acc);
+    return acc;
 }
 
-/**
- * Create and register a double accumulator, which starts with 0 and accumulates inputs by `add`.
- */
-def doubleAccumulator: DoubleAccumulator = {
-  val acc = new DoubleAccumulator
-  register(acc)
-  acc
+public LongAccumulator longAccumulator(final String name) {
+    LongAccumulator acc = new LongAccumulator();
+    this.register(acc, name);
+    return acc;
+}
+
+public DoubleAccumulator doubleAccumulator() {
+    DoubleAccumulator acc = new DoubleAccumulator();
+    this.register(acc);
+    return acc;
+}
+
+public DoubleAccumulator doubleAccumulator(final String name) {
+    DoubleAccumulator acc = new DoubleAccumulator();
+    this.register(acc, name);
+    return acc;
 }
 ```
 
-通过源码我们知道分别通过创建 `LongAccumulator` 和 `DoubleAccumulator` 对象，然后进行注册来创建一个累加器。所以我们也可以使用如下方式创建一个Long类型的累加器：
+通过源码我们知道分别通过创建 `LongAccumulator` 和 `DoubleAccumulator` 对象，然后进行注册来创建一个累加器。所以我们也可以使用如下方式创建一个 Long 类型的累加器：
 ```java
 LongAccumulator longAccumulator = new LongAccumulator();
 sparkContext.sc().register(longAccumulator, "Long Accumulator");
@@ -91,7 +97,7 @@ Spark 内置了数值型累加器(例如，Long，Double类型)，我们还可�
 
 ### 2. 自定义累加器
 
-自定义累加器类型的功能在 1.x 版本中就已经提供了，但是使用起来比较麻烦，在 Spark 2.0.0 版本后，累加器的易用性有了较大的改进，而且官方还提供了一个新的抽象类：AccumulatorV2 来提供更加友好的自定义类型累加器的实现方式。官方同时给出了一个实现的示例：CollectionAccumulator，这个类允许以集合的形式收集 Spark 应用执行过程中的一些信息。例如，我们可以用这个类收集 Spark 处理数据过程中的非法数据或者引起异常的异常数据，这对我们处理异常时很有帮助。当然，由于累加器的值最终要汇聚到 Driver 端，为了避免 Driver 端的出现 OOM，需要收集的数据规模不宜过大。
+自定义累加器类型的功能在 1.x 版本中就已经提供了，但是使用起来比较麻烦，在 Spark 2.0.0 版本后，累加器的易用性有了较大的改进，而且官方还提供了一个新的抽象类 AccumulatorV2 来提供更加友好的自定义类型累加器的实现方式。官方同时给出了一个实现的示例：CollectionAccumulator，这个类允许以集合的形式收集 Spark 应用执行过程中的一些信息。例如，我们可以用这个类收集 Spark 处理数据过程中的非法数据或者引起异常的异常数据，这对我们处理异常时很有帮助。当然，由于累加器的值最终要汇聚到 Driver 端，为了避免 Driver 端的出现 OOM，需要收集的数据规模不宜过大。
 
 实现自定义类型累加器需要继承 AccumulatorV2 并覆盖下面几个方法：
 - reset 将累加器重置为零
@@ -100,51 +106,38 @@ Spark 内置了数值型累加器(例如，Long，Double类型)，我们还可�
 
 下面这个累加器可以用于在程序运行过程中收集一些异常或者非法数据，最终以 `List[String]` 的形式返回：
 ```java
-package com.sjf.open.spark;
+public static class CollectionAccumulator<T> extends AccumulatorV2<T, List<T>> {
 
-import com.google.common.collect.Lists;
-import org.apache.spark.util.AccumulatorV2;
-
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * 自定义累加器 CollectionAccumulator
- * @author sjf0115
- * @Date Created in 下午2:11 18-6-4
- */
-public class CollectionAccumulator<T> extends AccumulatorV2<T, List<T>> {
-
-    private List<T> list = Lists.newArrayList();
+    private List<T> collection = Lists.newArrayList();
 
     @Override
     public boolean isZero() {
-        return list.isEmpty();
+        return collection.isEmpty();
     }
 
     @Override
     public AccumulatorV2<T, List<T>> copy() {
         CollectionAccumulator<T> accumulator = new CollectionAccumulator<>();
         synchronized (accumulator) {
-            accumulator.list.addAll(list);
+            accumulator.collection.addAll(collection);
         }
         return accumulator;
     }
 
     @Override
     public void reset() {
-        list.clear();
+        collection.clear();
     }
 
     @Override
     public void add(T v) {
-        list.add(v);
+        collection.add(v);
     }
 
     @Override
     public void merge(AccumulatorV2<T, List<T>> other) {
         if(other instanceof CollectionAccumulator){
-            list.addAll(((CollectionAccumulator) other).list);
+            collection.addAll(((CollectionAccumulator) other).collection);
         }
         else {
             throw new UnsupportedOperationException("Cannot merge " + this.getClass().getName() + " with " + other.getClass().getName());
@@ -153,79 +146,46 @@ public class CollectionAccumulator<T> extends AccumulatorV2<T, List<T>> {
 
     @Override
     public List<T> value() {
-        return new ArrayList<>(list);
+        return new ArrayList<>(collection);
     }
 }
 ```
 下面我们在数据处理过程中收集非法坐标为例，来看一下我们自定义的累加器如何使用:
 ```java
-package com.sjf.open.spark;
+public static void main(String[] args) {
+    String appName = "CustomAccumulatorExample";
+    SparkConf conf = new SparkConf().setAppName(appName).setMaster("local[*]");
+    JavaSparkContext sparkContext = new JavaSparkContext(conf);
 
-import com.google.common.collect.Lists;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.VoidFunction;
+    List<String> list = Lists.newArrayList();
+    list.add("27.34832,111.32135");
+    list.add("34.88478,185.17841");
+    list.add("39.92378,119.50802");
+    list.add("94,119.50802");
 
-import java.io.Serializable;
-import java.util.List;
-
-/**
- * 自定义累加器示例
- * @author sjf0115
- * @Date Created in 下午2:11 18-6-4
- */
-public class CustomAccumulatorExample implements Serializable{
-
-    public static void main(String[] args) {
-        String appName = "CustomAccumulatorExample";
-        SparkConf conf = new SparkConf().setAppName(appName);
-        JavaSparkContext sparkContext = new JavaSparkContext(conf);
-
-        List<String> list = Lists.newArrayList();
-        list.add("27.34832,111.32135");
-        list.add("34.88478,185.17841");
-        list.add("39.92378,119.50802");
-        list.add("94,119.50802");
-
-        CollectionAccumulator<String> collectionAccumulator = new CollectionAccumulator<>();
-        sparkContext.sc().register(collectionAccumulator, "Illegal Coordinates");
-        // 原始坐标
-        JavaRDD<String> sourceRDD = sparkContext.parallelize(list);
-        // 过滤非法坐标
-        JavaRDD<String> resultRDD = sourceRDD.filter(new Function<String, Boolean>() {
-            @Override
-            public Boolean call(String str) throws Exception {
-                String[] coordinate = str.split(",");
-                double lat = Double.parseDouble(coordinate[0]);
-                double lon = Double.parseDouble(coordinate[1]);
-                if(Math.abs(lat) > 90 || Math.abs(lon) > 180){
-                    collectionAccumulator.add(str);
-                    return true;
+    // 创建累加器
+    CollectionAccumulator<String> collectionAccumulator = new CollectionAccumulator<>();
+    // 注册累加器
+    sparkContext.sc().register(collectionAccumulator, "Illegal Coordinates");
+    // 过滤非法坐标
+    List<String> collect = sparkContext.parallelize(list)
+            .filter(new Function<String, Boolean>() {
+                @Override
+                public Boolean call(String str) throws Exception {
+                    String[] coordinate = str.split(",");
+                    double lat = Double.parseDouble(coordinate[0]);
+                    double lon = Double.parseDouble(coordinate[1]);
+                    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+                        collectionAccumulator.add(str);
+                        return true;
+                    }
+                    return false;
                 }
-                return false;
-            }
-        });
-        // 输出
-        resultRDD.foreach(new VoidFunction<String>() {
-            @Override
-            public void call(String coordinate) throws Exception {
-                System.out.println("[Data]" + coordinate);
-            }
-        });
-        // 查看异常坐标
-        for (String coordinate : collectionAccumulator.value()) {
-            System.out.println("[Illegal]: " + coordinate);
-        }
-    }
+            }).collect();
 
+    System.out.println("非法坐标采集：" + collect.toString());
+    System.out.println("非法坐标累加器记录" + collectionAccumulator.value());
 }
-```
-结果输出:
-```
-[Illegal]: 94,119.50802
-[Illegal]: 34.88478,185.17841
 ```
 
 ### 3. 累加器注意事项
@@ -235,62 +195,34 @@ public class CustomAccumulatorExample implements Serializable{
 Spark 中的一系列 transformation 操作会构成一个任务链，需要通过 action 操作来触发。累加器也是一样的，也只能通过 action 触发更新，所以在 action 操作之前调用 value 方法查看其数值是没有任何变化的。对于在 action 中更新的累加器，Spark 会保证每个任务对累加器只更新一次，即使重新启动的任务也不会重新更新该值。而如果在 transformation 中更新的累加器，如果任务或作业 stage 被重新执行，那么其对累加器的更新可能会执行多次。
 
 ```java
-package com.sjf.open.spark;
-
-import com.google.common.collect.Lists;
-import org.apache.spark.Accumulator;
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.VoidFunction;
-import org.apache.spark.util.CollectionAccumulator;
-import org.apache.spark.util.DoubleAccumulator;
-import org.apache.spark.util.LongAccumulator;
-
-import java.io.Serializable;
-import java.util.List;
-
-/**
- * 累加器陷阱
- * @author sjf0115
- * @Date Created in 下午2:11 18-6-4
- */
-public class AccumulatorTrap implements Serializable{
-
+public class AccumulatorTrap {
     public static void main(String[] args) {
         String appName = "AccumulatorTrap";
-        SparkConf conf = new SparkConf().setAppName(appName);
+        SparkConf conf = new SparkConf().setAppName(appName).setMaster("local[*]");
         JavaSparkContext sparkContext = new JavaSparkContext(conf);
 
         LongAccumulator evenAccumulator = sparkContext.sc().longAccumulator("Even Num Accumulator");
         LongAccumulator oddAccumulator = sparkContext.sc().longAccumulator("Odd Num Accumulator");
 
-        /*LongAccumulator evenAccumulator = new LongAccumulator();
-        LongAccumulator oddAccumulator = new LongAccumulator();
-
-        sparkContext.sc().register(evenAccumulator, "Even Num Accumulator");
-        sparkContext.sc().register(oddAccumulator, "Odd Num Accumulator");*/
-
         List<Integer> numList = Lists.newArrayList();
         for(int i = 0;i < 10;i++){
             numList.add(i);
         }
-        JavaRDD<Integer> numRDD = sparkContext.parallelize(numList);
 
-        // transform
-        JavaRDD<Integer> resultRDD = numRDD.map(new Function<Integer, Integer>() {
-            @Override
-            public Integer call(Integer num) throws Exception {
-                if (num % 2 == 0) {
-                    evenAccumulator.add(1L);
-                    return 0;
-                } else {
-                    oddAccumulator.add(1L);
-                    return 1;
-                }
-            }
-        });
+        JavaRDD<Integer> resultRDD = sparkContext.parallelize(numList)
+                // transform
+                .map(new Function<Integer, Integer>() {
+                    @Override
+                    public Integer call(Integer num) throws Exception {
+                        if (num % 2 == 0) {
+                            evenAccumulator.add(1L);
+                            return 0;
+                        } else {
+                            oddAccumulator.add(1L);
+                            return 1;
+                        }
+                    }
+                });
 
         // the first action
         resultRDD.count();
@@ -330,7 +262,3 @@ Odd Num Count : 5
 Even Num Count : 5
 ```
 所以在使用累加器时，为了保证准确性，最好只使用一次 action 操作。如果需要使用多次，可以使用 cache 或 persist 操作切断依赖。
-
-参考：　http://smartsi.club/2018/04/10/spark-base-shared-variables/
-
-https://blog.csdn.net/lsshlsw/article/details/50979579

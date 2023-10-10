@@ -15,6 +15,7 @@
 
 ## 2. Spark SQL
 
+- [x] [Spark SQL 入门](https://smartsi.blog.csdn.net/article/details/133736015)
 
 ## 3. Spark Streaming
 

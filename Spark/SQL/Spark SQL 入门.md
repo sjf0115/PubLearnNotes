@@ -35,10 +35,10 @@ Spark 中所有函数的入口都是 SparkSession 类。创建一个 SparkSessio
 ```java
 import org.apache.spark.sql.SparkSession;
 SparkSession spark = SparkSession
-  .builder()
-  .appName("Java Spark SQL basic example")
-  .config("spark.some.config.option", "some-value")
-  .getOrCreate();
+    .builder()
+    .appName("Java Spark SQL basic example")
+    .master("local[*]")
+    .getOrCreate();
 ```
 Spark 2.0 中的 SparkSession 为 Hive 功能提供内置支持，包括使用 HiveQL 编写查询，访问 Hive UDF 以及从 Hive 表读取数据的功能。
 
@@ -56,70 +56,67 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
 // 创建 DataFrame
-Dataset<Row> dataFrame = sparkSession.read().json("src/main/resources/person.json");
+Dataset<Row> df = sparkSession.read().json("spark-example-3.1/src/main/resources/data/people.txt");
 // 输出 DataFrame 内容
-dataFrame.show();
+df.show();
+// +----+-------+
+// | age|   name|
+// +----+-------+
+// |null|Michael|
+// |  30|   Andy|
+// |  19| Justin|
+// +----+-------+
 
-/*+----+-------+
-| age|   name|
-+----+-------+
-|null|Michael|
-|  30|   Andy|
-|  19| Justin|
-+----+-------+*/
+// Print the schema in a tree format
+df.printSchema();
+// root
+// |-- age: long (nullable = true)
+// |-- name: string (nullable = true)
 ```
 
 #### 2.3 无类型 DataSet 操作（DataFrame操作）
 
 DataFrames 为 Scala，Java，Python 和 R 中的结构化数据操作提供了一种特定领域的语言(DSL)。如上所述，在 Spark 2.0 中，DataFrames 只是 Scala 和 Java API 中的 Rows 类型的 DataSet。与强类型的 Scala/Java DataSets 中的 `类型转换` 相反，这些操作也被称为 `无类型转换`。这里我们列举了使用 DataSets 进行结构化数据处理的一些基本示例：
 ```java
-Dataset<Row> dataFrame = sparkSession.read().json("src/main/resources/person.json");
+Dataset<Row> df = sparkSession.read().json("spark-example-3.1/src/main/resources/data/people.txt");
 
-// 选择name这一列
-dataFrame.select("name").show();
-/**
- * +-------+
- |   name|
- +-------+
- |Michael|
- |   Andy|
- | Justin|
- +-------+
- */
+// 2.1 选择 name 列
+df.select("name").show();
+// +-------+
+// |   name|
+// +-------+
+// |Michael|
+// |   Andy|
+// | Justin|
+// +-------+
 
-// 选择name age列 age加一
-dataFrame.select(col("name"), col("age").plus(1)).show();
-/**
- * +-------+---------+
- |   name|(age + 1)|
- +-------+---------+
- |Michael|     null|
- |   Andy|       31|
- | Justin|       20|
- +-------+---------+
- */
+// 2.2 选择name age列 age加一
+df.select(col("name"), col("age").plus(1)).show();
+// +-------+---------+
+// |   name|(age + 1)|
+// +-------+---------+
+// |Michael|     null|
+// |   Andy|       31|
+// | Justin|       20|
+// +-------+---------+
 
-// 过滤age大于21岁
-dataFrame.filter(col("age").gt(21)).show();
-/**
- * +---+----+
- |age|name|
- +---+----+
- | 30|Andy|
- +---+----+
- */
+// 2.3 过滤age大于21岁
+df.filter(col("age").gt(21)).show();
+// +---+----+
+// |age|name|
+// +---+----+
+// | 30|Andy|
+// +---+----+
 
-// 按age分组求人数
-dataFrame.groupBy("age").count().show();
-/**
- * +----+-----+
- | age|count|
- +----+-----+
- |  19|    1|
- |null|    1|
- |  30|    1|
- +----+-----+
- */
+// 2.4 按age分组求人数
+df.groupBy("age").count().show();
+// +----+-----+
+// | age|count|
+// +----+-----+
+// |  19|    1|
+// |null|    1|
+// |  30|    1|
+// +----+-----+
 ```
 
 有关可在数据集上执行的操作类型的完整列表，请参阅[API文档](https://spark.apache.org/docs/3.1.3/api/scala/org/apache/spark/sql/Dataset.html)。
@@ -130,23 +127,20 @@ dataFrame.groupBy("age").count().show();
 
 SparkSession 上的 SQL 函数能使应用程序以编程的方式运行 SQL 查询，并将结果以 `DataSet<Row>` 形式返回。
 ```java
-// 创建DataFrame
-Dataset<Row> dataFrame = sparkSession.read().json("src/main/resources/person.json");
-// 注册 DataFrame 为 SQL 临时视图
-dataFrame.createOrReplaceTempView("people");
+// 创建 DataFrame
+Dataset<Row> df = sparkSession.read().json("spark-example-3.1/src/main/resources/data/people.txt");
+// 2.5 注册 DataFrame 为 SQL 临时视图
+df.createOrReplaceTempView("people");
 // 运行
-Dataset<Row> result = sparkSession.sql("SELECT * FROM people");
-// 输出
-result.show();
-/**
- * +----+-------+
- | age|   name|
- +----+-------+
- |null|Michael|
- |  30|   Andy|
- |  19| Justin|
- +----+-------+
- */
+Dataset<Row> sqlDF = spark.sql("SELECT * FROM people");
+sqlDF.show();
+// +----+-------+
+// | age|   name|
+// +----+-------+
+// |null|Michael|
+// |  30|   Andy|
+// |  19| Justin|
+// +----+-------+
 ```
 
 #### 2.5 全局临时视图
@@ -154,39 +148,35 @@ result.show();
 Spark SQL 中的临时视图是 Session 级别的，如果创建它的 Session 终止，临时视图也将会消失。如果要在所有 Session 之间共享临时视图，并保持活动状态保持到 Spark 应用程序终止，可以创建一个全局临时视图。全局临时视图与系统预留数据库 global_temp 相关联，我们必须使用该限定名称来引用它。例如，`SELECT * FROM global_temp.view1`。
 ```java
 // 创建DataFrame
-Dataset<Row> dataFrame = sparkSession.read().json("src/main/resources/person.json");
-// 将DataFrame注册为全局临时视图
-dataFrame.createGlobalTempView("people");
+Dataset<Row> df = sparkSession.read().json("spark-example-3.1/src/main/resources/data/people.txt");
+// 2.6 注册 DataFrame 为 SQL 全局临时视图
+df.createGlobalTempView("people");
 
 // 全局临时视图与系统保留的数据库global_temp关联
-Dataset<Row> sqlDataFrame = sparkSession.sql("SELECT * FROM global_temp.people");
+Dataset<Row> sqlDF = sparkSession.sql("SELECT * FROM global_temp.people");
 // 输出结果
-sqlDataFrame.show();
-/**
- +----+-------+
- | age|   name|
- +----+-------+
- |null|Michael|
- |  30|   Andy|
- |  19| Justin|
- +----+-------+
- */
+sqlDF.show();
+// +----+-------+
+// | age|   name|
+// +----+-------+
+// |null|Michael|
+// |  30|   Andy|
+// |  19| Justin|
+// +----+-------+
 
 // 全局临时视图是跨会话的
-Dataset<Row> sqlDataFrame2 = sparkSession.newSession().sql("SELECT * FROM global_temp.people");
-sqlDataFrame2.show();
-/**
- +----+-------+
- | age|   name|
- +----+-------+
- |null|Michael|
- |  30|   Andy|
- |  19| Justin|
- +----+-------+
- */
+Dataset<Row> sqlDF2 = sparkSession.newSession().sql("SELECT * FROM global_temp.people");
+sqlDF2.show();
+// +----+-------+
+// | age|   name|
+// +----+-------+
+// |null|Michael|
+// |  30|   Andy|
+// |  19| Justin|
+// +----+-------+
 ```
 
-#### 2.6 创建DataSet
+#### 2.6 创建 DataSet
 
 DataSet 与 RDD 类似，但是，不是使用 Java 或 Kryo 序列化，而是使用专门的 Encoder 来序列化对象以进行处理或网络传输。虽然 Encoder 和标准序列化都可以将对象转换成字节，但是 Encoder 是动态生成的代码，并使用一种让 Spark 可以执行多种操作（如过滤，排序和散列），而无需将字节反序列化成对象的格式。
 ```java
@@ -262,7 +252,7 @@ transformedDS.show();
 
 // DataFrames可以通过提供的类来转换为DataSet 基于名称映射
 // 创建DataFrame
-Dataset<Row> dataFrame = sparkSession.read().json("src/main/resources/person.json");
+Dataset<Row> dataFrame = sparkSession.read().json("spark-example-3.1/src/main/resources/data/people.txt");
 // DataFrame转换为DataSet
 Dataset<Person> peopleDS = dataFrame.as(personEncoder);
 peopleDS.show();

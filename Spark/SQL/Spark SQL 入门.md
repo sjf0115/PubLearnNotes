@@ -180,15 +180,6 @@ sqlDF2.show();
 
 DataSet 与 RDD 类似，但是，不是使用 Java 或 Kryo 序列化，而是使用专门的 Encoder 来序列化对象以进行处理或网络传输。虽然 Encoder 和标准序列化都可以将对象转换成字节，但是 Encoder 是动态生成的代码，并使用一种让 Spark 可以执行多种操作（如过滤，排序和散列），而无需将字节反序列化成对象的格式。
 ```java
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Collections;
-import org.apache.spark.api.java.function.MapFunction;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.Encoder;
-import org.apache.spark.sql.Encoders;
-
 public class Person implements Serializable{
     private String name;
     private int age;
@@ -215,7 +206,7 @@ Person person = new Person();
 person.setName("Andy");
 person.setAge(32);
 
-// 根据Java Bean创建Encoders
+// 根据 Java Bean 创建 Encoders
 Encoder<Person> personEncoder = Encoders.bean(Person.class);
 Dataset<Person> dataSet = sparkSession.createDataset(
         Collections.singletonList(person),
@@ -250,7 +241,7 @@ transformedDS.show();
  +-----+
  */
 
-// DataFrames可以通过提供的类来转换为DataSet 基于名称映射
+// DataFrame 通过 Encoders 可以转换为 DataSet，基于名称映射
 // 创建DataFrame
 Dataset<Row> dataFrame = sparkSession.read().json("spark-example-3.1/src/main/resources/data/people.txt");
 // DataFrame转换为DataSet

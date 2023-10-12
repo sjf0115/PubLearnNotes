@@ -76,7 +76,7 @@
 - [ ] [Working with Complex Data Formats with Structured Streaming in Apache Spark 2.1](https://www.databricks.com/blog/2017/02/23/working-complex-data-formats-structured-streaming-apache-spark-2-1.html)
 - [ ] [Real-time Streaming ETL with Structured Streaming in Apache Spark 2.1
 ](https://www.databricks.com/blog/2017/01/19/real-time-streaming-etl-structured-streaming-apache-spark-2-1.html)
-- [ ] [How to use SparkSession in Apache Spark 2.0](https://www.databricks.com/blog/2016/08/15/how-to-use-sparksession-in-apache-spark-2-0.html)
+- [x] [How to use SparkSession in Apache Spark 2.0](https://www.databricks.com/blog/2016/08/15/how-to-use-sparksession-in-apache-spark-2-0.html)
 - [ ] []()
 - [ ] []()
 - [ ] []()

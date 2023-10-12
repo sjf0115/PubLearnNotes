@@ -16,6 +16,7 @@
 ## 2. Spark SQL
 
 - [x] [Spark SQL 入门](https://smartsi.blog.csdn.net/article/details/133736015)
+- [x] [Spark 2.0 如何使用 SparkSession](https://smartsi.blog.csdn.net/article/details/133802560)
 
 ## 3. Spark Streaming
 

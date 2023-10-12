@@ -87,9 +87,7 @@ spark.catalog.listTables.show(false)
 
 ### 1.4 创建 DataSets 和 DataFrame
 
-使用 SparkSession API 创建 DataSets 和 DataFrame 方法有许多。
-
-快速生成 DataSets 的一种方法是使用 `spark.range` 方法。在学习如何操作 DataSets API 时，这种方法非常有用。
+使用 SparkSession API 创建 DataSets 和 DataFrame 方法有许多。快速生成 DataSets 的一种方法是使用 `spark.range` 方法。在学习如何操作 DataSets API 时，这种方法非常有用。
 ```scala
 //create a Dataset using spark.range starting from 5 to 100, with increments of 5
 val numDS = spark.range(5, 100, 5)
@@ -97,6 +95,7 @@ val numDS = spark.range(5, 100, 5)
 numDS.orderBy(desc("id")).show(5)
 //compute descriptive stats and display them
 numDs.describe().show()
+
 // create a DataFrame using spark.createDataFrame from a List or Seq
 val langPercentDF = spark.createDataFrame(List(("Scala", 35), ("Python", 30), ("R", 15), ("Java", 20)))
 //rename the columns
@@ -106,9 +105,9 @@ lpDF.orderBy(desc("percent")).show(false)
 ```
 ![](../../Image/Spark/spark-sql-how-to-use-sparksession-in-spark-2-0-2.png)
 
-### 1.5 使用SparkSession API读取JSON数据
+### 1.5 使用 SparkSession API 读取 JSON 数据
 
-和任何Scala对象一样，你可以使用 spark，SparkSession 对象来访问其公共方法和实例字段。我可以读取 JSON 或 CVS 或 TXT 文件，或者我可以读取 parquet 表。例如，在下面这段代码中，我们将读取一个邮政编码的 JSON 文件，该文件返回一个 DataFrame，Rows的集合。
+和任何 Scala 对象一样，你可以使用 spark，SparkSession 对象来访问其公共方法和实例字段。可以读取 JSON、CVS 或 TXT 文件，或者可以读取 parquet 表。例如，在下面这段代码中，我们将读取一个邮政编码的 JSON 文件，该文件返回 DataFrame，一个 Rows 的集合。
 ```scala
 // read the json file and create the dataframe
 val jsonFile = args(0)
@@ -117,7 +116,7 @@ val zipsDF = spark.read.json(jsonFile)
 zipsDF.filter(zipsDF.col("pop") > 40000).show(10)
 ```
 
-### 1.6 在SparkSession中使用Spark SQL
+### 1.6 在 SparkSession 中使用 Spark SQL
 
 通过 SparkSession，你可以像通过 SQLContext 一样访问所有 Spark SQL 功能。在下面的代码示例中，我们创建了一个表，并在其上运行 SQL 查询。
 ```scala
@@ -131,7 +130,7 @@ resultsDF.show(10)
 ```
 ![](../../Image/Spark/spark-sql-how-to-use-sparksession-in-spark-2-0-3.png)
 
-### 1.7 使用SparkSession保存和读取Hive表
+### 1.7 使用 SparkSession 保存和读取 Hive 表
 
 接下来，我们将创建一个 Hive 表，并使用 SparkSession 对象对其进行查询，就像使用 HiveContext 一样。
 ```scala
@@ -147,13 +146,13 @@ resultsHiveDF.show(10)
 
 正如你所看到的，输出中的结果通过使用 DataFrame API，Spark SQL和Hive查询运行完全相同。其次，让我们把注意力转向 SparkSession 自动为你创建的两个Spark开发人员环境。
 
-## 2. SparkSession封装SparkContext
+## 2. SparkSession 封装 SparkContext
 
 最后，对于历史上下文，让我们简单了解一下 SparkContext 的底层功能。
 
 ![](../../Image/Spark/spark-sql-how-to-use-sparksession-in-spark-2-0-5.png)
 
-如图所示，SparkContext 是一个访问 Spark 所有功能的入口；每个 JVM 仅存在一个 SparkContext。Spark Driver 使用它连接到集群管理器进行通信，提交 Spark 作业并知道要与之通信的资源管理器（YARN，Mesos或Standalone）。它允许你配置 Spark 参数。通过 SparkContext，Driver 可以访问其他上下文，如SQLContext，HiveContext和 StreamingContext 来编程Spark。
+如图所示，SparkContext 是一个访问 Spark 所有功能的入口；每个 JVM 仅存在一个 SparkContext。Spark Driver 使用它连接到集群管理器进行通信，提交 Spark 作业并知道要与之通信的资源管理器（YARN，Mesos或Standalone），允许你配置 Spark 参数。通过 SparkContext，Driver 可以访问其他上下文，如 SQLContext，HiveContext 和 StreamingContext 来编程 Spark。
 
 但是，在 Spark 2.0，SparkSession 可以通过单一统一的入口访问前面提到的所有 Spark 功能。除了使访问 DataFrame 和 Dataset API 更简单外，它还包含底层的上下文以操作数据。
 

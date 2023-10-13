@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Spark 如何使用DataSets
+title: Spark 如何使用 DataSets
 date: 2018-06-03 15:31:01
 tags:
   - Spark
@@ -11,9 +11,9 @@ categories: Spark
 permalink: spark-sql-how-to-use-datasets-in-spark
 ---
 
-开发人员一直非常喜欢Apache Spark，它提供简单但功能强大的API，这些特性的组合使得用最少的代码就可以进行复杂的分析。我们通过引入 DataFrames 和 Spark SQL 继续推动 Spark 的可用性和性能。这些是用于处理结构化数据（例如数据库表，JSON文件）的高级API，这些 API 可让 Spark 自动优化存储和计算。在这些 API 背后，Catalyst 优化器和 Tungsten 执行引擎用 Spark 面向对象（RDD）API无法实现的方式优化应用程序，例如以原始二进制形式对数据进行操作。
+开发人员一直非常喜欢 Apache Spark，因为它可以提供简单且功能强大的 API，这些特性的组合可以用最少的代码实现复杂的分析。我们通过引入 DataFrames 和 Spark SQL 继续推动 Spark 的可用性和性能。这些是用于处理结构化数据（例如数据库表，JSON文件）的高级 API，这些 API 可让 Spark 自动优化存储和计算。在这些 API 背后，Catalyst 优化器和 Tungsten 执行引擎用 Spark 面向对象（RDD）API 无法实现的方式优化应用程序，例如以原始二进制形式对数据进行操作。
 
-Spark Datasets 是 DataFrame API 的扩展，提供了一个类型安全的，面向对象的编程接口。Spark 1.6 包含 DataSets 的API预览版，它们将成为下几个 Spark 版本的开发重点。与 DataFrame 一样，DataSets 通过将表达式和数据字段公开给查询计划器(query planner)来充分利用 Spark 的 Catalyst 优化器。DataSets 还充分利用了 Tungsten 的快速内存编码。DataSets 继承了编译时类型安全性的好处 - 这意味着线上应用程序可以在运行之前检查错误。它们还允许直接对用户自定义的类操作。
+Spark Datasets 是 DataFrame API 的扩展，提供了一个类型安全的，面向对象的编程接口。Spark 1.6 包含 DataSets 的 API 预览版，它们将成为下几个 Spark 版本的开发重点。与 DataFrame 一样，DataSets 通过将表达式和数据字段公开给查询计划器(query planner)来充分利用 Spark 的 Catalyst 优化器。DataSets 还充分利用了 Tungsten 的快速内存编码。DataSets 继承了编译时类型安全性的好处 - 这意味着线上应用程序可以在运行之前检查错误。它们还允许直接对用户自定义的类操作。
 
 从长远来看，我们期望 DataSets 成为编写更高效 Spark 应用程序的强大方式。DataSets 可以与现有的 RDD API 一起使用，但是当数据可以用结构化的形式表示时，可以提高效率。Spark 1.6 首次提出了 Datasets，我们期望在未来的版本中改进它们。
 

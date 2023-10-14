@@ -16,6 +16,7 @@
 - [ ] [Spark SQL 中 Broadcast Join 一定比 Shuffle Join 快？那你就错了](https://mp.weixin.qq.com/s/5OBHLjRjOykuuaCqEthD4g)
 - [ ] [深入理解 SQL 中的 Grouping Sets 语句](https://bbs.huaweicloud.com/blogs/363546)
 - [ ] [Introducing Window Functions in Spark SQL](https://www.databricks.com/blog/2015/07/15/introducing-window-functions-in-spark-sql.html)
+- [x] [Introducing DataFrames in Apache Spark for Large Scale Data Science](https://databricks.com/blog/2015/02/17/introducing-dataframes-in-spark-for-large-scale-data-science.html)
 
 ## 3. Spark Streaming
 

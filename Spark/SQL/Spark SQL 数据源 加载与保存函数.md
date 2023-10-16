@@ -13,7 +13,7 @@ permalink: spark-sql-load-and-save-functions
 
 Spark SQL 支持通过 DataFrame 接口操作各种数据源。可以使用关系变换，也可以创建临时视图来操作 DataFrame。将 DataFrame 注册为临时视图可以允许你在其数据上运行 SQL 查询。本节介绍使用 Spark Data Sources 加载和保存数据的通用方法。
 
-### 1. Load 与 Save 函数
+
 
 最简单的，默认数据源（parquet，除非通过 `spark.sql.sources.default` 重新配置)，可以使用所有的操作。
 

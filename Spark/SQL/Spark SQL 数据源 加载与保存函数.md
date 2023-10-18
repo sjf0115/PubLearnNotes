@@ -11,6 +11,8 @@ categories: Spark
 permalink: spark-sql-load-and-save-functions
 ---
 
+> Spark 版本：3.1.3
+
 Spark SQL 支持通过 DataFrame 接口操作各种数据源。可以使用关系变换，也可以创建临时视图来操作 DataFrame。将 DataFrame 注册为临时视图可以允许你在其数据上运行 SQL 查询。本节介绍使用 Spark Data Sources 加载和保存数据的通用方法。
 
 
@@ -34,14 +36,15 @@ df.select("name", "favorite_color").write.save("namesAndFavColors.parquet")
 ```
 ## 1. 手动指定选项
 
-你还可以手动指定将要使用的是什么数据源，以及想传递给数据源的其他选项。数据源由完全限定名（例如，`org.apache.spark.sql.parquet` ）, 但是对于内置的数据源, 你也可以使用它们的简称（例如，json, parquet, jdbc, orc, libsvm, csv, text）。可以将从任何数据源类型加载的 DataFrame 转换为其他类型。
+你还可以手动指定要使用的是什么数据源，以及想传递给数据源的其他参数。数据源需要指定完全限定名（例如，`org.apache.spark.sql.parquet` ）, 但是对于内置数据源, 你也可以使用它们的简称（例如，json, parquet, jdbc, orc, libsvm, csv, text）。可以将从任何数据源类型加载的 DataFrame 转换为其他类型。
 
-你可以使用如下命令加载json文件：
+### 1.1 加载 Json 文件
+
+你可以使用如下命令加载 json 文件，如下示例从一个 Json 文件中加载为 DataFrame，然后转换为一个 parquet 文件：
 
 Java版本：
 ```java
-Dataset<Row> peopleDF =
-                sparkSession.read().format("json").load("src/main/resources/person.json");
+Dataset<Row> peopleDF = sparkSession.read().format("json").load("src/main/resources/person.json");
 peopleDF.select("name", "age").write().format("parquet").save("namesAndAges.parquet");
 ```
 Scala版本：
@@ -54,7 +57,10 @@ Python版本：
 df = sparkSession.read.load("src/main/resources/person.json", format="json")
 df.select("name", "age").write.save("namesAndAges.parquet", format="parquet")
 ```
-你可以使用如下命令加载CSV文件：
+
+### 1.2 加载 CSV 文件
+
+你可以使用如下命令加载 CSV 文件：
 
 Java版本：
 ```java
@@ -76,6 +82,49 @@ Python版本：
 ```Python
 df = spark.read.load("examples/src/main/resources/people.csv",
   format="csv", sep=":", inferSchema="true", header="true")
+```
+
+### 1.3 保存 ORC 文件
+
+这些扩展选项参数也可以在写操作中使用。例如，你可以为 ORC 数据源控制布隆过滤器和字典编码。
+
+Java版本：
+```java
+usersDF.write().format("orc")
+  .option("orc.bloom.filter.columns", "favorite_color")
+  .option("orc.dictionary.key.threshold", "1.0")
+  .option("orc.column.encoding.direct", "name")
+  .save("users_with_options.orc");
+```
+Scala版本：
+```scala
+usersDF.write.format("orc")
+  .option("orc.bloom.filter.columns", "favorite_color")
+  .option("orc.dictionary.key.threshold", "1.0")
+  .option("orc.column.encoding.direct", "name")
+  .save("users_with_options.orc")
+```
+Python版本：
+```python
+df = spark.read.orc("examples/src/main/resources/users.orc")
+(df.write.format("orc")
+    .option("orc.bloom.filter.columns", "favorite_color")
+    .option("orc.dictionary.key.threshold", "1.0")
+    .option("orc.column.encoding.direct", "name")
+    .save("users_with_options.orc"))
+```
+SQL 版本：
+```sql
+CREATE TABLE users_with_options (
+  name STRING,
+  favorite_color STRING,
+  favorite_numbers array<integer>
+) USING ORC
+OPTIONS (
+  orc.bloom.filter.columns 'favorite_color',
+  orc.dictionary.key.threshold '1.0',
+  orc.column.encoding.direct 'name'
+)
 ```
 
 ## 2. 在文件上直接运行SQL
@@ -106,7 +155,7 @@ df = sparkSession.sql("SELECT * FROM parquet.`src/main/resources/users.parquet`"
 
 ## 3. SaveMode
 
-保存操作可以选择使用 SaveMode，指定如何处理现有数据（如果存在）。我们需要知道这些保存模式不使用任何锁并且不是原子的。此外，执行 Overwrite，在写入新数据之前数据会被删除。
+保存操作可以选择使用 SaveMode 来指定如何处理现有数据（如果存在）。我们需要知道这些保存模式不使用任何锁并且不是原子的。此外，执行 Overwrite，在写入新数据之前旧数据会被删除。
 
 Scala/Java|Any Language|含义
 ---|---|---
@@ -114,6 +163,7 @@ SaveMode.ErrorIfExists (默认)	|error或者errorifexists (默认)	|将 DataFram
 SaveMode.Append| append |将 DataFrame 保存到数据源时, 如果数据/表已存在, 那么 DataFrame 的内容将被追加到现有数据中。
 SaveMode.Overwrite|	overwrite|	Overwrite 模式意味着将 DataFrame 保存到数据源时，如果数据/表已经存在，那么 DataFrame 的内容将覆盖现有数据。
 SaveMode.Ignore| ignore| Ignore 模式意味着当将 DataFrame 保存到数据源时，如果数据已经存在，那么保存操作不会保存 DataFrame 的内容, 并且不更改现有数据。这与 SQL 中的 `CREATE TABLE IF NOT EXISTS` 类似。
+
 
 ## 4. 保存到持久化表中
 
@@ -192,7 +242,5 @@ df = spark.read.parquet("examples/src/main/resources/users.parquet")
 ```
 
 partitionBy 创建一个目录结构, 如 [Partition Discovery](http://spark.apache.org/docs/latest/sql-programming-guide.html#partition-discovery) 部分所述. 因此, 对基数较高的列的适用性有限。相反, bucketBy 可以在固定数量的桶中分配数据, 并且可以在唯一值无限时使用数据。
-
-> Spark 版本：2.3.1
 
 原文：http://spark.apache.org/docs/2.3.1/sql-programming-guide.html#generic-loadsave-functions

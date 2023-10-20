@@ -17,20 +17,24 @@ Spark SQL 支持通过 DataFrame 接口操作各种数据源。可以使用关�
 
 Java版本：
 ```java
-Dataset<Row> usersDF = sparkSession.read().load("src/main/resources/users.parquet");
+// 如果不指定 format 默认读取的是 parquet 文件
+Dataset<Row> usersDF = spark.read().load("spark-example-3.1/src/main/resources/data/users.parquet");
+usersDF.show();
+// 如果不指定 format 默认保存的是 parquet 文件
 usersDF.select("name", "favorite_color").write().save("namesAndFavColors.parquet");
 ```
 Scala版本：
 ```scala
-val usersDF = sparkSession.read.load("src/main/resources/users.parquet")
+val usersDF = sparkSession.read.load("spark-example-3.1/src/main/resources/data/users.parquet")
 usersDF.select("name", "favorite_color").write.save("namesAndFavColors.parquet")
 ```
 Python版本：
 ```Python
-df = sparkSession.read.load("src/main/resources/users.parquet")
-df.select("name", "favorite_color").write.save("namesAndFavColors.parquet")
+usersDF = sparkSession.read.load("spark-example-3.1/src/main/resources/data/users.parquet")
+usersDF.select("name", "favorite_color").write.save("namesAndFavColors.parquet")
 ```
 
+> 如果不指定 format 默认读取和保存的是 parquet 文件
 
 ## 1. 手动指定选项
 
@@ -38,47 +42,58 @@ df.select("name", "favorite_color").write.save("namesAndFavColors.parquet")
 
 ### 1.1 加载 Json 文件
 
-你可以使用如下命令加载 json 文件，如下示例从一个 Json 文件中加载为 DataFrame，然后转换为一个 parquet 文件：
+你可以使用如下命令加载 json 文件，如下示例从一个 Json 文件中加载为 DataFrame，然后选择 name 和 favorite_color 列输出为一个 json 文件：
 
 Java版本：
 ```java
-Dataset<Row> peopleDF = sparkSession.read().format("json").load("src/main/resources/person.json");
-peopleDF.select("name", "age").write().format("parquet").save("namesAndAges.parquet");
+// format 指定为 json 读取的是 json 文件
+Dataset<Row> usersDF = spark.read().format("json").load("spark-example-3.1/src/main/resources/data/users.json");
+usersDF.show();
+// format 指定为 json  保存的是 json 文件
+usersDF.select("name", "favorite_color").write().format("json").save("namesAndFavColors.json");
 ```
 Scala版本：
 ```scala
-val peopleDF = sparkSession.read.format("json").load("src/main/resources/person.json")
-peopleDF.select("name", "age").write.format("parquet").save("namesAndAges.parquet")
+val usersDF = sparkSession.read.format("json").load("spark-example-3.1/src/main/resources/data/users.json")
+usersDF.select("name", "favorite_color").write.format("json").save("namesAndFavColors.json")
 ```
 Python版本：
 ```Python
-df = sparkSession.read.load("src/main/resources/person.json", format="json")
-df.select("name", "age").write.save("namesAndAges.parquet", format="parquet")
+usersDF = sparkSession.read.load("spark-example-3.1/src/main/resources/data/users.json", format="json")
+usersDF.select("name", "favorite_color").write.save("namesAndFavColors.json", format="json")
 ```
 
 ### 1.2 加载 CSV 文件
 
-你可以使用如下命令加载 CSV 文件：
+你可以使用如下命令加载 CSV 文件，如下示例从一个 CSV 文件中加载为 DataFrame，然后选择 name 和 favorite_color 列输出为一个 json 文件：
 
 Java版本：
 ```java
-Dataset<Row> peopleDFCsv = sparkSession.read().format("csv")
-  .option("sep", ";")
-  .option("inferSchema", "true")
-  .option("header", "true")
-  .load("src/main/resources/people.csv");
+// format 指定为 csv 读取的是 csv 文件 指定额外参数 以;分割,有文件头
+Dataset<Row> peopleDF = spark.read().format("csv")
+        .option("sep", ";")
+        .option("inferSchema", "true")
+        .option("header", "true")
+        .load("spark-example-3.1/src/main/resources/data/people2.csv");
+peopleDF.show();
+
+// format 指定为 csv 保存的是 csv 文件 以,分割不保留文件头
+peopleDF.select("name", "age").write().format("csv")
+        .option("sep", ",")
+        .option("header", "false")
+        .save("namesAndAges.csv");
 ```
 Scala版本：
 ```scala
-val peopleDFCsv = spark.read.format("csv")
+val peopleDF = spark.read.format("csv")
   .option("sep", ";")
   .option("inferSchema", "true")
   .option("header", "true")
-  .load("src/main/resources/people.csv")
+  .load("spark-example-3.1/src/main/resources/data/people2.csv")
 ```
 Python版本：
 ```Python
-df = spark.read.load("examples/src/main/resources/people.csv",
+df = spark.read.load("spark-example-3.1/src/main/resources/data/people2.csv",
   format="csv", sep=":", inferSchema="true", header="true")
 ```
 

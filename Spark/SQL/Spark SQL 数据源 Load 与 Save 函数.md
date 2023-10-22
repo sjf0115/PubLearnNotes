@@ -146,8 +146,12 @@ OPTIONS (
 
 Java版本：
 ```java
-Dataset<Row> sqlDF = sparkSession.sql("SELECT * FROM parquet.`src/main/resources/users.parquet`");
-sqlDF.show();
+// 在 parquet 文件上直接运行 SQL
+Dataset<Row> parquetDF = spark.sql("SELECT * FROM parquet.`spark-example-3.1/src/main/resources/data/users.parquet`");
+parquetDF.show();
+// 在 json 文件上直接运行 SQL
+Dataset<Row> jsonDF = spark.sql("SELECT * FROM json.`spark-example-3.1/src/main/resources/data/users.json`");
+jsonDF.show();
 /**
  +------+--------------+----------------+
  |  name|favorite_color|favorite_numbers|
@@ -156,14 +160,6 @@ sqlDF.show();
  |   Ben|           red|              []|
  +------+--------------+----------------+
  */
-```
-Scala版本：
-```scala
-val sqlDF = sparkSession.sql("SELECT * FROM parquet.`src/main/resources/users.parquet`")
-```
-Python版本：
-```python
-df = sparkSession.sql("SELECT * FROM parquet.`src/main/resources/users.parquet`")
 ```
 
 ## 3. SaveMode
@@ -177,6 +173,15 @@ SaveMode.Append| append |将 DataFrame 保存到数据源时, 如果数据/表�
 SaveMode.Overwrite|	overwrite|	Overwrite 模式意味着将 DataFrame 保存到数据源时，如果数据/表已经存在，那么 DataFrame 的内容将覆盖现有数据。
 SaveMode.Ignore| ignore| Ignore 模式意味着当将 DataFrame 保存到数据源时，如果数据已经存在，那么保存操作不会保存 DataFrame 的内容, 并且不更改现有数据。这与 SQL 中的 `CREATE TABLE IF NOT EXISTS` 类似。
 
+```java
+// format 指定为 json 读取的是 json 文件
+Dataset<Row> usersDF = spark.read().format("json").load("spark-example-3.1/src/main/resources/data/users.json");
+usersDF.show();
+// 使用 SaveMode 指定保存模式
+usersDF.select("name", "favorite_color").write().format("json")
+        .mode(SaveMode.ErrorIfExists)
+        .save("namesAndFavColors.json");
+```
 
 ## 4. 保存到持久化表中
 

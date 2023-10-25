@@ -197,66 +197,26 @@ usersDF.select("name", "favorite_color").write().format("json")
 
 ## 5. 分桶, 排序和分区
 
-对于基于文件的数据源，也可以对输出进行分桶，排序或者分区。分桶和排序仅适用于持久化表:
-
-Java版本：
+对于基于文件的数据源，也可以对输出进行分桶，排序或者分区。分桶和排序仅适用于持久化表：
 ```java
+Dataset<Row> peopleDF = spark.read().format("json").load("spark-example-3.1/src/main/resources/data/people.json");
 peopleDF.write().bucketBy(42, "name").sortBy("age").saveAsTable("people_bucketed");
 ```
-Scala版本：
-```scala
-peopleDF.write.bucketBy(42, "name").sortBy("age").saveAsTable("people_bucketed")
-```
-Python版本：
-```Python
-df.write.bucketBy(42, "name").sortBy("age").saveAsTable("people_bucketed")
-```
 
-在使用 Dataset API 时, 分区可以同时与 save 和 saveAsTable 一起使用：
-
-Java版本：
+在使用 Dataset API 时，分区(partitionBy)可以同时与 save 和 saveAsTable 一起使用：
 ```java
-usersDF
-  .write()
+usersDF.write()
   .partitionBy("favorite_color")
   .format("parquet")
   .save("namesPartByColor.parquet");
 ```
-Scala版本：
-```scala
-usersDF.write.partitionBy("favorite_color").format("parquet").save("namesPartByColor.parquet")
-```
-Python版本：
-```python
-df.write.partitionBy("favorite_color").format("parquet").save("namesPartByColor.parquet")
-```
 
-可以在单个表上使用分区和分桶:
-
-Java版本：
+可以在一个表上同时使用分区和分桶：
 ```java
-peopleDF
-  .write()
+peopleDF.write()
   .partitionBy("favorite_color")
   .bucketBy(42, "name")
   .saveAsTable("people_partitioned_bucketed");
-```
-Scala版本：
-```scala
-peopleDF
-  .write
-  .partitionBy("favorite_color")
-  .bucketBy(42, "name")
-  .saveAsTable("people_partitioned_bucketed")
-```
-Python版本：
-```python
-df = spark.read.parquet("examples/src/main/resources/users.parquet")
-(df
-    .write
-    .partitionBy("favorite_color")
-    .bucketBy(42, "name")
-    .saveAsTable("people_partitioned_bucketed"))
 ```
 partitionBy 只是创建一个目录结构。因此对基数较高的列的适用性有限。相反，bucketBy 可以在固定数量的桶中分配数据，并且可以在唯一值无限时使用数据。
 

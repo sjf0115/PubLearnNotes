@@ -103,41 +103,16 @@ df = spark.read.load("spark-example-3.1/src/main/resources/data/people2.csv",
 
 Java版本：
 ```java
+// format 指定为 orc 读取的是 orc 文件
+Dataset<Row> usersDF = spark.read().format("orc").load("spark-example-3.1/src/main/resources/data/users.orc");
+usersDF.show();
+
+// format 指定为 orc 保存的是 orc 文件
 usersDF.write().format("orc")
-  .option("orc.bloom.filter.columns", "favorite_color")
-  .option("orc.dictionary.key.threshold", "1.0")
-  .option("orc.column.encoding.direct", "name")
-  .save("users_with_options.orc");
-```
-Scala版本：
-```scala
-usersDF.write.format("orc")
-  .option("orc.bloom.filter.columns", "favorite_color")
-  .option("orc.dictionary.key.threshold", "1.0")
-  .option("orc.column.encoding.direct", "name")
-  .save("users_with_options.orc")
-```
-Python版本：
-```python
-df = spark.read.orc("examples/src/main/resources/users.orc")
-(df.write.format("orc")
-    .option("orc.bloom.filter.columns", "favorite_color")
-    .option("orc.dictionary.key.threshold", "1.0")
-    .option("orc.column.encoding.direct", "name")
-    .save("users_with_options.orc"))
-```
-SQL 版本：
-```sql
-CREATE TABLE users_with_options (
-  name STRING,
-  favorite_color STRING,
-  favorite_numbers array<integer>
-) USING ORC
-OPTIONS (
-  orc.bloom.filter.columns 'favorite_color',
-  orc.dictionary.key.threshold '1.0',
-  orc.column.encoding.direct 'name'
-)
+        .option("orc.bloom.filter.columns", "favorite_color")
+        .option("orc.dictionary.key.threshold", "1.0")
+        .option("orc.column.encoding.direct", "name")
+        .save("users_with_options.orc");
 ```
 
 ## 2. 在文件上直接运行SQL
@@ -197,26 +172,45 @@ usersDF.select("name", "favorite_color").write().format("json")
 
 ## 5. 分桶, 排序和分区
 
-对于基于文件的数据源，也可以对输出进行分桶，排序或者分区。分桶和排序仅适用于持久化表：
+对于基于文件的数据源，也可以对输出进行分桶，排序或者分区。分桶和排序仅适用于持久化表，如下所示从 Json 文件中读取数据并根据年龄分桶和排序输出到持久化表中：
 ```java
+// format 指定为 json 读取的是 json 文件
 Dataset<Row> peopleDF = spark.read().format("json").load("spark-example-3.1/src/main/resources/data/people.json");
-peopleDF.write().bucketBy(42, "name").sortBy("age").saveAsTable("people_bucketed");
+peopleDF.show();
+// 根据年龄分桶
+peopleDF.write().format("json")
+        .bucketBy(3, "age")
+        .sortBy("age")
+        .saveAsTable("people_bucketed");
+// 查询
+Dataset<Row> dataset = spark.sql("SELECT * FROM people_bucketed");
+dataset.show();
 ```
 
 在使用 Dataset API 时，分区(partitionBy)可以同时与 save 和 saveAsTable 一起使用：
 ```java
-usersDF.write()
-  .partitionBy("favorite_color")
-  .format("parquet")
-  .save("namesPartByColor.parquet");
+// format 指定为 json 读取的是 json 文件
+Dataset<Row> usersDF = spark.read().format("json").load("spark-example-3.1/src/main/resources/data/users.json");
+usersDF.show();
+// 根据favorite_color分区
+usersDF.write().format("json")
+        .partitionBy("favorite_color")
+        .save("namesPartByColor.json");
 ```
 
 可以在一个表上同时使用分区和分桶：
 ```java
-peopleDF.write()
-  .partitionBy("favorite_color")
-  .bucketBy(42, "name")
-  .saveAsTable("people_partitioned_bucketed");
+// format 指定为 json 读取的是 json 文件
+Dataset<Row> usersDF = spark.read().format("json").load("spark-example-3.1/src/main/resources/data/users.json");
+usersDF.show();
+// 根据姓名分桶根据喜欢颜色分区
+usersDF.write()
+        .partitionBy("favorite_color")
+        .bucketBy(3, "name")
+        .saveAsTable("users_partitioned_bucketed");
+// 查询
+Dataset<Row> dataset = spark.sql("SELECT * FROM users_partitioned_bucketed");
+dataset.show();
 ```
 partitionBy 只是创建一个目录结构。因此对基数较高的列的适用性有限。相反，bucketBy 可以在固定数量的桶中分配数据，并且可以在唯一值无限时使用数据。
 

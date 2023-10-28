@@ -20,6 +20,7 @@
 - [x] [Spark SQL 如何使用 DataFrame](https://smartsi.blog.csdn.net/article/details/133820898)
 - [x] [Spark SQL 如何使用 DataSets](https://smartsi.blog.csdn.net/article/details/133821115)
 - [x] [Spark SQL DataFrame 与 RDD 交互](https://smartsi.blog.csdn.net/article/details/133825926)
+- [x] [Spark SQL 数据源 Load 与 Save 函数](https://smartsi.blog.csdn.net/article/details/134047487)
 
 ## 3. Spark Streaming
 

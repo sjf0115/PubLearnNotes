@@ -81,8 +81,15 @@ context.awaitTermination();
 
 请注意，RDD的检查点会导致节省可靠存储的成本。这可能导致RDD被检查点的那些批次的处理时间增加。因此，需要仔细设置检查点的间隔。在小批量（例如1秒）下，每批次检查点可能会显着降低操作吞吐量。相反，检查点过于频繁会导致谱系和任务大小增加，这可能会产生不利影响。对于需要RDD检查点的有状态转换，默认时间间隔是批处理间隔的倍数，至少为10秒。可以使用dstream.checkpoint（checkpointInterval）进行设置。通常，DStream的5-10个滑动间隔的检查点间隔是一个很好的设置。
 
-https://aiyanbo.gitbooks.io/spark-programming-guide-zh-cn/content/spark-streaming/basic-concepts/checkpointing.html
 
+```java
+JavaStreamingContext context = JavaStreamingContext.getOrCreate(checkpointDirectory, new Function0<JavaStreamingContext>() {
+    @Override
+    public JavaStreamingContext call() throws Exception {
+        return null;
+    }
+});
+```
 
 ## 从 Checkpoint 中恢复
 
@@ -91,5 +98,11 @@ https://aiyanbo.gitbooks.io/spark-programming-guide-zh-cn/content/spark-streamin
 Checkpoint 中包含的信息可以让我们的流处理程序从最近一个状态点进行恢复。这意味着只需要重放最近几个批次的数据即可，而不用一个小时或者一天的数据。
 
 
+
+
+
+
+
+https://aiyanbo.gitbooks.io/spark-programming-guide-zh-cn/content/spark-streaming/basic-concepts/checkpointing.html
 
 ...

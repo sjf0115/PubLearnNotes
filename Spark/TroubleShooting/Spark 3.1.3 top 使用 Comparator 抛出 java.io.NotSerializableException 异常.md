@@ -1,4 +1,6 @@
+## 1. 问题
 
+在如下代码中使用 Top 算子计算年龄 Top2 的用户：
 ```java
 JavaRDD<Person> peopleRDD = sc.parallelize(Arrays.asList(
         new Person("Lucy", 10),
@@ -23,7 +25,7 @@ for(Person person : personTop) {
     System.out.println(person);
 }
 ```
-
+但在运行过程中抛出如下异常：
 ```java
 Exception in thread "main" org.apache.spark.SparkException: Task not serializable
 	at org.apache.spark.util.ClosureCleaner$.ensureSerializable(ClosureCleaner.scala:416)
@@ -68,4 +70,40 @@ Serialization stack:
 	at org.apache.spark.serializer.JavaSerializerInstance.serialize(JavaSerializer.scala:101)
 	at org.apache.spark.util.ClosureCleaner$.ensureSerializable(ClosureCleaner.scala:413)
 	... 23 more
+```
+
+## 2. 解决方案
+
+这种问题一般都是对象没有序列化导致的。起初以为是 Person 对象没有序列化，检查发现已经完成序列化：
+```java
+public class Person implements Serializable {
+```
+最后思考是不是 Comparator 这个接口没有实现序列化，检查发现确实没有序列化：
+```java
+public interface Comparator<T> {
+    int compare(T o1, T o2);
+    ...
+}
+```
+所以解决方案是实现一个序列化的 Comparator：
+```java
+public interface SerializableComparator<T> extends Comparator<T>, Serializable {
+
+}
+```
+执行代码中的 Comparator 修改为 SerializableComparator 即可：
+```java
+List<Person> personTop = peopleRDD.top(2, new SerializableComparator<Person>() {
+    @Override
+    public int compare(Person o1, Person o2) {
+        long age1 = o1.getAge();
+        long age2 = o2.getAge();
+        if (age1 > age2) {
+            return 1;
+        } else if (age1 < age2) {
+            return -1;
+        }
+        return 0;
+    }
+});
 ```

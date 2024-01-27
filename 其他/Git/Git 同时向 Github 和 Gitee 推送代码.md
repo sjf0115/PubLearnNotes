@@ -18,7 +18,7 @@ git remote add gitee git@gitee.com:sjf0115/spi-example.git
         url = git@github.com:sjf0115/spi-example.git
         fetch = +refs/heads/*:refs/remotes/origin/*
 ```
-
+需要编辑 `.git/config` 文件，在 [remote "origin"] 部分下面添加多个 url：
 ```
 [core]
         repositoryformatversion = 0
@@ -42,3 +42,5 @@ origin  git@github.com:sjf0115/spi-example.git (fetch)
 origin  git@github.com:sjf0115/spi-example.git (push)
 origin  https://gitee.com/sjf0115/spi-example.git (push)
 ```
+
+https://www.cnblogs.com/poloyy/p/12215199.html

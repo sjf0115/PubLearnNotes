@@ -82,5 +82,4 @@
 
 使用这种编码，我们可以用 10 个 Bitmap 来表示示例数据的范围! 另外，需要注意的是，以 2 进制、Range-Encoded、Bit-Slice 的索引是整数值二进制表示的倒数。这告诉我们，我们可以仅使用 (n + 1) 个 Bitamp 来表示基数为 n 的任何值范围(其中额外的一个 Bitmap 是 `Not Null` Bitmap)。这意味着我们可以对很大的整数值执行范围查询，而不用存储大量的 Bitmap。
 
-
 > 原文:[Using Bitmaps to Perform Range Queries](https://www.featurebase.com/blog/range-encoded-bitmaps)

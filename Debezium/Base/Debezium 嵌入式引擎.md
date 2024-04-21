@@ -45,7 +45,7 @@ debezium-api 模块定义了一个小型的 API，可以让应用程序使用 De
 ```
 > 本文章我们以 MySQL 为例。
 
-### 2.
+### 2. Code
 
 我们的应用程序需要为每个运行的 Connector 实例配置一个嵌入式引擎。Debezium Connector 使用 io.debezium.engine.DebeziumEngine<R> 类作为简单易用的包装器，并管理 Connector 的生命周期。我们使用构建器 API 创建 DebeziumEngine 实例，并提供如下内容：
 - 接收到消息的格式，例如 JSON、Avro

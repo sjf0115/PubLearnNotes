@@ -61,14 +61,14 @@ Debezium Server 配置使用 Debezium Source Connector 来捕获源数据库中�
 
 ### 3. 特性
 
-Debezium 是一组用于 Apache Kafka Connect 的 Source Connector。每个 Connector 都通过使用该数据库的变更数据捕获 (CDC) 功能从不同的数据库中获取变更。与其他方法（例如轮询或双重写入）不同，Debezium 的实现基于日志的 CDC：
+Debezium 是一组用于 Apache Kafka Connect 的 Source Connector。每个 Connector 都通过使用该数据库的变更数据捕获 (CDC) 功能从不同的数据库中获取变更。与其他方法（例如轮询或双重写入）不同，Debezium 的实现基于日志的 [CDC](https://smartsi.blog.csdn.net/article/details/120675143)：
 - 确保捕获所有的数据变更。
 - 以极低的延迟生成变更事件，同时避免因为频繁轮询导致 CPU 使用率增加。例如，对于 MySQL 或 PostgreSQL，延迟在毫秒范围内。
 - 不需要更改您的数据模型，例如 'Last Updated' 列。
 - 可以捕获删除操作。
 - 可以捕获旧记录状态以及其他元数据，例如，事务 ID，具体取决于数据库的功能和配置。
 
-Debezium Connector 可以通过一系列相关功能和选项来捕获数据变化：
+Debezium Connector 可以通过一系列相关功能和参数来捕获数据变化：
 - 快照：当 Connector 启动时，并非所有的日志都存在，我们可以选择性的对数据库当前所有状态进行一次初始化快照。通常，当数据库运行了一段时间并丢弃了不再需要进行事务恢复或复制的事务日志时，就会出现这种情况。
 - 过滤器：可以通过包含/排除列表过滤器来配置捕获 Schema、表以及列。
 - 屏蔽：可以屏蔽指定列的值，例如，某列包含敏感数据时。

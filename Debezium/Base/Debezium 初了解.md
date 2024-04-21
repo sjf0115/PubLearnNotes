@@ -14,7 +14,7 @@ permalink: introduction-debezium
 
 在研究 Flink CDC 时，其中涉及了 Debezium，便决定研究一下 Debezium。这篇文章简单介绍了 Debezium 是什么，以及它的架构和特性。后续文章中会后续介绍其功能特性以及如何使用。
 
-### 1. Debezium是什么
+### 1. Debezium 是什么
 
 Debezium 是一个分布式平台，可将您现有的数据库转换为事件流，因此应用程序可以感知到数据库中的每个行级更改并对此做出立即响应。
 
@@ -24,16 +24,16 @@ Debezium 构建在 Apache Kafka 之上，并提供与 [Kafka Connect](https://ka
 
 #### 2.1 基于 Kafka Connect
 
-最常见的架构是通过 Apache Kafka Connect 部署 Debezium。Kafka Connect 为在 Kafka 和外部存储系统之间系统数据提供了一种可靠且可伸缩性的方式。它为 Connector 插件提供了一组 API 和一个运行时：Connect 负责运行这些插件，它们则负责移动数据。通过 Kafka Connect 可以快速实现 Source Connector 和 Sink Connector 进行交互构造一个低延迟的数据 Pipeline：
+最常见的架构是通过 Apache Kafka Connect 部署 Debezium。Kafka Connect 为 Kafka 和外部存储系统之间系统数据提供了一种可靠且可伸缩性的方式。它为 Connector 插件提供了一组 API 和一个运行时：Connect 负责运行这些插件，插件则负责移动数据。通过 Kafka Connect 可以快速实现 Source Connector 和 Sink Connector 进行交互构造一个低延迟的数据 Pipeline：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introduction-debezium-01.jpeg?raw=true)
+![](introduction-debezium-01.jpeg)
 
 - Source Connector（例如，Debezium）：将记录发送到 Kafka
 - Sink Connector：将 Kafka Topic 中的记录发送到其他系统
 
 下图展示了基于 Debezium 的变更数据捕获 Pipeline 架构：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introduction-debezium-02.png?raw=true)
+![](introduction-debezium-02.png)
 
 如上图所示，部署了 MySQL 和 PostgresSQL 的 Debezium Connector 以捕获这两种类型数据库的变更。每个 Debezium Connector 都会与其源数据库建立连接：
 - MySQL Connector 使用客户端库来访问 binlog。
@@ -51,7 +51,7 @@ Debezium 构建在 Apache Kafka 之上，并提供与 [Kafka Connect](https://ka
 
 下图展示了基于 Debezium Server 的变更数据捕获 Pipeline 架构：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/introduction-debezium-03.png?raw=true)
+![](introduction-debezium-03.png)
 
 Debezium Server 配置使用 Debezium Source Connector 来捕获源数据库中的变更。变更事件可以序列化为不同的格式，例如 JSON 或 Apache Avro，然后发送到各种消息中间件，例如 Amazon Kinesis、Google Cloud Pub/Sub 或 Apache Pulsar。
 
@@ -78,9 +78,5 @@ Debezium Connector 可以通过一系列相关功能和选项来捕获数据变�
   - [基于内容的路由](https://debezium.io/documentation/reference/1.6/configuration/content-based-routing.html)
   - [为关系型 Connector 以及 MongoDB Connector 提取新记录状态](https://debezium.io/documentation/reference/1.6/configuration/event-flattening.html)
   - [过滤](https://debezium.io/documentation/reference/1.6/configuration/filtering.html)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 参考：[Debezium Architecture](https://debezium.io/documentation/reference/1.6/architecture.html)

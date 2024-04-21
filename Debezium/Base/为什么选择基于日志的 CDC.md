@@ -55,10 +55,6 @@ CDC 的技术方案非常多，目前业界主流的实现机制可以分为两�
 
 但是，如果您对近实时地数据变捕获更感兴趣，并要求不能丢失任何变更事件（包括删除），那么我非常建议您探索基于日志的 CDC 的方案。如果数据源是 MySQL、PostgreSQL、MongoDB 等常见的数据库实现，建议使用 [Debezium](http://smartsi.club/introduction-debezium.html) 来实现变更数据的捕获。
 
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
-
 参考:
 - [Five Advantages of Log-Based Change Data Capture](https://debezium.io/blog/2018/07/19/advantages-of-log-based-change-data-capture/)
 - [Flink CDC 原理、实践和优化](https://mp.weixin.qq.com/s/_khnjLbX56Ud4yYFvHnmkA)

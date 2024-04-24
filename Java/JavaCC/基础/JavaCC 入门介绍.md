@@ -41,6 +41,53 @@ JavaCC 本身不是解析器或词法分析器，而是生成器。这意味着�
 
 ## 1.2 A first example — adding integers
 
+### 1.2.4 生成解析器和词法分析器
+
+构造 `adder.jj ` 文件后，我们对其调用 JavaCC。具体怎么做这取决于操作系统。在 Windows NT、2000和
+XP 中具体如何操作如下所示。首先使用'命令提示符'程序(CMD.EXE)运行 JavaCC：
+```
+D:\home\JavaCC-Book\adder>javacc adder.jj
+Java Compiler Compiler Version 2.1 (Parser Generator)
+Copyright (c) 1996-2001 Sun Microsystems, Inc.
+Copyright (c) 1997-2001 WebGain, Inc.
+(type "javacc" with no arguments for help)
+Reading from file adder.jj . . .
+File "TokenMgrError.java" does not exist. Will create one.
+File "ParseException.java" does not exist. Will create one.
+File "Token.java" does not exist. Will create one.
+File "SimpleCharStream.java" does not exist. Will create one.
+Parser generated successfully
+```
+这将生成七个 Java 类，每个类都在自己的文件中：
+- TokenMgrError 是一个简单的错误类，在词法分析器检测到错误时使用，是 Throwable 的子类。
+- ParseException 是另一个错误类，在解析器检测到的错误时使用，是 Exception 的子类，因此也是 Throwable 的子类。
+- Token 是一个表示 Token 的类。每个 Token 对象都有一个整数字段 kind 表示 Token 的类型(`PLUS`、`NUMBER` 或 `EOF`)以及一个字符串字段
+image 用来表示 Token 对应输入文件中的字符序列。
+- SimpleCharStream 是一个适配器类，将字符传递给词法分析器。
+- AdderConstants 是一个接口，定义了在词法分析器和解析器使用到的类个数。
+- AdderTokenManager 是词法分析器。
+- Adder 是解析器。
+
+现在我们可以用 Java 编译器编译这些类：
+```
+D:\home\JavaCC-Book\adder> javac *.java
+```
+### 1.2.5 运行示例
+
+现在让我们再看一下 Adder 类中的主方法：
+```java
+static void main( String[] args ) throws ParseException, TokenMgrError {
+  Adder parser = new Adder( System.in ) ;
+  parser.Start() ;
+}
+```
+首先注意到 main 方法可能会抛出 Throwable 任意两个生成子类。这样抛出异常的风格不是很好，因为应该捕捉这些异常，但是，这样写可以让第一个例子保持简短和整洁。主体的第一个语句是创建一个新的解析器对象。所使用的构造函数是自动生成并接受一个 InputStream 对象。此外还有一个接收 Reader 对象的构造函数。构造函数依次构造生成 SimpleCharacterStream 类的实例和 AdderTokenManager 类的词法分析器对象。因此，结果是解析器从词法分析器获取 Token(通过一个 SimpleCharacterStream 对象从 System.in 读取字符)。
+
+
+
+
+
+
 
 
 > 原文:[javacc-tutorial](https://www.engr.mun.ca/~theo/JavaCC-Tutorial/javacc-tutorial.pdf)

@@ -89,8 +89,48 @@ static void main( String[] args ) throws ParseException, TokenMgrError {
 ```
 D:\home\JavaCC-Book\adder>java Adder <input.txt
 ```
-当我们给定的输入文件并运行主程序时，可能会发生以下三种情况：
-- 有一个词法错误。在本例中，只有在输入中出现意外字符时才会发生词法错误。通过输入包含的输入文件，可以产生词法错误
+当我们给定的输入文件并运行主程序时，可能会发生以下三种情况。
+
+第一种是出现一个词法错误。在本例中，只有在输入中出现意外字符时才会发生词法错误。例如通过在输入文件中包含 `123 - 456\n` 输入时，可以产生词法错误。在这种情况下，程序将抛出 `TokenMgrError`。异常的 `message` 信息是 `Exception in thread "main" TokenMgrError: Lexical error at line 1,
+column 5. Encountered: "-" (45), after : ""`
+
+第二种是出现有一个解析错误。当 Token 序列与 Start 的规范不匹配时，就会发生这种情况。例如 `123 ++ 456\n` 或者 `123 456\n` 或者 `\n`。在这种情况下，程序将抛出一个 ParseException。第一个示例的异常 `message` 信息是：
+```
+Exception in thread ”main” ParseException: Encountered "+" at
+line 1, column 6.
+Was expecting:
+<NUMBER> ...
+```
+
+第三种情况是输入包含一系列符合 Start 规范的 Token。在这种情况下，不会抛出异常，程序只是终止。
+
+在这由于该解析器在输入合法时不执行任何操作，因此它的用途仅限于检查其输入的合法性。在下一节中，我们将进行一些修改，使解析器更有用。
+
+### 1.2.6 The generated code
+
+要了解 JavaCC 是如何生成解析器的，那么有必要查看一些生成的代码：
+```
+final public void Start() throws ParseException {
+jj consume token(NUMBER);
+label 1:
+while (true) {
+jj consume token(PLUS);
+jj consume token(NUMBER);
+switch ((jj ntk == -1) ? jj ntk() : jj ntk) {
+case PLUS:
+;
+break;
+default:
+jj la1[0] = jj gen;
+break label 1; } }
+jj consume token(0);
+}
+```
+
+
+
+
+
 
 
 

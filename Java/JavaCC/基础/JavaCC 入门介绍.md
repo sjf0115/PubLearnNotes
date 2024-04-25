@@ -81,13 +81,16 @@ static void main( String[] args ) throws ParseException, TokenMgrError {
   parser.Start() ;
 }
 ```
-首先注意到 main 方法可能会抛出 Throwable 任意两个生成子类。这样抛出异常的风格不是很好，因为应该捕捉这些异常，但是，这样写可以让第一个例子保持简短和整洁。主体的第一个语句是创建一个新的解析器对象。所使用的构造函数是自动生成并接受一个 InputStream 对象。此外还有一个接收 Reader 对象的构造函数。构造函数依次构造生成 SimpleCharacterStream 类的实例和 AdderTokenManager 类的词法分析器对象。因此，结果是解析器从词法分析器获取 Token(通过一个 SimpleCharacterStream 对象从 System.in 读取字符)。
-
-第二个语句调用一个名为Start的生成方法。对于每个BNF生产在规范中，JavaCC在解析器类中生成相应的方法。这
-方法负责尝试在其输入流中查找与描述匹配的内容输入的。在本例中，调用Start将导致解析器尝试在输入中查找与描述匹配的令牌序列
-
-
-
+首先注意到 main 方法可能会抛出 Throwable 任意两个生成子类。这样抛出异常的风格不是很好，因为应该捕捉这些异常，但是，这样写可以让第一个例子保持简短和整洁。主体的第一个语句是创建一个新的解析器对象。所使用的构造函数是自动生成并接受一个 InputStream 对象。此外还有一个接收 Reader 对象的构造函数。构造函数依次构造生成 SimpleCharacterStream 类的实例和 AdderTokenManager 类的词法分析器对象。因此，结果是解析器从词法分析器获取 Token(通过一个 SimpleCharacterStream 对象从 System.in 读取字符)。第二个语句调用一个名为 Start 的生成方法。对于在规范中的每个 BNF 实例，JavaCC 都会在解析器类中生成相应的方法。这个方法尝试在输入流中查找与输入描述匹配的内容。在本例中，调用 Start 方法会让解析器尝试在输入中查找 Token 序列来与如下规范匹配：
+```
+<NUMBER> (<PLUS> <NUMBER>)* <EOF>
+```
+我们可以通过准备合适的输入文件并执行如下命令来运行程序：
+```
+D:\home\JavaCC-Book\adder>java Adder <input.txt
+```
+当我们给定的输入文件并运行主程序时，可能会发生以下三种情况：
+- 有一个词法错误。在本例中，只有在输入中出现意外字符时才会发生词法错误。通过输入包含的输入文件，可以产生词法错误
 
 
 

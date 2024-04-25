@@ -83,7 +83,8 @@ static void main( String[] args ) throws ParseException, TokenMgrError {
 ```
 首先注意到 main 方法可能会抛出 Throwable 任意两个生成子类。这样抛出异常的风格不是很好，因为应该捕捉这些异常，但是，这样写可以让第一个例子保持简短和整洁。主体的第一个语句是创建一个新的解析器对象。所使用的构造函数是自动生成并接受一个 InputStream 对象。此外还有一个接收 Reader 对象的构造函数。构造函数依次构造生成 SimpleCharacterStream 类的实例和 AdderTokenManager 类的词法分析器对象。因此，结果是解析器从词法分析器获取 Token(通过一个 SimpleCharacterStream 对象从 System.in 读取字符)。
 
-
+第二个语句调用一个名为Start的生成方法。对于每个BNF生产在规范中，JavaCC在解析器类中生成相应的方法。这
+方法负责尝试在其输入流中查找与描述匹配的内容输入的。在本例中，调用Start将导致解析器尝试在输入中查找与描述匹配的令牌序列
 
 
 

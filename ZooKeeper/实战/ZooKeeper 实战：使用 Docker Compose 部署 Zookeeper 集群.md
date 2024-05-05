@@ -42,7 +42,7 @@ services:
       - zk1_data:/data
       - zk1_datalog:/datalog
     networks:
-      - backend-network
+      - backend_network
 
   zk2:
     image: zookeeper:3.6.3
@@ -56,7 +56,7 @@ services:
       - zk2_data:/data
       - zk2_datalog:/datalog
     networks:
-      - backend-network
+      - backend_network
 
   zk3:
     image: zookeeper:3.6.3
@@ -70,7 +70,7 @@ services:
       - zk3_data:/data
       - zk3_datalog:/datalog
     networks:
-      - backend-network
+      - backend_network
 
 volumes:
   zk1_data:
@@ -81,87 +81,63 @@ volumes:
   zk3_datalog:
 
 networks:
-  backend-network:
+  backend_network:
 ```
 
 > 可以为使用 `.yml` 或 `.yaml` 扩展名
 
 services 用于定义不同的应用服务。上边的例子定义了三个服务(`zk1`、`zk2`、`zk3`)，分别对应 ZooKeeper 集群的三个节点。Docker Compose 会将每个服务部署在各自的容器中，在这里我们自定义了容器名称，因此 Docker Compose 会部署三个名为 `zk1`、`zk2` 和 `zk3` 的容器。
 
-networks 用于声明 Docker Compose 创建新的网络 `wordpress_network`。我们只负责声明，不需要手动创建，Docker Compose 会自动管理。为了实现 `db`服务和 `wordpress` 服务之间的通信，需要这两个服务都加入到这两个网络。在使用 Docker Compose 部署应用时，定义`networks`并不是必须的，但却是一个好的习惯。如果不显式定义和指定网络，Docker Compose 默认会为你的应用创建一个单独的网络，并且所有在`docker-compose.yml`文件中定义的服务都将自动加入这个网络。这意味着，即使你没有明确定义网络，服务之间也能够相互通信。
+networks 用于声明 Docker Compose 创建新的网络 `backend_network`。我们只负责声明，不需要手动创建，Docker Compose 会自动管理。为了实现三个服务之间的通信，需要这三个服务都加入到这个网络。在使用 Docker Compose 部署应用时，定义 `networks` 并不是必须的，但却是一个好的习惯。如果不显式定义和指定网络，Docker Compose 默认会为你的应用创建一个单独的网络，并且所有在 `docker-compose.yml` 文件中定义的服务都将自动加入这个网络。这意味着，即使你没有明确定义网络，服务之间也能够相互通信。
 
-volumes 用于声明 Docker Compose 创建新的数据卷 `mysql_data`、`mysql_logs`、以及 `wordpress_data`。我们只负责声明，不需要手动创建，Docker Compose 会自动管理。默认情况下，在容器删除之后，MySQL 容器和 WordPress 容器中的数据将丢失。为了解决这个问题，我们需要 `db` 服务 和 `wordpress` 服务分别使用声明中的数据卷来将数据保存在宿主机上。
+volumes 用于声明 Docker Compose 创建新的数据卷 `zk1_data`、`zk1_datalog` 等。我们只负责声明，不需要手动创建，Docker Compose 会自动管理。默认情况下，在容器删除之后容器中的数据将丢失。为了解决这个问题，我们需要三个服务分别使用声明中的数据卷来将数据保存在宿主机上。
 
-### 3.2.1 db 服务
+services 定义的服务中包含如下指令：
+- `image`：指定了要使用的 Docker 镜像及其版本。三个服务均使用 `zookeeper:3.6.3` 镜像确保所有节点运行同一版本的 ZooKeeper，保持集群的一致性。这里的版本 3.6.3 可以根据需求替换为最新或特定版本。
+- `container_name`：自定义的容器名称，便于识别。
+- `environment`：在 ZooKeeper 集群的配置中，每个节点需知其自身ID（ZOO_MY_ID）以及集群中其他成员的信息（ZOO_SERVERS），这些信息通过环境变量提供给每个容器
+  - `ZOO_MY_ID`：这个环境变量指定了每个 ZooKeeper 实例的ID，作为每个 ZooKeeper 实例的唯一标识符。
+  - `ZOO_SERVERS`：这个环境变量定义了集群中所有 ZooKeeper 实例的地址，这些信息用于集群成员之间的相互通信。
+- `ports`：每个ZooKeeper实例容器的 2181 端口映射到宿主机的不同端口 (2181, 2182, 2183)。目的是为了在同一台宿主机上暴露多个 ZooKeeper 实例的客户端端口，使得宿主机能够与集群的每一个实例进行通信，方便直接访问和测试。
+- `volumes`：对于生产环境中的 ZooKeeper 集群，数据持久化是至关重要的。这意味着你需要将容器内的数据绑定到宿主机上的数据卷来存储数据，这样即使容器重启，数据也不会丢失。为每个 ZooKeeper 节点提供了独立的数据卷 `xxx_data` 和 `xxx_datalog`，分别用于存储 ZooKeeper 的数据(`/data`)和事务日志(`/datalog`)。
+- `networks`: 将三个服务都连接到 `backend_network` 网络上。这个网络在 `networks` 一级key中声明。加入这个网络之后，不同服务就可以通过服务名（`zk1`、`zk2`、`zk3`）找到并实现容器间的网络访问。
 
-db 的服务定义中，包含如下指令：
-
-- `image`：指定了要使用的 Docker 镜像及其版本。在这里，我们使用了官方的 MySQL 8.4 版本镜像。
-
-- `container_name`：自定义的容器名称 `docker_wordpress_mysql`，便于识别。
-
-- `environment`：提供环境变量以配置 MySQL 实例。通过环境变量，我们能以无交互的方式初始化数据库配置。设置MySQL的环境变量，包括root密码、初始数据库及其用户和密码。
-
-- `ports`：将容器的`3306`端口映射到宿主机的`3308`端口，使外部可访问 MySQL 服务。宿主机上 3306 已经被占用，所以使用 3308 端口。
-
-- `volumes`：实现数据持久化的关键部分。MySQL 存储数据在`/var/lib/mysql`路径，日志在 `/var/log/mysql` 路径。`db` 服务将这两个路径映射到宿主机的数据卷的 `mysql_data` 和 `mysql_logs` 的数据卷上。这意味着即使容器被删除，存储在这两个数据卷上的数据也不会丢失，实现了数据的持久化。
-
-- `networks`: 将 db 服务连接到 `wordpress_network`网络上。这个网络在 `networks` 一级key中声明。将 db 服务加入这个网络，允许 `wordpress` 服务（也会连接到`wordpress_network`网络）可以通过服务名（`db`）找到并连接到 MySQL 服务，从而实现容器间的网络访问。
-
-### 3.2.2 wordpress 服务
-
-wordpress 的服务定义中，包含如下指令：
-
-- `depends_on`：表示 WordPress 服务依赖于 MySQL 服务（`db`），确保 MySQL 先启动。    
-
-- `image`：指定了要使用的 Docker 镜像及其版本。在这里，我们使用了官方的 latest 版本镜像。
-
-- `container_name`：自定义的容器名称 `docker_wordpress`，便于识别。
-
-- `environment`：配置 WordPress 连接数据库的环境变量，包括数据库主机（对应服务名`db`），数据库用户名、密码和数据库名。
-
-- `ports`：将宿主机的`8000`端口映射到容器的`80`端口，可以通过`http://localhost:8000`访问 WordPress。
-
-- `volumes`：将 `/var/www/html`（WordPress安装目录）映射到名为`wordpress_data`的数据卷，实现数据持久化。
-
-- `networks`: 将 `wordpress` 服务也连接到 `wordpress_network`网络。这样 `wordpress` 服务可以通过服务名（`db`）找到并连接到 MySQL 服务，从而实现容器间的网络访问。
-
-> 出于演示目的，我们直接在`docker-compose.yml`文件中硬编码了环境变量如密码等。在生产环境中，考虑使用更安全的方法来管理这些敏感数据，如 Docker 秘钥管理。
-
-这个`docker-compose.yml`文件是 WordPress 部署的基础模板，它涵盖了启动、配置和持久化的基本方面，同时还考虑了服务间网络连接的需求。根据具体需求，可能需要对配置进行调整（比如，环境变量的值或者镜像版本）。
 
 ### 3.3 部署
 
-在有了`docker-compose.yml`文件后，您需要在包含此文件的目录中运行如下命令启动服务：
+在有了`docker-compose.yml`文件后，您需要在包含此文件的目录中运行 `docker compose up -d` 命令启动服务：
 
-```shell
-smartsi@localhost wordpress % docker compose up -d
-[+] Running 3/3
- ✔ Network wordpress_wordpress_network  Created                                                                                                       0.0s
- ✔ Container docker_wordpress_mysql     Started                                                                                                       0.0s
- ✔ Container docker_wordpress           Started                                                                                                       0.0s
-```
+![](docker-compose-zookeeper-cluster-1.png)
 
-上述命令会在后台启动 WordPress 和 MySQL 服务。
+上述命令会在后台启动 ZooKeeper 集群的三个服务。
 
 ### 3.4. 验证
 
 部署后，使用以下命令检查服务状态：
-
 ```shell
-smartsi@localhost wordpress % docker compose ps
-NAME                     IMAGE              COMMAND                   SERVICE     CREATED          STATUS          PORTS
-docker_wordpress         wordpress:latest   "docker-entrypoint.s…"   wordpress   11 minutes ago   Up 11 minutes   0.0.0.0:8000->80/tcp
-docker_wordpress_mysql   mysql:8.4          "docker-entrypoint.s…"   db          11 minutes ago   Up 11 minutes   33060/tcp, 0.0.0.0:3308->3306/tcp
+(base) localhost:zookeeper wy$ docker compose ps
+NAME      IMAGE             COMMAND                  SERVICE   CREATED          STATUS          PORTS
+zk1       zookeeper:3.6.3   "/docker-entrypoint.…"   zk1       26 minutes ago   Up 26 minutes   2888/tcp, 3888/tcp, 0.0.0.0:2181->2181/tcp, 8080/tcp
+zk2       zookeeper:3.6.3   "/docker-entrypoint.…"   zk2       26 minutes ago   Up 26 minutes   2888/tcp, 3888/tcp, 8080/tcp, 0.0.0.0:2182->2181/tcp
+zk3       zookeeper:3.6.3   "/docker-entrypoint.…"   zk3       26 minutes ago   Up 26 minutes   2888/tcp, 3888/tcp, 8080/tcp, 0.0.0.0:2183->2181/tcp
 ```
+可以看到有三个服务已经启动成功，然后我们就可以用 `zkServer.sh status` 命令来查看每个 ZooKeeper 实例的状态：
+```shell
+localhost:zookeeper wy$ docker exec -it zk1 zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /conf/zoo.cfg
+Client port found: 2181. Client address: localhost. Client SSL: false.
+Mode: follower
 
-可以看到有两个 `docker_wordpress` 和 `docker_wordpress_mysql` 服务容器已经启动成功。
+localhost:zookeeper wy$ docker exec -it zk2 zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /conf/zoo.cfg
+Client port found: 2181. Client address: localhost. Client SSL: false.
+Mode: follower
 
-### 3.5 访问WordPress
-
-服务成功启动后，您可以通过浏览器访问您的 WordPress 站点。因为我们将 WordPress 的 80 端口映射到了宿主机的 8000 端口，您可以打开浏览器并访问`http://localhost:8000`来配置 WordPress。按照页面提示完成安装即可。
-
-![](docker-compose-deployment-wordpress-1.jpeg)
-
-完成安装之后即可登录了：
-![](docker-compose-deployment-wordpress-2.jpeg)
+localhost:zookeeper wy$ docker exec -it zk3 zkServer.sh status
+ZooKeeper JMX enabled by default
+Using config: /conf/zoo.cfg
+Client port found: 2181. Client address: localhost. Client SSL: false.
+Mode: leader
+```

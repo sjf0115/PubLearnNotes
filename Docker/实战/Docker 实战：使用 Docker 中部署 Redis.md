@@ -1,13 +1,13 @@
 ---
 layout: post
 author: sjf0115
-title: 在Docker中使用Redis
+title: Docker 实战：使用 Docker 中部署 Redis
 date: 2020-08-12 15:36:43
 tags:
   - Docker
 
 categories: Docker
-permalink: docker-open-source-redis
+permalink: docker-deployment-redis
 ---
 
 ### 1. 简介
@@ -20,7 +20,7 @@ permalink: docker-open-source-redis
 
 可以在镜像仓库中查看 [Redis](https://hub.docker.com/_/redis?tab=tags) 镜像：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/docker/docker-open-source-redis-2.jpg?raw=true)
+![](docker-deployment-redis-2.jpg)
 
 ### 3. 获取镜像
 
@@ -29,7 +29,7 @@ permalink: docker-open-source-redis
 docker pull redis:latest
 ```
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/docker/docker-open-source-redis-3.jpg?raw=true)
+![](docker-deployment-redis-3.jpg)
 
 ### 4. 查看本地镜像
 
@@ -37,7 +37,7 @@ docker pull redis:latest
 ```
 docker images
 ```
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/docker/docker-open-source-redis-4.jpg?raw=true)
+![](docker-deployment-redis-4.jpg)
 
 在图中我们可以看到我们已经安装了最新版本（latest）的 Redis 镜像。
 
@@ -47,7 +47,7 @@ docker images
 ```
 docker run -d -p 6379:6379 --name docker-redis redis
 ```
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/docker/docker-open-source-redis-1.jpg?raw=true)
+![](docker-deployment-redis-1.jpg)
 
 > -p 6379:6379：映射容器服务的 6379 端口到宿主机的 6379 端口。外部可以直接通过宿主机ip:6379 访问到 Redis 的服务。
 
@@ -55,13 +55,13 @@ docker run -d -p 6379:6379 --name docker-redis redis
 ```
 docker ps
 ```
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/docker/docker-open-source-redis-5.jpg?raw=true)
+![](docker-deployment-redis-5.jpg)
 
 还可以通过如下命令查看日志输出：
 ```
 docker logs docker-redis
 ```
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/docker/docker-open-source-redis-6.jpg?raw=true)
+![](docker-deployment-redis-6.jpg)
 
 ### 6. 在容器中运行Redis CLI
 
@@ -70,7 +70,7 @@ docker logs docker-redis
 docker exec -it docker-redis /bin/bash
 ```
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/docker/docker-open-source-redis-7.jpg?raw=true)
+![](docker-deployment-redis-7.jpg)
 
 我们已经连接到容器，现在让我们运行 `redis-cli`：
 ```
@@ -78,7 +78,7 @@ root@517350f4f2bb:/data# redis-cli
 ```
 现在我们可以运行一些基本的 Redis 命令：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/docker/docker-open-source-redis-8.jpg?raw=true)
+![](docker-deployment-redis-8.jpg)
 
 ### 7. 清理容器
 
@@ -90,4 +90,4 @@ docker rm docker-redis
 
 欢迎关注我的公众号和博客：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/%E5%85%AC%E4%BC%97%E5%8F%B7.jpg?raw=true)
+![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/%E5%85%AC%E4%BC%97%E5%8F%B7.jpg)

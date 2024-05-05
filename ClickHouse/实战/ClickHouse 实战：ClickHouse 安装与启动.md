@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: ClickHouse 安装与部署
+title: ClickHouse 实战：ClickHouse 安装与启动
 date: 2021-06-29 10:26:01
 tags:
   - ClickHouse
@@ -42,7 +42,7 @@ sudo yum install clickhouse-server clickhouse-client
 ```
 我们还可以从[这里](https://repo.yandex.ru/clickhouse/rpm/stable/x86_64/)手动下载和安装软件包。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/ClickHouse/how-install-and-startup-clickhouse-1.png?raw=true)
+![](how-install-and-startup-clickhouse-1.png)
 
 除此之外，还可以通过使用DEB包、Tgz包以及Docker镜像的方式安装。下面还会简单介绍如何使用DEB包、Tgz包进行安装。
 
@@ -98,13 +98,13 @@ sudo service clickhouse-server start
 ```
 > 如果您没有 service 命令，可以运行 sudo /etc/init.d/clickhouse-server start 命令。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/ClickHouse/how-install-and-startup-clickhouse-2.png?raw=true)
+![](how-install-and-startup-clickhouse-2.png)
 
 若 service 启动过程报 Init script is already running 错误，运行 clickhouse-client 命令报 Connection refused 错误，则使用 systemctl 方式启动：
 ```
 sudo systemctl start clickhouse-server
 ```
-![](https://github.com/sjf0115/ImageBucket/blob/main/ClickHouse/how-install-and-startup-clickhouse-3.png?raw=true)
+![](how-install-and-startup-clickhouse-3.png)
 
 > 可以使用 sudo systemctl stop clickhouse-server 命令停止服务。
 
@@ -116,7 +116,7 @@ sudo -u clickhouse  clickhouse-server --config-file=/etc/clickhouse-server/confi
 ```
 在这种情况下，日志会打印到控制台，方便开发时使用：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/ClickHouse/how-install-and-startup-clickhouse-4.png?raw=true)
+![](how-install-and-startup-clickhouse-4.png)
 
 如果配置文件在当前目录下，则不需要指定 --config-file 参数。默认情况下，使用 ./config.xml。ClickHouse 支持访问限制设置，可以修改 users.xml 文件。默认情况下，允许默认用户从任何地方访问，无需密码。
 
@@ -128,10 +128,10 @@ clickhouse-client
 ```
 默认情况下，表示用户默认连接到 localhost:9000，无需密码。还可用于使用 --host 参数连接到远程服务器。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/ClickHouse/how-install-and-startup-clickhouse-5.png?raw=true)
+![](how-install-and-startup-clickhouse-5.png)
 
 欢迎关注我的公众号和博客：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg)
 
 原文:[Installation](https://clickhouse.tech/docs/en/getting-started/install/)

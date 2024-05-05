@@ -113,7 +113,7 @@ MySQL 连接信息如下：
 - 密码：admin（在`docker-compose.yml`中设置）
 
 现在您就可以使用任何 MySQL 客户端工具连接到数据库：
-```
+```shell
 bash-4.4# mysql -h localhost -P 3307 -u admin -p
 Enter password:
 Welcome to the MySQL monitor.  Commands end with ; or \g.

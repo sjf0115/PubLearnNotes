@@ -24,61 +24,42 @@ smartsi@localhost docker % cd zookeeper
 
 > 该目录是应用程序镜像的上下文。该目录应该只包含用于构建该镜像的资源。
 
-### 3.2 构建 Compose 文件
+### 3.2 配置文件
+
+每个 ClickHouse 服务实例都有其自己的配置文件。配置文件通常包括 `config.xml` 和 `users.xml` 等，用于定义服务设置和用户权限。下面给出的 `config.xml` 和 `users.xml` 文件的内容提供了基本的配置样例。在实际部署 ClickHouse 集群时，你需要根据具体情况和需求调整配置文件。特别是在生产环境中，更加细致和安全的配置是必要的。
+
+
+### 3.3 构建 Compose 文件
 
 Docker Compose 简化了对整个应用程序堆栈的控制，使得在一个易于理解的 YAML 配置文件中轻松管理服务、网络和数据卷。要使用 Docker Compose 部署，首先需创建一个`docker-compose.yml`文件，如下所示：
 
 ```shell
 services:
-  zk1:
-    image: zookeeper:3.6.3
-    container_name: zk1
-    environment:
-      ZOO_MY_ID: 1
-      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+  ck1:
+    image: clickhouse/clickhouse-server:23.3.13.6
+    container_name: ck1
     ports:
-      - "2181:2181"
+      - "8123:8123"  # HTTP接口
+      - "9000:9000"  # Native客户端接口
     volumes:
-      - zk1_data:/data
-      - zk1_datalog:/datalog
+      - ck1_data:/var/lib/clickhouse
     networks:
       - backend_network
 
-  zk2:
-    image: zookeeper:3.6.3
-    container_name: zk2
-    environment:
-      ZOO_MY_ID: 2
-      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+  ck2:
+    image: clickhouse/clickhouse-server:23.3.13.6
+    container_name: ck2
     ports:
-      - "2182:2181"
+      - "8124:8123"
+      - "9001:9000"
     volumes:
-      - zk2_data:/data
-      - zk2_datalog:/datalog
-    networks:
-      - backend_network
-
-  zk3:
-    image: zookeeper:3.6.3
-    container_name: zk3
-    environment:
-      ZOO_MY_ID: 3
-      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
-    ports:
-      - "2183:2181"
-    volumes:
-      - zk3_data:/data
-      - zk3_datalog:/datalog
+      - ck2_data:/var/lib/clickhouse
     networks:
       - backend_network
 
 volumes:
-  zk1_data:
-  zk1_datalog:
-  zk2_data:
-  zk2_datalog:
-  zk3_data:
-  zk3_datalog:
+  ck1_data:
+  ck2_data:
 
 networks:
   backend_network:

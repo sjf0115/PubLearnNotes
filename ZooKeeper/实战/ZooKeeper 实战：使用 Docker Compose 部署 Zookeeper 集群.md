@@ -12,7 +12,7 @@ Docker Compose 是一个用于定义和运行多容器 Docker 应用程序的工
 
 ## 3. Docker Compose 部署 ZooKeeper
 
-接下来，我们将一步步通过 Docker Compose 来部署 ZooKeeper。
+接下来，我们将一步步通过 Docker Compose 来部署一个至少包含三个节点的 ZooKeeper 集群。
 
 ### 3.1 创建项目目录
 
@@ -30,49 +30,63 @@ Docker Compose 简化了对整个应用程序堆栈的控制，使得在一个�
 
 ```shell
 services:
-  db:  # MySQL 服务
-    image: mysql:8.4  # 指定镜像及其版本
-    container_name: docker_wordpress_mysql # 指定容器的名称
-    environment:  # 定义环境变量
-      MYSQL_ROOT_PASSWORD: root  # 设置 MySQL 的 root 用户密码
-      MYSQL_DATABASE: wordpress  # 创建一个初始数据库
-      MYSQL_USER: admin  # 创建一个MySQL用户
-      MYSQL_PASSWORD: admin  # 为新用户设置密码    
-    ports: # 端口映射
-      - "3308:3306"
-    volumes:  # 数据持久化的配置
-      - mysql_data:/var/lib/mysql  # 将命名数据卷挂载到容器内的指定目录
-      - mysql_logs:/var/log/mysql
-    networks:  # 网络配置
-      - wordpress_network  # 加入到 wordpress_network 网络
-  wordpress: # wordpress 服务
-    depends_on: # 服务依赖
-      - db
-    image: wordpress:latest # 指定镜像及其版本
-    container_name: docker_wordpress # 指定容器的名称
-    volumes: # 数据持久化的配置
-      - wordpress_data:/var/www/html
-    networks: # 网络配置
-      - wordpress_network # 加入到 wordpress_network 网络
-    ports: # 端口映射
-      - 8000:80
-    environment: # 定义环境变量
-      - WORDPRESS_DB_HOST=db
-      - WORDPRESS_DB_USER=admin
-      - WORDPRESS_DB_PASSWORD=admin
-      - WORDPRESS_DB_NAME=wordpress
+  zk1:
+    image: zookeeper:3.6.3
+    container_name: zk1
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+    ports:
+      - "2181:2181"
+    volumes:
+      - zk1_data:/data
+      - zk1_datalog:/datalog
+    networks:
+      - backend-network
+
+  zk2:
+    image: zookeeper:3.6.3
+    container_name: zk2
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+    ports:
+      - "2182:2181"
+    volumes:
+      - zk2_data:/data
+      - zk2_datalog:/datalog
+    networks:
+      - backend-network
+
+  zk3:
+    image: zookeeper:3.6.3
+    container_name: zk3
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+    ports:
+      - "2183:2181"
+    volumes:
+      - zk3_data:/data
+      - zk3_datalog:/datalog
+    networks:
+      - backend-network
+
 volumes:
-  mysql_data:
-  mysql_logs:
-  wordpress_data:
+  zk1_data:
+  zk1_datalog:
+  zk2_data:
+  zk2_datalog:
+  zk3_data:
+  zk3_datalog:
 
 networks:
-  wordpress_network:
+  backend-network:
 ```
 
 > 可以为使用 `.yml` 或 `.yaml` 扩展名
 
-services 用于定义不同的应用服务。上边的例子定义了两个服务：一个名为 db 的 MySQL 数据库服务以及一个名为 wordpress 的博客站点服务。Docker Compose 会将每个服务部署在各自的容器中。在这里我们自定义了容器名称，因此 Docker Compose 会部署两个名为 `docker_wordpress_mysql` 和 `docker_wordpress` 的容器。
+services 用于定义不同的应用服务。上边的例子定义了三个服务(`zk1`、`zk2`、`zk3`)，分别对应 ZooKeeper 集群的三个节点。Docker Compose 会将每个服务部署在各自的容器中，在这里我们自定义了容器名称，因此 Docker Compose 会部署三个名为 `zk1`、`zk2` 和 `zk3` 的容器。
 
 networks 用于声明 Docker Compose 创建新的网络 `wordpress_network`。我们只负责声明，不需要手动创建，Docker Compose 会自动管理。为了实现 `db`服务和 `wordpress` 服务之间的通信，需要这两个服务都加入到这两个网络。在使用 Docker Compose 部署应用时，定义`networks`并不是必须的，但却是一个好的习惯。如果不显式定义和指定网络，Docker Compose 默认会为你的应用创建一个单独的网络，并且所有在`docker-compose.yml`文件中定义的服务都将自动加入这个网络。这意味着，即使你没有明确定义网络，服务之间也能够相互通信。
 

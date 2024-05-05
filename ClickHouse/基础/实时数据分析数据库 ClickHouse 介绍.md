@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: 实时数据分析数据库ClickHouse介绍
+title: 实时数据分析数据库 ClickHouse 介绍
 date: 2018-09-24 20:16:01
 tags:
   - ClickHouse
@@ -10,17 +10,17 @@ categories: ClickHouse
 permalink: what-is-clickhouse
 ---
 
-### 1. 什么是ClickHouse
+### 1. 什么是 ClickHouse
 
 `ClickHouse` 是 `战斗民族` 俄罗斯搜索巨头 `Yandex` 公司开源的一个极具"战斗力"的实时数据分析数据库，是面向 OLAP 的分布式列式DBMS，圈内人戏称为“喀秋莎数据库”。`ClickHouse`有一个简称 `CK`，与Hadoop、Spark这些巨无霸组件相比，ClickHouse很轻量级。
 
 在`正常`的面向行的DBMS中，数据按以下顺序存储：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ClickHouse/what-is-clickhouse-1.png?raw=true)
+![](what-is-clickhouse-1.png)
 
 换句话说，与一行相关的所有值都物理存储在相邻的位置。面向行的 DBMS 的示例是 MySQL，Postgres 和 MS SQL Server。在面向列的DBMS中，数据存储如下：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ClickHouse/what-is-clickhouse-2.png?raw=true)
+![](what-is-clickhouse-2.png)
 
 这些示例仅显示数据的排列顺序。不同列的值分别存储，同一列的数据一起存储。面向列的 DBMS 的示例有：`Vertica`，`Paraccel`（Actian Matrix和Amazon Redshift），`Sybase IQ`，`Exasol`，`Infobright`，`InfiniDB`，`MonetDB`（VectorWise和Actian Vector），`LucidDB`，`SAP HANA`，`Google Dremel`，`Google PowerDrill`，`Druid`和`KDB+`。
 
@@ -45,17 +45,17 @@ permalink: what-is-clickhouse
 
 很容易看出，OLAP场景与其他常见场景（如OLTP或Key-Value访问）有很大不同。所以，如果你想获得不错的表现，尝试使用OLTP或Key-Value数据库来处理分析查询是没有任何意义的。例如，如果你尝试使用 MongoDB 或 Redis 进行分析，与OLAP数据库相比，你的性能会很差。
 
-### 2. 为什么面向列的数据库更适合OLAP场景
+### 2. 为什么面向列的数据库更适合 OLAP 场景
 
 面向列的数据库更适合于OLAP场景：对于大多数查询，处理速度至少提高了100倍。原因在下面详细解释，但事实上更容易在视觉上展示：
 
 面向行的数据库：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ClickHouse/what-is-clickhouse-3.gif?raw=true)
+![](what-is-clickhouse-3.gif)
 
 面向列的数据库：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ClickHouse/what-is-clickhouse-4.gif?raw=true)
+![](what-is-clickhouse-4.gif)
 
 看到不同了？
 
@@ -206,8 +206,6 @@ CounterID|count()
 
 我们建议以至少1000行的数据包或者每秒不超过一个请求插入数据。从制表符分隔的存储中插入MergeTree表时，插入速度将为50到200MB/s。如果插入的行大小约为1 Kb，则速度将为每秒50,000到200,000行。如果一行比较小，则以每秒处理行数的性能上会更高一些（在Banner System数据上 ->　每秒500,000行；在Graphite数据上 -> 每秒1,000,000行）。为了提高性能，你可以并行执行多个INSERT查询，并且性能将线性增加。
 
-
-
-原文：https://clickhouse.yandex/docs/en/
-
-https://clickhouse.yandex/docs/en/introduction/distinctive_features/
+参考：
+- https://clickhouse.yandex/docs/en/
+- https://clickhouse.yandex/docs/en/introduction/distinctive_features/

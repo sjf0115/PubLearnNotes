@@ -2,7 +2,7 @@
 
 ## 1. ZooKeeper 简介
 
-WordPress是世界上最受欢迎的内容管理系统（CMS）之一，特别是对于个人博客来说。自2003 年首次发布以来，它已经从一个简单的博客平台发展成为一个功能丰富的网站建设工具。WordPress 作为个人博客平台提供了无与伦比的简便性、灵活性和功能性，使其成为全球数百万博主的首选。
+ZooKeeper是一个开源的分布式协调服务，用于管理大型分布式系统中的数据。它由Apache软件基金会提供，最初是Hadoop的一个子项目，但后来发展成为一个独立的顶级项目。ZooKeeper提供的一致性协调服务对于构建分布式应用和服务非常重要，特别是在需要精确的领导选举、配置管理、命名服务、分布式同步和提供分布式锁等功能时。
 
 ## 2. Docker Compose 简介
 
@@ -10,22 +10,21 @@ Docker Compose 是一个用于定义和运行多容器 Docker 应用程序的工
 
 在开始之前，首先需要确保已经安装了 Docker Compose，如果没有安装或者不熟悉 Compose 的具体查阅 [Docker 实战：使用 Docker Compose 实现高效的多容器部署](https://smartsi.blog.csdn.net/article/details/138414972)。
 
-## 3. Docker Compose 部署 MySQL
+## 3. Docker Compose 部署 ZooKeeper
 
-接下来，我们将一步步通过 Docker Compose 来部署 WordPress 博客站点 以及依赖的 MySQL 数据库。
+接下来，我们将一步步通过 Docker Compose 来部署 ZooKeeper。
 
 ### 3.1 创建项目目录
 
-首先为项目创建一个目录。在这里，在我们的工作目录 `/opt/workspace/docker`下创建一个名为 `wordpress` 的项目 ：
-
+首先为项目创建一个目录。在这里，在我们的工作目录 `/opt/workspace/zookeeper`下创建一个名为 `zookeeper` 的项目：
 ```shell
-smartsi@localhost docker % mkdir wordpress
-smartsi@localhost docker % cd wordpress
+smartsi@localhost docker % mkdir zookeeper
+smartsi@localhost docker % cd zookeeper
 ```
 
 > 该目录是应用程序镜像的上下文。该目录应该只包含用于构建该镜像的资源。
 
-### 3.2 构建Compose 文件
+### 3.2 构建 Compose 文件
 
 Docker Compose 简化了对整个应用程序堆栈的控制，使得在一个易于理解的 YAML 配置文件中轻松管理服务、网络和数据卷。要使用 Docker Compose 部署，首先需创建一个`docker-compose.yml`文件，如下所示：
 

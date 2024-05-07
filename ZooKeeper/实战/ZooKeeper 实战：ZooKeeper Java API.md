@@ -532,12 +532,6 @@ public class ZKDelete {
 }
 ```
 
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
-
 参考：
-
-[zookeeper java api介绍](https://segmentfault.com/a/1190000012262940)
-
-[Zookeeper - API](http://www.tutorialspoint.com/zookeeper/zookeeper_api.htm)
+- [zookeeper java api介绍](https://segmentfault.com/a/1190000012262940)
+- [Zookeeper - API](http://www.tutorialspoint.com/zookeeper/zookeeper_api.htm)

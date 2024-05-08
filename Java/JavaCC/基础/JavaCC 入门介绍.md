@@ -170,5 +170,19 @@ t = <NUMBER>
 #### 1.3.1 选项和类声明
 
 文件 `calculator0.jj` 的第一部分 还是和以前一样:
+```
+```
+Calculator 类的 `previousValue` 字段用于存储前一行的计算结果，我们将在后续版本中使用它，可以使用美元符号来表示它。`import` 语句说明可以在 `PARSER BEGIN` 和 `PARSER END` 括号之间进行 `import` 声明。这些会被复制到生成的解析器和 Token 管理器类中。也可以使用包声明，并将其复制到所有的生成类中。
+
+### 1.3.2 词法规范
+
+词法分析器的规范稍有变化。首先声明结束行为一个 TOKEN 并给定一个符号名称，以便将其传递给解析器。
+
+
+
+
+
+
+
 
 > 原文:[javacc-tutorial](https://www.engr.mun.ca/~theo/JavaCC-Tutorial/javacc-tutorial.pdf)

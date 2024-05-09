@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: 使用Docker构建ZooKeeper镜像
+title: Docker 实战：使用 Docker 构建 ZooKeeper 镜像
 date: 2020-08-24 15:37:43
 tags:
   - Docker
@@ -11,13 +11,11 @@ categories: Docker
 permalink: build-zookeeper-image-with-docker
 ---
 
-这篇文章中我们将使用 Docker 创建 Zookeeper 镜像，包括如何将 Zookeeper 安装到容器，如何配置 ZooKeeper 应用程序以及如何在宿主机和容器之间共享数据卷。
-
-本教程利用 Dockerfile 来指定容器的内容。如果您需要有关编写 Dockerfile 的更多信息，请参阅[官方文档](https://docs.docker.com/engine/reference/builder/)。
+这篇文章中我们将使用 Docker 创建 Zookeeper 镜像，包括如何将 Zookeeper 安装到容器，如何配置 ZooKeeper 应用程序以及如何在宿主机和容器之间共享数据卷。本教程利用 Dockerfile 来指定容器的内容。如果您需要有关编写 Dockerfile 的更多信息，请参阅[官方文档](https://docs.docker.com/engine/reference/builder/)。
 
 ### 1. 指定基础镜像
 
-Docker 容器基于基础 Linux 映像构建而成。这些镜像提供了容器的核心功能，并使用 FROM 命令来指定。FROM 命令允许我们同时指定镜像以及 Tag，其中 Tag 标记了镜像的版本。在下面 Dockerfile 中，我们使用 openjdk 镜像构建容器：
+Docker 容器基于基础 Linux 镜像构建而成。这些镜像提供了容器的核心功能，并使用 FROM 命令来指定。FROM 命令允许我们同时指定镜像以及 Tag，其中 Tag 标记了镜像的版本。在下面 Dockerfile 中，我们使用 openjdk 镜像构建容器：
 ```shell
 FROM openjdk:8-jre-alpine
 ```
@@ -40,9 +38,9 @@ Successfully built f7a292bbb70c
 Successfully tagged smartsi/docker-jdk:latest
 ```
 
-### 2. 安装ZooKeeper
+### 2. 安装 ZooKeeper
 
-现在我们有了基础镜像，我们可以使用 RUN 命令在镜像上安装 Zookeeper。RUN 允许我们在镜像上执行任意命令。在此示例中，我们将 3.5.8 版本的 Zookeeper 安装到 `/opt/zookeeper` 目录下：
+现在我们有了基础镜像，我们可以使用 RUN 命令在基础镜像上安装 Zookeeper。RUN 允许我们在镜像上执行任意命令。在此示例中，我们将 3.5.8 版本的 Zookeeper 安装到 `/opt/zookeeper` 目录下：
 ```
 FROM openjdk:8-jre-alpine
 
@@ -56,7 +54,7 @@ RUN mv /opt/apache-zookeeper-3.5.8-bin /opt/zookeeper \
 RUN cp /opt/zookeeper/conf/zoo_sample.cfg /opt/zookeeper/conf/zoo.cfg
 ```
 
-在 Dockerfile 中执行的每个命令都会创建一个额外的镜像层。每层都复制它前一层的内容，因此每一层都会增加 Docker 镜像的大小。因此，通过组合 Dockerfile 中的语句来最大程度地减少层数被认为是最佳实践。我们需要在可读性和性能之间取得一个平衡，并根据需要调整 Dockerfile。
+在 Dockerfile 中执行的每个命令都会创建一个额外的镜像层。每层都复制它前一层的内容，因此每一层都会增加 Docker 镜像的大小。因此，通过组合 Dockerfile 中的语句来最大程度地减少层数是一种最佳方法。我们需要在可读性和性能之间取得一个平衡，并根据需要调整 Dockerfile。
 ```shell
 FROM openjdk:8-jre-alpine
 
@@ -79,7 +77,7 @@ RUN apk add --no-cache wget bash \
 
 EXPOSE 2181 2888 3888
 ```
-如果要将主机端口映射到容器的端口上，可以使用 -p 命令运行容器。例如，公开容器中的端口并将宿主机端口映射到容器的端口上，我们可以指定要绑定到的多个端口：
+如果要将主机端口映射到容器的端口上，可以使用 `-p` 命令运行容器。例如，公开容器中的端口并将宿主机端口映射到容器的端口上，我们可以指定要绑定到的多个端口：
 ```shell
 docker run -d -p 2181:2181 -p 2888:2888 -p 3888:3888 smartsi/docker-zookeeper:test
 ```
@@ -116,8 +114,8 @@ WORKDIR /opt/zookeeper
 
 VOLUME ["/opt/zookeeper/conf"]
 ```
-如果要将本地目录映射到我们创建的数据卷上，可以使用 docker run 命令的 -v 选项运行容器。在以下示例中，`./conf` 目录中的所有文件都被映射到容器上的 `/opt/zookeeper/conf` 目录中：
-```
+如果要将本地目录映射到我们创建的数据卷上，可以使用 docker run 命令的 `-v` 选项运行容器。在以下示例中，`./conf` 目录中的所有文件都被映射到容器上的 `/opt/zookeeper/conf` 目录中：
+```shell
 docker run -it -v conf:/opt/zookeeper/conf smartsi/docker-zookeeper:test /bin/bash
 ```
 OS X 用户需要使用完整路径而不是相对目录来限定本地目录。
@@ -141,7 +139,7 @@ VOLUME ["/opt/zookeeper/conf", "/tmp/zookeeper"]
 ```
 如果我们的 Zookeeper 配置与默认配置不同，请为数据卷使用恰当的挂载点。
 
-### 7. 运行Zookeeper
+### 7. 运行 Zookeeper
 
 此时，我们的 Dockerfile 将会安装 Zookeeper，将端口暴露给宿主机，并为配置和数据文件进行挂载。我们需要的做的最后一件事就是运行 Zookeeper。为此，我们使用 ENTRYPOINT 和 CMD 关键字：
 ```shell
@@ -199,7 +197,7 @@ Client port found: 2181. Client address: localhost.
 Mode: standalone
 ```
 通过如下命令连接 ZooKeeper 服务：
-```
+```shell
 ./bin/zkCli.sh -server localhost:2181
 ```
 

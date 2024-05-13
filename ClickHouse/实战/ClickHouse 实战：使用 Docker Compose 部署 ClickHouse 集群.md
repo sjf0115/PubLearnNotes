@@ -64,7 +64,8 @@ services:
       volumes:
         - ck1_data:/var/lib/clickhouse
         - ck1_log:/var/log/clickhouse-server/
-        - /opt/workspace/docker/clickhouse/conf/ck1/config.xml:/etc/clickhouse-server/config.xml
+        - ./conf/config.d:/etc/clickhouse-server/config.d
+        - ./conf/users.d:/etc/clickhouse-server/users.d
 
   ck2:  
       image: clickhouse/clickhouse-server:23.3.13.6
@@ -75,26 +76,14 @@ services:
       volumes:
         - ck2_data:/var/lib/clickhouse
         - ck2_log:/var/log/clickhouse-server/
-        - /opt/workspace/docker/clickhouse/conf/ck2/config.xml:/etc/clickhouse-server/config.xml
-
-  ck3:  
-      image: clickhouse/clickhouse-server:23.3.13.6
-      container_name: docker_ck3
-      restart: always
-      networks:
-        - pub-network
-      volumes:
-        - ck3_data:/var/lib/clickhouse
-        - ck3_log:/var/log/clickhouse-server/
-        - /opt/workspace/docker/clickhouse/conf/ck3/config.xml:/etc/clickhouse-server/config.xml  
+        - ./conf/config.d:/etc/clickhouse-server/config.d
+        - ./conf/users.d:/etc/clickhouse-server/users.d
 
 volumes:
   ck1_data:
   ck1_log:
   ck2_data:
   ck2_log:
-  ck3_data:
-  ck3_log:
 
 networks:  # 网络
   pub-network:
@@ -115,9 +104,15 @@ networks:  # 网络
       external: true
 ```
 
-```
-
-docker cp ck-1:/etc/clickhouse-server/users.xml .
+```shell
+(base) localhost:clickhouse wy$ docker compose up -d
+[+] Running 6/6
+ ✔ Volume "clickhouse_ck2_data"  Created                                        0.0s
+ ✔ Volume "clickhouse_ck2_log"   Created                                        0.0s
+ ✔ Volume "clickhouse_ck1_data"  Created                                        0.0s
+ ✔ Volume "clickhouse_ck1_log"   Created                                        0.0s
+ ✔ Container docker_ck2          Started                                        0.2s
+ ✔ Container docker_ck1          Started                                        0.2s
 ```
 
 

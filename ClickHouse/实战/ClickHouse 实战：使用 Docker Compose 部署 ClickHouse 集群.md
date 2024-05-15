@@ -147,15 +147,35 @@ networks:  # 网络
 
 `networks` 配置用于声明服务要连接的网络 `pub-network`。`external: true` 表示网络是在 Docker Compose 配置文件之外定义的，即它已经存在了，Docker Compose 不需要尝试创建它。只要加入这个网络的服务就能够实现项目容器间以及跨项目通信。具体可以查阅 [Docker 实战：使用 Docker Compose 部署实现跨项目网络访问](https://smartsi.blog.csdn.net/article/details/138734487)。
 
-`volumes` 配置用于声明 Docker Compose 创建新的数据卷 `ck1_data`、`ck2_data`。我们只负责声明，不需要手动创建，Docker Compose 会自动管理。默认情况下，在容器删除之后数据会丢失。为了解决这个问题，我们需要三个服务分别使用声明中的数据卷来将数据保存在宿主机上。
+`volumes` 配置用于声明 Docker Compose 创建新的数据卷 `ck1_data`、`ck1_log`、`ck2_data`、`ck2_log`。我们只负责声明，不需要手动创建，Docker Compose 会自动管理。默认情况下，在容器删除之后数据会丢失。为了解决这个问题，我们需要两个服务分别使用声明中的数据卷来将数据保存在宿主机上。
 
-3.2.2 service元素配置
-`services` 配置定义了三个服务，我们以 minio1 服务为例，详细介绍服务的配置。
+#### 3.3.2 service元素配置
 
-`image` 配置指定了要使用的 Docker 镜像及其版本。三个服务均使用 minio/minio:RELEASE.2024-05-10T01-41-38Z 镜像确保所有节点运行同一版本的 MinIO，保持集群的一致性。这里的版本 RELEASE.2024-05-10T01-41-38Z 可以根据需求替换为最新或特定版本，其中日期时间戳代表了该版本的构建时间。当然你也可以选择 minio/minio:latest 的镜像，这会确保每次拉取都是最新的稳定版，但在生产环境中可能带来不确定性，因为“最新版”会随新版本发布而变化。选择特定版本的标签可以提供更多的控制和预测性，减少意外的更新可能造成的问题。
+`services` 配置定义了三个服务，我们以 `ck1` 服务为例，详细介绍服务的配置。
+- `image` 配置指定了要使用的 Docker 镜像及其版本。两个服务均使用 `clickhouse/clickhouse-server:23.3.13.6` 镜像确保所有节点运行同一版本的 ClickHouse。当然你也可以选择 `clickhouse/clickhouse-server:latest` 镜像，这会确保每次拉取都是最新的稳定版，但在生产环境中可能带来不确定性，因为“最新版”会随新版本发布而变化。选择特定版本的标签可以提供更多的控制和预测性，减少意外的更新可能造成的问题。
 
+`volumes` 配置对于生产环境中 ClickHouse 集群的数据持久化是至关重要的。这意味着你需要将容器内的数据绑定到宿主机上的数据卷来存储数据，这样即使容器重启，数据也不会丢失。为每个 ClickHouse 节点提供了独立的数据卷 `xxx_data` 和 `xxx_log`，分别用于存储 ClickHouse 的数据(`/var/lib/clickhouse`)和日志(`/var/log/clickhouse-server/`)。
 
+`networks` 配置将服务连接到 `pub-network` 网络上。这个网络在 `networks` 一级key中声明已经创建，Docker Compose 不需要尝试创建它。加入这个网络之后，不同服务就可以通过服务名（`ck1`、`ck2`）找到并实现容器间以及跨项目的网络访问。
 
+`ports` 配置用来将容器的端口映射到宿主机的端口，使得宿主机能够与集群进行通信。通常，只有服务需要直接从宿主机的网络访问时，我们才会映射端口。对于 ClickHouse 的分布式集群来说，节点之间的通信是在内部 Docker 网络中进行的，无需额外的端口映射。只有外部客户端需要访问集群时，才需要一个入口点，所以不需要为集群中的每个节点都映射端口到宿主机。我们只需要为集群中的一个节点映射端口即可。这个例子中，我们只将 9000 端口映射到了 `ck1` 节点，这足以让外部客户端通过宿主机的 9000 端口来访问到 ClickHouse 集群。
+
+### 3.4 创建公共网络
+
+上述配置文件中我们声明加入一个 `pub-network` 的网络：
+```shell
+networks:  # 加入公共网络
+  pub-network:
+      external: true
+```
+
+`external: true` 表示网络是在 Docker Compose 配置文件之外定义的，即它已经存在了，Docker Compose 不需要尝试创建它。首先要确保你已经创建了该网络，如果没有创建可以使用如下命令来创建：
+```shell
+docker network create pub-network
+```
+### 3.5 部署
+
+在有了 docker-compose.yml 文件后，你需要在包含此文件的目录中运行 `docker compose up -d` 命令启动服务：
 ```shell
 (base) localhost:clickhouse wy$ docker compose up -d
 [+] Running 6/6
@@ -166,78 +186,17 @@ networks:  # 网络
  ✔ Container docker_ck2          Started                                        0.2s
  ✔ Container docker_ck1          Started                                        0.2s
 ```
+上述命令会在后台启动 ClickHouse 集群的三个服务。
 
+### 3.6 验证部署
 
-上述方式中只有 `zoo1` 配置了端口映射，这一般是为了在宿主机上提供一个方便的访问点，供管理员使用 CLI 工具或者其他服务连接到 ZooKeeper 集群进行维护或检查。通常，在 Docker Compose 中，同一网络内的服务（containers）可以使用服务名直接互相访问，无需端口映射到宿主机。
+一旦服务启动，你就可以通过 ClickHouse 客户端或任何支持 HTTP 的客户端连接到 ClickHouse 服务器了。如果你已经安装了 ClickHouse 的客户端，可以使用以下命令连接：
+```
+clickhouse-client --host <hostname> --port <port> --user <username> --password <password>
+```
+其中，`<hostname>`、`<port>`、`<username>` 和 `<password>` 分别代表 ClickHouse 服务器的地址、端口、用户名和密码。如果没有提供用户名和密码，clickhouse-client 默认尝试以 default 用户进行连接，而且默认的端口是 9000。
 
-ClickHouse 集群内的节点会使用内部服务名称（如 `zoo1`、`zoo2`、`zoo3`）来访问整个 ZooKeeper 集群，因为所有的服务都在 `clickhouse_net` 这一自定义网络下。这意味着，尽管只有 `zoo1` 对外映射了端口，节点 `clickhouse01` 和 `clickhouse02` 仍能够通过 Docker 的内部网络连接到 `zoo1`、`zoo2` 和 `zoo3`。
-
-如果您希望能够从外部网络访问所有 ZooKeeper 节点（例如，对于跨主机的 Docker 集群或特定的监控需求），则应对每一个 ZooKeeper 服务配置端口映射，并且使用不同的宿主机端口来避免冲突。例如：
-
-
-
-在大多数情况下，在生产环境中为了安全考虑，不建议将 ZooKeeper 的端口映射到宿主机上，除非是临时的需要。而在 Docker 内部网络间进行的服务通讯已经足够满足 ClickHouse 集群和 ZooKeeper 集群间的交互。
-
-
-
-hostname：
-
-
-
-在 Docker Compose 方案中配置 `hostname` 的目的主要是为了在容器内部设置容器的主机名。具体到 ClickHouse 集群和 ZooKeeper 实例，设置 `hostname` 会有以下用途：
-
-1. **服务发现**: 在 Docker 网络中，服务可以通过主机名相互发现和通信。尽管 Docker Compose 默认使用服务名称（service name）作为可解析的网络标识来实现服务之间的互联互通，`hostname` 设置可以确保在容器内部网络解析和服务发现方面与外部定义一致，特别是当服务需要通过它们的主机名而不是服务名称来参考对方时。
-
-2. **配置一致性**: 在设置分布式系统配置时，如 ClickHouse 集群配置，通常需要指定各个节点名称。通过 `hostname` 明确设置主机名，使配置文件中的节点名与容器内的主机名保持一致，进而保证各个 ClickHouse 节点之间可以通过设置的名字互相识别和通信。
-
-3. **日志和监控**: 设置 `hostname` 对日志记录和监控工具也非常有用。容器内的应用程序（包括 ClickHouse 服务器）通常会在日志消息中包含主机名。定制 `hostname` 使你能够更容易地辨识日志来源于哪个节点或容器。
-
-4. **复制和分布式设置**: 对于 ClickHouse 的 `Replicated*` 表引擎和其它分布式特性来说，指定恰当的 `hostname` 有助于正确构建复制和分布式数据结构，因为这些设置可能依赖于节点的主机名来定义副本和分片规则。
-
-5. **兼容性和迁移**: 如果您之前有过 ClickHouse 或其他服务的物理部署，并且要迁移到容器化部署，已有的配置文件可能包含物理主机名。通过在 Docker 中设置相同的 `hostname`，您可以无缝迁移现有配置文件到容器环境。
-
-在实践中，设置 `hostname` 提供了额外的明确性和灵活性，使得各种服务和工具可以如预期般运行。在复杂的生产环境和集群设置下，这有助于减少混淆并简化管理过程。
-
-
-
-
-
-在上述 Docker Compose 方案中的 `environment` 部分包含了设定环境变量的条目，这是用于容器启动时设置特定参数的方法。`CLICKHOUSE_DB`, `CLICKHOUSE_USER` 和 `CLICKHOUSE_PASSWORD` 是按照 ClickHouse 官方 Docker 镜像设定的环境变量，用于在容器启动时创建初始用户、密码和数据库。
-
-### `CLICKHOUSE_DB`
-
-- **用途**: `CLICKHOUSE_DB` 环境变量用于指定在启动 ClickHouse 服务器时应该创建的数据库名���。如果设置了此环境变量，ClickHouse 服务器将在启动后自动创建数据库。
-
-### `CLICKHOUSE_USER`
-
-- **用途**: `CLICKHOUSE_USER` 环境变量用于指定在启动 ClickHouse 服务器时应该创建的用户名。
-
-### `CLICKHOUSE_PASSWORD`
-
-- **用途**: `CLICKHOUSE_PASSWORD` 环境变量与 `CLICKHOUSE_USER` 一起使用，用于指定相应用户的密码。
-
-### 是否必须设置
-
-这些环境变量不是强制性的。对于某些 ClickHouse 的 Docker 镜像，在没有设置这些变量的情况下，它会默认创建一个名为 `default` 的用户，没有密码，同时还会创建一个默认的数据库。如果您接受这些默认值，可以省略这些环境变量。
-
-然而，出于安全和管理的考虑，在生产环境中建议采取以下措施：
-
-1. **创建非默认用户**: 使用 `CLICKHOUSE_USER` 创建特定用户，并为其分配权限，以防止使用默认用户和默认权限。
-
-2. **设置密码**: 使用 `CLICKHOUSE_PASSWORD` 为用户创建密码，加强数据库实例的安全性。
-
-3. **定制数据库**: 通过 `CLICKHOUSE_DB` 创建业务相关的数据库，便于管理和区分不同的数据集。
-
-创建初始用户和数据库的环境变量可以帮助自动化容器启动过程中的初始设置，并通过避免使用默认配置来增强系统的安全性。在实际应用中，您还应该根据实际需要评估和实现更精细的安全策略。
-
-
-
-
-
-在上述 Docker Compose 方案中的 `environment` 部分所提到的 `CLICKHOUSE_DB` 和 `CLICKHOUSE_USER` 环境变量是指 ClickHouse 自身的数据库和用户，而不是外部的如 MySQL 数据库。这些环境变量用于在 ClickHouse 实例启动时，在 ClickHouse 中创建一个用户账户和数据库。
-
-
-
-
-
-确实，在早期的 ClickHouse 版本中，配置文件使用的是 <yandex> 根元素，但在较新的版本中，根元素已被更改为 <clickhouse>。如果您使用的是 ClickHouse 的最新 Docker 镜像，您应该使用 <clickhouse> 作为根元素。不过，旧版 ClickHouse 配置文件中的 <yandex> 根元素仍然是兼容的，新版本保持了向后兼容性以支持旧配置文件。
+此外，ClickHouse 提供了一个 HTTP 接口，用户可以通过任何支持 HTTP 的客户端（比如 curl）来执行查询：
+```
+curl -u <username>:<password> 'http://<hostname>:<port>/' --data-binary '<query>'
+```

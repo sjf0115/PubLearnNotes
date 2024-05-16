@@ -76,8 +76,8 @@ smartsi@localhost docker % cd clickhouse
     <path>/var/lib/clickhouse/</path>
     <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
 
-    <format_schema_path>/var/lib/clickhouse/format_schemas/</format_schema_path>
-    <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>
+    <!--  监听host  -->
+    <listen_host>::</listen_host>
 </clickhouse>
 ```
 > 这里列出来 config.xml 的一些核心配置，可以根据业务自行决定自定义配置
@@ -109,6 +109,9 @@ services:
       image: clickhouse/clickhouse-server:23.3.13.6
       container_name: docker_ck1
       restart: always
+      ports:
+        - "8123:8123"
+        - "9000:9000"
       networks:
         - pub-network
       volumes:
@@ -154,11 +157,11 @@ networks:  # 网络
 `services` 配置定义了三个服务，我们以 `ck1` 服务为例，详细介绍服务的配置。
 - `image` 配置指定了要使用的 Docker 镜像及其版本。两个服务均使用 `clickhouse/clickhouse-server:23.3.13.6` 镜像确保所有节点运行同一版本的 ClickHouse。当然你也可以选择 `clickhouse/clickhouse-server:latest` 镜像，这会确保每次拉取都是最新的稳定版，但在生产环境中可能带来不确定性，因为“最新版”会随新版本发布而变化。选择特定版本的标签可以提供更多的控制和预测性，减少意外的更新可能造成的问题。
 
-`volumes` 配置对于生产环境中 ClickHouse 集群的数据持久化是至关重要的。这意味着你需要将容器内的数据绑定到宿主机上的数据卷来存储数据，这样即使容器重启，数据也不会丢失。为每个 ClickHouse 节点提供了独立的数据卷 `xxx_data` 和 `xxx_log`，分别用于存储 ClickHouse 的数据(`/var/lib/clickhouse`)和日志(`/var/log/clickhouse-server/`)。
+`volumes` 配置对于生产环境中 ClickHouse 集群的数据持久化是至关重要的。这意味着你需要将容器内的数据绑定到宿主机上的数据卷来存储数据，这样即使容器重启，数据也不会丢失。为每个 ClickHouse 节点提供了独立的数据卷 `xxx_data` 和 `xxx_log`，分别用于存储 ClickHouse 的数据(`/var/lib/clickhouse`)和日志(`/var/log/clickhouse-server/`)。此外还分别映射了本地文件 `./conf/config.d` 和 `./conf/users.d` 到容器内的 `/etc/clickhouse-server/config.d` 和 `/etc/clickhouse-server/users.d` 目录。这意味着本地的配置文件将被用来作为容器内的配置。
 
 `networks` 配置将服务连接到 `pub-network` 网络上。这个网络在 `networks` 一级key中声明已经创建，Docker Compose 不需要尝试创建它。加入这个网络之后，不同服务就可以通过服务名（`ck1`、`ck2`）找到并实现容器间以及跨项目的网络访问。
 
-`ports` 配置用来将容器的端口映射到宿主机的端口，使得宿主机能够与集群进行通信。通常，只有服务需要直接从宿主机的网络访问时，我们才会映射端口。对于 ClickHouse 的分布式集群来说，节点之间的通信是在内部 Docker 网络中进行的，无需额外的端口映射。只有外部客户端需要访问集群时，才需要一个入口点，所以不需要为集群中的每个节点都映射端口到宿主机。我们只需要为集群中的一个节点映射端口即可。这个例子中，我们只将 9000 端口映射到了 `ck1` 节点，这足以让外部客户端通过宿主机的 9000 端口来访问到 ClickHouse 集群。
+`ports` 配置用来将容器的端口映射到宿主机的端口，使得宿主机能够与集群进行通信。通常，只有服务需要直接从宿主机的网络访问时，我们才会映射端口。对于 ClickHouse 的分布式集群来说，节点之间的通信是在内部 Docker 网络中进行的，无需额外的端口映射。只有外部客户端需要访问集群时，才需要一个入口点，所以不需要为集群中的每个节点都映射端口到宿主机。我们只需要为集群中的一个节点映射端口即可。这个例子中，我们映射了容器的 `8123` 和 `9000` 端口到宿主机相同的端口上，这样我们就可以从宿主机访问 ClickHouse 服务了。`8123` 是默认的 HTTP 接口，用于接收 HTTP 请求，如 SQL 查询等。`9000` 是 ClickHouse 的本地 TCP 客户端通信端口，主要用于内部节点通信和 clickhouse-client 与服务端的通信。
 
 ### 3.4 创建公共网络
 
@@ -191,12 +194,39 @@ docker network create pub-network
 ### 3.6 验证部署
 
 一旦服务启动，你就可以通过 ClickHouse 客户端或任何支持 HTTP 的客户端连接到 ClickHouse 服务器了。如果你已经安装了 ClickHouse 的客户端，可以使用以下命令连接：
-```
+```shell
 clickhouse-client --host <hostname> --port <port> --user <username> --password <password>
 ```
-其中，`<hostname>`、`<port>`、`<username>` 和 `<password>` 分别代表 ClickHouse 服务器的地址、端口、用户名和密码。如果没有提供用户名和密码，clickhouse-client 默认尝试以 default 用户进行连接，而且默认的端口是 9000。
+其中，`<hostname>`、`<port>`、`<username>` 和 `<password>` 分别代表 ClickHouse 服务器的地址、端口、用户名和密码。如果没有提供用户名和密码，clickhouse-client 默认尝试以 default 用户进行连接，而且默认的端口是 9000。如下所示通过我们创建的 `test` 用户登录：
+```shell
+root@473f6e967d7a:/# clickhouse-client --host ck1 --port 9000 --user test --password test
+ClickHouse client version 23.3.13.6 (official build).
+Connecting to ck1:9000 as user test.
+Connected to ClickHouse server version 23.3.13 revision 54462.
 
-此外，ClickHouse 提供了一个 HTTP 接口，用户可以通过任何支持 HTTP 的客户端（比如 curl）来执行查询：
+473f6e967d7a :)
+473f6e967d7a :) SELECT 1
+
+SELECT 1
+
+Query id: e27df6dc-c433-4c6a-97f2-416fd27364a9
+
+┌─1─┐
+│ 1 │
+└───┘
+
+1 row in set. Elapsed: 0.002 sec.
+```
+> 注意是否需要添加 `<listen_host>::</listen_host>` 配置，否则有可能抛出 `Code: 210. DB::NetException: Connection refused (ck1:9000). (NETWORK_ERROR)` 异常
+
+
+此外，ClickHouse 提供了一个 HTTP 接口，用户可以通过任何支持 HTTP 的客户端来执行查询：
 ```
 curl -u <username>:<password> 'http://<hostname>:<port>/' --data-binary '<query>'
 ```
+如下所示通过 curl 用我们创建的 `test` 用户进行查询：
+```shell
+(base) localhost:clickhouse wy$ curl 'http://localhost:8123/' -d 'SELECT 1'
+1
+```
+> 注意是否需要添加 `<listen_host>::</listen_host>` 配置

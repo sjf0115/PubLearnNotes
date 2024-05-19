@@ -23,6 +23,8 @@ Apache Zeppelin 必须满足一下条件：
 
 如果满足以上条件可以点击进入[下载页面](http://zeppelin.apache.org/download.html)下载二进制包进行安装。目前稳定版本为 0.9.0 版本。
 
+![](zeppelin-install-and-config-1.jpg)
+
 官方会提供两种二进制包，两者的唯一的区别是包含在二进制包中的解释器不同：
 - zeppelin-0.9.0-bin-netinst.tgz：默认只会提供 Spark 的解释器。
 - zeppelin-0.9.0-bin-all.tgz：会提供各种各样的解释器(例如，MySQL，ElasticSearch等)。
@@ -84,11 +86,11 @@ source /etc/profile
 ```shell
 zeppelin-daemon.sh start
 ```
-![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/zeppelin-install-and-config-2.jpg?raw=true)
+![](zeppelin-install-and-config-2.jpg)
 
 如果没有配置环境变量，我们需要进到 Zeppelin 的 bin 目录下运行。启动成功之后，在浏览器中访问： http://localhost:8081 来验证是否启动成功。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/zeppelin-install-and-config-3.jpg?raw=true)
+![](zeppelin-install-and-config-3.jpg)
 
 > Zepperlin 服务器默认端口号为8081。
 
@@ -136,17 +138,17 @@ exec bin/zeppelin-daemon.sh upstart
 
 当你第一次连接到 Zeppelin，你将会看到如下主页面：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/zeppelin-install-and-config-3.jpg?raw=true)
+![](zeppelin-install-and-config-3.jpg)
 
 页面左侧会列出所有现有的笔记。这些笔记默认存储在 `$ZEPPELIN_HOME/Notebook` 文件夹下。
 
 可以在文本输入框中通过名称过滤出我们想要看的笔记。我们还可以创建新的笔记，刷新现有笔记列表（主要考虑手动将它们复制到`$ZEPPELIN_HOME/Notebook`文件夹下的情况）并导入笔记：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/zeppelin-install-and-config-4.jpg?raw=true)
+![](zeppelin-install-and-config-4.jpg)
 
 点击 `Import Note`，会打开一个新对话框。在对话框中可以从本地磁盘或从远程位置导入你的笔记(如果您提供的URL)：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/zeppelin-install-and-config-5.jpg?raw=true)
+![](zeppelin-install-and-config-5.jpg)
 
 默认情况下，导入的笔记的名称与原始笔记相同，但可以通过提供新的名称来覆盖原始名称。
 
@@ -159,13 +161,13 @@ exec bin/zeppelin-daemon.sh upstart
 - 按名称过滤笔记
 - 创建一个新笔记
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/zeppelin-install-and-config-6.jpg?raw=true)
+![](zeppelin-install-and-config-6.jpg)
 
 ##### 5.2.2 设置
 
 此菜单可以让我们访问设置并显示有关 Zeppelin 的信息。如果使用默认 shiro 配置，用户名设置为 `anonymous`。如果需要设置身份验证，请参阅[Shiro身份验证](http://zeppelin.apache.org/docs/0.6.0/security/shiroauthentication.html)。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/zeppelin-install-and-config-7.jpg?raw=true)
+![](zeppelin-install-and-config-7.jpg)
 
 #### 5.3 解释器
 
@@ -173,17 +175,13 @@ exec bin/zeppelin-daemon.sh upstart
 - 配置现有的解释器实例
 - 添加/删除解释器实例
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/zeppelin-install-and-config-8.jpg?raw=true)
+![](zeppelin-install-and-config-8.jpg)
 
 #### 5.4 配置
 
 此菜单显示配置文件 `$ZEPPELIN_HOME/conf/zeppelin-site.xml` 中设置的所有 Zeppelin 配置:
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Zeppelin/zeppelin-install-and-config-9.jpg?raw=true)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+![](zeppelin-install-and-config-9.jpg)
 
 参考：
 - [Install](http://zeppelin.apache.org/docs/0.9.0/quickstart/install.html)

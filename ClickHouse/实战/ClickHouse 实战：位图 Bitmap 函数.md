@@ -182,7 +182,7 @@ Query id: 4f2b8842-f482-4e47-8d26-b9573b12fea6
 
 #### 2.2.4 bitmapAndnot
 
-可以使用 `bitmapAndnot` 函数计算两个 bitmap 的差集。差集是指包含所有存在于第一个集合且不存在于第二个集合的元素的集合。语法格式如下所示：
+可以使用 `bitmapAndnot` 函数计算两个 bitmap 的差集。差集是指存在于第一个集合但不存在于第二个集合的元素集合。语法格式如下所示：
 ```sql
 SELECT tag_id, bitmapToArray(bitmapAndnot(bitmap1, bitmap2)) AS res
 FROM tag_bitmap;
@@ -304,39 +304,247 @@ Query id: fe6405ab-f451-4395-a81f-fd2f87450123
 
 可以使用 `bitmapXorCardinality` 函数计算两个 Bitmap 的补集(不重复元素所构成的集合)，并返回新的 bitmap 的基数。语法格式如下所示：
 ```sql
-UInt64 bitmapOrCardinality(bitmap,bitmap)
+UInt64 bitmapXorCardinality(bitmap,bitmap)
 ```
-如下所示计算 tag_bitmap 表中 bitmap1 和 bitmap2 并集的基数：
+如下所示计算 tag_bitmap 表中 bitmap1 和 bitmap2 补集的基数：
 ```sql
-SELECT tag_id, bitmapOrCardinality(bitmap1, bitmap2) AS uv, toTypeName(uv) AS type
+SELECT tag_id, bitmapXorCardinality(bitmap1, bitmap2) AS uv, toTypeName(uv) AS type
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: fe6405ab-f451-4395-a81f-fd2f87450123
+Query id: 6c9b45a1-4b2f-487a-a07f-47c50aa9b091
 
 ┌─tag_id─┬─uv─┬─type───┐
-│ tag1   │ 11 │ UInt64 │
-│ tag2   │ 12 │ UInt64 │
+│ tag1   │  6 │ UInt64 │
+│ tag2   │  8 │ UInt64 │
 └────────┴────┴────────┘
 
-2 rows in set. Elapsed: 0.011 sec.
+2 rows in set. Elapsed: 0.003 sec.
 ```
-
 
 #### 2.4.5 bitmapAndnotCardinality
 
+可以使用 `bitmapAndnotCardinality` 函数计算两个 Bitmap 的差集(存在于第一个集合但不存在于第二个集合的元素集合)，并返回新的 bitmap 的基数。语法格式如下所示：
+```sql
+UInt64 bitmapAndnotCardinality(bitmap,bitmap)
+```
+如下所示计算 tag_bitmap 表中 bitmap1 和 bitmap2 差集的基数：
+```sql
+SELECT tag_id, bitmapXorCardinality(bitmap1, bitmap2) AS uv, toTypeName(uv) AS type
+FROM tag_bitmap;
+```
+返回结果如下所示：
+```sql
+Query id: 6c9b45a1-4b2f-487a-a07f-47c50aa9b091
+
+┌─tag_id─┬─uv─┬─type───┐
+│ tag1   │  6 │ UInt64 │
+│ tag2   │  8 │ UInt64 │
+└────────┴────┴────────┘
+
+2 rows in set. Elapsed: 0.003 sec.
+```
+
+### 2.5 位图子集
+
+#### 2.5.1 bitmapSubsetInRange
+
+可以使用 `bitmapSubsetInRange` 函数计算位图的子集，返回元素的取值需要在指定范围内，并返回一个新的 Bitmap。语法格式如下所示：
+```sql
+bitmapSubsetInRange(bitmap, range_start, range_end)
+```
+- bitmap: 要截取的目标 bitmap。
+- range_start: 用于指定范围的起始值。如果指定的起始值超过了 Bitmap 的最大长度，则返回 NULL。如果 range_start 存在于 Bitmap 中，返回值会包括 range_start。
+- range_end: 用于指定范围的结束值。如果 range_end 小于或等于 range_start，返回 NULL。注意返回值不包括 range_end。
+
+如下所示从 tag_bitmap 表取出 bitmap1 中取值在 `[1,4)` 之间的元素，并返回一个新的 Bitmap：
+```sql
+SELECT tag_id, bitmapToArray(bitmapSubsetInRange(bitmap1, 1, 4)) AS sub_bitmap
+FROM tag_bitmap;
+```
+返回结果如下所示：
+```sql
+Query id: 5359fb10-dd34-4039-beae-ae603f4452c3
+
+┌─tag_id─┬─sub_bitmap─┐
+│ tag1   │ [1,2,3]    │
+│ tag2   │ []         │
+└────────┴────────────┘
+
+2 rows in set. Elapsed: 0.008 sec.
+```
+
+#### 2.5.2 bitmapSubsetLimit
+
+可以使用 `bitmapSubsetLimit` 函数计算位图的子集，返回元素根据指定的起始值，从 Bitmap 中截取指定个数的元素，并返回一个新的 Bitmap。语法格式如下所示：
+```sql
+bitmapSubsetLimit(bitmap, range_start, cardinality_limit)
+```
+- bitmap: 要截取的目标 bitmap。
+- range_start: 用于指定范围的起始值，UInt32 类型。
+- cardinality_limit: 从 range_start 开始，要截取的元素个数。如果符合条件的元素个数小于 cardinality_limit 取值，则返回所有满足条件的元素。
+
+如下所示从 tag_bitmap 表取出 bitmap1 中从 9 作为起始值，截取 4 个元素，并返回一个新的 Bitmap：
+```sql
+SELECT tag_id, bitmapToArray(bitmapSubsetLimit(bitmap1, 9, 4)) AS sub_bitmap
+FROM tag_bitmap;
+```
+返回结果如下所示：
+```sql
+Query id: 6978e0da-f849-47ab-8dbc-212de85e4b3d
+
+┌─tag_id─┬─sub_bitmap───┐
+│ tag1   │ [9,10]       │
+│ tag2   │ [9,10,11,12] │
+└────────┴──────────────┘
+
+2 rows in set. Elapsed: 0.004 sec.
+```
 
 
+#### 2.5.3 subBitmap
+
+可以使用 `subBitmap` 函数计算位图的子集，返回元素根据 offset 指定的起始位置，从 Bitmap 中截取指定个数的元素，并返回一个新的 Bitmap。语法格式如下所示：
+```sql
+subBitmap(bitmap, offset, cardinality_limit)
+```
+- bitmap: 要截取的目标 bitmap。
+- offset: 用于指定起始位置，Offset 从 0 开始。
+- cardinality_limit: 从 Offset 开始，要截取的元素个数。如果符合条件的元素个数小于 cardinality_limit 取值，则返回所有满足条件的元素。
+
+> 该函数与 bitmapSubsetLimit 功能相似，不同之处在于 bitmapSubsetLimit 指定的是起始值，subBitmap 指定的是 offset。
+
+如下所示从 tag_bitmap 表取出 bitmap1 中从偏移量 3 开始截取 4 个元素，并返回一个新的 Bitmap：
+```sql
+SELECT tag_id, bitmapToArray(subBitmap(bitmap1, 3, 4)) AS sub_bitmap
+FROM tag_bitmap;
+```
+返回结果如下所示：
+```sql
+Query id: a3572df0-dee8-43bb-a8ac-3364103ae292
+
+┌─tag_id─┬─sub_bitmap───┐
+│ tag1   │ [4,5,6,7]    │
+│ tag2   │ [9,10,11,12] │
+└────────┴──────────────┘
+
+2 rows in set. Elapsed: 0.003 sec.
+```
+
+### 2.6 位图聚合
+
+#### 2.6.1 groupBitmapAnd
+
+计算位图列的与，返回基数类型为UInt64，如果添加后缀-State，则返回位图对象。
+
+#### 2.6.2 groupBitmapOr
 
 
+#### 2.6.3 groupBitmapXor
 
+### 2.7 其他
 
+#### 2.7.1 bitmapContains
 
+可以使用 `bitmapContains` 函数计算输入值是否在 Bitmap 列中。语法格式如下所示：
+```sql
+bitmapContains(bitmap, needle)
+```
+- bitmap: 要查询的目标 bitmap。
+- needle: 输入值，UInt32 类型。
 
+如下所示在 tag_bitmap 表中查询 `5` 是否在 bitmap1 中：
+```sql
+SELECT tag_id, bitmapContains(bitmap1, 5) AS res
+FROM tag_bitmap;
+```
+返回结果如下所示：
+```sql
+Query id: 8683bb93-ac02-4c76-a494-b985abe54350
 
+┌─tag_id─┬─res─┐
+│ tag1   │   1 │
+│ tag2   │   0 │
+└────────┴─────┘
 
+2 rows in set. Elapsed: 0.008 sec.
+```
 
+#### 2.7.2 bitmapHasAny
+
+可以使用 `bitmapHasAny` 函数计算两个 Bitmap 列是否存在相同元素。语法格式如下所示：
+```sql
+bitmapHasAny(bitmap1, bitmap2)
+```
+> 两个 Bitmap 重叠相同元素可以通过 bitmapAnd(bitmap1, bitmap2) 函数查看
+
+如下所示在 tag_bitmap 表中查询 bitmap1 和 bitmap2 是否存在相同的元素：
+```sql
+SELECT tag_id, bitmapHasAny(bitmap1, bitmap2) AS res
+FROM tag_bitmap;
+```
+返回结果如下所示：
+```sql
+Query id: 870c928b-8c47-4251-83ed-a24a33685be3
+
+┌─tag_id─┬─res─┐
+│ tag1   │   1 │
+│ tag2   │   1 │
+└────────┴─────┘
+
+2 rows in set. Elapsed: 0.002 sec.
+```
+
+#### 2.7.3 bitmapHasAll
+
+可以使用 `bitmapHasAll` 函数计算第一个 Bitmap 是否包含第二个 Bitmap。如果第一个 Bitmap 包含第二个 Bitmap 的所有元素，则返回1，否则返回0。如果第二个 Bitmap 是空位图，则返回 1。语法格式如下所示：
+```sql
+bitmapHasAll(bitmap1, bitmap2)
+```
+
+如下所示在 tag_bitmap 表中查询 bitmap1 是否包含 bitmap2 中的全部元素：
+```sql
+SELECT tag_id, bitmapHasAll(bitmap1, bitmap2) AS res
+FROM tag_bitmap;
+```
+返回结果如下所示：
+```sql
+Query id: ce133c78-5c67-4c21-8645-156ce93df2dc
+
+┌─tag_id─┬─res─┐
+│ tag1   │   0 │
+│ tag2   │   0 │
+└────────┴─────┘
+
+2 rows in set. Elapsed: 0.004 sec.
+```
+
+#### 2.7.4 bitmapMin
+
+可以使用 `bitmapMin` 函数计算 Bitmap 中的最小值，如果 Bitmap 为空则返回 UINT32_MAX。语法格式如下所示：
+```sql
+bitmapMin(bitmap)
+```
+
+如下所示在 tag_bitmap 表中查询 bitmap1 是否包含 bitmap2 中的全部元素：
+```sql
+SELECT tag_id, bitmapMin(bitmap1) AS res, bitmapMin(bitmap2) AS res2
+FROM tag_bitmap;
+```
+返回结果如下所示：
+```sql
+Query id: fb9feada-eb39-4485-979b-db45cd477169
+
+┌─tag_id─┬─res─┬─res2─┐
+│ tag1   │   1 │    2 │
+│ tag2   │   6 │    2 │
+└────────┴─────┴──────┘
+
+2 rows in set. Elapsed: 0.002 sec.
+```
+
+#### 2.7.4 bitmapMax
 
 
 

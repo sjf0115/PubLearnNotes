@@ -2,7 +2,7 @@
 
 我们在浏览器中输入　http://localhost:8080/　进入Zeppelin的主页，不需要用任何的验证就可以进入主页面：
 
-![image](http://img.blog.csdn.net/20170605175014016?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvU3VubnlZb29uYQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+![image](zeppelin-login-authority-1.png)
 
 换句话说，任何人在浏览器输入上面地址(本机)，都可以访问Zeppelin里的所有笔记．在上图中我们也可以看到我们的登陆用户是`anonymous`．
 
@@ -51,7 +51,7 @@ bin/zeppelin-daemon.sh start (or restart)
 
 最后，你可以使用以下用户名/密码组合之一进行登录：
 
-![image](http://img.blog.csdn.net/20170605175038642?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvU3VubnlZb29uYQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+![image](zeppelin-login-authority-2.png)
 
 ```
 [users]

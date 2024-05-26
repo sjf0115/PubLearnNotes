@@ -18,7 +18,7 @@ org.apache.hadoop.hdfs.server.common.InconsistentFSStateException: Directory /ho
 	at org.apache.hadoop.hdfs.server.namenode.NameNode.main(NameNode.java:1559)
 ```
 
-#### 2.2 解决方案
+#### 2.2 解决方案``
 
 在配置完成后，运行hadoop前，要初始化HDFS系统，在bin/目录下执行如下命令：
 ```

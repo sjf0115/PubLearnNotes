@@ -73,6 +73,65 @@ networks:  # 网络
       external: true
 ```
 
+```yml
+services:
+   namenode:
+      image: apache/hadoop:3.3.6
+      container_name: docker_namenode
+      volumes:
+        - namenode_data:/hadoop/dfs/name
+      command: ["hdfs", "namenode"]
+      networks:
+        - pub-network
+      ports:
+        - 9870:9870
+      env_file:
+        - ./config
+      environment:
+          ENSURE_NAMENODE_DIR: "/tmp/hadoop-root/dfs/name"
+   datanode:
+      image: apache/hadoop:3.3.6
+      container_name: docker_datanode
+      volumes:
+        - datanode_data:/hadoop/dfs/data
+      command: ["hdfs", "datanode"]
+      networks:
+        - pub-network
+      env_file:
+        - ./config
+   resourcemanager:
+      image: apache/hadoop:3.3.6
+      container_name: docker_resourcemanager
+      depends_on:
+         - namenode
+      command: ["yarn", "resourcemanager"]
+      networks:
+        - pub-network
+      ports:
+         - 8088:8088
+      env_file:
+        - ./config
+   nodemanager:
+      image: apache/hadoop:3.3.6
+      container_name: docker_nodemanager
+      depends_on:
+         - resourcemanager
+      command: ["yarn", "nodemanager"]
+      networks:
+        - pub-network
+      env_file:
+        - ./config
+
+volumes:
+  namenode_data:
+  datanode_data:
+
+
+networks:  # 网络
+  pub-network:
+      external: true
+```
+
 
 
 ### 2.1 NameNode服务
@@ -182,7 +241,23 @@ CAPACITY-SCHEDULER.XML_yarn.scheduler.capacity.queue-mappings-override.enable=fa
 
 按照以下步骤部署和初始化集群:
 
-1. **启动集群服务**: 使用`docker-compose up -d`命令启动所有定义的服务。
+1. 启动集群服务: 使用`docker-compose up -d`命令启动所有定义的服务。
+```shell
+(base) localhost:hadoop wy$ docker compose up -d
+[+] Running 26/4
+ ✔ datanode Pulled                                                              106.1s
+ ✔ nodemanager Pulled                                                           106.1s
+ ✔ resourcemanager Pulled                                                       106.1s
+ ✔ namenode Pulled                                                              106.2s
+[+] Running 6/6
+ ✔ Volume "hadoop_namenode_data"     Created                                    0.0s
+ ✔ Volume "hadoop_datanode_data"     Created                                    0.0s
+ ✔ Container docker_namenode         Started                                    0.9s
+ ✔ Container docker_datanode         Started                                    0.9s
+ ✔ Container docker_resourcemanager  Started                                    0.1s
+ ✔ Container docker_nodemanager      Started                                    0.1s
+```
+
 
 2. **格式化NameNode**: 在首次启动集群前需要格式化HDFS。通过执行命令 `docker exec docker_namenode hdfs namenode -format` 完成格式化。
 

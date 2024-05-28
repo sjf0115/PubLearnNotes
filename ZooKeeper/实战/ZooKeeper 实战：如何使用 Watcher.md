@@ -1,20 +1,8 @@
----
-layout: post
-author: sjf0115
-title: ZooKeeper 如何使用Watcher
-date: 2019-08-29 16:18:45
-tags:
-  - ZooKeeper
-
-categories: ZooKeeper
-permalink: how-to-use-watcher-in-zookeeper
----
-
 ## 1. 工作流程
 
 ZooKeeper 允许客户端向服务端注册一个 Watcher 监听，当服务端的一些指定事件触发了这个 Watcher，那么就向指定客户端（注册了对应 Watcher 监听的客户端）发送一个事件通知来实现分布式的通知功能。整个 Watcher 注册与通知过程如下图所示:
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/ZooKeeper/how-to-use-watcher-in-zookeeper-1.jpg?raw=true)
+![](how-to-use-watcher-in-zookeeper-1.jpg)
 
 从上图可以看出 ZooKeeper 的 Watcher 机制主要由客户端线程、客户端 WatchManager 以及 ZooKeeper 服务器三部分组成。在具体流程上，客户端在向 ZooKeeper 服务器注册 Watcher 的同时(步骤一)，会将 Watcher 对象存储在客户端的 WatchManager 上(步骤二)。当 ZooKeeper 服务器触发了 Watcher 事件后，会向客户端发送通知(步骤三)。客户端线程从 WatchManager 取出对应的 Watcher 对象来执行回调逻辑(步骤四)。
 
@@ -173,10 +161,6 @@ public byte[] getData(final String path, Watcher watcher, Stat stat)
 WatchedEvent 是 ZooKeeper 整个 Watcher 通知机制的最小通知单元，这个数据结构中只包含三部分内容：通知状态、事件类型和节点路径。也就是说，Watcher 通知非常简单，只会告诉客户端发生了事件，而不会说明事件的具体内容。例如针对 NodeDataChanged 事件，ZooKeeper 的 Watcher 只会通知客户端指定数据节点的数据内容发生了变更，而对于原始数据以及变更后的新数据都无法从这个事件中直接获取到，而是需要客户端主要重新去获取数据——这也是 ZooKeeper 的 Watcher 机制的一个非常重要的特性。
 
 另外，客户端向服务端注册 Watcher 的时候，并不会把客户端真实的 Watcher 对象传递给服务端，仅仅只是在客户端请求中使用 boolean 类型属性进行了标记，同时服务端也仅仅只是保存了当前连接的 ServerCnxn 对象。如此轻量的Watcher机制设计，在网络开销和服务端内存开销上都是非常廉价的。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
 
 英译对照:
  - `Watch`: 监视点

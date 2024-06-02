@@ -2,11 +2,15 @@
 
 ## 1.
 
+在 ClickHouse 中，bitmapAnd 函数用于计算两个位图 Bitmap 的交集，常用于高效地进行复杂的位运算。而在 Hive 中，有内建的等效函数，我们可以通过创建一个用户自定义函数（UDF）来实现 bitmapAnd。
 
+这里将详细介绍如何在 Hive 中实现一个类似 bitmapAnd 的UDF，包括UDF的定义、编写、注册以及使用步骤。
 
-## 2. UDF
+## 2. 定义 UDF
 
-这里以 RbmBitmapAndUDF 为例，其功能是计算两个位图 bitmap 的交集，返回一个新的位图 bitmap。UDF 详细实现细节请查阅：[Hive 如何实现自定义函数 UDF](https://smartsi.blog.csdn.net/article/details/126211216)。在这继承一个 GenericUDF 实现位图 Bitmap 交集的 RbmBitmapAndUDF：
+### 2.1 RbmBitmapAndUDF
+
+首先我们创建一个名为 RbmBitmapAndUDF 的 UDF，其功能是计算两个位图 Bitmap 的交集，返回一个新的位图 Bitmap。UDF 详细实现细节请查阅：[Hive 如何实现自定义函数 UDF](https://smartsi.blog.csdn.net/article/details/126211216)。在这继承一个 GenericUDF 实现位图 Bitmap 交集的 RbmBitmapAndUDF：
 ```java
 public class RbmBitmapAndUDF extends GenericUDF {
     private static String functionName = "rbm_bitmap_and";
@@ -33,7 +37,7 @@ public class RbmBitmapAndUDF extends GenericUDF {
 
 ### 2.1 initialize
 
-`initialize` 方法会被输入的每个参数调用，并最终传入到一个 ObjectInspector 对象中。这个方法的目标是检查参数类型，个数以及确定参数的返回类型。如果传入方法的类型是不合法的，这时用户同样可以向控制台抛出一个 Exception 异常信息。在 RbmBitmapAndUDF 中需要传入两个位图 Bitmap，因此参数个数校验必须为两个参数，
+`initialize` 方法的目标是检查参数类型，个数以及确定参数的返回类型。如果传入方法的类型是不合法的，这时用户同样可以向控制台抛出一个 Exception 异常信息。在 RbmBitmapAndUDF 中需要传入两个位图 Bitmap 参数，并最终返回交集的位图 Bitmap。因此方法中包含三部分，第一部分为参数个数校验必须为两个参数，第二部分为参数类型校验必须为 Binary 类型
 
 ```java
 public ObjectInspector initialize(ObjectInspector[] arguments) throws UDFArgumentException {
@@ -85,7 +89,7 @@ public Object evaluate(DeferredObject[] deferredObjects) throws HiveException {
 
 
 
-### 2.2 UDAF
+### 2.2 RbmGroupBitmapUDAF
 
 
 ```java

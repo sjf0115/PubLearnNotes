@@ -27,7 +27,7 @@ smartsi@localhost docker % cd postgresql
 
 ### 3.2 构建 Compose 文件
 
-Docker Compose 简化了对整个应用程序堆栈的控制，使得在一个易于理解的 YAML 配置文件中轻松管理服务、网络和数据卷。要使用 Docker Compose 部署 MySQL，首先需创建一个`docker-compose.yml`文件，如下所示：
+Docker Compose 简化了对整个应用程序堆栈的控制，使得在一个易于理解的 YAML 配置文件中轻松管理服务、网络和数据卷。要使用 Docker Compose 部署 PostgreSQL，首先需创建一个`docker-compose.yml`文件，如下所示：
 
 ```yml
 services:
@@ -77,7 +77,7 @@ networks:  # 网络
 
 这个`docker-compose.yml`文件是 PostgreSQL 部署的基础模板，它涵盖了启动、配置和持久化 PostgreSQL 实例的基本方面，同时还考虑了服务间网络连接的需求。根据具体需求，可能需要对配置进行调整（比如，环境变量的值或者镜像版本）。
 
-### 2.3 部署
+### 3.3 部署
 
 在有了`docker-compose.yml`文件后，您需要在包含此文件的目录中运行如下命令启动服务：
 ```shell
@@ -105,7 +105,7 @@ networks:  # 网络
 ```
 这将以守护进程模式启动 PostgreSQL 服务。
 
-### 2.4. 验证
+### 3.4 验证
 
 部署后，使用以下命令检查容器状态：
 ```shell

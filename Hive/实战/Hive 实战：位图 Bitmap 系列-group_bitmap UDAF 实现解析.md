@@ -108,106 +108,124 @@ public static class MergeEvaluator extends GenericUDAFEvaluator {
 }
 ```
 
+在该 UDAF `MergeEvaluator` 中实现对输入整数列聚合生成一个位图 Bitmap 的功能。下面详细介绍如何将输入整数列聚合生成一个位图 Bitmap。
 
-在该 UDAF `MergeEvaluator` 中实现对输入整数列聚合生成一个位图 Bitmap
+### 3.1 BitmapAggBuffer
 
-### 3.1
-
+首先定义一个 BitmapAggBuffer 来存储中间聚合结果，里面包含了一个 Rbm64Bitmap 对象(实现了对 Roaring64NavigableMap 的封装)：
 ```java
-public static class MergeEvaluator extends GenericUDAFEvaluator {
-    private PrimitiveObjectInspector inputOI;
-    private BinaryObjectInspector outputOI;
-
-    static class BitmapAggBuffer implements AggregationBuffer {
-        boolean empty;
-        Rbm64Bitmap bitmap;
-        public BitmapAggBuffer () {
-            bitmap = new Rbm64Bitmap();
-        }
-    }
-
-    // 返回类型。这里定义返回类型为 Binary
-    @Override
-    public ObjectInspector init(Mode mode, ObjectInspector[] parameters) throws HiveException {
-        if (parameters.length != 1) {
-            throw new UDFArgumentLengthException("The function '" + functionName + "' only accepts 1 argument, but got " + parameters.length);
-        }
-        super.init(mode, parameters);
-        if (mode == Mode.PARTIAL1 || mode == Mode.COMPLETE) {
-            this.inputOI = (PrimitiveObjectInspector) parameters[0];
-        } else {
-            this.outputOI = (BinaryObjectInspector) parameters[0];
-        }
-        return PrimitiveObjectInspectorFactory.javaByteArrayObjectInspector;
-    }
-
-    // 创建新的聚合计算需要的内存，用来存储 Mapper, Combiner, Reducer 运算过程中的聚合。
-    @Override
-    public AggregationBuffer getNewAggregationBuffer() {
-        BitmapAggBuffer bitmapAggBuffer = new BitmapAggBuffer();
-        reset(bitmapAggBuffer);
-        return bitmapAggBuffer;
-    }
-
-    @Override
-    public void reset(AggregationBuffer agg) {
-        BitmapAggBuffer bitmapAggBuffer = (BitmapAggBuffer)agg;
-        bitmapAggBuffer.bitmap = new Rbm64Bitmap();
-    }
-
-    // Map阶段：遍历输入参数
-    @Override
-    public void iterate(AggregationBuffer agg, Object[] parameters) {
-        Object param = parameters[0];
-        if (Objects.equal(param, null)) {
-            return;
-        }
-        BitmapAggBuffer bitmapAggBuffer = (BitmapAggBuffer) agg;
-        try {
-            Long value = PrimitiveObjectInspectorUtils.getLong(param, inputOI);
-            bitmapAggBuffer.bitmap.add(value);
-        } catch (NumberFormatException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Mapper,Combiner 结束要返回的结果
-    @Override
-    public Object terminatePartial(AggregationBuffer agg) {
-        return terminate(agg);
-    }
-
-    // 合并: Combiner 合并 Mapper 返回的结果, Reducer 合并 Mapper 或 Combiner 返回的结果
-    @Override
-    public void merge(AggregationBuffer agg, Object partial) {
-        if (Objects.equal(partial, null)){
-            return;
-        }
-        BitmapAggBuffer bitmapAggBuffer = (BitmapAggBuffer)agg;
-        try {
-            byte[] bytes = PrimitiveObjectInspectorUtils.getBinary(partial, outputOI).getBytes();
-            Rbm64Bitmap bitmap = Rbm64Bitmap.fromBytes(bytes);
-            bitmapAggBuffer.bitmap.or(bitmap);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // 输出最终聚合结果
-    @Override
-    public Object terminate(AggregationBuffer agg) {
-        BitmapAggBuffer bitmapAggBuffer = (BitmapAggBuffer) agg;
-        byte[] bytes = null;
-        try {
-            bytes = bitmapAggBuffer.bitmap.toBytes();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return bytes;
+static class BitmapAggBuffer implements AggregationBuffer {
+    Rbm64Bitmap bitmap;
+    public BitmapAggBuffer () {
+        bitmap = new Rbm64Bitmap();
     }
 }
 ```
 
+### 3.2 init
+
+`init` 方法用来初始化 Evaluator 实例：
+```java
+public ObjectInspector init(Mode mode, ObjectInspector[] parameters) throws HiveException {
+    if (parameters.length != 1) {
+        throw new UDFArgumentLengthException("The function '" + functionName + "' only accepts 1 argument, but got " + parameters.length);
+    }
+    super.init(mode, parameters);
+    if (mode == Mode.PARTIAL1 || mode == Mode.COMPLETE) {
+        this.inputOI = (PrimitiveObjectInspector) parameters[0];
+    } else {
+        this.outputOI = (BinaryObjectInspector) parameters[0];
+    }
+    return PrimitiveObjectInspectorFactory.javaByteArrayObjectInspector;
+}
+```
+
+### 3.3 getNewAggregationBuffer
+
+getNewAggregationBuffer：返回一个用于存储临时聚合结果的对象。
+
+```java
+public AggregationBuffer getNewAggregationBuffer() {
+    BitmapAggBuffer bitmapAggBuffer = new BitmapAggBuffer();
+    reset(bitmapAggBuffer);
+    return bitmapAggBuffer;
+}
+```
+
+### 3.4 reset
+
+```java
+public void reset(AggregationBuffer agg) {
+    BitmapAggBuffer bitmapAggBuffer = (BitmapAggBuffer)agg;
+    bitmapAggBuffer.bitmap = new Rbm64Bitmap();
+}
+```
+
+### 3.5 iterate
+
+iterate：处理一行新数据到 AggregationBuffer 临时聚合结果中。iterate 方法在 Map 阶段开始被调用。
+
+```java
+public void iterate(AggregationBuffer agg, Object[] parameters) {
+    Object param = parameters[0];
+    if (Objects.equal(param, null)) {
+        return;
+    }
+    BitmapAggBuffer bitmapAggBuffer = (BitmapAggBuffer) agg;
+    try {
+        Long value = PrimitiveObjectInspectorUtils.getLong(param, inputOI);
+        bitmapAggBuffer.bitmap.add(value);
+    } catch (NumberFormatException e) {
+        e.printStackTrace();
+    }
+}
+```
+### 3.6 terminatePartial
+
+terminatePartial：以可持久化的方式返回当前聚合结果。可持久化意味着返回值只能通过 Java 原生类型、数组、原生包装器(例如，Double)、Hadoop Writables、Lists 或者 Map 来构建。不能使用我们自定义的类(即使实现了 java.io.Serializable)，否则可能会得到奇怪的错误或(可能更糟)错误的结果。terminatePartial 方法一般在 Map 或者 Combine 阶段结束时调用。
+
+```java
+public Object terminatePartial(AggregationBuffer agg) {
+    return terminate(agg);
+}
+```
+
+### 3.7 merge
+
+`merge` 方法将 `terminatePartial` 返回的部分聚合结果 `partial` 合并到当前聚合结果中 `agg`。`terminatePartial` 返回的部分聚合结果 `partial` 是一个 `BytesWritable` 类型的对象。首先将 `partial` 转换为 `BytesWritable` 类型对象后通过 Rbm64Bitmap.fromBytes 转换为一个 Rbm64Bitmap。最终通过 `or` 或操作合并到 `agg` 临时存储中：
+```java
+public void merge(AggregationBuffer agg, Object partial) throws HiveException {
+    if (Objects.equal(partial, null)){
+        return;
+    }
+    BitmapAggBuffer bitmapAggBuffer = (BitmapAggBuffer)agg;
+    try {
+        BytesWritable bw = (BytesWritable)partial;
+        byte[] bytes = bw.getBytes();
+        Rbm64Bitmap bitmap = Rbm64Bitmap.fromBytes(bytes);
+        bitmapAggBuffer.bitmap.or(bitmap);
+    } catch (IOException e) {
+        throw new HiveException(e);
+    }
+}
+```
+
+### 3.8 terminate
+
+`terminate` 将最终聚合结果返回给 Hive。将存储在 `BitmapAggBuffer` 临时存储的 Rbm64Bitmap 转换为字节数组并以 BytesWritable 类型返回：
+```java
+public Object terminate(AggregationBuffer agg) throws HiveException {
+    BitmapAggBuffer bitmapAggBuffer = (BitmapAggBuffer) agg;
+    try {
+        byte[] bytes = bitmapAggBuffer.bitmap.toBytes();
+        return new BytesWritable(bytes);
+    } catch (IOException e) {
+        throw new HiveException(e);
+    }
+}
+```
+
+> 完整代码请详细查阅：[]()
 
 ## 4. 注册
 

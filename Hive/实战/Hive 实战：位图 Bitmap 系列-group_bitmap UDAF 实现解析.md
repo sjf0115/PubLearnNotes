@@ -182,7 +182,7 @@ public void iterate(AggregationBuffer agg, Object[] parameters) {
 ```
 ### 3.6 terminatePartial
 
-terminatePartial：以可持久化的方式返回当前聚合结果。可持久化意味着返回值只能通过 Java 原生类型、数组、原生包装器(例如，Double)、Hadoop Writables、Lists 或者 Map 来构建。不能使用我们自定义的类(即使实现了 java.io.Serializable)，否则可能会得到奇怪的错误或(可能更糟)错误的结果。terminatePartial 方法一般在 Map 或者 Combine 阶段结束时调用。
+`terminatePartial` 以可持久化的方式返回当前聚合结果。可持久化意味着返回值只能通过 Java 原生类型、数组、原生包装器(例如，Double)、Hadoop Writables、Lists 或者 Map 来构建。不能使用我们自定义的类(即使实现了 java.io.Serializable)，否则可能会得到奇怪的错误或(可能更糟)错误的结果。`terminatePartial` 以 `BytesWritable` 类型返回当前聚合结果，因与 `terminate` 方法实现逻辑一样，直接复用即可：
 
 ```java
 public Object terminatePartial(AggregationBuffer agg) {

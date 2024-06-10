@@ -58,93 +58,144 @@ SELECT
 
 ### 2.1 创建位图
 
-位图 Bitmap 可以用两种方式生成。第一种方法是从 Array 对象生成，另一种方法是通过带 `State` 后缀的聚合函数 groupBitmap 构造。
+位图 Bitmap 可以用多种方式生成。下面详细介绍几种方法来生成位图。
 
-#### 2.1.1 bitmapBuild
+#### 2.1.1 rbm_bitmap_from_array
 
-第一种方法是从 Array 对象生成位图，可以使用 `bitmapBuild` 方法将无符号整数数组转化为位图。语法格式如下所示：
+可以使用 `rbm_bitmap_from_array` 方法将整数数组转化为位图。语法格式如下所示：
 ```sql
-bitmapBuild(array)
+rbm_bitmap_from_array(array)
 ```
-参数 array 表示一个无符号整数数组。如下所示将一个数组转换为位图 Bitmap：
+参数 array 表示一个整数数组。如下所示将一个数组转换为位图 Bitmap：
 ```sql
-SELECT bitmapBuild([1, 2, 3, 4, 5]) AS res, toTypeName(res) AS type
+SELECT rbm_bitmap_from_array(array(1, 2, 3, 4, 5)) bitmap;
 ```
+
 返回结果如下所示：
 ```sql
-Query id: d63558e0-d3a4-40a3-83bd-e1b1e818f24d
-
-┌─res─┬─type──────────────────────────────────┐
-│     │ AggregateFunction(groupBitmap, UInt8) │
-└─────┴───────────────────────────────────────┘
-
-1 row in set. Elapsed: 0.001 sec.
+hive (default)> SELECT rbm_bitmap_to_str(rbm_bitmap_from_array(array(1, 2, 3, 4, 5))) bitmap;
+OK
+1,2,3,4,5
+Time taken: 0.514 seconds, Fetched: 1 row(s)
 ```
+> rbm_bitmap_to_str 用于将位图 Bitmap 转换为一个字符串，下面会详细介绍。
 
-#### 2.1.2 groupBitmapState
+> rbm_bitmap_from_array 源码请查阅:[RbmBitmapFromArrayUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapFromArrayUDF.java)
 
-另一种方法是通过带 `State` 后缀的聚合函数 groupBitmap 生成，根据无符号整数列聚合计算返回一个位图 Bitmap。语法格式如下所示：
+#### 2.1.2 rbm_group_bitmap
+
+可以通过 `rbm_group_bitmap` 聚合函数根据整数列聚合计算返回一个位图 Bitmap。语法格式如下所示：
 ```sql
-groupBitmapState(expr)
+rbm_group_bitmap(expr)
 ```
-> 需要注意的是如果不带 `State` 后缀返回的是 UInt64 类型的位图基数。
-
-expr 表示一个结果为 `UInt*` 类型的表达式。
 
 如下所示将 tag_user 表中的 user_id 整数列转换为位图 Bitmap 并计算用户数：
 ```sql
-SELECT groupBitmapState(user_id) AS bitmap, groupBitmap(user_id) AS uv, toTypeName(bitmap) AS type
+SELECT rbm_group_bitmap(user_id) AS bitmap
 FROM tag_user;
 ```
 返回结果如下所示：
 ```sql
-Query id: 9ec78329-a718-483d-972b-1636c798360f
-
-┌─bitmap─┬─uv─┬─type───────────────────────────────────┐
-│        │  6 │ AggregateFunction(groupBitmap, UInt32) │
-└────────┴────┴────────────────────────────────────────┘
-
-1 row in set. Elapsed: 0.011 sec.
+hive (default)> SELECT rbm_bitmap_to_str(rbm_group_bitmap(user_id)) AS bitmap
+              > FROM tag_user;
+WARNING: Hive-on-MR is deprecated in Hive 2 and may not be available in the future versions. Consider using a different execution engine (i.e. spark, tez) or using Hive 1.X releases.
+Query ID = wy_20240610165811_8ff82e1a-2529-4db1-93b4-0b89638167de
+...
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2024-06-10 16:58:20,990 Stage-1 map = 0%,  reduce = 0%
+2024-06-10 16:58:26,165 Stage-1 map = 100%,  reduce = 0%
+2024-06-10 16:58:32,321 Stage-1 map = 100%,  reduce = 100%
+Ended Job = job_1717982783429_0008
+MapReduce Jobs Launched:
+Stage-Stage-1: Map: 1  Reduce: 1   HDFS Read: 8339 HDFS Write: 111 SUCCESS
+Total MapReduce CPU Time Spent: 0 msec
+OK
+1,2,3,4,5,6
+Time taken: 22.398 seconds, Fetched: 1 row(s)
 ```
+
+> rbm_group_bitmap 源码请查阅:[RbmGroupBitmapUDAF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udaf/RbmGroupBitmapUDAF.java)
+
+#### 2.1.3 rbm_bitmap_from_str
+
+可以使用 `rbm_bitmap_from_str` 将逗号分割的整数字符串转换生成一个位图。语法格式如下所示：
+```sql
+rbm_bitmap_from_str(value)
+```
+参数 value 表示一个逗号分割的整数字符串。如下所示将一个逗号分割的整数字符串转换为位图 Bitmap：
+```sql
+SELECT rbm_bitmap_from_str('1,2,3,4,5') bitmap;
+```
+
+返回结果如下所示：
+```sql
+hive (default)> SELECT rbm_bitmap_to_str(rbm_bitmap_from_str('1,2,3,4,5')) bitmap;
+OK
+1,2,3,4,5
+Time taken: 0.613 seconds, Fetched: 1 row(s)
+```
+
+> rbm_bitmap_from_str 源码请查阅:[RbmBitmapFromStringUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapFromStringUDF.java)
+
+#### 2.1.4 rbm_bitmap_from_base64
+
+可以使用 `rbm_bitmap_from_base64` 将位图 Base64 字符串转换生成一个位图。语法格式如下所示：
+```sql
+rbm_bitmap_from_base64(value)
+```
+参数 value 表示一个位图的 Base64 字符串。如下所示将一个Base64 字符串转换为位图 Bitmap：
+```sql
+SELECT rbm_bitmap_from_base64('AAAAAAEAAAAAOjAAAAEAAAAAAAkAEAAAAAEAAgADAAQABQAGAAcACAAJAAoA') bitmap;
+```
+
+返回结果如下所示：
+```sql
+hive (default)> SELECT rbm_bitmap_to_str(rbm_bitmap_from_base64('AAAAAAEAAAAAOjAAAAEAAAAAAAkAEAAAAAEAAgADAAQABQAGAAcACAAJAAoA')) bitmap;
+OK
+1,2,3,4,5,6,7,8,9,10
+Time taken: 0.142 seconds, Fetched: 1 row(s)
+```
+
+> rbm_bitmap_from_base64 源码请查阅:[RbmBitmapFromBase64UDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapFromBase64UDF.java)
 
 ### 2.2 位图运算
 
-ClickHouse 提供了两个位图 Bitmap 之间逻辑运算(与、或、异或等)能力。
+位图运算函数提供了两个位图 Bitmap 之间逻辑运算(与、或、异或等)能力。
 
-#### 2.2.1 bitmapAnd
+#### 2.2.1 rbm_bitmap_and
 
-可以使用 `bitmapAnd` 函数计算两个位图 bitmap 的交集，返回一个新的位图 bitmap。语法格式如下所示：
+可以使用 `rbm_bitmap_and` 函数计算两个位图 bitmap 的交集，返回一个新的位图 bitmap。语法格式如下所示：
 ```sql
-bitmapAnd(bitmap,bitmap)
+rbm_bitmap_and(bitmap,bitmap)
 ```
 
 如下所示在 tag_bitmap 表中计算 bitmap1 和 bitmap2 两列对应位图 Bitmap 的交集，并返回一个新的位图 Bitmap，为了演示效果转换为一个数组展示：
 ```sql
-SELECT tag_id, bitmapToArray(bitmapAnd(bitmap1, bitmap2)) AS res
+SELECT tag_id, rbm_bitmap_to_array(rbm_bitmap_and(bitmap1, bitmap2)) AS res
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 13f53142-2871-41f3-8c14-be07a45649bb
-
-┌─tag_id─┬─res──────────┐
-│ tag1   │ [2,4,6,8,10] │
-│ tag2   │ [6,10,12,13] │
-└────────┴──────────────┘
-
-2 rows in set. Elapsed: 0.003 sec.
+hive (default)> SELECT tag_id, rbm_bitmap_to_array(rbm_bitmap_and(bitmap1, bitmap2)) AS res
+              > FROM tag_bitmap;
+OK
+tag1	[2,4,6,8,10]
+tag2	[6,10,12,13]
+Time taken: 2.13 seconds, Fetched: 2 row(s)
 ```
+
+> rbm_bitmap_and 源码请查阅:[RbmBitmapAndUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapAndUDF.java)
 
 #### 2.2.2 bitmapOr
 
-可以使用 `bitmapOr` 函数计算两个位图 bitmp 的并集，并返回一个新的 bitmap。语法格式如下所示：
+可以使用 `rbm_bitmap_or` 函数计算两个位图 bitmp 的并集，并返回一个新的 bitmap。语法格式如下所示：
 ```sql
-bitmapOr(bitmap,bitmap)
+rbm_bitmap_or(bitmap,bitmap)
 ```
 
 如下所示在 tag_bitmap 表中计算 bitmap1 和 bitmap2 两列对应位图 Bitmap 的并集，并返回一个新的位图 Bitmap，为了演示效果转换为一个数组展示：
 ```sql
-SELECT tag_id, bitmapToArray(bitmapOr(bitmap1, bitmap2)) AS res
+SELECT tag_id, rbm_bitmap_to_array(rbm_bitmap_or(bitmap1, bitmap2)) AS res
 FROM tag_bitmap;
 ```
 返回结果如下所示：
@@ -209,29 +260,29 @@ Query id: 1eb2c27a-bdbd-4b17-996a-e34d82fc0873
 
 ### 2.3 位图转化
 
-#### 2.3.1 bitmapToArray
+#### 2.3.1 rbm_bitmap_to_array
 
-可以使用 `bitmapToArray` 函数将位图 bitmap 中的所有值组合成一个数组。语法格式如下所示：
+可以使用 `rbm_bitmap_to_array` 函数将位图 bitmap 中的所有值组合成一个数组。语法格式如下所示：
 ```sql
-bitmapToArray (bitmap)
+rbm_bitmap_to_array (bitmap)
 ```
 
 如下所示在 tag_bitmap 表中将 bitmap1 和 bitmap2 列对应的位图 bitmap 转换为一个数组：
 ```sql
-SELECT tag_id, bitmapToArray(bitmap1), bitmapToArray(bitmap2)
+SELECT tag_id, rbm_bitmap_to_array(bitmap1), rbm_bitmap_to_array(bitmap2)
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 6cb96108-23cc-4daf-9478-9a376e9913ac
-
-┌─tag_id─┬─bitmapToArray(bitmap1)──────┬─bitmapToArray(bitmap2)─┐
-│ tag1   │ [1,2,3,4,5,6,7,8,9,10]      │ [2,4,6,8,10,12]        │
-│ tag2   │ [6,7,8,9,10,11,12,13,14,15] │ [2,6,10,12,13,19]      │
-└────────┴─────────────────────────────┴────────────────────────┘
-
-2 rows in set. Elapsed: 0.003 sec.
+hive (default)> SELECT tag_id, rbm_bitmap_to_array(bitmap1), rbm_bitmap_to_array(bitmap2)
+              > FROM tag_bitmap;
+OK
+tag1	[1,2,3,4,5,6,7,8,9,10]	[2,4,6,8,10,12]
+tag2	[6,7,8,9,10,11,12,13,14,15]	[2,6,10,12,13,19]
+Time taken: 0.403 seconds, Fetched: 2 row(s)
 ```
+
+> rbm_bitmap_to_array 源码请查阅:[RbmBitmapToArrayUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapToArrayUDF.java)
 
 #### 2.3.2 rbm_bitmap_to_str
 
@@ -254,6 +305,32 @@ tag1	1,2,3,4,5,6,7,8,9,10	2,4,6,8,10,12
 tag2	6,7,8,9,10,11,12,13,14,15	2,6,10,12,13,19
 Time taken: 0.132 seconds, Fetched: 2 row(s)
 ```
+
+> rbm_bitmap_to_str 源码请查阅:[RbmBitmapToStringUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapToStringUDF.java)
+
+#### 2.3.3 rbm_bitmap_to_base64
+
+可以使用 `rbm_bitmap_to_base64` 函数将位图 bitmap 转换为 Base64 字符串。语法格式如下所示：
+```sql
+rbm_bitmap_to_base64(bitmap)
+```
+
+如下所示在 tag_bitmap 表中将 bitmap1 和 bitmap2 列对应的位图 bitmap 转换为 Base64 字符串：
+```sql
+SELECT tag_id, rbm_bitmap_to_base64(bitmap1), rbm_bitmap_to_base64(bitmap2)
+FROM tag_bitmap;
+```
+返回结果如下所示：
+```sql
+hive (default)> SELECT tag_id, rbm_bitmap_to_base64(bitmap1), rbm_bitmap_to_base64(bitmap2)
+              > FROM tag_bitmap;
+OK
+tag1	AAAAAAEAAAAAOjAAAAEAAAAAAAkAEAAAAAEAAgADAAQABQAGAAcACAAJAAoA	AAAAAAEAAAAAOjAAAAEAAAAAAAUAEAAAAAIABAAGAAgACgAMAA==
+tag2	AAAAAAEAAAAAOjAAAAEAAAAAAAkAEAAAAAYABwAIAAkACgALAAwADQAOAA8A	AAAAAAEAAAAAOjAAAAEAAAAAAAUAEAAAAAIABgAKAAwADQATAA==
+Time taken: 0.213 seconds, Fetched: 2 row(s)
+```
+
+> rbm_bitmap_to_base64 源码请查阅:[RbmBitmapToBase64UDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapToBase64UDF.java)
 
 ### 2.4 位图基数
 

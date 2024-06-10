@@ -26,31 +26,34 @@ INSERT INTO tag_user VALUES
 DROP TABLE IF EXISTS tag_bitmap;
 CREATE TABLE tag_bitmap (
     tag_id String,
-    bitmap1 AggregateFunction(groupBitmap, UInt32),
-    bitmap2 AggregateFunction(groupBitmap, UInt32)
+    bitmap1 Binary,
+    bitmap2 Binary
 )
-ENGINE = MergeTree
-ORDER BY tag_id;
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\t'
+LINES TERMINATED BY '\n';
 
-INSERT INTO tag_bitmap VALUES (
-  'tag1',
-  bitmapBuild(
-    cast([1,2,3,4,5,6,7,8,9,10] as Array(UInt32))
-  ),
-  bitmapBuild(
-    cast([2,4,6,8,10,12] as Array(UInt32))
-  )
-);
 
-INSERT INTO tag_bitmap VALUES (
-  'tag2',
-  bitmapBuild(
-    cast([6,7,8,9,10,11,12,13,14,15] as Array(UInt32))
-  ),
-  bitmapBuild(
-    cast([2,6,10,12,13,19] as Array(UInt32))
-  )
-);
+INSERT INTO tag_bitmap
+SELECT
+    'tag1' AS tag_id,
+    rbm_bitmap_from_array(
+      array(1,2,3,4,5,6,7,8,9,10)
+    ) AS bitmap1,
+    rbm_bitmap_from_array(
+      array(2,4,6,8,10,12)
+    ) AS bitmap2;
+
+
+INSERT INTO tag_bitmap
+SELECT
+  'tag2' AS tag_id,
+  rbm_bitmap_from_array(
+    array(6,7,8,9,10,11,12,13,14,15)
+  ) AS bitmap1,
+  rbm_bitmap_from_array(
+    array(2,6,10,12,13,19)
+  ) AS bitmap2;
 ```
 
 ### 2.1 创建位图
@@ -228,6 +231,28 @@ Query id: 6cb96108-23cc-4daf-9478-9a376e9913ac
 └────────┴─────────────────────────────┴────────────────────────┘
 
 2 rows in set. Elapsed: 0.003 sec.
+```
+
+#### 2.3.2 rbm_bitmap_to_str
+
+可以使用 `rbm_bitmap_to_str` 函数将位图 bitmap 中的所有值转换为一个逗号分割的字符串。语法格式如下所示：
+```sql
+rbm_bitmap_to_str(bitmap)
+```
+
+如下所示在 tag_bitmap 表中将 bitmap1 和 bitmap2 列对应的位图 bitmap 转换为一个字符串：
+```sql
+SELECT tag_id, rbm_bitmap_to_str(bitmap1), rbm_bitmap_to_str(bitmap2)
+FROM tag_bitmap;
+```
+返回结果如下所示：
+```sql
+hive (default)> SELECT tag_id, rbm_bitmap_to_str(bitmap1), rbm_bitmap_to_str(bitmap2)
+              > FROM tag_bitmap;
+OK
+tag1	1,2,3,4,5,6,7,8,9,10	2,4,6,8,10,12
+tag2	6,7,8,9,10,11,12,13,14,15	2,6,10,12,13,19
+Time taken: 0.132 seconds, Fetched: 2 row(s)
 ```
 
 ### 2.4 位图基数

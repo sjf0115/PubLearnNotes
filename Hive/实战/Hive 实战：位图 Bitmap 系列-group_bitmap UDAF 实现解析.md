@@ -1,10 +1,10 @@
 ## 1. 概述
 
-在 ClickHouse 中，groupBitmap 函数用于从整数列聚合生成位图，常用于高效地进行复杂的位运算。而在 Hive 中没有内置的等效函数，我们可以通过创建一个用户自定义函数（UDF）来实现 groupBitmap。这里将详细介绍如何在 Hive 中实现一个类似 groupBitmap 的自定义函数 `rbm_group_bitmap`，包括 UDF 的定义、编译、注册以及使用步骤。
+在 ClickHouse 中，groupBitmap 函数用于从整数列聚合生成位图，常用于高效地进行复杂的位运算。而在 Hive 中没有内置的等效函数，我们可以通过创建一个用户自定义聚合函数（UDAF）来实现 groupBitmap。这里将详细介绍如何在 Hive 中实现一个类似 groupBitmap 的自定义函数 `rbm_group_bitmap`，包括 UDAF 的定义、编译、注册以及使用步骤。
 
 ## 2. 依赖
 
-开发 Hive UDF 需要引入如下依赖：
+开发 Hive UDAF 需要引入如下依赖：
 ```xml
 <dependency>
     <groupId>org.apache.hive</groupId>
@@ -12,8 +12,6 @@
     <version>2.3.4</version>
  </dependency>
 ```
-里面定义了各种自定义 UDF 函数的类型：UDF、GenericUDF、GenericUDTF。在本文中使用 GenericUDF 实现自定义 UDF。
-
 除了添加 `hive-exec` 依赖，还需要添加 RoaringBitmap 库的依赖，借助 Roaring64NavigableMap 实现位图 Bitmap 的操作：
 ```xml
 <dependency>
@@ -27,7 +25,7 @@
 
 > UDAF 详细实现细节请查阅：[深入理解 Hive UDAF](https://smartsi.blog.csdn.net/article/details/127964198)。
 
-为了实现位图 Bitmap 函数 `rbm_group_bitmap`，需要定义一个 `RbmGroupBitmapUDAF` UDF 类，该 UDF 接收一个整数列的参数来生成结果位图的字节序列：
+为了实现位图 Bitmap 函数 `rbm_group_bitmap`，需要定义一个 `RbmGroupBitmapUDAF` UDAF 类，该 UDAF 接收一个整数列的参数来生成结果位图的字节序列：
 ```java
 public class RbmGroupBitmapUDAF extends AbstractGenericUDAFResolver {
     private static String functionName = "rbm_group_bitmap";
@@ -73,7 +71,7 @@ public GenericUDAFEvaluator getEvaluator(TypeInfo[] arguments) throws SemanticEx
 
 ### 3.2 Evaluator
 
-创建一个 Evaluator 类用于实现 UDAF 的具体逻辑，一般实现为一个静态内部类：
+第二部分是创建一个 Evaluator 类用于实现 UDAF 的具体逻辑，一般实现为一个静态内部类：
 ```java
 public static class MergeEvaluator extends GenericUDAFEvaluator {
     @Override
@@ -134,8 +132,6 @@ public ObjectInspector init(Mode mode, ObjectInspector[] parameters) throws Hive
     super.init(mode, parameters);
     if (mode == Mode.PARTIAL1 || mode == Mode.COMPLETE) {
         this.inputOI = (PrimitiveObjectInspector) parameters[0];
-    } else {
-        this.outputOI = (WritableBinaryObjectInspector) parameters[0];
     }
     return PrimitiveObjectInspectorFactory.writableBinaryObjectInspector;
 }
@@ -181,10 +177,12 @@ public void iterate(AggregationBuffer agg, Object[] parameters) throws HiveExcep
     }
 }
 ```
+
+> add 是 Rbm64Bitmap 中封装的一个方法，用以实现向位图 Bitmap 中添加整数，详细请查阅源代码[Rbm64Bitmap](https://github.com/sjf0115/data-market/blob/main/common-market/src/main/java/com/data/market/market/function/Rbm64Bitmap.java#L159)
+
 #### 3.2.6 terminatePartial
 
 `terminatePartial` 以可持久化的方式返回当前聚合结果。可持久化意味着返回值只能通过 Java 原生类型、数组、原生包装器(例如，Double)、Hadoop Writables、Lists 或者 Map 来构建。不能使用我们自定义的类(即使实现了 java.io.Serializable)，否则可能会得到奇怪的错误或(可能更糟)错误的结果。`terminatePartial` 以 `BytesWritable` 类型返回当前聚合结果，因与 `terminate` 方法实现逻辑一样，直接复用即可：
-
 ```java
 public Object terminatePartial(AggregationBuffer agg) {
     return terminate(agg);
@@ -211,6 +209,8 @@ public void merge(AggregationBuffer agg, Object partial) throws HiveException {
 }
 ```
 
+> or 是 Rbm64Bitmap 中封装的一个方法，用以实现两个位图 Bitmap 逻辑或操作，详细请查阅源代码[Rbm64Bitmap](https://github.com/sjf0115/data-market/blob/main/common-market/src/main/java/com/data/market/market/function/Rbm64Bitmap.java#L176)
+
 #### 3.2.8 terminate
 
 `terminate` 将最终聚合结果返回给 Hive。将存储在 `BitmapAggBuffer` 临时存储的 Rbm64Bitmap 转换为字节数组并以 BytesWritable 类型返回：
@@ -228,7 +228,7 @@ public Object terminate(AggregationBuffer agg) throws HiveException {
 
 ## 4. 注册
 
-开发完成 UDF 类之后编译和打包你的 `RbmGroupBitmapUDAF` 类。可以使用 Maven 编译和打包成 JAR 文件。需要注意的是确保包含了所有必要的依赖，特别是 `RoaringBitmap` 库。
+开发完成 UDAF 类之后编译和打包你的 `RbmGroupBitmapUDAF` 类。可以使用 Maven 编译和打包成 JAR 文件。需要注意的是确保包含了所有必要的依赖，特别是 `RoaringBitmap` 库。
 
 有了 JAR 文件之后就可以注册 `rbm_group_bitmap` 函数了。在 Hive 会话中，将这个 Jar 文件加入到类路径下：
 ```shell
@@ -265,19 +265,36 @@ INSERT INTO tag_user VALUES
 ```sql
 SELECT tag_id, rbm_bitmap_to_str(rbm_group_bitmap(user_id)) AS bitmap
 FROM tag_user
-GROUP BY tag_id
+GROUP BY tag_id;
 ```
 > rbm_bitmap_to_str 也是我们自定义的 Bitmap UDF 方法，用来实现将位图 Bitmap 转换为逗号的分割的字符串。
 
 实际效果如下所示：
 ```
-hive (default)> SELECT rbm_bitmap_to_str(
-              >   rbm_bitmap_and(
-              >     rbm_bitmap_from_str("1,2,3,4"),
-              >     rbm_bitmap_from_str("1,3,4,6")
-              >   )
-              > );
+hive (default)> SELECT tag_id, rbm_bitmap_to_str(rbm_group_bitmap(user_id)) AS bitmap
+              > FROM tag_user
+              > GROUP BY tag_id;
+WARNING: Hive-on-MR is deprecated in Hive 2 and may not be available in the future versions. Consider using a different execution engine (i.e. spark, tez) or using Hive 1.X releases.
+Query ID = wy_20240610122701_6a2c55fa-d1e9-4f4b-9a54-0f0611c2b49d
+Total jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks not specified. Estimated from input data size: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+In order to limit the maximum number of reducers:
+  set hive.exec.reducers.max=<number>
+In order to set a constant number of reducers:
+...
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+2024-06-10 12:27:13,049 Stage-1 map = 0%,  reduce = 0%
+2024-06-10 12:27:18,307 Stage-1 map = 100%,  reduce = 0%
+2024-06-10 12:27:24,501 Stage-1 map = 100%,  reduce = 100%
+Ended Job = job_1717982783429_0005
+MapReduce Jobs Launched:
+Stage-Stage-1: Map: 1  Reduce: 1   HDFS Read: 8751 HDFS Write: 137 SUCCESS
+Total MapReduce CPU Time Spent: 0 msec
 OK
-1,3,4
-Time taken: 1.099 seconds, Fetched: 1 row(s)
+tag1	1,2,3,4,6
+tag2	1,5,6
+Time taken: 23.718 seconds, Fetched: 2 row(s)
 ```

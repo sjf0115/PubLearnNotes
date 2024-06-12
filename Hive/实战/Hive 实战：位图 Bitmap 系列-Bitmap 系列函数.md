@@ -186,7 +186,7 @@ Time taken: 2.13 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_and 源码请查阅:[RbmBitmapAndUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapAndUDF.java)
 
-#### 2.2.2 bitmapOr
+#### 2.2.2 rbm_bitmap_or
 
 可以使用 `rbm_bitmap_or` 函数计算两个位图 bitmp 的并集，并返回一个新的 bitmap。语法格式如下所示：
 ```sql
@@ -200,63 +200,66 @@ FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: d6ab23f6-e61c-4356-995e-2971fb1978b6
-
-┌─tag_id─┬─res──────────────────────────────┐
-│ tag1   │ [1,2,3,4,5,6,7,8,9,10,12]        │
-│ tag2   │ [6,7,8,9,10,11,12,13,14,15,2,19] │
-└────────┴──────────────────────────────────┘
-
-2 rows in set. Elapsed: 0.002 sec.
+hive (default)> SELECT tag_id, rbm_bitmap_to_array(rbm_bitmap_or(bitmap1, bitmap2)) AS res
+              > FROM tag_bitmap;
+OK
+tag1	[1,2,3,4,5,6,7,8,9,10,12]
+tag2	[2,6,7,8,9,10,11,12,13,14,15,19]
+Time taken: 0.161 seconds, Fetched: 2 row(s)
 ```
-#### 2.2.3 bitmapXor
 
-可以使用 `bitmapXor` 函数计算两个位图 Bitmap 不重复元素所构成的集合，并返回一个新的 bitmap。语法格式如下所示：
+> rbm_bitmap_or 源码请查阅:[RbmBitmapOrUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapOrUDF.java)
+
+
+#### 2.2.3 rbm_bitmap_xor
+
+可以使用 `rbm_bitmap_xor` 函数计算两个位图 Bitmap 不重复元素所构成的集合，并返回一个新的 bitmap。语法格式如下所示：
 ```sql
-bitmapXor(bitmap,bitmap)
+rbm_bitmap_xor(bitmap,bitmap)
 ```
-> 逻辑上等价于 bitmapAndnot(bitmapOr(bitmap1, bitmap2), bitmapAnd(bitmap1, bitmap2))。
+> 逻辑上等价于 rbm_bitmap_andnot(rbm_bitmap_or(bitmap1, bitmap2), rbm_bitmap_and(bitmap1, bitmap2))。
 
 如下所示在 tag_bitmap 表中计算 bitmap1 和 bitmap2 两列对应位图 Bitmap 的不重复元素所构成的集合，并返回一个新的位图 Bitmap，为了演示效果转换为一个数组展示：
 ```sql
-SELECT tag_id, bitmapToArray(bitmapXor(bitmap1, bitmap2)) AS res
+SELECT tag_id, rbm_bitmap_to_array(rbm_bitmap_xor(bitmap1, bitmap2)) AS res
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 5762fd03-cb53-4832-b2b6-6455ced97072
-
-┌─tag_id─┬─res───────────────────┐
-│ tag1   │ [1,3,5,7,9,12]        │
-│ tag2   │ [2,7,8,9,11,14,15,19] │
-└────────┴───────────────────────┘
-
-2 rows in set. Elapsed: 0.003 sec.
+hive (default)> SELECT tag_id, rbm_bitmap_to_array(rbm_bitmap_xor(bitmap1, bitmap2)) AS res
+              > FROM tag_bitmap;
+OK
+tag1	[1,3,5,7,9,12]
+tag2	[2,7,8,9,11,14,15,19]
+Time taken: 2.499 seconds, Fetched: 2 row(s)
 ```
 
-#### 2.2.4 bitmapAndnot
+> rbm_bitmap_xor 源码请查阅:[RbmBitmapXorUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapXorUDF.java)
 
-可以使用 `bitmapAndnot` 函数计算两个位图 bitmap 的差集。差集是指存在于第一个集合但不存在于第二个集合的元素集合。语法格式如下所示：
+
+#### 2.2.4 rbm_bitmap_andnot
+
+可以使用 `rbm_bitmap_andnot` 函数计算两个位图 bitmap 的差集。差集是指存在于第一个集合但不存在于第二个集合的元素集合。语法格式如下所示：
 ```sql
-bitmapAndnot(bitmap,bitmap)
+rbm_bitmap_andnot(bitmap,bitmap)
 ```
 
 如下所示在 tag_bitmap 表中计算 bitmap1 和 bitmap2 两列对应位图 Bitmap 的差集，即存在于 bitmap1 但不存在于 bitmap2 的元素集合，并返回一个新的位图 Bitmap，为了演示效果转换为一个数组展示：
 ```sql
-SELECT tag_id, bitmapToArray(bitmapAndnot(bitmap1, bitmap2)) AS res
+SELECT tag_id, rbm_bitmap_to_array(rbm_bitmap_andnot(bitmap1, bitmap2)) AS res
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 1eb2c27a-bdbd-4b17-996a-e34d82fc0873
-
-┌─tag_id─┬─res──────────────┐
-│ tag1   │ [1,3,5,7,9]      │
-│ tag2   │ [7,8,9,11,14,15] │
-└────────┴──────────────────┘
-
-2 rows in set. Elapsed: 0.006 sec.
+hive (default)> SELECT tag_id, rbm_bitmap_to_array(rbm_bitmap_andnot(bitmap1, bitmap2)) AS res
+              > FROM tag_bitmap;
+OK
+tag1	[1,3,5,7,9]
+tag2	[7,8,9,11,14,15]
+Time taken: 0.156 seconds, Fetched: 2 row(s)
 ```
+
+> rbm_bitmap_andnot 源码请查阅:[RbmBitmapAndNotUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapAndNotUDF.java)
 
 ### 2.3 位图转化
 
@@ -334,128 +337,163 @@ Time taken: 0.213 seconds, Fetched: 2 row(s)
 
 ### 2.4 位图基数
 
-#### 2.4.1 bitmapCardinality
+#### 2.4.1 rbm_bitmap_count
 
-可以使用 `bitmapCardinality` 函数计算位图 bitmap 的基数，即 bitmap 中不重复值的个数。语法格式如下所示：
+可以使用 `rbm_bitmap_count` 函数计算位图 bitmap 的基数，即 bitmap 中不重复值的个数。语法格式如下所示：
 ```sql
-bitmapCardinality(bitmap)
+rbm_bitmap_count(bitmap)
 ```
 如下所示在 tag_bitmap 表中分别计算 bitmap1、bitmap2 列对应位图 bitmap 中不重复值的个数：
 ```sql
-SELECT tag_id, bitmapCardinality(bitmap1) AS uv1, bitmapCardinality(bitmap2) AS uv2
+SELECT
+  tag_id,
+  rbm_bitmap_to_array(bitmap1) AS bitmap1,
+  rbm_bitmap_to_array(bitmap2) AS bitmap2,
+  rbm_bitmap_count(bitmap1) AS uv1,
+  rbm_bitmap_count(bitmap2) AS uv2
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 6a3e2e3b-d30e-4305-b2fb-1f68f1e6b3fe
-
-┌─tag_id─┬─uv1─┬─uv2─┐
-│ tag1   │  10 │   6 │
-│ tag2   │  10 │   6 │
-└────────┴─────┴─────┘
-
-2 rows in set. Elapsed: 0.002 sec.
+hive (default)> SELECT
+              >   tag_id,
+              >   rbm_bitmap_to_array(bitmap1) AS bitmap1,
+              >   rbm_bitmap_to_array(bitmap2) AS bitmap2,
+              >   rbm_bitmap_count(bitmap1) AS uv1,
+              >   rbm_bitmap_count(bitmap2) AS uv2
+              > FROM tag_bitmap;
+OK
+tag1	[1,2,3,4,5,6,7,8,9,10]	[2,4,6,8,10,12]	10	6
+tag2	[6,7,8,9,10,11,12,13,14,15]	[2,6,10,12,13,19]	10	6
+Time taken: 0.139 seconds, Fetched: 2 row(s)
 ```
 
-#### 2.4.2 bitmapAndCardinality
+> rbm_bitmap_count 源码请查阅:[RbmBitmapCardinalityUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapCardinalityUDF.java)
 
-可以使用 `bitmapAndCardinality` 函数来计算两个位图 bitmap 的交集，并返回交集 bitmap 的基数。语法格式如下所示：
+#### 2.4.2 rbm_bitmap_and_count
+
+可以使用 `rbm_bitmap_and_count` 函数来计算两个位图 bitmap 的交集，并返回交集 bitmap 的基数。语法格式如下所示：
 ```sql
-bitmapAndCardinality(bitmap,bitmap)
+rbm_bitmap_and_count(bitmap,bitmap)
 ```
 如下所示在 tag_bitmap 表计算 bitmap1、bitmap2 列对应位图 bitmap 交集的基数：
 ```sql
-SELECT tag_id, bitmapAndCardinality(bitmap1, bitmap2) AS uv, toTypeName(uv) AS type
+SELECT
+  tag_id,
+  rbm_bitmap_to_array(rbm_bitmap_and(bitmap1, bitmap2)) AS bitmap,
+  rbm_bitmap_and_count(bitmap1, bitmap2) AS uv
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: aa47332b-9979-40fc-b9ad-08f6b3ba8b98
-
-┌─tag_id─┬─uv─┬─type───┐
-│ tag1   │  5 │ UInt64 │
-│ tag2   │  4 │ UInt64 │
-└────────┴────┴────────┘
-
-2 rows in set. Elapsed: 0.004 sec.
+hive (default)> SELECT
+              >   tag_id,
+              >   rbm_bitmap_to_array(rbm_bitmap_and(bitmap1, bitmap2)) AS bitmap,
+              >   rbm_bitmap_and_count(bitmap1, bitmap2) AS uv
+              > FROM tag_bitmap;
+OK
+tag1	[2,4,6,8,10]	5
+tag2	[6,10,12,13]	4
+Time taken: 0.163 seconds, Fetched: 2 row(s)
 ```
 
-#### 2.4.3 bitmapOrCardinality
+> rbm_bitmap_and_count 源码请查阅:[RbmBitmapAndCardinalityUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapAndCardinalityUDF.java)
 
-可以使用 `bitmapOrCardinality` 函数来计算两个位图 bitmap 的并集，并返回并集 bitmap 的基数。语法格式如下所示：
+#### 2.4.3 rbm_bitmap_or_count
+
+可以使用 `rbm_bitmap_or_count` 函数来计算两个位图 bitmap 的并集，并返回并集 bitmap 的基数。语法格式如下所示：
 ```sql
-bitmapOrCardinality(bitmap,bitmap)
+rbm_bitmap_or_count(bitmap,bitmap)
 ```
 如下所示在 tag_bitmap 表计算 bitmap1、bitmap2 列对应位图 bitmap 并集的基数：
 ```sql
-SELECT tag_id, bitmapOrCardinality(bitmap1, bitmap2) AS uv, toTypeName(uv) AS type
+SELECT
+  tag_id,
+  rbm_bitmap_to_array(rbm_bitmap_or(bitmap1, bitmap2)) AS bitmap,
+  rbm_bitmap_or_count(bitmap1, bitmap2) AS uv
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 95a34582-8811-4032-aac1-f83908d304cd
-
-┌─tag_id─┬─uv─┬─type───┐
-│ tag1   │ 11 │ UInt64 │
-│ tag2   │ 12 │ UInt64 │
-└────────┴────┴────────┘
-
-2 rows in set. Elapsed: 0.006 sec.
+hive (default)> SELECT
+              >   tag_id,
+              >   rbm_bitmap_to_array(rbm_bitmap_or(bitmap1, bitmap2)) AS bitmap,
+              >   rbm_bitmap_or_count(bitmap1, bitmap2) AS uv
+              > FROM tag_bitmap;
+OK
+tag1	[1,2,3,4,5,6,7,8,9,10,12]	11
+tag2	[2,6,7,8,9,10,11,12,13,14,15,19]	12
+Time taken: 0.138 seconds, Fetched: 2 row(s)
 ```
 
-#### 2.4.4 bitmapXorCardinality
+> rbm_bitmap_or_count 源码请查阅:[RbmBitmapOrCardinalityUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapOrCardinalityUDF.java)
 
-可以使用 `bitmapXorCardinality` 函数计算两个位图 Bitmap 的不重复元素所构成的集合，并返回新的 bitmap 的基数。语法格式如下所示：
+#### 2.4.4 rbm_bitmap_xor_count
+
+可以使用 `rbm_bitmap_xor_count` 函数计算两个位图 Bitmap 的不重复元素所构成的集合，并返回新的 bitmap 的基数。语法格式如下所示：
 ```sql
-bitmapXorCardinality(bitmap,bitmap)
+rbm_bitmap_xor_count(bitmap,bitmap)
 ```
 如下所示在 tag_bitmap 表计算 bitmap1、bitmap2 列对应位图 bitmap 不重复元素所构成的集合的基数：
 ```sql
-SELECT tag_id, bitmapXorCardinality(bitmap1, bitmap2) AS uv, toTypeName(uv) AS type
+SELECT
+  tag_id,
+  rbm_bitmap_to_array(rbm_bitmap_xor(bitmap1, bitmap2)) AS bitmap,
+  rbm_bitmap_xor_count(bitmap1, bitmap2) AS uv
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 0c9cecdb-7853-4bd5-9898-328a04e8bdba
-
-┌─tag_id─┬─uv─┬─type───┐
-│ tag1   │  6 │ UInt64 │
-│ tag2   │  8 │ UInt64 │
-└────────┴────┴────────┘
-
-2 rows in set. Elapsed: 0.004 sec.
+hive (default)> SELECT
+              >   tag_id,
+              >   rbm_bitmap_to_array(rbm_bitmap_xor(bitmap1, bitmap2)) AS bitmap,
+              >   rbm_bitmap_xor_count(bitmap1, bitmap2) AS uv
+              > FROM tag_bitmap;
+OK
+tag1	[1,3,5,7,9,12]	6
+tag2	[2,7,8,9,11,14,15,19]	8
+Time taken: 0.145 seconds, Fetched: 2 row(s)
 ```
 
-#### 2.4.5 bitmapAndnotCardinality
+> rbm_bitmap_xor_count 源码请查阅:[RbmBitmapXorCardinalityUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapXorCardinalityUDF.java)
 
-可以使用 `bitmapAndnotCardinality` 函数计算两个位图 Bitmap 的差集(存在于第一个集合但不存在于第二个集合的元素集合)，并返回新的 bitmap 的基数。语法格式如下所示：
+#### 2.4.5 rbm_bitmap_andnot_count
+
+可以使用 `rbm_bitmap_andnot_count` 函数计算两个位图 Bitmap 的差集(存在于第一个集合但不存在于第二个集合的元素集合)，并返回新的 bitmap 的基数。语法格式如下所示：
 ```sql
-bitmapAndnotCardinality(bitmap,bitmap)
+rbm_bitmap_andnot_count(bitmap,bitmap)
 ```
 如下所示在 tag_bitmap 表中计算 bitmap1、bitmap2 列对应位图 bitmap 差集的基数：
 ```sql
-SELECT tag_id, bitmapXorCardinality(bitmap1, bitmap2) AS uv, toTypeName(uv) AS type
+SELECT
+  tag_id,
+  rbm_bitmap_to_array(rbm_bitmap_andnot(bitmap1, bitmap2)) AS bitmap,
+  rbm_bitmap_andnot_count(bitmap1, bitmap2) AS uv
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 5cae8362-41b3-4fff-9a30-46e7cd810ac2
-
-┌─tag_id─┬─uv─┬─type───┐
-│ tag1   │  6 │ UInt64 │
-│ tag2   │  8 │ UInt64 │
-└────────┴────┴────────┘
-
-2 rows in set. Elapsed: 0.003 sec.
+hive (default)>
+              > SELECT
+              >   tag_id,
+              >   rbm_bitmap_to_array(rbm_bitmap_andnot(bitmap1, bitmap2)) AS bitmap,
+              >   rbm_bitmap_andnot_count(bitmap1, bitmap2) AS uv
+              > FROM tag_bitmap;
+OK
+tag1	[1,3,5,7,9]	5
+tag2	[7,8,9,11,14,15]	6
+Time taken: 0.132 seconds, Fetched: 2 row(s)
 ```
+
+> rbm_bitmap_andnot_count 源码请查阅:[RbmBitmapAndNotCardinalityUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapAndNotCardinalityUDF.java)
 
 ### 2.5 位图子集
 
-#### 2.5.1 bitmapSubsetInRange
+#### 2.5.1 rbm_bitmap_subset_in_range
 
-可以使用 `bitmapSubsetInRange` 函数计算位图的子集，返回元素的取值需要在指定范围内，并返回一个新的位图 Bitmap。语法格式如下所示：
+可以使用 `rbm_bitmap_subset_in_range` 函数计算位图的子集，返回元素的取值需要在指定范围内，并返回一个新的位图 Bitmap。语法格式如下所示：
 ```sql
-bitmapSubsetInRange(bitmap, range_start, range_end)
+rbm_bitmap_subset_in_range(bitmap, range_start, range_end)
 ```
 - bitmap: 要截取的目标 bitmap。
 - range_start: 用于指定范围的起始值。
@@ -463,48 +501,58 @@ bitmapSubsetInRange(bitmap, range_start, range_end)
 
 如下所示在 tag_bitmap 表计算位图 bitmap1 中取值在 `[1,4)` 之间的元素，并返回一个新的位图 Bitmap：
 ```sql
-SELECT tag_id, bitmapToArray(bitmapSubsetInRange(bitmap1, 1, 4)) AS sub_bitmap
+SELECT
+  tag_id,
+  rbm_bitmap_to_array(bitmap1) AS sub_bitmap,
+  rbm_bitmap_to_array(rbm_bitmap_subset_in_range(bitmap1, 1L, 4L)) AS sub_bitmap
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 5359fb10-dd34-4039-beae-ae603f4452c3
-
-┌─tag_id─┬─sub_bitmap─┐
-│ tag1   │ [1,2,3]    │
-│ tag2   │ []         │
-└────────┴────────────┘
-
-2 rows in set. Elapsed: 0.008 sec.
+hive (default)> SELECT
+              >   tag_id,
+              >   rbm_bitmap_to_array(bitmap1) AS sub_bitmap,
+              >   rbm_bitmap_to_array(rbm_bitmap_subset_in_range(bitmap1, 1L, 4L)) AS sub_bitmap
+              > FROM tag_bitmap;
+OK
+tag1	[1,2,3,4,5,6,7,8,9,10]	[1,2,3]
+tag2	[6,7,8,9,10,11,12,13,14,15]	[]
 ```
+
+> rbm_bitmap_subset_in_range 源码请查阅:[RbmBitmapSubsetInRangeUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapSubsetInRangeUDF.java)
 
 #### 2.5.2 bitmapSubsetLimit
 
-可以使用 `bitmapSubsetLimit` 函数计算位图的子集，返回元素根据指定的起始值，从位图 Bitmap 中截取指定个数的元素，并返回一个新的位图 Bitmap。语法格式如下所示：
+可以使用 `rbm_bitmap_subset_limit` 函数计算位图的子集，返回元素根据指定的起始值，从位图 Bitmap 中截取指定个数的元素，并返回一个新的位图 Bitmap。语法格式如下所示：
 ```sql
-bitmapSubsetLimit(bitmap, range_start, cardinality_limit)
+rbm_bitmap_subset_limit(bitmap, range_start, cardinality_limit)
 ```
 - bitmap: 要截取的目标 bitmap。
-- range_start: 用于指定范围的起始值，UInt32 类型。
+- range_start: 用于指定范围的起始值。
 - cardinality_limit: 从 range_start 开始，要截取的元素个数。如果符合条件的元素个数小于 cardinality_limit 取值，则返回所有满足条件的元素。
 
 如下所示在 tag_bitmap 表中计算位图 bitmap1 以 9 作为起始值截取 4 个元素，并返回一个新的位图 Bitmap：
 ```sql
-SELECT tag_id, bitmapToArray(bitmapSubsetLimit(bitmap1, 9, 4)) AS sub_bitmap
+SELECT
+  tag_id,
+  rbm_bitmap_to_array(bitmap1) AS bitmap,
+  rbm_bitmap_to_array(rbm_bitmap_subset_limit(bitmap1, 9L, 4L)) AS sub_bitmap
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 6978e0da-f849-47ab-8dbc-212de85e4b3d
-
-┌─tag_id─┬─sub_bitmap───┐
-│ tag1   │ [9,10]       │
-│ tag2   │ [9,10,11,12] │
-└────────┴──────────────┘
-
-2 rows in set. Elapsed: 0.004 sec.
+hive (default)> SELECT
+              >   tag_id,
+              >   rbm_bitmap_to_array(bitmap1) AS bitmap,
+              >   rbm_bitmap_to_array(rbm_bitmap_subset_limit(bitmap1, 9L, 4L)) AS sub_bitmap
+              > FROM tag_bitmap;
+OK
+tag1	[1,2,3,4,5,6,7,8,9,10]	[9,10]
+tag2	[6,7,8,9,10,11,12,13,14,15]	[9,10,11,12]
+Time taken: 0.189 seconds, Fetched: 2 row(s)
 ```
 
+> rbm_bitmap_subset_limit 源码请查阅:[RbmBitmapSubsetLimitUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapSubsetLimitUDF.java)
 
 #### 2.5.3 subBitmap
 
@@ -534,6 +582,8 @@ Query id: a3572df0-dee8-43bb-a8ac-3364103ae292
 
 2 rows in set. Elapsed: 0.003 sec.
 ```
+
+> rbm_sub_bitmap 源码请查阅:[RbmSubBitmapUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapSubsetLimitUDF.java)
 
 ### 2.6 位图聚合
 

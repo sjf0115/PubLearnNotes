@@ -11,6 +11,8 @@ create temporary function rbm_bitmap_from_base64 as 'com.data.market.udf.RbmBitm
 
 create temporary function rbm_bitmap_and as 'com.data.market.udf.RbmBitmapAndUDF';
 create temporary function rbm_bitmap_or as 'com.data.market.udf.RbmBitmapOrUDF';
+create temporary function rbm_bitmap_xor as 'com.data.market.udf.RbmBitmapXorUDF';
+create temporary function rbm_bitmap_andnot as 'com.data.market.udf.RbmBitmapAndnotUDF';
 
 create temporary function rbm_group_bitmap as 'com.data.market.udaf.RbmGroupBitmapUDAF';
 

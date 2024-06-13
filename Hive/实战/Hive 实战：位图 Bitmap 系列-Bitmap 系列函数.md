@@ -587,29 +587,50 @@ Query id: a3572df0-dee8-43bb-a8ac-3364103ae292
 
 ### 2.6 位图聚合
 
-#### 2.6.1 groupBitmapAndState
+#### 2.6.1 rbm_group_bitmap_and
 
-可以使用 `groupBitmapAndState` 函数计算位图 Bitmap 列的交集(与操作)，并返回一个新的位图 Bitmap。语法格式如下所示：
+可以使用 `rbm_group_bitmap_and` 函数计算位图 Bitmap 列的交集(与操作)，并返回一个新的位图 Bitmap。语法格式如下所示：
 ```sql
-groupBitmapAndState(expr)
+rbm_group_bitmap_and(expr)
 ```
-> 需要注意的是如果去掉 `State` 后缀返回的是一个 UInt64 类型的基数
 
 如下所示在 tag_bitmap 表中聚合 bitmap1 列计算多行位图 Bitmap 的交集，并返回一个新的位图 Bitmap，为了演示效果转换为一个数组展示：
 ```sql
-SELECT bitmapToArray(groupBitmapAndState(bitmap1)) AS res
+SELECT
+  rbm_bitmap_to_array(rbm_group_bitmap_and(bitmap1)) AS res1,
+  rbm_bitmap_to_array(rbm_group_bitmap_and(bitmap2)) AS res2
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: c8952179-3c33-46a0-b8a8-8a514c8c4da1
+-- tag1	[1,2,3,4,5,6,7,8,9,10]	[2,4,6,8,10,12]
+-- tag2	[6,7,8,9,10,11,12,13,14,15]	[2,6,10,12,13,19]
 
-┌─res──────────┐
-│ [6,7,8,9,10] │
-└──────────────┘
-
-1 row in set. Elapsed: 0.003 sec.
+hive (default)> SELECT
+              >   rbm_bitmap_to_array(rbm_group_bitmap_and(bitmap1)) AS res1,
+              >   rbm_bitmap_to_array(rbm_group_bitmap_and(bitmap2)) AS res2
+              > FROM tag_bitmap;
+Query ID = wy_20240614072629_0191f8a3-cf55-4241-a10b-f1059ea724eb
+Total jobs = 1
+Launching Job 1 out of 1
+Number of reduce tasks determined at compile time: 1
+In order to change the average load for a reducer (in bytes):
+  set hive.exec.reducers.bytes.per.reducer=<number>
+...
+2024-06-14 07:26:38,465 Stage-1 map = 0%,  reduce = 0%
+2024-06-14 07:26:43,615 Stage-1 map = 100%,  reduce = 0%
+2024-06-14 07:26:49,780 Stage-1 map = 100%,  reduce = 100%
+Ended Job = job_1718319584733_0004
+MapReduce Jobs Launched:
+Stage-Stage-1: Map: 1  Reduce: 1   HDFS Read: 9629 HDFS Write: 120 SUCCESS
+Total MapReduce CPU Time Spent: 0 msec
+OK
+[6,7,8,9,10]	[2,6,10,12]
+Time taken: 21.043 seconds, Fetched: 1 row(s)
 ```
+
+> rbm_group_bitmap_and 源码请查阅:[RbmSubBitmapUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapSubsetLimitUDF.java)
+
 
 #### 2.6.2 groupBitmapOrState
 
@@ -626,6 +647,9 @@ FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
+-- tag1	[1,2,3,4,5,6,7,8,9,10]	[2,4,6,8,10,12]
+-- tag2	[6,7,8,9,10,11,12,13,14,15]	[2,6,10,12,13,19]
+
 Query id: 2ca75957-8f36-4fae-85df-3b75c2c507f1
 
 ┌─res───────────────────────────────────┐
@@ -650,6 +674,10 @@ FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
+-- tag1	[1,2,3,4,5,6,7,8,9,10]	[2,4,6,8,10,12]
+-- tag2	[6,7,8,9,10,11,12,13,14,15]	[2,6,10,12,13,19]
+
+
 Query id: 825e510f-022b-48ad-921a-df388d6a79b5
 
 ┌─res────────────────────────┐
@@ -663,29 +691,32 @@ Query id: 825e510f-022b-48ad-921a-df388d6a79b5
 
 #### 2.7.1 bitmapContains
 
-可以使用 `bitmapContains` 函数计算输入值是否在位图 Bitmap 中。语法格式如下所示：
+可以使用 `rbm_bitmap_contains` 函数计算输入值是否在位图 Bitmap 中。语法格式如下所示：
 ```sql
-bitmapContains(bitmap, needle)
+bitmapContains(bitmap, value)
 ```
 - bitmap: 要查询的目标 bitmap。
-- needle: 输入值，UInt32 类型。
+- value: 输入值，Long 类型。
 
 如下所示在 tag_bitmap 表中查询 `5` 是否在 bitmap1 中：
 ```sql
-SELECT tag_id, bitmapContains(bitmap1, 5) AS res
+SELECT tag_id, rbm_bitmap_contains(bitmap1, 5L) AS res
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 8683bb93-ac02-4c76-a494-b985abe54350
+-- tag1	[1,2,3,4,5,6,7,8,9,10]
+-- tag2	[6,7,8,9,10,11,12,13,14,15]
 
-┌─tag_id─┬─res─┐
-│ tag1   │   1 │
-│ tag2   │   0 │
-└────────┴─────┘
-
-2 rows in set. Elapsed: 0.008 sec.
+hive (default)> SELECT tag_id, rbm_bitmap_contains(bitmap1, 5L) AS res
+              > FROM tag_bitmap;
+OK
+tag1	true
+tag2	false
+Time taken: 0.176 seconds, Fetched: 2 row(s)
 ```
+
+> rbm_bitmap_contains 源码请查阅:[RbmBitmapContainsUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapContainsUDF.java)
 
 #### 2.7.2 bitmapHasAny
 
@@ -712,6 +743,8 @@ Query id: 870c928b-8c47-4251-83ed-a24a33685be3
 2 rows in set. Elapsed: 0.002 sec.
 ```
 
+> rbm_bitmap_contains 源码请查阅:[RbmBitmapContainsUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapContainsUDF.java)
+
 #### 2.7.3 bitmapHasAll
 
 可以使用 `bitmapHasAll` 函数计算第一个位图 Bitmap 是否包含第二个位图 Bitmap。如果第一个位图 Bitmap 包含第二个位图 Bitmap 的所有元素，则返回1，否则返回 0。如果第二个位图 Bitmap 是空位图，则返回 1。语法格式如下所示：
@@ -735,6 +768,8 @@ Query id: ce133c78-5c67-4c21-8645-156ce93df2dc
 
 2 rows in set. Elapsed: 0.004 sec.
 ```
+
+> rbm_bitmap_contains 源码请查阅:[RbmBitmapContainsUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapContainsUDF.java)
 
 #### 2.7.4 bitmapMin
 
@@ -760,26 +795,34 @@ Query id: 72c41f56-2832-4d78-b59d-f3fbf96768f1
 2 rows in set. Elapsed: 0.002 sec.
 ```
 
-#### 2.7.4 bitmapMax
+> rbm_bitmap_contains 源码请查阅:[RbmBitmapContainsUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapContainsUDF.java)
 
-可以使用 `bitmapMax` 函数计算位图 Bitmap 中的最大值，如果位图 Bitmap 为空则返回 0。语法格式如下所示：
+#### 2.7.4 rbm_bitmap_max
+
+可以使用 `rbm_bitmap_max` 函数计算位图 Bitmap 中的最大值，如果位图 Bitmap 为空则返回 0。语法格式如下所示：
 ```sql
-bitmapMax(bitmap)
+rbm_bitmap_max(bitmap)
 ```
 
 如下所示在 tag_bitmap 表中查询 bitmap1 和 bitmap2 的最大值元素：
 ```sql
-SELECT tag_id, bitmapMax(bitmap1) AS res, bitmapMax(bitmap2) AS res2
+SELECT
+  tag_id,
+  rbm_bitmap_max(bitmap1) AS value1,
+  rbm_bitmap_max(bitmap2) AS value2
 FROM tag_bitmap;
 ```
 返回结果如下所示：
 ```sql
-Query id: 953a4b10-061a-49e8-adcb-9ce967196322
-
-┌─tag_id─┬─res─┬─res2─┐
-│ tag1   │  10 │   12 │
-│ tag2   │  15 │   19 │
-└────────┴─────┴──────┘
-
-2 rows in set. Elapsed: 0.004 sec.
+hive (default)> SELECT
+              >   tag_id,
+              >   rbm_bitmap_max(bitmap1) AS value1,
+              >   rbm_bitmap_max(bitmap2) AS value2
+              > FROM tag_bitmap;
+OK
+tag1	10	12
+tag2	15	19
+Time taken: 1.688 seconds, Fetched: 2 row(s)
 ```
+
+> rbm_bitmap_contains 源码请查阅:[RbmBitmapContainsUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapContainsUDF.java)

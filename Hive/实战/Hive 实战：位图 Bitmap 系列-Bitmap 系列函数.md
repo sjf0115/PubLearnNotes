@@ -9,15 +9,31 @@ ClickHouse 提供了一系列用于位图索引和计算的函数，这些功能
 | 位图创建 | rbm_group_bitmap  | 根据整数列聚合计算返回一个位图 Bitmap |
 | 位图创建 | rbm_bitmap_from_str  | 将逗号分割的整数字符串转换生成一个位图 Bitmap |
 | 位图创建 | rbm_bitmap_from_base64  | 将位图 Base64 字符串转换生成一个位图 Bitmap |
-
 | 位图运算 | rbm_bitmap_and  | 计算两个位图 bitmap 的交集，返回一个新的位图 bitmap |
-| 位图运算 | rbm_bitmap_from_base64  | 将位图 Base64 字符串转换生成一个位图 Bitmap |
-| 位图运算 | rbm_bitmap_from_base64  | 将位图 Base64 字符串转换生成一个位图 Bitmap |
-| 位图运算 | rbm_bitmap_from_base64  | 将位图 Base64 字符串转换生成一个位图 Bitmap |
-| 位图运算 | rbm_bitmap_from_base64  | 将位图 Base64 字符串转换生成一个位图 Bitmap |
+| 位图运算 | rbm_bitmap_or  | 计算两个位图 bitmap 的并集，并返回一个新的 bitmap |
+| 位图运算 | rbm_bitmap_xor  | 两个位图 Bitmap 不重复元素所构成的集合，并返回一个新的 bitmap |
+| 位图运算 | rbm_bitmap_andnot  | 计算两个位图 bitmap 的差集，并返回一个新的 bitmap |
+| 位图操作 | rbm_bitmap_remove  | 删除指定的数值 |
+| 位图操作 | rbm_bitmap_add  | 添加指定的数值 |
+| 位图操作 | rbm_bitmap_min  | 计算位图 Bitmap 中的最小值 |
+| 位图操作 | rbm_bitmap_max  | 计算位图 Bitmap 中的最大值 |
+| 位图转化 | rbm_bitmap_to_array  | 将位图 bitmap 中的所有值组合成一个数组 |
+| 位图转化 | rbm_bitmap_to_str  | 将位图 bitmap 中的所有值转换为一个逗号分割的字符串 |
+| 位图转化 | rbm_bitmap_to_base64  | 将位图 bitmap 转换为 Base64 字符串 |
+| 位图判断 | rbm_bitmap_contains  | 计算输入值是否在位图 Bitmap 中 |
+| 位图判断 | rbm_bitmap_has_any  | 计算两个位图 Bitmap 是否存在相同元素 |
+| 位图查询 | rbm_bitmap_subset_in_range  | 计算位图的子集，返回元素的取值需要在指定范围内，并返回一个新的位图 Bitmap |
+| 位图查询 | rbm_bitmap_subset_limit  | 计算位图的子集，返回元素根据指定的起始值，从位图 Bitmap 中截取指定个数的元素，并返回一个新的位图 Bitmap |
+| 位图基数 | rbm_bitmap_count  | 计算位图 bitmap 的基数，即 bitmap 中不重复值的个数 |
+| 位图基数 | rbm_bitmap_and_count  | 计算两个位图 bitmap 的交集，并返回交集 bitmap 的基数 |
+| 位图基数 | rbm_bitmap_or_count  | 计算两个位图 bitmap 的并集，并返回并集 bitmap 的基数 |
+| 位图基数 | rbm_bitmap_xor_count  | 计算两个位图 Bitmap 的不重复元素所构成的集合，并返回新的 bitmap 的基数 |
+| 位图基数 | rbm_bitmap_andnot_count  | 计算两个位图 Bitmap 的差集(存在于第一个集合但不存在于第二个集合的元素集合)，并返回新的 bitmap 的基数 |
+| 位图聚合 | rbm_group_bitmap_and  | 计算位图 Bitmap 列的交集(与操作)，并返回一个新的位图 Bitmap |
+| 位图聚合 | rbm_group_bitmap_or  | 计算 Bitmap 列的并集(或操作)，并返回一个新的位图 Bitmap |
+| 位图聚合 | rbm_group_bitmap_xor  | 计算 Bitmap 列的不重复元素所构成的集合，并返回一个新的位图 Bitmap |
 
-
-## 2. 函数
+## 2. 函数介绍
 
 为了个更好的演示函数的用途，在这我们创建了 `tag_user` 表和 `tag_bitmap` 表。`tag_user` 表包含两个字段，`tag_id` 表示分类，`user_id` 表示用户 ID：
 ```sql
@@ -46,7 +62,6 @@ CREATE TABLE tag_bitmap (
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY '\t'
 LINES TERMINATED BY '\n';
-
 
 INSERT INTO tag_bitmap
 SELECT
@@ -224,7 +239,6 @@ Time taken: 0.161 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_or 源码请查阅:[RbmBitmapOrUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapOrUDF.java)
 
-
 #### 2.2.3 rbm_bitmap_xor
 
 可以使用 `rbm_bitmap_xor` 函数计算两个位图 Bitmap 不重复元素所构成的集合，并返回一个新的 bitmap。语法格式如下所示：
@@ -249,7 +263,6 @@ Time taken: 2.499 seconds, Fetched: 2 row(s)
 ```
 
 > rbm_bitmap_xor 源码请查阅:[RbmBitmapXorUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapXorUDF.java)
-
 
 #### 2.2.4 rbm_bitmap_andnot
 
@@ -413,7 +426,6 @@ Time taken: 1.688 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_max 源码请查阅:[RbmBitmapMaxUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapMaxUDF.java)
 
-
 ### 2.4 位图转化
 
 #### 2.4.1 rbm_bitmap_to_array
@@ -509,7 +521,6 @@ Time taken: 0.166 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_to_base64 源码请查阅:[RbmBitmapToBase64UDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapToBase64UDF.java)
 
-
 ### 2.5 位图判断
 
 #### 2.5.1 rbm_bitmap_contains
@@ -578,7 +589,6 @@ Time taken: 0.129 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_has_any 源码请查阅:[RbmBitmapHasAnyUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapHasAnyUDF.java)
 
-
 ### 2.6 位图查询
 
 #### 2.6.1 rbm_bitmap_subset_in_range
@@ -614,7 +624,7 @@ tag2	[6,7,8,9,10,11,12,13,14,15]	[]
 
 > rbm_bitmap_subset_in_range 源码请查阅:[RbmBitmapSubsetInRangeUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapSubsetInRangeUDF.java)
 
-#### 2.5.2 rbm_bitmap_subset_limit
+#### 2.6.2 rbm_bitmap_subset_limit
 
 可以使用 `rbm_bitmap_subset_limit` 函数计算位图的子集，返回元素根据指定的起始值，从位图 Bitmap 中截取指定个数的元素，并返回一个新的位图 Bitmap。语法格式如下所示：
 ```sql
@@ -648,10 +658,9 @@ Time taken: 0.189 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_subset_limit 源码请查阅:[RbmBitmapSubsetLimitUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapSubsetLimitUDF.java)
 
+### 2.7 位图基数
 
-### 2.6 位图基数
-
-#### 2.6.1 rbm_bitmap_count
+#### 2.7.1 rbm_bitmap_count
 
 可以使用 `rbm_bitmap_count` 函数计算位图 bitmap 的基数，即 bitmap 中不重复值的个数。语法格式如下所示：
 ```sql

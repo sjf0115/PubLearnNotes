@@ -694,7 +694,7 @@ Time taken: 0.136 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_count 源码请查阅:[RbmBitmapCardinalityUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapCardinalityUDF.java)
 
-#### 2.6.2 rbm_bitmap_and_count
+#### 2.7.2 rbm_bitmap_and_count
 
 可以使用 `rbm_bitmap_and_count` 函数来计算两个位图 bitmap 的交集，并返回交集 bitmap 的基数。语法格式如下所示：
 ```sql
@@ -728,7 +728,7 @@ Time taken: 0.163 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_and_count 源码请查阅:[RbmBitmapAndCardinalityUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapAndCardinalityUDF.java)
 
-#### 2.6.3 rbm_bitmap_or_count
+#### 2.7.3 rbm_bitmap_or_count
 
 可以使用 `rbm_bitmap_or_count` 函数来计算两个位图 bitmap 的并集，并返回并集 bitmap 的基数。语法格式如下所示：
 ```sql
@@ -762,7 +762,7 @@ Time taken: 0.138 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_or_count 源码请查阅:[RbmBitmapOrCardinalityUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapOrCardinalityUDF.java)
 
-#### 2.6.4 rbm_bitmap_xor_count
+#### 2.7.4 rbm_bitmap_xor_count
 
 可以使用 `rbm_bitmap_xor_count` 函数计算两个位图 Bitmap 的不重复元素所构成的集合，并返回新的 bitmap 的基数。语法格式如下所示：
 ```sql
@@ -796,7 +796,7 @@ Time taken: 0.145 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_xor_count 源码请查阅:[RbmBitmapXorCardinalityUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapXorCardinalityUDF.java)
 
-#### 2.6.5 rbm_bitmap_andnot_count
+#### 2.7.5 rbm_bitmap_andnot_count
 
 可以使用 `rbm_bitmap_andnot_count` 函数计算两个位图 Bitmap 的差集(存在于第一个集合但不存在于第二个集合的元素集合)，并返回新的 bitmap 的基数。语法格式如下所示：
 ```sql
@@ -831,9 +831,9 @@ Time taken: 0.132 seconds, Fetched: 2 row(s)
 
 > rbm_bitmap_andnot_count 源码请查阅:[RbmBitmapAndNotCardinalityUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udf/RbmBitmapAndNotCardinalityUDF.java)
 
-### 2.7 位图聚合
+### 2.8 位图聚合
 
-#### 2.7.1 rbm_group_bitmap_and
+#### 2.8.1 rbm_group_bitmap_and
 
 可以使用 `rbm_group_bitmap_and` 函数计算位图 Bitmap 列的交集(与操作)，并返回一个新的位图 Bitmap。语法格式如下所示：
 ```sql
@@ -872,7 +872,7 @@ Time taken: 21.043 seconds, Fetched: 1 row(s)
 
 > rbm_group_bitmap_and 源码请查阅:[RbmGroupBitmapAndUDF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udaf/RbmGroupBitmapAndUDF.java)
 
-#### 2.7.2 rbm_group_bitmap_or
+#### 2.8.2 rbm_group_bitmap_or
 
 可以使用 `rbm_group_bitmap_or` 函数计算 Bitmap 列的并集(或操作)，并返回一个新的位图 Bitmap。语法格式如下所示：
 ```sql
@@ -911,7 +911,7 @@ Time taken: 21.672 seconds, Fetched: 1 row(s)
 
 > rbm_group_bitmap_or 源码请查阅:[RbmGroupBitmapOrUDAF](https://github.com/sjf0115/data-market/blob/main/hive-market/src/main/java/com/data/market/udaf/RbmGroupBitmapOrUDAF.java)
 
-#### 2.7.3 rbm_group_bitmap_xor
+#### 2.8.3 rbm_group_bitmap_xor
 
 可以使用 `rbm_group_bitmap_xor` 函数计算 Bitmap 列的不重复元素所构成的集合，并返回一个新的位图 Bitmap。语法格式如下所示：
 ```sql

@@ -29,6 +29,8 @@ create temporary function rbm_bitmap_contains as 'com.data.market.udf.RbmBitmapC
 create temporary function rbm_bitmap_remove as 'com.data.market.udf.RbmBitmapRemoveUDF';
 create temporary function rbm_bitmap_add as 'com.data.market.udf.RbmBitmapAddUDF';
 
+
+
 SELECT tag_id, rbm_bitmap_to_array(bitmap1), rbm_bitmap_to_array(bitmap2)
 FROM tag_bitmap;
 

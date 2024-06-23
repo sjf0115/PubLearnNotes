@@ -157,3 +157,37 @@ EBM，但我们希望在下面的算法中节省这个努力。事实上，位�
 
 
 ## 3. Comparing Index types for Aggregate Evaluation
+
+
+
+### 3.1 Evaluating Single-Column Sum Aggregates
+
+
+#### 3.1.1 Comparing Algorithm Performance
+
+
+#### 3.1.2 Varying Foundset Density and Clustering
+
+### 3.2 Evaluating Other Single-Column Aggregate Functions
+
+## 4. Evaluating Range Predicates
+
+### 4.1 Comparing Algorithm Performance
+
+### 4.2 Range Predicate Using a Bit-Sliced Index with a Non-Binary Base
+
+
+## 5. Evaluating OLAP-style Queries
+
+
+### 5.1 Join Indexes
+
+
+### 5.2 Calculating Groupset Aggregates
+
+### 5.3 Improved Grouping Efficiency Using Segmentation and Clustering
+
+
+### 5.4 Groupset Indexes
+
+## 6. Conclusion

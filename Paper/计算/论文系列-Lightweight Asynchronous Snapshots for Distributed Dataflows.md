@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: 论文解读系列-分布式数据流的轻量级异步快照
+title: 论文系列-Lightweight Asynchronous Snapshots for Distributed Dataflows
 date: 2022-02-11 12:04:01
 tags:
   - Stream
@@ -26,11 +26,11 @@ Apache Flink 围绕通用运行时引擎进行架构，可以统一处理批处�
 
 可以从外部来源（例如消息队列，套接字流，自定义生成器）或通过调用其他 DataStream 上的操作来创建 DataStreams。DataStreams 支持多种算子，如 map，filter 和 reduce 等形式的高阶函数，这些函数在每个记录上逐步应用并生成新的 DataStream。每个算子可以通过将并行实例放置在相应流的不同分区上运行来并行化，从而允许分布式执行流转换。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/lightweight-asynchronous-snapshots-for-distributed-dataflows-1.png?raw=true)
+![](lightweight-asynchronous-snapshots-for-distributed-dataflows-1.png)
 
 下面的代码示例中显示了如何在 Apache Flink 中实现简单的 Word Count 程序。在此程序中，从文本文件中读取单词，并将每个单词的当前计数打印到标准输出上。这是一个有状态的流处理程序，所以数据源需要知道它们在文件中的当前偏移量，并且需要计数器来将每个单词的当前计数保持在内部状态中。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/lightweight-asynchronous-snapshots-for-distributed-dataflows-2.png?raw=true)
+![](lightweight-asynchronous-snapshots-for-distributed-dataflows-2.png)
 
 #### 2.2 分布式数据流执行
 
@@ -60,7 +60,7 @@ Apache Flink 围绕通用运行时引擎进行架构，可以统一处理批处�
 - 任务可以触发通道组件上的操作，例如阻塞，解除阻塞和发送消息。所有输出通道都支持广播消息。
 - 在 Source 任务中注入的消息 Barrier 被解析为 Nil。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/lightweight-asynchronous-snapshots-for-distributed-dataflows-3.png?raw=true)
+![](lightweight-asynchronous-snapshots-for-distributed-dataflows-3.png)
 
 算法执行过程如下：
 - 中央协调器会在所有 Source 中周期性注入 Stage Barrier（黑色实线）。当 Source 接收到 Barrier 时，会为当前的状态生成一个快照，然后将 Barrier 广播到所有下游输出中，如上图 a 所示。
@@ -70,7 +70,7 @@ Apache Flink 围绕通用运行时引擎进行架构，可以统一处理批处�
 
 伪代码如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/lightweight-asynchronous-snapshots-for-distributed-dataflows-4.png?raw=true)
+![](lightweight-asynchronous-snapshots-for-distributed-dataflows-4.png)
 
 如上所述，快照算法应该保证最终性和可行性。最终性由通道和非循环执行图属性保证。Channel 的可靠性确保只要任务存活，发送的每个 Barrier 最终都会被接收到。此外，由于始终存在来自 Source 的一条路径，因此 DAG 拓扑中的每个任务最终都将从它所有输入 Channel 接收 Barrier 并生成快照。
 
@@ -80,7 +80,7 @@ Apache Flink 围绕通用运行时引擎进行架构，可以统一处理批处�
 
 在存在有向循环的执行图中的情况下，上面的 ABS 算法不会终止而会导致死锁，因为一个循环中的任务将无限期地等待接收来自其所有输入的 barrier。此外，在循环中传输的记录不会包含在快照中，因此违反了可行性。因此，为了可行性需要在快照中包含在循环中生成的所有记录，并在恢复时将这些记录重新传输。我们处理循环图的方法继承了基本算法，而不会像上面算法中看到的那样引起任何额外的 channels 阻塞。首先，我们通过静态分析来识别执行图中循环中的 back-edge L。根据控制流图理论，有向图中的 back-edge 是指在深度优先搜索中已经访问过的顶点的边。执行图 G（T，E \ L） 是一个包含拓扑中所有任务的 DAG。从该 DAG 的角度来看，该算法与以前一样运行，但是，我们需要在快照期间对下游 back-edge 接收的记录进行备份。barrier 将循环中的所有记录都推送到下游日志中，以便将它们包含在一致的快照中。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/lightweight-asynchronous-snapshots-for-distributed-dataflows-5.png?raw=true)
+![](lightweight-asynchronous-snapshots-for-distributed-dataflows-5.png)
 
 ### 4. 故障恢复
 
@@ -91,7 +91,7 @@ Apache Flink 围绕通用运行时引擎进行架构，可以统一处理批处�
 
 仅通过重新调度上游任务依赖（其包含到失败任务的 output channels）以及它们各自直到 source 的上游任务，重新恢复调度部分图也是可能的。下图显示了一个恢复示例。为了提供 exactly-once 的语义，应该在所有下游节点中忽略重复记录以避免重新计算。为了达到这个目的，我们用来自source 的序列号标记记录，因此，每个下游节点都可以丢弃序号小于他们已经处理的记录。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/lightweight-asynchronous-snapshots-for-distributed-dataflows-6.png?raw=true)
+![](lightweight-asynchronous-snapshots-for-distributed-dataflows-6.png)
 
 ### 5. 实现
 
@@ -103,17 +103,17 @@ Apache Flink 围绕通用运行时引擎进行架构，可以统一处理批处�
 
 评估的目标是将 ABS 的运行时间开销与 Naiad 中采用的全局同步快照算法进行比较，并测试算法在大数量节点上的可伸缩性。用于评估的执行拓扑结构（如下图）由6个不同的算子组成，其并行度等于集群节点的个数，转换为 6 * 集群大小 个任务顶点。执行包含3个完整的网络 shuffle，以突显 ABS 中通道阻塞的可能影响。source 产生总共10亿条记录，这些记录在 source 实例中均匀分布。拓扑中算子的状态是按键的聚合以及 source 的偏移量。在 Amazon EC2 集群上使用多达40个 m3.medium 实例在运行实验。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/lightweight-asynchronous-snapshots-for-distributed-dataflows-7.png?raw=true)
+![](lightweight-asynchronous-snapshots-for-distributed-dataflows-7.png)
 
 我们测量了在不同快照间隔下 ABS 和同步快照两种快照方案运行的运行时间开销。我们实现了在 Apache Flink Naiad 上使用的同步快照算法，以便在相同终端上执行进行比较。该实验在10节点集群上运行。为了评估我们算法的可伸缩性，我们处理固定数量的输入记录（10亿），同时将我们拓扑的并行度从5个增加到40个节点。
 
 在下图中，我们描述了两种算法对基线的运行时影响（无容错）。当快照时间间隔较小时，同步快照的性能影响尤其明显。这是由于系统花费更多时间来获取全局快照而不是处理数据。ABS 对运行时的影响要低得多，因为它可以持续运行而不会阻碍整体执行，同时保持相当稳定的吞吐率。当快照时间间隔变大时，同步算法的影响逐渐变小。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/lightweight-asynchronous-snapshots-for-distributed-dataflows-8.png?raw=true)
+![](lightweight-asynchronous-snapshots-for-distributed-dataflows-8.png)
 
 在下图中，我们使用3秒快照间隔的 ABS 拓扑与基准（无容错）进行比较可扩展性。很明显，基准作业和 ABS 都实现了线性可扩展性。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/lightweight-asynchronous-snapshots-for-distributed-dataflows-9.png?raw=true)
+![](lightweight-asynchronous-snapshots-for-distributed-dataflows-9.png)
 
 ### 7. 总结
 

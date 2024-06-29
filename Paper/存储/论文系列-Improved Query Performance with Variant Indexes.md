@@ -187,6 +187,54 @@ Return SUM;
 
 ## 4. Evaluating Range Predicates
 
+请看下面的 SELECT 语句：
+```sql
+[4.1]
+SELECT target-list
+FROM T
+WHERE C-range AND <condition>;
+```
+在这里，C 是表 T 的一列，`<condition>` 是一般的 Where 子句过滤条件，生成 Foundset 集合 $B_f$。C-range 是一个范围查询过谓词滤条件，可以是 `{C > c1, C = c1, C >= c1, C < c1, C <= c1, C between c1 and c2}`，其中 c1 和 c2 是一个常量。在下文中我们将展示如何根据范围查询谓词进一步过滤 Foundset 集合 $B_f$，创建一个新的 Foundset 集合 $B_F$。这样 $B_F$ 准确的包含了复合谓词 `C-range AND <condition>` 限制的行。我们在 C 列上的不同索引做出不同的假设以完成这项工作。
+
+使用投影索引计算范围。如果 C 上有一个投影索引，可以直接创建 $B_F$，直接在 $B_f$ 中通过访问索引中对应行号的每个 C 列值，并测试它是否在指定的范围内。
+
+使用值列表索引计算范围。在值列表索引的情况下，`[4.1]`中的 C-range 限制使用了大多数数据库系统产品中常见的算法。由于我们有位图功能，我们将做一个轻微的变化，将索引中位于指定范围内的值的所有行集进行 OR 操作生成位图 Br，然后与 $B_f$ 进行 AND 操作。
+
+Algorithm 4.1 值列表索引的范围谓词：
+```sql
+Br = the empty set
+For each entry v in the index for C that satisfies the range specified
+  Designate the set of rows with the value v as Bv
+  Br = Br OR Bv
+BF = Bf AND Br
+```
+需要注意的是，为了更高效地执行算法 4.1，我们必须找到某种方法，保证在循环遍历范围内的值 v 时，位图 Br 始终保持在内存中。如果要查询的表 T 很大，则需要在查询优化器中进行一些预先考虑：1亿行意味着必须常驻 12.5 MB 的位图 Br。
+
+使用位切片 Bit-Sliced 索引计算范围。令人高兴的是，位切片 Bit-Sliced 索引可以更高效地计算范围谓词。给定一个 Foundset $B_f$，我们将演示如何计算行集 $B_GT$ 使的 C > c1, $B_GE$ 使的 C >= c1, $B_EQ$ 使的 C = c1, $B_LE$ 使的 C <= c1, $B_LT$ 使的 C < c1。
+
+Algorithm 4.2 位切片 Bit-Sliced 索引的范围谓词：
+```sql
+BGT = BLT = the empty set; BEQ = Bnn
+For each Bit-Slice Bi for C from most to least significant
+  If bit i is on in constant c1
+    BLT = BLT OR (BEQ AND NOT(Bi))
+    BEQ = BEQ AND Bi
+  else
+    BGT = BGT OR (BEQ AND Bi)
+    BEQ = BEQ AND NOT(Bi)
+BEQ = BEQ AND Bf;
+BGT = BGT AND Bf;
+BLT = BLT AND Bf;
+BLE = BLT OR BEQ;
+BGE = BGT OR BEQ
+```
+当然，我们可以在算法 4.2 中删除我们不需要的位图计算。例如，如果我们只需要计算 C > c1 或 C >= c1，我们不需要计算 $B_LE$ 或 $B_LT$ 的步骤。
+
+证明 $B_EQ$、$B_GT$ 和 $B_GE$ 的计算是正确的。计算 BEQ 的方法可以准确地确定 C = c1 的所有行，因为它要求对于 $B_EQ$ 中的所有行，c1 中的所有 1 位都为开, 所有 0 位都是关。接下来，我们注意到 $B_GT$ 是由一组特定条件下位图的 OR 操作创建的，我们现在描述这些条件。
+
+假设 c1 的比特表示为 $b_N、b_{N-1}...b_1,b_0$，而数据库中某行r的C的位表示为rNrN-1. r1r0。对于c1中从0到N的每一个位i，位bi关闭，如果位ri打开并且位rNrN-1、位r1ri+1都等于位bNbN-1、位bNbN-1、位bi+1，则行r将在BGT中。很明显，对于BGT中任何这样的行r, C > c1。此外，对于C > c1的任何值，必须存在某个位i，使得c1的第i位位置为off, C的第i位位置为on，并且两个值中所有更有效的位都相同。因此，4.2算法可以很好地评估BGT。u (BLT和BLE被正确评估的证明是相似的。)
+
+
 
 
 ### 4.1 Comparing Algorithm Performance

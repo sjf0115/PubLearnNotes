@@ -1,15 +1,3 @@
----
-layout: post
-author: sjf0115
-title: Airflow 使用指南一 安装与启动
-date: 2017-12-28 12:55:01
-tags:
-  - Airflow
-
-categories: Airflow
-permalink: how-install-and-startup-airflow
----
-
 ### 1. Example
 
 ```python

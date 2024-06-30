@@ -1,15 +1,3 @@
----
-layout: post
-author: sjf0115
-title: AirFlow 使用指南二 DAG 定义文件
-date: 2017-12-28 12:55:01
-tags:
-  - Airflow
-
-categories: Airflow
-permalink: pipeline-definition-airflow
----
-
 ### 1. 安装
 
 通过pip安装:
@@ -233,4 +221,4 @@ Logfiles: - -
 
 可以访问 http://localhost:8080/admin/ , 呈现出的主界面如下:
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Airflow/how-install-and-startup-airflow-1.png?raw=true)
+![](how-install-and-startup-airflow-1.png)

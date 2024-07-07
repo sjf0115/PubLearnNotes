@@ -134,9 +134,16 @@ MyBatis Generator 需要根据数据表中的字段来生成 DAO 等文件，所
                 <overwrite>true</overwrite>
                 <!-- 定义配置文件 -->
                 <configurationFile>${basedir}/src/main/resources/generator-configuration.xml</configurationFile>
-                <!-- 将当前pom的依赖项添加到生成器的类路径中 -->
-                <includeCompileDependencies>true</includeCompileDependencies>
             </configuration>
+
+            <!-- 插件依赖 -->
+            <dependencies>
+                <dependency>
+                    <groupId>mysql</groupId>
+                    <artifactId>mysql-connector-java</artifactId>
+                    <version>${mysql.version}</version>
+                </dependency>
+            </dependencies>
         </plugin>
     </plugins>
 </build>
@@ -472,6 +479,20 @@ type 属性的可选值如下：
 | enableDeleteByExample | 是否允许生成 deleteByExample 方法 | N | 默认值为true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
 | enableCountByExample | 是否允许生成 countByExample 方法 | N | 默认值为true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
 | enableUpdateByExample | 是否允许生成 updateByExample 方法 | N | 默认值为true，执行引擎为MyBatis3DynamicSql或者MyBatis3Kotlin时忽略此配置|
+
+## 6. 生成
+
+我们已经完成了配置，现在我们可以根据配置自动生成代码了。首先需要在 `src/main` 下创建 `generated-sources` 目录作为 `Generated Sources Root`：
+
+![](img-mybatis-generator-plugin-1.png)
+
+然后在 Maven Plugins 节点下双击运行 mybatis-generator:generate 来生成代码：
+
+![](img-mybatis-generator-plugin-2.png)
+
+效果如下：
+
+![](img-mybatis-generator-plugin-3.png)
 
 附：
 

@@ -11,17 +11,17 @@ Standalone 仅适用于 DolphinScheduler 的快速体验。如果你是新手，
 ### 1.2 解压缩
 
 解压缩 `apache-dolphinscheduler-3.2.1-bin.tar.gz`到 `/opt` 文件夹下
-```
+```shell
 (base) localhost:software wy$ tar -zxvf apache-dolphinscheduler-3.2.1-bin.tar.gz -C /opt/
 ```
 
 为了防止没有权限执行执行如下命令授权：
-```
+```shell
 chmod -R 755 apache-dolphinscheduler-3.2.1-bin
 ```
 
 创建软连接，便于升级：
-```
+```shell
 ln -s apache-dolphinscheduler-3.2.1-bin dolphinscheduler
 ```
 
@@ -34,7 +34,7 @@ Standalone server 使用 H2 数据库作为其元数据存储数据，这是为�
 ### 2.1 驱动
 
 如果使用 MySQL 需要手动下载 [mysql-connector-java 驱动 (8.0.16)](https://downloads.mysql.com/archives/c-j/) 并移动到 DolphinScheduler 的每个模块的 libs 目录下，其中包括 api-server/libs 和 alert-server/libs 和 master-server/libs 和 worker-server/libs：
-```
+```shell
 (base) localhost:mysql-connector-java-8.0.16 wy$ cp mysql-connector-java-8.0.16.jar /opt/dolphinscheduler/api-server/libs
 (base) localhost:mysql-connector-java-8.0.16 wy$
 (base) localhost:mysql-connector-java-8.0.16 wy$ cp mysql-connector-java-8.0.16.jar /opt/dolphinscheduler/alert-server/libs
@@ -49,7 +49,7 @@ Standalone server 使用 H2 数据库作为其元数据存储数据，这是为�
 ### 2.2 初始化数据库
 
 由于 MySQL 5.6/5.7 和 MySQL 8 初始化数据库的命令不同，需要先查看一下 MySQL 的版本：
-```
+```sql
 mysql> SELECT VERSION();
 +------------+
 | VERSION()  |
@@ -64,7 +64,7 @@ mysql> CREATE DATABASE dolphinscheduler DEFAULT CHARACTER SET utf8 DEFAULT COLLA
 Query OK, 1 row affected (0.05 sec)
 ```
 添加需要使用到的用户名和密码，并赋予用户相应权限：
-```
+```sql
 mysql> GRANT ALL PRIVILEGES ON dolphinscheduler.* TO 'dolphin_user'@'%' IDENTIFIED BY '123456';
 mysql> GRANT ALL PRIVILEGES ON dolphinscheduler.* TO 'dolphin_user'@'localhost' IDENTIFIED BY '123456';
 mysql> FLUSH PRIVILEGES;
@@ -72,7 +72,7 @@ mysql> FLUSH PRIVILEGES;
 > 在这创建的账号为 `dolphin_user`，密码为 `123456`
 
 对于 MySQL 8 需要采用如下命令：
-```
+```sql
 mysql> CREATE DATABASE dolphinscheduler DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 
 # 修改 {user} 和 {password} 为你希望的用户名和密码
@@ -86,7 +86,7 @@ mysql> FLUSH PRIVILEGES;
 ### 2.3 环境变量
 
 然后设置以下环境变量，将下面配置中的 username 和 password 改成你在上一步中设置的用户名 `dolphin_user` 和密码 `123456`：
-```
+```shell
 # Dolphinscheduler MySQL
 export DATABASE=${DATABASE:-mysql}
 export SPRING_PROFILES_ACTIVE=${DATABASE}
@@ -105,7 +105,7 @@ bash tools/bin/upgrade-schema.sh
 ## 3. 运行
 
 二进制压缩包中有 standalone 启动的脚本，解压后即可快速启动：
-```
+```shell
 localhost:opt wy$ cd dolphinscheduler
 localhost:dolphinscheduler wy$
 localhost:dolphinscheduler wy$ ./bin/dolphinscheduler-daemon.sh start standalone-server
@@ -128,7 +128,7 @@ End start standalone-server.
 ## 5. 启停服务
 
 脚本 `./bin/dolphinscheduler-daemon.sh` 除了可以快捷启动 standalone 外，还能停止服务运行，全部命令如下
-```
+```shell
 # 启动 Standalone Server 服务
 ./bin/dolphinscheduler-daemon.sh start standalone-server
 # 停止 Standalone Server 服务

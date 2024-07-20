@@ -186,8 +186,10 @@ sink {
 
 在命令行中，切换到 SeaTunnel 解压目录，运行如下命令启动 SeaTunnel 作业：
 ```
-./bin/seatunnel.sh --config ./config/v2.batch.config.template -e local
+./bin/seatunnel.sh --config ./config/v2.batch.config.template -m local
 ```
+> 从 2.3.1 版本开始，seatunnel.sh 中的 -e 参数被废弃，请改用 -m 参数。
+
 此命令将以 Local 本地模式运行 SeaTunnel 作业。当运行上述命令时，可以在控制台中看到其输出。当任务运行完毕，会出现本次任务的汇总信息：
 
 ![](img-seatunnel-setup-3.png)

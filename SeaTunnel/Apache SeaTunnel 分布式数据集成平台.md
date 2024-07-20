@@ -10,7 +10,7 @@ categories: SeaTunnel
 permalink: apache-seatunnel-introduction
 ---
 
-> 当前版本：2.1.0
+> 当前版本：2.3.5
 
 ## 1. 简介
 
@@ -60,7 +60,7 @@ Apache SeaTunnel 发展上有 2 个大版本，1.x 版本基于 Spark 构建，�
 Source[Data Source Input] -> Transform[Data Processing] -> Sink[Result Output]
 ```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/SeaTunnel/apache-seatunnel-introduction-1.png?raw=true)
+![](img-apache-seatunnel-introduction-1.png)
 
 如果用户习惯了 SQL，也可以直接使用 SQL 构建数据处理管道，更加简单高效。目前，SeaTunnel 支持的 Transform 列表也在扩展中。你也可以开发自己的数据处理插件。
 

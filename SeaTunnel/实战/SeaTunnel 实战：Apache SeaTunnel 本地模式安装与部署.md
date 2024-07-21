@@ -56,7 +56,7 @@ connector-redis
 --end--
 ```
 这个配置文件中不需要的可以删掉或者注释掉，只下载自己需要的。默认是从 mvvm 下载，可能下载速度很慢：
-```shll
+```shell
 # get seatunnel home
 SEATUNNEL_HOME=$(cd $(dirname $0);cd ../;pwd)
 

@@ -5,22 +5,24 @@
 
 ## 2. 下载
 
-进入 SeaTunnel [下载页面](https://seatunnel.apache.org/download)下载最新版本的发布版安装包，目前最新版本为 2.3.5 版本：
-
-SeaTunnel-Web 下载页与 SeaTunnel 在相同的页面，目前最新版本为 1.0.1 版本：
+进入 SeaTunnel [下载页面](https://seatunnel.apache.org/download)下载最新版本的发布版安装包，目前最新版本为 1.0.1 版本：
 
 ![](img-seatunnel-web-setup-1.png)
 
 ## 3. 安装
 
 将下载的压缩包解压缩到指定目录下：
-```
+```shell
 tar -zxvf apache-seatunnel-web-1.0.1-bin.tar.gz -C /opt/
 ```
-
 创建软连接，便于升级：
-```
+```shell
 ln -s apache-seatunnel-web-1.0.1-bin/ seatunnel-web
+```
+设置 SeaTunnel Web 环境变量：
+```shell
+export SEATUNNEL_WEB_HOME=/opt/seatunnel-web
+export PATH=${SEATUNNEL_WEB_HOME}/bin:$PATH
 ```
 
 ## 4. 配置
@@ -73,7 +75,7 @@ mysql -h${HOSTNAME} -P${PORT} -u${USERNAME} -p${PASSWORD} < ${workDir}/seatunnel
 修改 `conf/application.yml` 配置文件来修改端口号以及 Web 访问数据库的数据源信息：
 ```yml
 server:
-  port: 8802
+  port: 8801
 
 spring:
   application:
@@ -93,37 +95,105 @@ spring:
 ### 4.3 配置引擎服务信息
 
 复制引擎服务中配置文件到 Web 配置目录下面。将 hazelcast-client 配置文件拷贝到 Web 的 conf 目录下：
-```
+```shell
 cp /opt/seatunnel/config/hazelcast-client.yaml /opt/seatunnel-web/conf/
 ```
 将插件配置文件拷贝到 Web 的 conf 目录下：
-```
+```shell
 cp /opt/seatunnel/connectors/plugin-mapping.properties /opt/seatunnel-web/conf/
 ```
 
 ### 4.4 配置 MySQL 驱动
 
 在这我们选择 MySQL 作为元数据库，需要对应的驱动包放到 libs 下：
-```
+```shell
 cp mysql-connector-java-8.0.16.jar /opt/seatunnel-web/libs/
 ```
 
 ### 4.5 配置数据源JAR包
 
+下载 SeaTunnel Web 的[源码](https://github.com/apache/seatunnel-web)，将 download_datasource.sh 拷贝到 script 目录下：
+```
+cp apache-seatunnel-web-1.0.1-src/seatunnel-server/seatunnel-app/src/main/bin/download_datasource.sh /opt/seatunnel-web/script/
+```
+根据你的需要选择需要下载的数据源，如果不下载在 Web 中配置数据源时会提示没有可用的数据源：
+```shell
+# get seatunnel web home
+SEATUNNEL_WEB_HOME=$(cd $(dirname $0);cd ../;pwd)
+DATASOURCE_DIR=${SEATUNNEL_WEB_HOME}/datasource
 
+# If you don’t want to download a certain data source, you can delete the element below
+datasource_list=(
+  "datasource-plugins-api"
+  "datasource-elasticsearch"
+  "datasource-hive"
+  "datasource-jdbc-clickhouse"
+  "datasource-jdbc-hive"
+  "datasource-jdbc-mysql"
+  "datasource-jdbc-postgresql"
+  "datasource-jdbc-starrocks"
+  "datasource-jdbc-tidb"
+  "datasource-kafka"
+  "datasource-mysql-cdc"
+  "datasource-starrocks"
+  "datasource-mongodb"
+)
+```
+默认是从 mvvm 下载，可能下载速度很慢，我这边安装了 Maven 并且配置了阿里云仓库，因此将脚本中的 `mvvm` 命令替换为 `mvn` 命令改从 maven 中下载：
+```shell
+for i in "${datasource_list[@]}"
+do
+        echo "$i"
+        echo "Downloading datasource: " "$i"
+  /opt/maven/bin/mvn dependency:get -DgroupId=org.apache.seatunnel -DartifactId="$i" -Dversion="$version" -Ddest="$DATASOURCE_DIR"
+done
+```
+> "$SEATUNNEL_WEB_HOME"/mvnw -> /opt/maven/bin/mvn
+
+下载之后的数据源 JAR 包存放于 datasource 目录下：
+```
+(base) localhost:datasource wy$ pwd
+/opt/seatunnel-web/datasource
+(base) localhost:datasource wy$ ll
+total 346456
+drwxr-xr-x  15 wy  wheel        480 Jul 22 07:22 ./
+drwxr-xr-x  15 wy  wheel        480 Jul 22 07:08 ../
+-rw-r--r--   1 wy  wheel    4811050 Jul 22 07:11 datasource-elasticsearch-1.0.1.jar
+-rw-r--r--   1 wy  wheel  129470689 Jul 22 07:11 datasource-hive-1.0.1.jar
+-rw-r--r--   1 wy  wheel   23470082 Jul 22 07:11 datasource-jdbc-clickhouse-1.0.1.jar
+-rw-r--r--   1 wy  wheel     453216 Jul 22 07:11 datasource-jdbc-hive-1.0.1.jar
+-rw-r--r--   1 wy  wheel     455821 Jul 22 07:11 datasource-jdbc-mysql-1.0.1.jar
+-rw-r--r--   1 wy  wheel     456241 Jul 22 07:12 datasource-jdbc-postgresql-1.0.1.jar
+-rw-r--r--   1 wy  wheel      18031 Jul 22 07:12 datasource-jdbc-starrocks-1.0.1.jar
+-rw-r--r--   1 wy  wheel     455413 Jul 22 07:12 datasource-jdbc-tidb-1.0.1.jar
+-rw-r--r--   1 wy  wheel   14077433 Jul 22 07:17 datasource-kafka-1.0.1.jar
+-rw-r--r--   1 wy  wheel    2753901 Jul 22 07:22 datasource-mongodb-1.0.1.jar
+-rw-r--r--   1 wy  wheel     455430 Jul 22 07:22 datasource-mysql-cdc-1.0.1.jar
+-rw-r--r--   1 wy  wheel      20116 Jul 22 07:11 datasource-plugins-api-1.0.1.jar
+-rw-r--r--   1 wy  wheel     457666 Jul 22 07:22 datasource-starrocks-1.0.1.jar
+(base) localhost:datasource wy$
+```
+将这些 JAR 包拷贝到 lib 目录下：
+```
+cp datasource/* libs/
+```
 
 ## 5. 启动 Web
 
-```
+启动 Web 之前，先启动 SeaTunnel：
+```shell
 sh bin/seatunnel-cluster.sh
 ```
-
-配置完成之后可以通过如下命令来启动 Web 服务：
-```
+然后通过如下命令来启动 Web 服务：
+```shell
 sh bin/seatunnel-backend-daemon.sh start
 ```
 
+登录地址为 `http://localhost:8801`，此处的 `8801` 就是上述 application.yml 文件中配置的端口号。默认登录的用户名和密码为 admin/admin：
+
 ![](img-seatunnel-web-setup-4.png)
+
+
 
 
 

@@ -173,10 +173,6 @@ drwxr-xr-x  15 wy  wheel        480 Jul 22 07:08 ../
 -rw-r--r--   1 wy  wheel     457666 Jul 22 07:22 datasource-starrocks-1.0.1.jar
 (base) localhost:datasource wy$
 ```
-将这些 JAR 包拷贝到 lib 目录下：
-```
-cp datasource/* libs/
-```
 
 ## 5. 启动 Web
 
@@ -193,7 +189,13 @@ sh bin/seatunnel-backend-daemon.sh start
 
 ![](img-seatunnel-web-setup-4.png)
 
+登录之后效果如下所示：
 
+![](img-seatunnel-web-setup-5.png)
+
+在上述配置数据源JAR包步骤之后就可以支持多种数据源的创建：
+
+![](img-seatunnel-web-setup-6.png)
 
 
 

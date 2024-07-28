@@ -49,7 +49,13 @@ List<SQLStatement> stmtList = SQLUtils.parseStatements(sql, dbType);
 
 ### 4.3 Visitor
 
-Visitor是遍历AST的手段，是处理AST最方便的模式，Visitor是一个接口，有缺省什么都没做的实现VistorAdapter。
+Visitor 是遍历 AST 的手段，是处理 AST 最方便的模式，Visitor 是一个接口，有缺省什么都没做的实现 VistorAdapter。我们可以实现不同的 Visitor 来满足不同的需求，Druid 内置提供了如下 Visitor:
+- OutputVisitor 用来把 AST 输出为字符串
+- WallVisitor 来分析 SQL 语意来防御 SQL 注入攻击
+- ParameterizedOutputVisitor 用来合并未参数化的 SQL 进行统计
+- EvalVisitor 用来对 SQL 表达式求值
+- ExportParameterVisitor 用来提取 SQL 中的变量参数
+- SchemaStatVisitor 用来统计 SQL 中使用的表、字段、过滤条件、排序表达式、分组表达式
 
 
 

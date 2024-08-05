@@ -57,6 +57,13 @@ Visitor 是遍历 AST 的手段，是处理 AST 最方便的模式，Visitor 是
 - ExportParameterVisitor 用来提取 SQL 中的变量参数
 - SchemaStatVisitor 用来统计 SQL 中使用的表、字段、过滤条件、排序表达式、分组表达式
 
+## 5. 快速上手
+
+
+
+
+
+
 
 
 

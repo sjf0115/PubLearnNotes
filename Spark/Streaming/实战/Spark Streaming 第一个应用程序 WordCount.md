@@ -16,11 +16,11 @@ permalink: spark-streaming-first-example
 
 Spark Streaming 是 Spark Core API 的一个扩展，它对实时流式数据的处理具有可扩展性、高吞吐量、可容错性等特点。数据可以从诸如 Kafka，Flume，Kinesis 或 TCP 套接字等许多源中提取，并且可以使用由诸如 map，reduce，join 或者 window 等高级函数组成的复杂算法来处理。最后，处理后的数据可以推送到文件系统、数据库、实时仪表盘中。事实上，你可以将处理后的数据应用到 Spark 的机器学习算法、 图处理算法中去。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-streaming-first-example-1.png?raw=true)
+![](img-spark-streaming-first-example-1.png)
 
 内部工作原理如下图所示。Spark Streaming 接收实时输入数据流，并将数据分成多个批次，然后由 Spark 引擎处理，批量生成最终结果数据流。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-streaming-first-example-2.png?raw=true)
+![](img-spark-streaming-first-example-2.png)
 
 Spark Streaming 提供了一个叫做离散流(discretized stream)或称作 DStream 的高级抽象，它表示连续的数据流。DStreams 可以从如 Kafka，Flume和 Kinesis 等数据源的输入数据流创建，也可以通过对其他 DStreams 应用高级操作来创建。在内部，DStream 表示为 RDD 序列，即由一系列的 RDD 组成。
 

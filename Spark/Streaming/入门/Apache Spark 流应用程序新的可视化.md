@@ -69,17 +69,17 @@ permalink: spark-streaming-ui-streaming-tab
 
 > 图6
 
-上图显示了于一个跨 3 个批次统计字数的 Spark job 的许多相关信息：
+上图显示了一个跨 3 个批次统计字数的 Spark Job 的许多相关信息：
+- 前三个 stage 实际上是各自统计窗口中 3 个批次的字数。这有点像上面例子 NetworkWordCount 的第一个stage，使用的是 map 和 flatmap 操作。不过要注意以下不同点：
+  - 这里有两个输入 RDD，分别来自两个 socket 文本流，这两个 RDD 通过 union 结合成一个 RDD，然后进一步转换，产生每个批次的中间统计结果。
+  - 其中的两个 stage 都变灰了，因为两个较旧批次的中间结果已经缓存在内存中，因此不需要再次计算，只有最近的批次需要从头开始计算。
+- 最后一个右边的 stage 使用 reduceByKeyAndWindow 来联合每个批次的统计字数最终形成一个“窗口”的字数。
 
-前三个stage实际上是各自统计窗口中3个批次的字数。这有点像上面例子 NetworkWordCount 的第一个stage，使用的是map和flatmap操作。不过要注意以下不同点：
-- 这里有两个输入RDD，分别来自两个socket文本流，这两个RDD通过union结合成一个RDD，然后进一步转换，产生每个批次的中间统计结果。
-- 其中的两个stage都变灰了，因为两个较旧批次的中间结果已经缓存在内存中，因此不需要再次计算，只有最近的批次需要从头开始计算。
-最后一个右边的stage使用reduceByKeyAndWindow 来联合每个批次的统计字数最终形成一个“窗口”的字数。
-这些可视化使得开发人员不仅能够监控Streaming应用程序的状态和趋势，而且能够理解它们与底层spark job和执行计划的关系。
+这些可视化使得开发人员不仅能够监控 Streaming 应用程序的状态和趋势，而且能够理解它们与底层 Spark Job 和执行计划的关系。
 
 ### 5. 未来方向
 
-Spark1.5.0中备受期待的一个重要提升是关于每个批次( JIRA ,  PR )中输入数据的更多信息。例如：如果你正在使用Kafka，批处理详细信息页面将会显示这个批次处理的topics, partitions和offsets，预览如下图：
+Spark 1.5.0 中备受期待的一个重要提升是关于每个批次( JIRA ,  PR )中输入数据的更多信息。例如：如果你正在使用Kafka，批处理详细信息页面将会显示这个批次处理的topics, partitions和offsets，预览如下图：
 
 ![](img-spark-streaming-ui-streaming-tab-7.png)
 
@@ -87,4 +87,4 @@ Spark1.5.0中备受期待的一个重要提升是关于每个批次( JIRA ,  PR 
 
 > 原文发布时为 2015.07.08
 
-原文：https://databricks.com/blog/2015/07/08/new-visualizations-for-understanding-apache-spark-streaming-applications.html
+原文：[New Visualizations for Understanding Apache Spark Streaming Applications](https://databricks.com/blog/2015/07/08/new-visualizations-for-understanding-apache-spark-streaming-applications.html)

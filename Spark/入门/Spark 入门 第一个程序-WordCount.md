@@ -86,7 +86,7 @@ bin/spark-submit \
   --class com.spark.example.core.base.WordCount \
   --master local[2] \
   /Users/wy/study/code/data-example/spark-example-3.1/target/spark-example-3.1-1.0.jar \
-  /data/word-count/word-count-input
+  /opt/data/word-count
 ```
 上述任务输出如下结果：
 ```
@@ -103,7 +103,3 @@ Hadoop: 1
 
 
 ### 4. Idea 本地调试
-
-运行配置
-
-![image](http://img.blog.csdn.net/20170223113917294?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvU3VubnlZb29uYQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)

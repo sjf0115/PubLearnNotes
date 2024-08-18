@@ -11,7 +11,7 @@ categories: Spark
 permalink: spark-application-web-ui
 ---
 
-Web UI（也称为 Application UI 或 WebUI 或 Spark UI）是正在运行的 Spark 应用程序的 Web 界面，用于在 Web 浏览器中监视和检查Spark作业执行情况。
+Web UI（也称为 Application UI 或 WebUI 或 Spark UI）是正在运行的 Spark 应用程序的 Web 界面，用于在 Web 浏览器中监视和检查 Spark 作业执行情况。
 
 当你启动 Spark Shell 时，Web UI 如下图所示：
 

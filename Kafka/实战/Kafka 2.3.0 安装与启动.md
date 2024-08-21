@@ -29,12 +29,12 @@ export PATH=${KAFKA_HOME}/bin:$PATH
 
 ### 2. 安装ZooKeeper
 
-Kafka 依赖 [ZooKeeper](https://zookeeper.apache.org/)，如果你还没有 ZooKeeper 服务器，你需要先启动一个 ZooKeeper 服务器。可以先参考[ZooKeeper 安装与启动](http://smartsi.club/zookeeper-setup-and-run.html)来安装 ZooKeeper。ZooKeeper 配置如下:
+Kafka 依赖 [ZooKeeper](https://zookeeper.apache.org/)，如果你还没有 ZooKeeper 服务器，你需要先启动一个 ZooKeeper 服务器。可以先参考[ZooKeeper 安装与启动](https://smartsi.blog.csdn.net/article/details/124680579)来安装 ZooKeeper。ZooKeeper 配置如下:
 ```
 tickTime=2000
 initLimit=10
 syncLimit=5
-dataDir=/Users/smartsi/opt/zookeeper/data
+dataDir=/opt/zookeeper/data
 clientPort=2181
 server.1=localhost:2888:3888
 ```
@@ -52,7 +52,7 @@ server.1=localhost:2888:3888
 ```
 broker.id=0
 listeners=PLAINTEXT://127.0.0.1:9092
-log.dirs=/Users/smartsi/opt/kafka/logs/log-9092
+log.dirs=../logs/broker/9092
 zookeeper.connect=localhost:2181/kafka-2.3.0
 zookeeper.connection.timeout.ms=6000
 ```
@@ -62,7 +62,7 @@ zookeeper.connection.timeout.ms=6000
 ```
 broker.id=1
 listeners=PLAINTEXT://127.0.0.1:9093
-log.dirs=/Users/smartsi/opt/kafka/logs/log-9093
+log.dirs=../logs/broker/9093
 zookeeper.connect=localhost:2181/kafka-2.3.0
 zookeeper.connection.timeout.ms=6000
 ```
@@ -70,7 +70,7 @@ zookeeper.connection.timeout.ms=6000
 ```
 broker.id=2
 listeners=PLAINTEXT://127.0.0.1:9094
-log.dirs=/Users/smartsi/opt/kafka/logs/log-9094
+log.dirs=../logs/broker/9094
 zookeeper.connect=localhost:2181/kafka-2.3.0
 zookeeper.connection.timeout.ms=6000
 ```
@@ -99,7 +99,7 @@ zookeeper.connection.timeout.ms=6000
 
 (3) 日志相关:
 ```
-log.dirs=/Users/smartsi/opt/kafka/logs/log-9092
+log.dirs=../logs/broker/9092
 ```
 Kafka存储Log的目录。
 

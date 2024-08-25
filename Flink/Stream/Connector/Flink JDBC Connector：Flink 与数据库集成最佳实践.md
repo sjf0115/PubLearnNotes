@@ -32,7 +32,7 @@ JDBC Connector 在 Flink 1.11 版本发生了比较大的变化，我们先从�
 
 由于早期数据类型系统并不是很完善，导致了比较多的 Connector 在使用上会经常报数据类型相关的异常，例如 DECIMAL 精度类型，在以往的 Flink 1.10 版本中有可能出现下图问题：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jdbc-connector-with-database-1.png?raw=true)
+![](img-flink-jdbc-connector-with-database-1.png)
 
 基于 FLIP-95 新的 TableSource 和 TableSink 在精度支持方面做了重构，目前数据精度方面的支持已经很完善了。
 
@@ -40,7 +40,7 @@ JDBC Connector 在 Flink 1.11 版本发生了比较大的变化，我们先从�
 
 在 Flink 1.11 版本中，我们对 DDL 的 WITH 参数相对于 1.10 版本做了简化，从用户视角看上就是简化和规范了参数，如表格所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jdbc-connector-with-database-2.png?raw=true)
+![](img-flink-jdbc-connector-with-database-2.png)
 
 大家可以看到表格中有 3 个标红的地方，这个是相对于 1.10 有发生变化比较多的地方。这次 FLIP 希望进一步简化连接器属性，以便使属性更加简洁和可读，并更好地与 FLIP-107 协作。如果需要了解更多的 Connector 参数可以进一步参考官方文档和 FLIP-122 中提到的改变，这样有助于从旧版本迁移到新版本并了解参数的变化。
 
@@ -48,7 +48,7 @@ JDBC Connector 在 Flink 1.11 版本发生了比较大的变化，我们先从�
 
 Flink 1.10 存在某些 Query 无法推断出主键导致无法进行 Upsert 更新操作（如下图所示错误）。所以在 FLIP-87 中为 Flink SQL 引入的 Primary Key 约束。Flink 的主键约束遵循 SQL 标准，主键约束分为 PRIMARY KEY NOT ENFORCED 和 PRIMARY KEY ENFORCED， ENFORCED 表示是否对数据进行校验。我们常见数据库的主键约束属于 PRIMARY KEY ENFORCED，会对数据进行校验。因为 Flink 并不持有数据，因此 Flink 支持的主键模式是 PRIMARY KEY NOT ENFORCED,  这意味着 Flink 不会校验数据，而是由用户确保主键的完整性。例如 HBase 里面对应的主键应该是 RowKey，在 MySQL 中对应的主键是在用户数据库的表中对应的主键。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jdbc-connector-with-database-3.png?raw=true)
+![](img-flink-jdbc-connector-with-database-3.png)
 
 ### 2. JDBC Catalog
 
@@ -70,11 +70,11 @@ PostgresCatalog.tableExists(ObjectPath tablePath)
 
 Dialect (方言)对各个数据库来说，Dialect 体现各个数据库的特性，比如语法、数据类型等。如果需要查看详细的差异，可以点击这里[6]查看详细差异。下面通过对比 MySQL 和 Postgres 的一些常见场景举例：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jdbc-connector-with-database-4.png?raw=true)
+![](img-flink-jdbc-connector-with-database-4.png)
 
 在数据类型上面，Flink SQL 的数据类型目前映射规则如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jdbc-connector-with-database-5.png?raw=true)
+![](img-flink-jdbc-connector-with-database-5.png)
 
 Flink 目前支持三种 Dialect: Derby、MySQL、PostgreSQL，Derby 主要用于测试，更多的类型映射可以点击下方链接前往官方文档查看。
 

@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Flink 使用Flink进行高吞吐，低延迟和Exactly-Once语义流处理
+title: 使用 Flink 进行高吞吐，低延迟和 Exactly-Once 语义流处理
 date: 2018-09-02 14:54:01
 tags:
   - Flink
@@ -43,7 +43,7 @@ Storm和先前的流处理系统不能满足一些对大规模应用程序至关
 
 容错流式架构的下一个发展阶段是微批处理或离散化流。这个想法非常简单：为了解决连续计算模型（处理和缓冲记录）所带来的记录级别同步的复杂性和开销，连续计算分解为一系列小的原子性的批处理作业（称为微批次）。每个微批次可能会成功或失败，如果发生故障，重新计算最近的微批次即可。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-1.png?raw=true)
+![](img-high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-1.png)
 
 微批处理可以应用到现有引擎（有能力进行数据流计算）之上。例如，可以在批处理引擎（例如，Spark）之上应用微批处理以提供流功能（这是Spark Streaming背后的基本机制），也可以应用于流引擎之上（例如，Storm）提供 Exactly-once 语义保证和状态恢复（这是Storm Trident背后的基本机制）。在 Spark Streaming 中，每个微批次计算都是一个 Spark 作业，而在 Trident 中，每个微批次中的所有记录都会被合并为一个大型记录。
 
@@ -53,7 +53,7 @@ Storm和先前的流处理系统不能满足一些对大规模应用程序至关
 - 延迟：微批处理显然将作业的延迟限制为微批处理的延迟。虽然亚秒级的批处理延迟对于简单应用程序是可以接受的，但是具有多个网络Shuffle的应用程序很容易将延迟时间延长到数秒。
 
 微批处理模型的最大局限可能是它连接了两个不应连接的概念：应用程序定义的窗口大小和系统内部恢复间隔。假设一个程序（下面示例是Flink代码）每5秒聚合一次记录：
-```
+```java
 dataStream
     .map(transformRecords)
     .groupBy("sessionId")
@@ -74,7 +74,7 @@ dataStream
 
 例如，下面Google Cloud Dataflow程序（请参阅此处）会创建一个会话窗口，如果某个key的事件没有在10分钟内到达，则会触发该会话窗口。在10分钟后到达的数据将会启动一个新窗口。
 
-```
+```java
 PCollection<String> items = ...;
 PCollection<String> session_windowed_items = items.apply(
     Window.<String>into(Sessions.withGapDuration(Duration.standardMinutes(10))))
@@ -106,11 +106,11 @@ Flink的检查点机制基于流经算子和渠道的 'barrier'（认为是Chand
 
 'Barrier' 在 Source 节点中被注入到普通流数据中（例如，如果使用Apache Kafka作为源，'barrier' 与偏移量对齐），并且作为数据流的一部分与数据流一起流过DAG。'barrier' 将记录分为两组：当前快照的一部分（'barrier' 表示检查点的开始），以及属于下一个快照的那些组。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-2.png?raw=true)
+![](img-high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-2.png)
 
 'Barrier' 流向下游并在通过算子时触发状态快照。算子首先将所有流入的流分区的 'barrier' 对齐（如果算子具有多个输入），并会缓存较快的分区数据（上游来源较快的流分区将被缓冲数据以等待来源较慢的流分区）。当算子从每个输入流中都收到 'barrier' 时，会检查其状态（如果有）并写到持久存储中。一旦完成状态写检查，算子就将 'barrier' 向下游转发。请注意，在此机制中，如果算子支持，则状态写检查既可以是异步（在写入状态时继续处理），也可以是增量（仅写入更改）。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-3.png?raw=true)
+![](img-high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-3.png)
 
 一旦所有数据接收器（Sink）都收到 'barrier'，当前检查点就完成了。故障恢复意味着只需恢复最新的检查点状态，并从最新记录的 'barrier' 对应的偏移量重放数据源。分布式快照在我们在本文开头所要达到的所有需求中得分很高。它们实现了高吞吐量的Exactly-Once语义保证，同时还保留了连续算子模型以及低延迟和自然流量控制。
 
@@ -136,7 +136,7 @@ Flink的检查点机制基于流经算子和渠道的 'barrier'（认为是Chand
 
 我们在有30节点120个核的集群上测量Flink和Storm在两个不同程序上的吞吐量。第一个程序是并行流式grep任务，它在流中搜索包含与正则表达式匹配的字符串的事件。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-4.png?raw=true)
+![](img-high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-4.png)
 
 Flink实现了每个核每秒150万个元素的连续吞吐量。这样集群的总吞吐量达到每秒1.82亿个元素。测试得到的Flink延迟为零，因为作业不涉及网络，也不涉及微批处理。当开启Flink容错机制，设置每5秒进行一次Checkpoint，我们只看到吞吐量的轻微下降（小于2％），没有引入任何延迟。
 
@@ -146,7 +146,7 @@ Storm集群在关闭记录确认机制的情况下（因此没有任何准确性
 
 我们还进行了如下实验，将核从40个扩展到120个。跟我们预期一样，所有框架都线性扩展，因为grep是一个易于并行处理的程序。现在让我们看一个不同的实验，它按键进行流分组，从而通过网络对流进行Shuffle。我们在30台机器的集群中运行此作业，其系统配置与以前相同。Flink实现了每核每秒大约720,000个事件的吞吐量，启动检查点后降至690,000。请注意，Flink在每个检查点都要备份算子的状态，而Storm则不支持。此示例中的状态相对较小（计数和摘要，每个检查点每个算子的大小小于1M）。具有At-Least-Once语义保证的Storm具有每核每秒约2,600个事件的吞吐量。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-5.png?raw=true)
+![](img-high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-5.png)
 
 #### 7.2 延迟
 
@@ -154,7 +154,7 @@ Storm集群在关闭记录确认机制的情况下（因此没有任何准确性
 
 当应用程序开发人员可以允许一定的延迟时，通常需要把延迟限制在一定范围内。我们测量流记录分组作业的几个延迟界限，该作业通过网络对数据进行Shuffle。下图显示了观察到的中位数延迟，以及第90百分位，第95百分位和第99百分位延迟（例如，50毫秒的第99百分位的延迟意味着99％的元素到达管道的末端不到50毫秒）。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-6.png?raw=true)
+![](img-high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-6.png)
 
 在以最大吞吐量运行时，Flink的中位数延迟为26毫秒，第99百分位延迟为51毫秒，这意味着99％的延迟都低于51毫秒。打开Flink的检查点机制（启用Exact-Once语义保证）并没有增加可观察到的延迟。但此时，我们确实看到较高百分位数的延迟增加，观察到的延迟大约为150毫秒（译者注：没太搞懂）。出现延迟增加的原因是需要对齐流，算子等待接收所有输入的 'barrier'。Storm具有非常低的中位数延迟（1毫秒），并且第99百分位的延迟也是51毫秒。
 
@@ -162,7 +162,7 @@ Storm集群在关闭记录确认机制的情况下（因此没有任何准确性
 
 下面说明了延迟如何影响Flink的吞吐量。因为较低的延迟保证意味着缓冲较少的数据，所以必然会产生一定的吞吐量成本。下图显示了不同缓冲区超时时间下的Flink吞吐量。该实验再次使用流记录分组作业。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-7.png?raw=true)
+![](img-high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-7.png)
 
 如果指定缓冲区超时时间为零，流经算子的记录不会缓冲而是立即转发到下一个算子。在这个延迟优化设置中，Flink可以实现50%的元素延迟在0毫秒，以及99%的元素延迟在20毫秒以下。相应的吞吐量为每个核每秒24,500个事件。当我们增加缓冲区超时时间时，我们会看到延迟增加，吞吐量会同时增加，直到达到吞吐量峰值，缓冲区填充速度超过超时到期时间。缓冲区超时时间为50毫秒时，系统达到每个核每秒750,000个事件的吞吐量峰值，99%的处理延迟在50毫秒以下。
 
@@ -176,6 +176,6 @@ Storm集群在关闭记录确认机制的情况下（因此没有任何准确性
 
 为了模拟的效果，我们使用并行数据生成器将事件推送到Kafka，这些生成器每个核的速度大约为每秒30,000个事件。下图显示了数据生成器的速率（红线），以及Flink作业从Kafka读取事件并使用规则验证事件序列的吞吐量（蓝线）。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-8.png?raw=true)
+![](img-high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink-8.png)
 
 原文：https://data-artisans.com/blog/high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink

@@ -45,7 +45,7 @@ permalink: two-phase-commit-of-distributed-transaction
 - 参与者节点向协调者节点发送"完成"消息。
 - 协调者节点收到所有参与者节点反馈的"完成"消息后，完成事务。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Distributed/two-phase-commit-of-distributed-transaction-1.png?raw=true)
+![](img-two-phase-commit-of-distributed-transaction-1.png)
 
 (2) 如果任一参与者节点在第一阶段返回的响应消息为"终止"，或者协调者节点在第一阶段的询问超时之前无法获取所有参与者节点的响应消息时（失败）：
 - 协调者节点向所有参与者节点发出"回滚操作"的请求。
@@ -56,7 +56,7 @@ permalink: two-phase-commit-of-distributed-transaction
 > 有时候，第二阶段也被称作完成阶段，因为无论结果怎样，协调者都必须在此阶段结束当前事务。
 
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Distributed/two-phase-commit-of-distributed-transaction-2.png?raw=true)
+![](img-two-phase-commit-of-distributed-transaction-2.png)
 
 ### 4. 缺点
 

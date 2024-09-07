@@ -1,4 +1,50 @@
 
+GenericWriteAheadSink 抽象类是一个将其输入元素发送到任意后端的通用 Sink。此 Sink 与 Flink 的检查点机制配合使用，可以提供 Exactly-Once 语义保证，具体取决于存储后端和 Sink / Committer 的实现。输入的记录存储在 `AbstractStateBackend` 表示的状态后端中，并且只有在检查点完成时才提交。
+
+GenericWriteAheadSink 继承自 `AbstractStreamOperator` 抽象类并实现了 `OneInputStreamOperator` 接口：
+```java
+public abstract class GenericWriteAheadSink<IN> extends AbstractStreamOperator<IN> implements OneInputStreamOperator<IN, IN> {
+    public GenericWriteAheadSink(CheckpointCommitter committer, TypeSerializer<IN> serializer, String jobID) throws Exception {
+        ...
+    }
+
+    @Override
+    public void open() throws Exception {
+        ...
+    }
+
+    public void close() throws Exception {
+        ...
+    }
+
+    @Override
+    public void initializeState(StateInitializationContext context) throws Exception {
+        ...
+    }
+
+    @Override
+    public void snapshotState(StateSnapshotContext context) throws Exception {
+        ...
+    }
+
+    @Override
+    public void notifyCheckpointComplete(long checkpointId) throws Exception {
+        ...
+    }
+
+    protected abstract boolean sendValues(Iterable<IN> values, long checkpointId, long timestamp) throws Exception;
+
+    @Override
+    public void processElement(StreamRecord<IN> element) throws Exception {
+        ...
+    }
+}
+```
+
+
+
+
+
 
 当第一次初始化函数或者因为故障重启需要从之前 Checkpoint 中恢复状态数据时会调用 `initializeState(StateInitializationContext)` 方法：
 ```java

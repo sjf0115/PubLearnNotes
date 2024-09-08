@@ -176,15 +176,27 @@ Starting DataVinesServer, logging to /opt/datavines/bin/../logs/datavines-server
 nohup /Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/bin/java -Dlogging.config=classpath:server-logback.xml -Dspring.profiles.active=mysql -server -Xmx16g -Xms1g -XX:+UseG1GC -XX:G1HeapRegionSize=8M -classpath /opt/datavines/bin/../conf:/opt/datavines/bin/../libs/* io.datavines.server.DataVinesServer > /opt/datavines/bin/../logs/datavines-server-localhost.out 2>&1 &
 End start DataVinesServer mysql.
 ```
-查看日志，如果日志里面没有报错信息，并且能看到[INFO] 2022-04-10 12:29:05.447 io.datavines.server.DatavinesServer:[61] - Started DatavinesServer in 3.97 seconds (JVM running for 4.69) 的时候，证明服务已经成功启动。
+查看日志，如果日志里面没有报错信息，并且能看到 `Started DataVinesServer` 相关日志即证明服务已经成功启动：
+```
+[INFO] 2024-09-08 17:30:16.630 io.datavines.server.registry.Register:[170] - active server list:[ServerInfo(host=192.168.5.49, serverPort=5600, createTime=2024-09-08 16:54:17.0, updateTime=2024-09-08 17:30:17.0)]
+[INFO] 2024-09-08 17:30:16.631 io.datavines.server.registry.Register:[193] - Current slot is 0 total slot is 1
+[INFO] 2024-09-08 17:30:16.632 io.datavines.server.dqc.coordinator.runner.JobScheduler:[56] - job scheduler started
+[INFO] 2024-09-08 17:30:16.634 io.datavines.server.scheduler.CommonTaskScheduler:[49] - common task scheduler started
+[INFO] 2024-09-08 17:30:18.424 org.springframework.boot.autoconfigure.web.servlet.WelcomePageHandlerMapping:[53] - Adding welcome page: class path resource [static/index.html]
+[INFO] 2024-09-08 17:30:18.854 org.eclipse.jetty.server.handler.ContextHandler.application:[2347] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+[INFO] 2024-09-08 17:30:18.855 org.springframework.web.servlet.DispatcherServlet:[525] - Initializing Servlet 'dispatcherServlet'
+[INFO] 2024-09-08 17:30:18.857 org.springframework.web.servlet.DispatcherServlet:[547] - Completed initialization in 2 ms
+[INFO] 2024-09-08 17:30:18.890 org.eclipse.jetty.server.AbstractConnector:[331] - Started ServerConnector@39652a30{HTTP/1.1, (http/1.1)}{0.0.0.0:5600}
+[INFO] 2024-09-08 17:30:18.891 org.springframework.boot.web.embedded.jetty.JettyWebServer:[172] - Jetty started on port(s) 5600 (http/1.1) with context path '/'
+[INFO] 2024-09-08 17:30:20.423 org.springframework.scheduling.quartz.SchedulerFactoryBean:[727] - Starting Quartz Scheduler now
+[INFO] 2024-09-08 17:30:20.449 org.springframework.scheduling.quartz.LocalDataSourceJobStore:[3644] - ClusterManager: detected 1 failed or restarted instances.
+[INFO] 2024-09-08 17:30:20.450 org.springframework.scheduling.quartz.LocalDataSourceJobStore:[3503] - ClusterManager: Scanning for instance "localhost1725785654454"'s failed in-progress jobs.
+[INFO] 2024-09-08 17:30:20.458 org.quartz.core.QuartzScheduler:[547] - Scheduler datavines_$_localhost1725787811975 started.
+[INFO] 2024-09-08 17:30:20.474 io.datavines.server.DataVinesServer:[61] - Started DataVinesServer in 19.388 seconds (JVM running for 21.344)
+```
 
 ## 3. 访问
 
 在浏览器输入：服务器IP:5600 ，就会跳转至登录界面，输入账号密码 admin/123456：
-```
-```
 
-
-
-
-。。。
+![](img-datavines-setup-1.png)

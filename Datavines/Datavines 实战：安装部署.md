@@ -34,6 +34,7 @@ Datavines 是一站式开源数据可观测性平台，提供元数据管理、�
 
 ### 2.2 下载代码
 
+通过你 git 管理工具下载 git 代码：
 ```
 git clone https://github.com/datavane/datavines.git
 cd datavines
@@ -41,28 +42,101 @@ cd datavines
 
 ### 2.3 数据库准备
 
-Datavines 的元数据是存储在关系型数据库中，目前支持 MySQL ，下面以 MySQL 为例说明安装步骤：
-- 创建数据库 datavines
-- 执行 script/sql/datavines-mysql.sql 脚本进行数据库的初始化
+Datavines 的元数据存储在关系型数据库中，目前支持的关系型数据库包括 MySQL 以及 PostgreSQL。下面以 MySQL 为例说明安装步骤：
+- 启动数据库并创建新 database 作为 Datavines 元数据库，这里以数据库名 datavines 为例
+- 创建完新数据库后，将 script/sql/datavines-mysql.sql 下的 sql 文件直接在 MySQL 中运行，完成数据库初始化
 
-### 2.4 项目构建
+### 2.4 源码编译
 
-打包并解压
+如果使用 MySQL 数据库，请注意修改 pom.xml，将 mysql-connector-java 依赖的 scope 改为 compile，使用 PostgreSQL 则不需要：
+```xml
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>${mysql.version}</version>
+   <scope>compile</scope>
+</dependency>
 ```
-mvn clean package -Prelease
-cd datavines-dist/target
-tar -zxvf datavines-1.0.0-SNAPSHOT-bin.tar.gz
+
+运行如下命令进行项目构建打包：
+```
+mvn clean install -Prelease -Dmaven.test.skip=true
+```
+出现如下界面表示项目已经构建完成：
+```
+[INFO] datavines-metric-expected-weekly-avg ............... SUCCESS [  1.265 s]
+[INFO] datavines-metric-expected-monthly-avg .............. SUCCESS [  1.444 s]
+[INFO] datavines-metric-expected-last7day-avg ............. SUCCESS [  1.208 s]
+[INFO] datavines-metric-expected-last30day-avg ............ SUCCESS [  1.281 s]
+[INFO] datavines-metric-expected-none ..................... SUCCESS [  1.302 s]
+[INFO] datavines-metric-expected-all ...................... SUCCESS [  0.070 s]
+[INFO] datavines-metric-result-formula-plugins ............ SUCCESS [  0.028 s]
+[INFO] datavines-metric-result-formula-count .............. SUCCESS [  1.214 s]
+[INFO] datavines-metric-result-formula-diff ............... SUCCESS [  1.178 s]
+[INFO] datavines-metric-result-formula-diff-percentage .... SUCCESS [  1.230 s]
+[INFO] datavines-metric-result-formula-percentage ......... SUCCESS [  1.292 s]
+[INFO] datavines-metric-result-formula-diff-actual-expected SUCCESS [  1.295 s]
+[INFO] datavines-metric-result-formula-all ................ SUCCESS [  0.054 s]
+[INFO] datavines-core ..................................... SUCCESS [01:35 min]
+[INFO] datavines-notification ............................. SUCCESS [  0.039 s]
+[INFO] datavines-notification-api ......................... SUCCESS [  1.326 s]
+[INFO] datavines-notification-core ........................ SUCCESS [  1.104 s]
+[INFO] datavines-notification-plugins ..................... SUCCESS [  0.020 s]
+[INFO] datavines-notification-plugin-email ................ SUCCESS [ 18.233 s]
+[INFO] datavines-notification-plugin-lark ................. SUCCESS [  1.262 s]
+[INFO] datavines-notification-plugin-wecombot ............. SUCCESS [  1.221 s]
+[INFO] datavines-notification-plugin-dingtalk ............. SUCCESS [  1.440 s]
+[INFO] datavines-registry ................................. SUCCESS [  0.016 s]
+[INFO] datavines-registry-api ............................. SUCCESS [  1.079 s]
+[INFO] datavines-registry-plugins ......................... SUCCESS [  0.012 s]
+[INFO] datavines-registry-mysql ........................... SUCCESS [  1.123 s]
+[INFO] datavines-registry-zookeeper ....................... SUCCESS [  2.428 s]
+[INFO] datavines-server ................................... SUCCESS [01:28 min]
+[INFO] datavines-runner ................................... SUCCESS [ 14.366 s]
+[INFO] datavines-dist ..................................... SUCCESS [06:54 min]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  24:56 min
+[INFO] Finished at: 2024-09-07T21:56:08+08:00
+[INFO] ------------------------------------------------------------------------
+```
+把打包好的压缩包解压到 `/opt` 工作目录下：
+```
+localhost:datavines wy$ cd datavines-dist/target
+localhost:target wy$ ll
+total 968736
+drwxr-xr-x  5 wy  staff        160 Sep  7 21:55 ./
+drwxr-xr-x  5 wy  staff        160 Sep  7 21:49 ../
+drwxr-xr-x  2 wy  staff         64 Sep  7 21:49 archive-tmp/
+-rw-r--r--  1 wy  staff  243221743 Sep  7 21:55 datavines-1.0.0-SNAPSHOT-bin.tar.gz
+-rw-r--r--  1 wy  staff  243373785 Sep  7 21:56 datavines-1.0.0-SNAPSHOT-bin.zip
+localhost:target wy$
+localhost:target wy$ tar -zxvf datavines-1.0.0-SNAPSHOT-bin.tar.gz -C /opt
+```
+创建软连接便于升级：
+```
+localhost:opt wy$ ln -s datavines-1.0.0-SNAPSHOT-bin/ datavines
 ```
 解压完成以后进入目录
 ```
-cd datavines-1.0.0-SNAPSHOT-bin
+localhost:opt wy$ cd datavines
+localhost:datavines wy$ ll
+total 0
+drwxr-xr-x    6 wy    wheel    192 Sep  7 22:52 ./
+drwxrwxrwx   71 root  wheel   2272 Sep  7 22:52 ../
+drwxr-xr-x    4 wy    wheel    128 Sep  7 22:52 bin/
+drwxr-xr-x    7 wy    wheel    224 Sep  7 22:52 conf/
+drwxr-xr-x  401 wy    wheel  12832 Sep  7 22:52 libs/
+drwxr-xr-x   22 wy    wheel    704 Sep  7 22:52 plugins/
 ```
+
 ### 2.5 配置
 
 编辑配置信息
 ```
 cd conf
-vi application.yaml
+vim application.yaml
 ```
 修改数据库信息：
 ```
@@ -89,8 +163,18 @@ yarn.resource.manager.ha.ids=192.168.0.1,192.168.0.2
 
 ### 2.6 启动服务
 ```
-cd bin
-sh datavines-daemon.sh start mysql
+localhost:conf wy$ cd ../bin/
+localhost:bin wy$ ll
+total 24
+drwxr-xr-x  4 wy  wheel   128 Sep  7 22:52 ./
+drwxr-xr-x  6 wy  wheel   192 Sep  7 22:52 ../
+-rw-r--r--  1 wy  wheel  5062 Sep  7 20:20 datavines-daemon.sh
+-rw-r--r--  1 wy  wheel  1506 Sep  7 20:20 datavines-submit.sh
+localhost:bin wy$ sh datavines-daemon.sh start mysql
+Begin start DataVinesServer mysql......
+Starting DataVinesServer, logging to /opt/datavines/bin/../logs/datavines-server-localhost.out ...
+nohup /Library/Java/JavaVirtualMachines/jdk1.8.0_161.jdk/Contents/Home/bin/java -Dlogging.config=classpath:server-logback.xml -Dspring.profiles.active=mysql -server -Xmx16g -Xms1g -XX:+UseG1GC -XX:G1HeapRegionSize=8M -classpath /opt/datavines/bin/../conf:/opt/datavines/bin/../libs/* io.datavines.server.DataVinesServer > /opt/datavines/bin/../logs/datavines-server-localhost.out 2>&1 &
+End start DataVinesServer mysql.
 ```
 查看日志，如果日志里面没有报错信息，并且能看到[INFO] 2022-04-10 12:29:05.447 io.datavines.server.DatavinesServer:[61] - Started DatavinesServer in 3.97 seconds (JVM running for 4.69) 的时候，证明服务已经成功启动。
 
@@ -98,7 +182,6 @@ sh datavines-daemon.sh start mysql
 
 在浏览器输入：服务器IP:5600 ，就会跳转至登录界面，输入账号密码 admin/123456：
 ```
-
 ```
 
 

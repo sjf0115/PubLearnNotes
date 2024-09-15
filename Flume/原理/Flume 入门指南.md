@@ -4,11 +4,11 @@ Apache Flume 是一个分布式、可靠和高可用的系统，可以从大量�
 
 ## 2. 使用场景
 
-Flume 使用最多的场景是日志收集，也可以通过定制 Source 来传输其他不同类型的数据。Flume 最终会将数据落地到实时计算平台（例如Flink、Spark Streaming 和 Storm）、离线计算平台上（例如 Hive 和 Presto），也可仅落地到数据存储系统中（例如 HDFS、OSS、Kafka 和 Elasticsearch），为后续分析数据和清洗数据做准备。
+Flume 使用最多的场景是日志收集，也可以通过定制 Source 来传输其他不同类型的数据。Flume 最终会将数据落地到实时计算平台（例如 Flink、Spark Streaming 和 Storm）、离线计算平台上（例如 Hive 和 Presto），也可仅落地到数据存储系统中（例如 HDFS、OSS、Kafka 和 Elasticsearch），为后续分析数据和清洗数据做准备。
 
 ## 3. Flume 架构
 
-Flume 部署的最简单元是 Flume Agent，是一个 Flume 的实例，本质上是一个 JVM 进程。Flume Agent 用来控制 Event 数据流从生产者传输到消费者。
+Flume 部署的最简单元是 Flume Agent，一个 Flume 的实例，本质上是一个 JVM 进程。Flume Agent 用来控制事件 Event (下面会详细介绍)数据流从生产者传输到消费者。
 
 ![](img-flume-getting-started-guide-1.png)
 
@@ -16,11 +16,7 @@ Flume 部署的最简单元是 Flume Agent，是一个 Flume 的实例，本质�
 
 ### 3.1 Event
 
-事件 Event 是数据流通过 Flume Agent 的最小单位。一条条日志又或者一个个的二进制文件被 Flume 采集之后它就叫 Event。Event 由一个可选的 Header 字典和一个装载数据的字节数组组成。示例如下：
-
-| Header (Map)     | Body (byte[])     |
-| :------------- | :------------- |
-| Item One       | Item Two       |
+事件 Event 是数据流通过 Flume Agent 的最小单位。一条条日志又或者一个个的二进制文件被 Flume 采集之后它就叫 Event。Event 由一个可选的 Header 字典和一个装载数据的字节数组组成。
 
 ### 3.2 Source
 
@@ -38,7 +34,7 @@ Source 是数据源收集器，负责从外部数据源收集数据，并批量�
 
 ### 3.3 Channel
 
-Channel 是 Source 和 Sink 之间的缓冲队列。用来存储 Source 已经接收到，但是尚未写出到另一个 Agent 或者存储系统的数据。Channel 的行为像队列，Source 写入到它们，Sink 从它们中读取。
+Channel 是 Source 和 Sink 之间的缓冲队列。用来存储 Source 已经接收到，但是尚未写出到另一个 Agent 或者存储系统的数据。Channel 的行为像队列，Source 写入到它们，Sink 从它们中读取。多个 Source 可以安全的写入到相同的 Channel，并且多个 Sink 可以从相同的 Channel 进行读取。
 
 常见 Channel 如下所示：
 
@@ -53,7 +49,7 @@ Event 数据会缓存在 Channel 中用来在失败的时候恢复出来。Flume
 
 ### 3.4 Sink
 
-Sink 负责从 Channel 移走事件 Event 并将以事务的形式 Commit 到拓扑结构中的下一个 Agent 或者 HDFS 等外部存储系统中。一旦事务 Commit 成功，Event 会从 Channel 中移除。
+Sink 负责从 Channel 移走事件 Event 并将以事务的形式 Commit 到拓扑结构中的下一个 Agent 或者 HDFS 等外部存储系统中。一旦事务 Commit 成功，Event 会从 Channel 中移除。一个 Sink 只能从一个 Channel 读取，如果多个 Sink 从相同的 Channel 读取，它可以保证只有一个 Sink 从 Channel 读取一个指定的事件。
 
 常见 Sink 如下所示：
 
@@ -67,10 +63,10 @@ Sink 负责从 Channel 移走事件 Event 并将以事务的形式 Commit 到拓
 
 ## 4. 数据流
 
-一个 Flume Agent 可以连接一个或者多个其他的 Agent。一个 Agent 也可以从一个或者多个 Agent 接收数据。通过相互连接的多个 Flume Agent，一个数据流被建立。
+一个 Flume Agent 可以连接一个或者多个其他的 Agent。一个 Agent 也可以从一个或者多个 Agent 接收数据。通过相互连接的多个 Flume Agent 构建了一个数据流(一个或者多个的一系列的 Agent)。在现实中，数据流可以任意的复杂，包括多个 Source-Channel-Sink 三件套。
 
 ![](img-flume-getting-started-guide-2.png)
 
 > 官方这个图的 Agent 4 的 Sink 画错了，不应该是 Avro Sink ，应该是 HDFS Sink。
 
-这个 Flume Agent 链条可以用于将数据从一个位置移动到另一个位置，特别是从生产数据的应用程序到 HDFS、HBase 等。一般的 Flume Agent 从应用程序服务器接收数据，然后将数据写入到 HDFS 或者 HBase(无论是直接或者通过其他 Flume Agent)，通过简单增加更多的 Flume Agent 就能够扩展服务器数量并将大量数据写入到存储系统。
+由 Flume Agent 链条构成的数据流可以用于将数据从一个位置移动到另一个位置，特别是从生产数据的应用程序到 HDFS、HBase 等。一般的 Flume Agent 从应用程序服务器接收数据，然后将数据写入到 HDFS 或者 HBase(无论是直接或者通过其他 Flume Agent)，通过简单增加更多的 Flume Agent 就能够扩展服务器数量并将大量数据写入到存储系统。

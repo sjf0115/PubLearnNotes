@@ -57,27 +57,22 @@ Flume Agent 的配置是在一个本地的配置文件中，需要在 `conf` 目
 
 在这我们配置一个 Agent，Source 使用的是 NetCat TCP Source，简单说就是监听本机上某个端口上接收 TCP 协议的消息。收到的每行内容都会解析封装成一个事件 Event，然后发送到 Channel，在这使用的是 Memory Channel，是一个用内存作为 Event 缓冲的 Channel。Sink 使用的是 Logger Sink，这个 Sink 可以把 Event 输出到控制台。首先需要在 `conf` 目录下创建一个配置文件，在这为 `flume-netcat-logger-conf.properties`，详细配置如下所示：
 ```
-# 配置 Agent a1 各个组件的名称
-a1.sources = r1    # Agent a1 的一个 Source：r1
-a1.sinks = k1      # Agent a1 的一个 Sink：k1
-a1.channels = c1   # Agent a1 的一个 Channel：c1
+a1.sources = r1
+a1.sinks = k1
+a1.channels = c1
 
-# 配置 Agent a1 的 Source r1 的属性
-a1.sources.r1.type = netcat       # 使用的是 NetCat TCP Source
-a1.sources.r1.bind = localhost    # NetCat TCP Source 监听的 hostname，这个是本机
-a1.sources.r1.port = 44444        # 监听的端口
+a1.sources.r1.type = netcat
+a1.sources.r1.bind = localhost
+a1.sources.r1.port = 44444
 
-# 配置 Agent a1 的 Sink k1 的属性
-a1.sinks.k1.type = logger         # Sink 使用的是 Logger Sink，这个配的也是别名
+a1.sinks.k1.type = logger
 
-# 配置 Agent a1 的 Channel c1的属性，channel 是用来缓冲 Event 数据的
-a1.channels.c1.type = memory                #channel的类型是内存channel，顾名思义这个channel是使用内存来缓冲数据
-a1.channels.c1.capacity = 1000              #内存channel的容量大小是1000，注意这个容量不是越大越好，配置越大一旦Flume挂掉丢失的event也就越多
-a1.channels.c1.transactionCapacity = 100    #source和sink从内存channel每次事务传输的event数量
+a1.channels.c1.type = memory
+a1.channels.c1.capacity = 1000
+a1.channels.c1.transactionCapacity = 100
 
-# 把 Source 和 Sink 绑定到 Channel 上
-a1.sources.r1.channels = c1       # Source r1 与 Channel c1 绑定
-a1.sinks.k1.channel = c1          # Sink k1 与 Channel c1 绑定
+a1.sources.r1.channels = c1
+a1.sinks.k1.channel = c1
 ```
 这个配置文件定义了一个 Agent 叫做 a1，a1 有一个 Source 监听本机 44444 端口上接收到的数据、一个缓冲数据的 channel 还有一个把 Event 数据输出到控制台的 Sink。这个配置文件给各个组件命名，并且设置了它们的类型和其他属性。下面会详细介绍每个组件的配置。
 
@@ -157,12 +152,28 @@ a1.sinks.k1.channel = c1          # Sink k1 与 Channel c1 绑定
 
 ## 3. 启动 Agent
 
-通常一个配置文件里面可能有多个 Agent(在这只有一个名为 `a1` 的 Agent)，当启动 Flume 时候通常会传一个 Agent 名字来做为程序运行的标记。使用如下命令来加载上面的配置文件来启动 Flume：
+通常一个配置文件里面可能有多个 Agent(在这只有一个名为 `a1` 的 Agent)，当启动 Flume 时候通常会传一个 Agent 名字来做为程序运行的标记。例如使用如下命令来加载上面的配置文件来启动 Flume Agent a1：
 ```
-bin/flume-ng agent --conf conf --conf-file example.conf --name a1 -Dflume.root.logger=INFO,console
+bin/flume-ng agent --conf conf --conf-file conf/flume-netcat-logger-conf.properties --name a1 -Dflume.root.logger=INFO,console
 ```
 > 同一个配置文件中如果配置了多个 Agent 流，启动 Flume 的命令中 --name 这个参数的作用就体现出来了，用它来告诉 Flume 将要启动该配置文件中的哪一个 Agent 实例。
 
+请注意，在完整的部署中通常会包含 `–conf=<conf-dir>` 这个参数，`<conf-dir>` 目录里面包含了 flume-env.sh 和一个 log4j properties 文件。
+
+测试一下我们的这个例子吧，打开一个新的终端窗口，用 telnet 命令连接本机的 44444 端口，然后输入 Hello 后按回车，这时收到服务器的响应[OK]（这是 NetCat TCP Source 默认给返回的），说明一行数据已经成功发送：
+```
+localhost:conf wy$ telnet 127.0.0.1 44444
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+hello
+OK
+```
+Flume的终端里面会以 log 的形式输出这个收到的 Event 内容：
+```
+16 九月 2024 00:05:05,838 INFO  [SinkRunner-PollingRunner-DefaultSinkProcessor] (org.apache.flume.sink.LoggerSink.process:95)  - Event: { headers:{} body: 68 65 6C 6C 6F 0D                               hello. }
+```
+到此你已经成功配置并运行了一个 Flume Agent。
 
 
 ...

@@ -102,8 +102,8 @@ Flume 对事件投递的可靠性保证是非常重要的，它往往是我们�
 ## 5. 性能调优
 
 Flume 实例进行性能调优最常见的配置是 事务 batch 和 ChannelCapacity。
-- 事务 batch 指的是合理设置 batch 配置，可以明显的改善实例的吞吐量。上面已经讲到 Source 对 Channel 进行 put 或者 Sink 对 Channel 进行 take 都是通过开启事务来操作，所以调大两个组件的 batch 配置可以降低 cpu 消耗，减少网络 IO 等待等。Channel 的 capacity 大小直接影响着 source 和 sink 两端的事件生产和消费。
-- capacity 越大，吞吐量越好，但是其他因素制约着不能设置的很大。比如 MemoryChannel ，直接表现着对内存的消耗，以及进程异常退出所丢失的事件数量。不同的 Channel 需要不同的考虑，最终 trade-off 是难免的。
+- 事务 batch 指的是合理设置 batch 配置，可以明显的改善实例的吞吐量。上面已经讲到 Source 对 Channel 进行 put 或者 Sink 对 Channel 进行 take 都是通过开启事务来操作，所以调大两个组件的 batch 配置可以降低 cpu 消耗，减少网络 IO 等待等。
+- Channel 的 capacity 大小直接影响着 source 和 sink 两端的事件生产和消费。capacity 越大，吞吐量越好，但是其他因素制约着不能设置的很大。比如 MemoryChannel ，直接表现着对内存的消耗，以及进程异常退出所丢失的事件数量。不同的 Channel 需要不同的考虑，最终 trade-off 是难免的。
 
 ## 6. 总结和展望
 

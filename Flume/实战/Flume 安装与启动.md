@@ -53,9 +53,11 @@ From source with checksum bbbca682177262aac3a89defde369a37
 
 ## 2. 配置 Agent
 
-Flume Agent 的配置是在一个本地的配置文件中，需要在 `conf` 目录创建。这是一个遵循 Java properties 文件格式的文本文件。一个或多个 Agent 配置可放在同一个配置文件里。配置文件包含 Agent的 Source，Sink 和 Channel 的各个属性以及他们的数据流连接。每个组件（Source，Sink 或者 Channel）都有一个 name，type 以及一系列的基于其 type 或实例的属性。
+Flume Agent 的配置是在一个本地的配置文件中，一般在 `conf` 目录下创建。这是一个遵循 Java properties 文件格式的文本文件。在同一个配置文件里可以配置一个或多个 Agent。配置文件包含 Agent 的 Source，Sink 和 Channel 组件的各个属性以及他们的数据流连接。每个组件都有一个 name，type 以及一系列的基于其 type 或实例的属性。
 
-在这我们配置一个 Agent，Source 使用的是 NetCat TCP Source，简单说就是监听本机上某个端口上接收 TCP 协议的消息。收到的每行内容都会解析封装成一个事件 Event，然后发送到 Channel，在这使用的是 Memory Channel，是一个用内存作为 Event 缓冲的 Channel。Sink 使用的是 Logger Sink，这个 Sink 可以把 Event 输出到控制台。首先需要在 `conf` 目录下创建一个配置文件，在这为 `flume-netcat-logger-conf.properties`，详细配置如下所示：
+在这我们只配置一个 Agent，Source 使用的是 NetCat TCP Source，简单说就是监听本机上某个端口上接收到的 TCP 协议的消息。收到的每行内容都会解析封装成一个事件 Event，然后发送到 Channel，在这使用的是 Memory Channel，是一个使用内存作为 Event 缓冲的 Channel。Sink 使用的是 Logger Sink，这个 Sink 可以把 Event 输出到控制台。
+
+我们在 `conf` 目录下创建一个名为 `flume-netcat-logger-conf.properties` 的配置文件，详细配置如下所示：
 ```
 a1.sources = r1
 a1.sinks = k1
@@ -74,30 +76,29 @@ a1.channels.c1.transactionCapacity = 100
 a1.sources.r1.channels = c1
 a1.sinks.k1.channel = c1
 ```
-这个配置文件定义了一个 Agent 叫做 a1，a1 有一个 Source 监听本机 44444 端口上接收到的数据、一个缓冲数据的 channel 还有一个把 Event 数据输出到控制台的 Sink。这个配置文件给各个组件命名，并且设置了它们的类型和其他属性。下面会详细介绍每个组件的配置。
+这个配置文件定义了一个 Agent 叫做 a1，a1 有一个 Source 监听本机 44444 端口上接收到的数据、一个缓冲数据的 Channel，还有一个把 Event 数据输出到控制台的 Sink。这个配置文件给各个组件命名，并且设置了它们的类型和其他属性。下面会详细介绍每个组件的配置。
 
 ### 2.1 配置 Agent
 
-在这配置文件中只定义了一个为 `a1` 的 Flume Agent。为 Agent a1 配置了一个名为 `r1` 的 Source，一个名为 `k1` 的 Sink 以及一个名为 `c1` 的 Channel 组件：
+在上面配置文件中只定义了一个名为 `a1` 的 Flume Agent，并为 Agent a1 配置了一个名为 `r1` 的 Source，一个名为 `k1` 的 Sink 以及一个名为 `c1` 的 Channel 组件：
 ```
-# 配置 Agent a1 各个组件的名称
-a1.sources = r1    # Agent a1 的一个 Source：r1
-a1.sinks = k1      # Agent a1 的一个 Sink：k1
-a1.channels = c1   # Agent a1 的一个 Channel：c1
+a1.sources = r1
+a1.sinks = k1
+a1.channels = c1
 ```
 
 ### 2.2 配置 Source
 
-在这为 Agent a1 配置一个名为 `r1` 的 NetCat TCP Source 来监听本机 44444 端口上接收到的数据：
+下面配置为 Agent a1 配置一个名为 `r1` 的 NetCat TCP Source 来监听本机 44444 端口上接收到的数据：
 ```
 # 配置 Agent a1 的 Source r1 的属性
-a1.sources.r1.type = netcat       # 使用的是 NetCat TCP Source
+a1.sources.r1.type = netcat
 a1.sources.r1.bind = localhost    # NetCat TCP Source 监听的 hostname，这个是本机
 a1.sources.r1.port = 44444        # 监听的端口
 ```
-Source 的 type 属性指定为 `netcat`，这里配的是别名，Flume 内置的一些组件都是有别名的，没有别名填全限定类名。Source 监听的的是本机，bind 属性指定为 `localhost`。监听的端口号 port 设置为 `44444`。
+Source 的 type 属性为 `netcat` 指定使用的是 NetCat TCP Source，这里配的是别名，Flume 内置的一些组件都是有别名的，没有别名需要填全限定类名。Source 监听的是本机的 44444 端口，因此 bind 属性指定为 `localhost`，port 设置为 `44444`。
 
-NetCat TCP Source 指定的属性：
+NetCat TCP Source 属性说明：
 
 | 属性名 | 说明 |
 | :------------- | :------------- |
@@ -108,13 +109,13 @@ NetCat TCP Source 指定的属性：
 
 ### 2.3 配置 Sink
 
-在这为 Agent a1 配置一个名为 `k1` 的 Logger Sink 来将 Event 数据输出到控制台：
+下面配置为 Agent a1 配置一个名为 `k1` 的 Logger Sink 来将 Event 数据输出到控制台：
 ```
-# 配置 Agent a1 的 Sink k1 的属性
-a1.sinks.k1.type = logger         # Sink 使用的是 Logger Sink，这个配的也是别名
+a1.sinks.k1.type = logger
 ```
+Sink 的 type 属性为 `logger` 指定使用的是 Logger Sink，这里配的也是别名。
 
-Logger Sink 指定的属性：
+Logger Sink 属性说明：
 
 | 属性名 | 说明 |
 | :------------- | :------------- |
@@ -123,16 +124,15 @@ Logger Sink 指定的属性：
 
 ### 2.4 配置 Channel
 
-在这为 Agent a1 配置一个名为 `c1` 的 Memory Channel 来缓存从 Source 读取但并未 Sink 消费的事件。
+下面配置为 Agent a1 配置一个名为 `c1` 的 Memory Channel 来缓存从 Source 读取但并未被 Sink 消费的事件：
 ```
-# 配置 Agent a1 的 Channel c1的属性，channel 是用来缓冲 Event 数据的
-a1.channels.c1.type = memory                #channel的类型是内存channel，顾名思义这个channel是使用内存来缓冲数据
-a1.channels.c1.capacity = 1000              #内存channel的容量大小是1000，注意这个容量不是越大越好，配置越大一旦Flume挂掉丢失的event也就越多
-a1.channels.c1.transactionCapacity = 100    #source和sink从内存channel每次事务传输的event数量
+a1.channels.c1.type = memory
+a1.channels.c1.capacity = 1000
+a1.channels.c1.transactionCapacity = 100
 ```
-Memory Channel 指定 capacity 为 1000，即 Memory Channel 的容量大小为 1000，此外还指定了 transactionCapacity 为 100，即 Source 和 Sink 每次事务从 Channel 传输的 100 个事件。
+Channel 的 type 属性为 `memory` 指定使用的是 Memory Channel，即 Channel 的类型是 内存 Channel，顾名思义这个 Channel 是使用内存来缓冲数据。Memory Channel 指定 capacity 为 1000，即 Memory Channel 的容量大小为 1000，需要注意的是这个容量不是越大越好，配置越大一旦 Flume 挂掉丢失的 Event 也就越多。此外还指定了 transactionCapacity 为 100，即 Source 和 Sink 每次事务从 Channel 传输的 100 个事件。
 
-Memory Channel 指定的属性：
+Memory Channel 属性说明：
 
 | 属性名 | 默认值 | 说明 |
 | :------------- | :------------- | :------------- |
@@ -143,11 +143,10 @@ Memory Channel 指定的属性：
 
 ### 2.5 配置连接关系
 
-Agent 需要知道加载什么组件，以及这些组件在流中的连接顺序。通过列出在 Agent 中的 Source，Sink 和 Channel名称，定义每个 Sink 和 Source 的 Channel 来完成。在这从 Source r1 中读取事件写入到 Channel c1 中，然后 Sink k1 从这个 Channel 中读取事件：
+Agent 需要知道加载什么组件，以及这些组件在流中的连接顺序。通过列出在 Agent 中的 Source，Sink 和 Channel名称，定义每个 Sink 和 Source 的 Channel 来完成。下面配置指明从 Source r1 中读取事件写入到 Channel c1 中，然后 Sink k1 从这个 Channel 中读取事件：
 ```
-# 把 Source 和 Sink 绑定到 Channel 上
-a1.sources.r1.channels = c1       # Source r1 与 Channel c1 绑定
-a1.sinks.k1.channel = c1          # Sink k1 与 Channel c1 绑定
+a1.sources.r1.channels = c1
+a1.sinks.k1.channel = c1
 ```
 
 ## 3. 启动 Agent
@@ -158,9 +157,9 @@ bin/flume-ng agent --conf conf --conf-file conf/flume-netcat-logger-conf.propert
 ```
 > 同一个配置文件中如果配置了多个 Agent 流，启动 Flume 的命令中 --name 这个参数的作用就体现出来了，用它来告诉 Flume 将要启动该配置文件中的哪一个 Agent 实例。
 
-请注意，在完整的部署中通常会包含 `–conf=<conf-dir>` 这个参数，`<conf-dir>` 目录里面包含了 flume-env.sh 和一个 log4j properties 文件。
+需要注意的是在完整的部署中通常会包含 `–conf=<conf-dir>` 这个参数，`<conf-dir>` 目录里面包含了 flume-env.sh 和一个 log4j properties 文件。
 
-测试一下我们的这个例子吧，打开一个新的终端窗口，用 telnet 命令连接本机的 44444 端口，然后输入 Hello 后按回车，这时收到服务器的响应[OK]（这是 NetCat TCP Source 默认给返回的），说明一行数据已经成功发送：
+启动 Agent 之后我们就可以测试一下我们的这个例子了，打开一个新的终端窗口，用 telnet 命令连接本机的 44444 端口，然后输入 Hello 后按回车，这时收到服务器的响应[OK]（这是 NetCat TCP Source 默认给返回的），说明一行数据已经成功发送：
 ```
 localhost:conf wy$ telnet 127.0.0.1 44444
 Trying 127.0.0.1...
@@ -169,11 +168,8 @@ Escape character is '^]'.
 hello
 OK
 ```
-Flume的终端里面会以 log 的形式输出这个收到的 Event 内容：
+Flume 的终端里面会以 log 的形式输出这个收到的 Event 内容：
 ```
 16 九月 2024 00:05:05,838 INFO  [SinkRunner-PollingRunner-DefaultSinkProcessor] (org.apache.flume.sink.LoggerSink.process:95)  - Event: { headers:{} body: 68 65 6C 6C 6F 0D                               hello. }
 ```
 到此你已经成功配置并运行了一个 Flume Agent。
-
-
-...

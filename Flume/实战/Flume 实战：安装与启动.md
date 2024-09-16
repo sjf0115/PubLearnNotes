@@ -91,10 +91,9 @@ a1.channels = c1
 
 下面配置为 Agent a1 配置一个名为 `r1` 的 NetCat TCP Source 来监听本机 44444 端口上接收到的数据：
 ```
-# 配置 Agent a1 的 Source r1 的属性
 a1.sources.r1.type = netcat
-a1.sources.r1.bind = localhost    # NetCat TCP Source 监听的 hostname，这个是本机
-a1.sources.r1.port = 44444        # 监听的端口
+a1.sources.r1.bind = localhost
+a1.sources.r1.port = 44444
 ```
 Source 的 type 属性为 `netcat` 指定使用的是 NetCat TCP Source，这里配的是别名，Flume 内置的一些组件都是有别名的，没有别名需要填全限定类名。Source 监听的是本机的 44444 端口，因此 bind 属性指定为 `localhost`，port 设置为 `44444`。
 

@@ -4,27 +4,44 @@ AST 是 abstract syntax tree 的缩写，也就是抽象语法树。和所有的
 
 ## 2. AST 节点类型
 
-在 Druid SQL Parser 中，SQLObject 对象是 Druid 体系中的顶层接口，用于描述 AST 节点类型，主要包括 SQLExpr、SQLStatement、SQLDataType、SQLDbTypedObject、SQLHint 等抽象类型。核心是 SQLExpr、SQLStatement 类型：
+在 Druid SQL Parser 中，SQLObject 对象是 Druid 体系中的顶层接口，用于描述 AST 节点类型，主要包括 SQLStatement、SQLExpr、SQLDataType、SQLTableSource、SQLHint 等抽象类型。核心是 SQLExpr、SQLStatement、SQLDataType、SQLTableSource 类型：
 ```java
 public interface SQLObject {
-  ...
+    ...
 }
 
 public interface SQLExpr extends SQLObject, Cloneable {
-  ...
+    ...
+}
+
+public interface SQLDbTypedObject extends SQLObject {
+    ...
 }
 
 public interface SQLStatement extends SQLObject, SQLDbTypedObject {
-  ...
+    ...
+}
+
+public interface SQLTableSource extends SQLObject {
+    ...
+}
+
+public interface SQLDataType extends SQLObject {
+    ...
 }
 ```
 
 ### 2.1 SQLStatemment
 
-SQLStatement 表示一条 SQL 语句，我们知道常见的 SQL 语句有 CRUD 四种操作，所以 SQLStatement 会有四种主要实现类
+SQLStatement 表示一条 SQL 语句，SQL 按其功能可以分为 4 类：
+- DDL：数据定义语言，用来操作数据库、表、列等。主要语句有 CREATE、ALTER 和 DROP。
+- DML：数据操作语言，用来操作数据库中表里的数据。主要语句有 INSERT、UPDATE 和 DELETE。
+- DQL：数据查询语言，用来查询数据。核心语句为 SELECT。
+- DCL：数据控制语言，用来操作访问权限和安全级别。主要语句有 GRANT、DENY 等。
 
-#### 2.1.1 SQLDDLStatement
+#### 2.1.1 DDL 数据定义语言语句
 
+DDL 数据定义语言语句通过 SQLDDLStatement 接口进行抽象：
 ```java
 public interface SQLDDLStatement extends SQLStatement {
     default DDLObjectType getDDLObjectType() {
@@ -50,35 +67,31 @@ public interface SQLDDLStatement extends SQLStatement {
     }
 }
 ```
-
+DDL 语句主要有 CREATE、ALTER 和 DROP 三类，因此 SQLDDLStatement 分别对应细分 SQLCreateStatement、SQLAlterStatement、SQLDropStatement 三类：
 ```java
 public interface SQLCreateStatement extends SQLDDLStatement {
     default SQLName getName() {
         return null;
     }
 }
-```
 
-```java
+public interface SQLAlterStatement extends SQLDDLStatement {
+    default DDLObjectType getDDLObjectType() {
+        return DDLObjectType.OTHER;
+    }
+}
+
 public interface SQLDropStatement extends SQLDDLStatement {
     default SQLName getName() {
         return null;
     }
 }
 ```
+根据 DDL 对象类型 DDLObjectType 的不同，又分为不同类型的 Statement，以 SQLCreateStatement 为例：
 
-```java
-public interface SQLAlterStatement extends SQLDDLStatement {
-    default DDLObjectType getDDLObjectType() {
-        return DDLObjectType.OTHER;
-    }
-}
-```
+![](img-druid-sql-parser-ast-1.png)
 
-
-
-
-#### 2.1.2 SQLStatementImpl
+#### 2.1.2 DML 数据操作语言语句
 
 ```java
 public abstract class SQLStatementImpl extends SQLObjectImpl implements SQLStatement {

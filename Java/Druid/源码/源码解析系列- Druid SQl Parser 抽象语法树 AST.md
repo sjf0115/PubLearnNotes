@@ -244,6 +244,24 @@ public class SQLBinaryOpExpr extends SQLExprImpl implements SQLReplaceable, Seri
 ```
 在上面例子中左运算表达式 left 同样为 `SQLBinaryOpExpr` 的 `age >= 18`，右运算表达式 right 同样为 `SQLBinaryOpExpr` 的 `name = 'Lily'`，运算符 operator 为 `BooleanAnd`。先看表达式 `age >= 18`，左运算表达式 left 为 SQLIdentifierExpr 的 `age`，右运算表达式 right 为 SQLIntegerExpr 的 `18`，运算符为 operator 为 `GreaterThanOrEqual`。然后看一下表达式 `name = 'Lily'`，左运算表达式 left 为 SQLIdentifierExpr 的 `name`，右运算表达式 right 为 SQLCharExpr 的 `"Lily"`，运算符为 operator 为 `Equality`。
 
+### 2.3 SQLTableSource
+
+SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQLTableSource 实现有 SQLExprTableSource、SQLJoinTableSource、SQLSubqueryTableSource、SQLWithSubqueryClause.Entry。
+
+![]()
+
+下面我们通过几个 SQL 来介绍常见的几个 SQLTableSource。先看一个比较简单的 SQLExprTableSource 的示例：
+```sql
+select id,name,age from user as a
+```
+
+```sql
+
+```
+
+
+
+
 ## 3. 怎么产生 AST 节点
 
 

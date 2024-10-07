@@ -252,14 +252,41 @@ SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQ
 
 下面我们通过几个 SQL 来介绍常见的几个 SQLTableSource。先看一个比较简单的 SQLExprTableSource 的示例：
 ```sql
-select id,name,age from user as a
+SELECT id,name,age FROM user AS a
 ```
 
 ```sql
-
+SELECT a.id, a.name, a.age, b.department_name
+FROM user AS a
+LEFT OUTER JOIN department AS b
+ON a.id = b.user_id
 ```
 
+```sql
+SELECT sport
+FROM user AS a
+LATERAL VIEW EXPLODE(like_sports) like_sports AS sport
+```
 
+```sql
+SELECT id, name
+FROM (
+  SELECT id, name FROM user
+) AS a
+```
+
+```sql
+SELECT 'user' AS type, id, name
+FROM user
+UNION ALL
+SELECT 'department' AS type, id, name
+FROM department
+```
+
+```sql
+SELECT id, name
+FROM Values ('1', 'Lucy'),('2', 'Lily') t(id, name)
+```
 
 
 ## 3. 怎么产生 AST 节点

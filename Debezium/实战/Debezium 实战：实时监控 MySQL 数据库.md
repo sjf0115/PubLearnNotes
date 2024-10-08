@@ -99,7 +99,44 @@ docker run -it --rm --name mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=debezium -e
 ```
 
 ### 1.4 启动MySQL命令行客户端
-启动MySQL后，启动MySQL命令行客户端，以便访问示例库存数据库。
+
+启动 MySQL 服务后，启动 MySQL 命令行客户端来访问示例 `inventory` 数据库。打开一个新的终端，用它在容器中启动 MySQL 命令行客户端。这个命令使用 `mysql:8.2` 镜像运行一个新的容器，并定义一个 shell 命令来运行 MySQL 命令行客户端：
+```shell
+docker run -it --rm --name mysqlterm --link mysql mysql:8.2 sh -c 'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR" -P"$MYSQL_PORT_3306_TCP_PORT" -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD"'
+```
+下面详细介绍命令中的参数
+- `it`
+  - 表示启动的是一个交互式的容器，这意味着终端的标准输入和输出连接到容器上。
+- `--rm`
+  - 当容器停止时会被删除。
+- `--name mysqlterm`
+  - 容器的名称
+- `--link mysql`
+  - 将容器链接到 mysql 容器。
+
+运行上述命令之后来验证 MySQL 命令行客户端是否启动。如果你看到类似如下的输出表示你的 MySQL 命令行客户端启动成功了:
+```
+mysql: [Warning] Using a password on the command line interface can be insecure.
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 9
+Server version: 8.0.27 MySQL Community Server - GPL
+
+Copyright (c) 2000, 2021, Oracle and/or its affiliates.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql>
+```
+在 `mysql>` 命令提示符下，切换到目录数据库:
+
+
+
+
+
 
 
 

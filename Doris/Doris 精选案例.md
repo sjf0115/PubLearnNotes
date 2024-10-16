@@ -16,6 +16,7 @@
 - [x] [知乎基于 Apache Doris 的 DMP 平台架构建设实践](https://smartsi.blog.csdn.net/article/details/129964402)
 - [x] [37 手游如何用 StarRocks 实现用户画像分析](https://smartsi.blog.csdn.net/article/details/130000575)
 - [x] [Doris在用户画像人群业务的应用](https://smartsi.blog.csdn.net/article/details/130024514)
+- [x] [当 Apache Doris 遇上大模型：探秘腾讯音乐如何基于大模型 + OLAP 构建智能数据服务平台](https://smartsi.blog.csdn.net/article/details/142915477)
 - [ ] []()
 - [ ] []()
 - [ ] []()

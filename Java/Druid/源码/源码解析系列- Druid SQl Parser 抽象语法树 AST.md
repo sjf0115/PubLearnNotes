@@ -255,6 +255,9 @@ SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQ
 SELECT id,name,age FROM user AS a
 ```
 
+
+
+
 ```sql
 SELECT a.id, a.name, a.age, b.department_name
 FROM user AS a

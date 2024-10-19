@@ -246,7 +246,7 @@ public class SQLBinaryOpExpr extends SQLExprImpl implements SQLReplaceable, Seri
 
 ### 2.3 SQLTableSource
 
-SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQLTableSource 实现有 SQLExprTableSource、SQLValuesTableSource、SQLLateralViewTableSource、SQLJoinTableSource、SQLSubqueryTableSource、SQLUnionQueryTableSource等
+SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQLTableSource 实现有 SQLExprTableSource、SQLValuesTableSource、SQLLateralViewTableSource、SQLJoinTableSource、SQLSubqueryTableSource 等
 
 ![](3)
 
@@ -316,35 +316,47 @@ public class SQLLateralViewTableSource extends SQLTableSourceImpl {
 
 #### 2.3.4 SQLJoinTableSource
 
-
+下面示例中的 FROM 子句对应 `SQLJoinTableSource`：
 ```sql
 SELECT a.id, a.name, a.age, b.department_name
 FROM user AS a
 LEFT OUTER JOIN department AS b
 ON a.id = b.user_id
 ```
+`SQLJoinTableSource` 核心包括一个名为 `left` 和 `right` 的 `SQLTableSource`、一个名为 `joinType` 的 `JoinType`以及一个名为 `condition` 的 `SQLExpr`：
+```java
+public class SQLJoinTableSource extends SQLTableSourceImpl implements SQLReplaceable {
+    protected SQLTableSource left;
+    protected SQLTableSource right;
+    protected JoinType joinType;
+    protected SQLExpr condition;
+    ...
+}
+```
+在上述示例中 JOIN 左表(`left`)和右表(`right`)均是 `SQLExprTableSource`，当然也可以是其他的 `SQLTableSource`；`joinType` 表示连接类型，在上述例子中表示一个左外连接，对应 `LEFT OUTER JOIN` 语句；`condition` 表示连接条件，在上述例子中对应 `a.id = b.user_id`。
+
+![](img-druid-sql-parser-ast-7.png)
 
 #### 2.3.5 SQLSubqueryTableSource
 
+下面示例中的 FROM 子句对应 `SQLSubqueryTableSource`：
 ```sql
 SELECT id, name
 FROM (
   SELECT id, name FROM user
 ) AS a
 ```
-
-#### 2.3.5 SQLUnionQueryTableSource
-
-```sql
-SELECT 'user' AS type, id, name
-FROM user
-UNION ALL
-SELECT 'department' AS type, id, name
-FROM department
+`SQLSubqueryTableSource` 包括一个名为 `select` 的 `SQLSelect` 以及一个名为 `columns` 的 `SQLName` 数组：：
+```java
+public class SQLSubqueryTableSource extends SQLTableSourceImpl {
+    protected SQLSelect select;
+    protected List<SQLName> columns = new ArrayList<SQLName>();
+    ...
+}
 ```
+在上述示例中 `select` 是一个 `SQLSelect` 对应一个子查询：
 
-
-
+![](img-druid-sql-parser-ast-8.png)
 
 ## 3. 怎么产生 AST 节点
 

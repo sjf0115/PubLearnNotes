@@ -157,7 +157,7 @@ System.out.println("DELETE: " + (deleteStatement instanceof SQLDeleteStatement))
 ```
 #### 2.1.3 DQL 数据查询语言语句
 
-DQL 数据查询语言语句也是通过继承 SQLStatementImpl 抽象类实现。DQL 语句只要是 SELECT 语句，通过 SQLSelectStatement 类实现：
+DQL 数据查询语言语句也是通过继承 SQLStatementImpl 抽象类实现。DQL 语句只有 SELECT 语句，通过 SQLSelectStatement 类实现：
 ```java
 public class SQLSelectStatement extends SQLStatementImpl {
     protected SQLSelect select;
@@ -187,7 +187,7 @@ FROM user_profile_user
 LATERAL VIEW EXPLODE(tags) tags AS tag
 WHERE age >= 18 AND name = 'Lily'
 ```
-首先 SELECT 子句中的 `name` 是一种 SQLIdentifierExpr 标识符表达式，是 SQLName 中的一种(除此之外还有一种 `SQLPropertyExpr`)：
+首先 SELECT 子句中的 `name` 对应一种 SQLIdentifierExpr 标识符表达式，是 SQLName 中的一种(除此之外还有一种 `SQLPropertyExpr`)：
 ```java
 public interface SQLName extends SQLExpr {
     ...
@@ -205,7 +205,7 @@ public final class SQLPropertyExpr extends SQLExprImpl implements SQLName, SQLRe
     ...
 }
 ```
-SELECT 子句中的 `tag['id']` 是一种 SQLArrayExpr 数组表达式，包含一个数组名称表达式的 `expr` 以及一个数组值表达式列表的 values：
+SELECT 子句中的 `tag['id']` 对应一种 SQLArrayExpr 数组表达式，包含一个数组名称表达式的 `expr` 以及一个数组值表达式列表的 values：
 ```java
 public class SQLArrayExpr extends SQLExprImpl implements SQLReplaceable {
     private SQLExpr expr;
@@ -246,16 +246,75 @@ public class SQLBinaryOpExpr extends SQLExprImpl implements SQLReplaceable, Seri
 
 ### 2.3 SQLTableSource
 
-SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQLTableSource 实现有 SQLExprTableSource、SQLJoinTableSource、SQLSubqueryTableSource、SQLWithSubqueryClause.Entry。
+SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQLTableSource 实现有 SQLExprTableSource、SQLValuesTableSource、SQLLateralViewTableSource、SQLJoinTableSource、SQLSubqueryTableSource、SQLUnionQueryTableSource等
 
-![]()
+![](3)
 
-下面我们通过几个 SQL 来介绍常见的几个 SQLTableSource。先看一个比较简单的 SQLExprTableSource 的示例：
+下面我们通过几个 SQL 来介绍常见的几个 SQLTableSource。
+
+#### 2.3.1 SQLExprTableSource
+
+下面示例中的 FROM 子句对应 `SQLExprTableSource`：
 ```sql
-SELECT id,name,age FROM user AS a
+SELECT id,name,age FROM user a
 ```
+SQLExprTableSource 的数据源表比较简单，核心由 SQL 表达式构成：
+```java
+public class SQLExprTableSource extends SQLTableSourceImpl implements SQLReplaceable {
+    protected SQLExpr expr;
+    protected List<SQLName> partitions;
+    protected SQLTableSampling sampling;
+    protected SchemaObject schemaObject;
 
+    protected List<SQLName> columns;
+    ...
+}
+```
+上面示例 `SQLExprTableSource` 中的 `user` 是一个 SQLIdentifierExpr 表达式，`a` 是对应的别名：
 
+![](img-druid-sql-parser-ast-4.png)
+
+#### 2.3.2 SQLValuesTableSource
+
+下面示例中的 FROM 子句对应 `SQLValuesTableSource`：
+```sql
+SELECT id, name
+FROM Values ('1', 'Lucy'),('2', 'Lily') t(id, name)
+```
+`SQLValuesTableSource` 包括一个名为 `values` 的 `SQLListExpr` 数组(表示字段值)以及一个名为 `columns` 的 `SQLName` 数组(表示字段)：
+```java
+public class SQLValuesTableSource extends SQLTableSourceImpl implements SQLSelectQuery, SQLReplaceable {
+    private List<SQLListExpr> values = new ArrayList<SQLListExpr>();
+    private List<SQLName> columns = new ArrayList<SQLName>();
+    ...
+}
+```
+在上述示例中 `values` 包含两个类型为 `SQLListExpr` 的元素，第一个元素对应 `('1', 'Lucy')`，第二个元素对应 `('2', 'Lily')`，每个元素都是一个 ArrayList。第一个元素数组下包含两个 `SQLCharExpr` 类型的子元素 `1` 和 `Lucy`，第二个元素的子元素是 `2` 和 `Lily`；`columns` 包含两个类型为 `SQLIdentifierExpr` 的元素 `id` 和 `name`：
+
+![](img-druid-sql-parser-ast-5.png)
+
+#### 2.3.3 SQLLateralViewTableSource
+
+下面示例中的 FROM 子句对应 `SQLLateralViewTableSource`：
+```sql
+SELECT sport
+FROM user AS a
+LATERAL VIEW EXPLODE(like_sports) like_sports AS sport
+```
+`SQLLateralViewTableSource` 包括一个名为 `tableSource` 的 `SQLTableSource`、一个名为 `method` 的 `SQLMethodInvokeExpr`以及一个名为 `columns` 的 `SQLName` 数组：
+```java
+public class SQLLateralViewTableSource extends SQLTableSourceImpl {
+    private SQLTableSource tableSource;
+    private SQLMethodInvokeExpr method;
+    private List<SQLName> columns = new ArrayList<SQLName>(2);
+    ...
+}
+```
+在上述示例中 `tableSource` 是一个 `SQLExprTableSource`，上面已经介绍过实际是表示的是数据源表 `user`；`method` 是一个方法调用表达式 `SQLMethodInvokeExpr`，实际表示的是 LATERAL VIEW 使用的 UDTF 函数 `EXPLODE`，arguments 中只有一个参数 `like_sports`；`columns` 包含一个类型为 `SQLIdentifierExpr` 的字段元素 `sport`：
+
+![](img-druid-sql-parser-ast-6.png)
+
+#### 2.3.4 SQLJoinTableSource
 
 
 ```sql
@@ -265,11 +324,7 @@ LEFT OUTER JOIN department AS b
 ON a.id = b.user_id
 ```
 
-```sql
-SELECT sport
-FROM user AS a
-LATERAL VIEW EXPLODE(like_sports) like_sports AS sport
-```
+#### 2.3.5 SQLSubqueryTableSource
 
 ```sql
 SELECT id, name
@@ -277,6 +332,8 @@ FROM (
   SELECT id, name FROM user
 ) AS a
 ```
+
+#### 2.3.5 SQLUnionQueryTableSource
 
 ```sql
 SELECT 'user' AS type, id, name
@@ -286,10 +343,7 @@ SELECT 'department' AS type, id, name
 FROM department
 ```
 
-```sql
-SELECT id, name
-FROM Values ('1', 'Lucy'),('2', 'Lily') t(id, name)
-```
+
 
 
 ## 3. 怎么产生 AST 节点

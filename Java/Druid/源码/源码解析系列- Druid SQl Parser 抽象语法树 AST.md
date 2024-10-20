@@ -4,7 +4,7 @@ AST 是 abstract syntax tree 的缩写，也就是抽象语法树。和所有的
 
 ## 2. AST 节点类型
 
-在 Druid SQL Parser 中，SQLObject 对象是 Druid 体系中的顶层接口，用于描述 AST 节点类型，主要包括 SQLStatement、SQLExpr、SQLDataType、SQLTableSource 等抽象类型：
+在 Druid SQL Parser 中，SQLObject 对象是 Druid 体系中的顶层接口，用于描述 AST 节点类型，主要包括 SQLStatement、SQLExpr、SQLTableSource 等抽象类型：
 ```java
 public interface SQLObject {
     ...
@@ -23,10 +23,6 @@ public interface SQLStatement extends SQLObject, SQLDbTypedObject {
 }
 
 public interface SQLTableSource extends SQLObject {
-    ...
-}
-
-public interface SQLDataType extends SQLObject {
     ...
 }
 ```
@@ -246,9 +242,9 @@ public class SQLBinaryOpExpr extends SQLExprImpl implements SQLReplaceable, Seri
 
 ### 2.3 SQLTableSource
 
-SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQLTableSource 实现有 SQLExprTableSource、SQLValuesTableSource、SQLLateralViewTableSource、SQLJoinTableSource、SQLSubqueryTableSource 等
+SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQLTableSource 实现有 SQLExprTableSource、SQLValuesTableSource、SQLLateralViewTableSource、SQLJoinTableSource、SQLSubqueryTableSource 等：
 
-![](3)
+![](img-druid-sql-parser-ast-3.png)
 
 下面我们通过几个 SQL 来介绍常见的几个 SQLTableSource。
 

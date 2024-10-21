@@ -201,7 +201,7 @@ public final class SQLPropertyExpr extends SQLExprImpl implements SQLName, SQLRe
     ...
 }
 ```
-SELECT 子句中的 `tag['id']` 对应一种 SQLArrayExpr 数组表达式，包含一个数组名称表达式的 `expr` 以及一个数组值表达式列表的 values：
+SELECT 子句中的 `tag['id']` 对应一种 SQLArrayExpr 数组表达式，包含一个数组名称表达式的 `expr` 以及一个数组值表达式列表的 `values`：
 ```java
 public class SQLArrayExpr extends SQLExprImpl implements SQLReplaceable {
     private SQLExpr expr;
@@ -209,9 +209,9 @@ public class SQLArrayExpr extends SQLExprImpl implements SQLReplaceable {
     ...
 }
 ```
-上面例子中 expr 是 SQLIdentifierExpr 的 `tag`，values 中是 SQLCharExpr 的 `"id"`。SQLCharExpr 是一种比较简单的字符表达式。
+上面例子中 `expr` 是 `SQLIdentifierExpr` 的 `tag`，`values` 中是 `SQLCharExpr` 的 `"id"`。SQLCharExpr 是一种比较简单的字符表达式。
 
-FROM 子句中的 `EXPLODE(tags)` 是一种 `SQLMethodInvokeExpr` 方法调用的表达式，核心关注的是参数表达式列表 arguments 以及字符串的 methodName：
+FROM 子句中的 `EXPLODE(tags)` 是一种 `SQLMethodInvokeExpr` 方法调用表达式，核心关注的是表达式中的参数表达式列表 `arguments` 以及字符串的方法名称 `methodName`：
 ```java
 public class SQLMethodInvokeExpr extends SQLExprImpl implements SQLReplaceable, Serializable {
     protected final List<SQLExpr> arguments = new ArrayList<SQLExpr>();
@@ -226,9 +226,9 @@ public class SQLMethodInvokeExpr extends SQLExprImpl implements SQLReplaceable, 
     ...
 }
 ```
-在上面例子中调用的方法名 methodName 为 `EXPLODE`，参数表达式列表 arguments 中只有一个类型为 SQLIdentifierExpr 的 `tags`。
+在上面例子中方法名 `methodName` 为 `EXPLODE`，参数表达式列表 `arguments` 中只有一个类型为 `SQLIdentifierExpr` 的 `tags`。
 
-WHERE 子句中的 `age >= 18 AND name = 'Lily'` 是一种 SQLBinaryOpExpr 二维运算表达式，核心包括三部分：左运算表达式，右运算表达式以及运算法：
+WHERE 子句中的 `age >= 18 AND name = 'Lily'` 是一种 `SQLBinaryOpExpr` 二维运算表达式，核心包括三部分：左运算表达式 `left`，右运算表达式 `right` 以及运算操作符 `operator`：
 ```java
 public class SQLBinaryOpExpr extends SQLExprImpl implements SQLReplaceable, Serializable, SQLDbTypedObject, Comparable<SQLBinaryOpExpr> {
     private static final long serialVersionUID = 1L;
@@ -238,15 +238,15 @@ public class SQLBinaryOpExpr extends SQLExprImpl implements SQLReplaceable, Seri
     ...
 }
 ```
-在上面例子中左运算表达式 left 同样为 `SQLBinaryOpExpr` 的 `age >= 18`，右运算表达式 right 同样为 `SQLBinaryOpExpr` 的 `name = 'Lily'`，运算符 operator 为 `BooleanAnd`。先看表达式 `age >= 18`，左运算表达式 left 为 SQLIdentifierExpr 的 `age`，右运算表达式 right 为 SQLIntegerExpr 的 `18`，运算符为 operator 为 `GreaterThanOrEqual`。然后看一下表达式 `name = 'Lily'`，左运算表达式 left 为 SQLIdentifierExpr 的 `name`，右运算表达式 right 为 SQLCharExpr 的 `"Lily"`，运算符为 operator 为 `Equality`。
+在上面例子中左运算表达式 `left`(`age >= 18`)，右运算表达式 `right`(`name = 'Lily'`) 同样也是一个 `SQLBinaryOpExpr`，运算符 `operator` 为 `BooleanAnd`。先看表达式 `age >= 18`，其左运算表达式 `left` 为 `SQLIdentifierExpr` 的 `age`，右运算表达式 `right` 为 `SQLIntegerExpr` 的 `18`，运算符为 `operator` 为 `GreaterThanOrEqual`。然后看一下表达式 `name = 'Lily'`，左运算表达式 `left` 为 `SQLIdentifierExpr` 的 `name`，右运算表达式 `right` 为 `SQLCharExpr` 的 `"Lily"`，运算符为 `operator` 为 `Equality`。
 
 ### 2.3 SQLTableSource
 
-SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQLTableSource 实现有 SQLExprTableSource、SQLValuesTableSource、SQLLateralViewTableSource、SQLJoinTableSource、SQLSubqueryTableSource 等：
+`SQLTableSource` 是 SQL 语句中表示数据源表的顶层接口，常见的 `SQLTableSource` 实现有 `SQLExprTableSource`、`SQLValuesTableSource`、`SQLLateralViewTableSource`、`SQLJoinTableSource`、`SQLSubqueryTableSource` 等：
 
 ![](img-druid-sql-parser-ast-3.png)
 
-下面我们通过几个 SQL 来介绍常见的几个 SQLTableSource。
+下面我们通过几个 SQL 来介绍常见的几个 `SQLTableSource`。
 
 #### 2.3.1 SQLExprTableSource
 
@@ -254,7 +254,7 @@ SQLTableSource 是 SQL 语句中表示数据源表的顶层接口，常见的 SQ
 ```sql
 SELECT id,name,age FROM user a
 ```
-SQLExprTableSource 的数据源表比较简单，核心由 SQL 表达式构成：
+`SQLExprTableSource` 比较简单，核心由一个 SQL 表达式 `expr` 构成：
 ```java
 public class SQLExprTableSource extends SQLTableSourceImpl implements SQLReplaceable {
     protected SQLExpr expr;
@@ -266,7 +266,7 @@ public class SQLExprTableSource extends SQLTableSourceImpl implements SQLReplace
     ...
 }
 ```
-上面示例 `SQLExprTableSource` 中的 `user` 是一个 SQLIdentifierExpr 表达式，`a` 是对应的别名：
+上面示例 `SQLExprTableSource` 中的`expr` 是一个 `SQLIdentifierExpr` 类型的表达式 `user`，对应的别名为 `a`：
 
 ![](img-druid-sql-parser-ast-4.png)
 
@@ -285,7 +285,7 @@ public class SQLValuesTableSource extends SQLTableSourceImpl implements SQLSelec
     ...
 }
 ```
-在上述示例中 `values` 包含两个类型为 `SQLListExpr` 的元素，第一个元素对应 `('1', 'Lucy')`，第二个元素对应 `('2', 'Lily')`，每个元素都是一个 ArrayList。第一个元素数组下包含两个 `SQLCharExpr` 类型的子元素 `1` 和 `Lucy`，第二个元素的子元素是 `2` 和 `Lily`；`columns` 包含两个类型为 `SQLIdentifierExpr` 的元素 `id` 和 `name`：
+在上述示例中 `values` 包含两个类型为 `SQLListExpr` 的元素，第一个元素对应 `('1', 'Lucy')`，第二个元素对应 `('2', 'Lily')`，每个元素都是一个 `ArrayList`。第一个 `ArrayList` 下包含两个 `SQLCharExpr` 类型的子元素 `1` 和 `Lucy`，第二个 `ArrayList` 的子元素是 `2` 和 `Lily`；`columns` 包含两个类型为 `SQLIdentifierExpr` 的元素 `id` 和 `name`：
 
 ![](img-druid-sql-parser-ast-5.png)
 
@@ -297,7 +297,7 @@ SELECT sport
 FROM user AS a
 LATERAL VIEW EXPLODE(like_sports) like_sports AS sport
 ```
-`SQLLateralViewTableSource` 包括一个名为 `tableSource` 的 `SQLTableSource`、一个名为 `method` 的 `SQLMethodInvokeExpr`以及一个名为 `columns` 的 `SQLName` 数组：
+`SQLLateralViewTableSource` 包括一个名为 `tableSource` 的 `SQLTableSource`、一个名为 `method` 的 `SQLMethodInvokeExpr` 以及一个名为 `columns` 的 `SQLName` 数组：
 ```java
 public class SQLLateralViewTableSource extends SQLTableSourceImpl {
     private SQLTableSource tableSource;
@@ -306,7 +306,7 @@ public class SQLLateralViewTableSource extends SQLTableSourceImpl {
     ...
 }
 ```
-在上述示例中 `tableSource` 是一个 `SQLExprTableSource`，上面已经介绍过实际是表示的是数据源表 `user`；`method` 是一个方法调用表达式 `SQLMethodInvokeExpr`，实际表示的是 LATERAL VIEW 使用的 UDTF 函数 `EXPLODE`，arguments 中只有一个参数 `like_sports`；`columns` 包含一个类型为 `SQLIdentifierExpr` 的字段元素 `sport`：
+在上述示例中 `tableSource` 是一个 `SQLExprTableSource`，上面已经介绍过实际是表示的是数据源表 `user`；`method` 是一个方法调用表达式 `SQLMethodInvokeExpr`，实际表示的是 `LATERAL VIEW` 使用的 UDTF 函数 `EXPLODE`，`arguments` 中只有一个参数 `like_sports`；`columns` 包含一个类型为 `SQLIdentifierExpr` 的字段元素 `sport`：
 
 ![](img-druid-sql-parser-ast-6.png)
 
@@ -319,7 +319,7 @@ FROM user AS a
 LEFT OUTER JOIN department AS b
 ON a.id = b.user_id
 ```
-`SQLJoinTableSource` 核心包括一个名为 `left` 和 `right` 的 `SQLTableSource`、一个名为 `joinType` 的 `JoinType`以及一个名为 `condition` 的 `SQLExpr`：
+`SQLJoinTableSource` 核心包括名称分别为 `left` 和 `right` 的 `SQLTableSource`、名为 `joinType` 的 `JoinType` 以及一个名为 `condition` 的 `SQLExpr`：
 ```java
 public class SQLJoinTableSource extends SQLTableSourceImpl implements SQLReplaceable {
     protected SQLTableSource left;
@@ -353,11 +353,3 @@ public class SQLSubqueryTableSource extends SQLTableSourceImpl {
 在上述示例中 `select` 是一个 `SQLSelect` 对应一个子查询：
 
 ![](img-druid-sql-parser-ast-8.png)
-
-## 3. 怎么产生 AST 节点
-
-
-
-
-
-https://github.com/alibaba/druid/wiki/Druid_SQL_AST#2-%E5%9C%A8druid-sql-parser%E4%B8%AD%E6%9C%89%E5%93%AA%E4%BA%9Bast%E8%8A%82%E7%82%B9%E7%B1%BB%E5%9E%8B

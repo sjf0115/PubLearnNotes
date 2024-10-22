@@ -1,10 +1,22 @@
 今天来介绍一下如何使用 Druid SQL Parser 来解析 MySQL Create 语句。
 
-## 1. 生成抽象语法树
+## 1. 添加依赖
+
+如果要使用 Druid SQL Parser 需要在 pom 文件中添加如下依赖：
+```xml
+<dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>druid</artifactId>
+    <version>1.2.20</version>
+</dependency>
+```
+> 在这使用的是 1.2.20 版本，根据你的需求选择合适的版本。
+
+## 2. 生成抽象语法树
 
 使用 Druid SQL Parser 来解析 MySQL Create 语句首先需要将 SQL 语句解析成抽象语法树。下面介绍几种生成抽象语法树的方法。
 
-### 1.1 MySqlCreateTableParser
+### 2.1 MySqlCreateTableParser
 
 你可以使用 `MySqlCreateTableParser` 创建解析器解析 SQL 语句来生成 `MySqlCreateTableStatement` 抽象语法树：
 ```java
@@ -24,7 +36,7 @@ public MySqlCreateTableStatement parseCreateTable(boolean acceptCreate) {
 }
 ```
 
-### 1.2 MySqlStatementParser
+### 2.2 MySqlStatementParser
 
 你也可以使用 `MySqlStatementParser` 创建解析器来生成 `MySqlCreateTableStatement` 抽象语法树：
 ```java
@@ -39,7 +51,7 @@ public SQLCreateTableStatement parseCreateTable() {
 }
 ```
 
-### 1.3 SQLUtils
+### 2.3 SQLUtils
 
 你也可以使用 `SQLUtils` 工具类直接生成 `MySqlCreateTableStatement` 抽象语法树：
 ```java
@@ -79,7 +91,7 @@ public static SQLStatementParser createSQLStatementParser(String sql, DbType dbT
 }
 ```
 
-## 2. 解析 Create 语句信息
+## 3. 解析 Create 语句信息
 
 下面通过一个简单的小需求来了解一下如何通过 Druid SQL Parser 来实现简单解析 Create 语句。我们的需求是将 Create 语句中的字段信息转换为一个 Markdown 表格。例如如下 Create 语句：
 ```sql

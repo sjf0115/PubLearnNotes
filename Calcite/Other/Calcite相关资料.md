@@ -110,7 +110,7 @@
 - [ ] [【Flink】第三十二篇：Flink SQL 字段血缘中树的构建与遍历](https://mp.weixin.qq.com/s/y3RHZs3Fb-4a_uqgpb2HxQ)
 - [ ] [【Flink】第二十七篇：三天撸了一个 Flink SQL 字段血缘算法](https://mp.weixin.qq.com/s/liTG35nbfIec-jrpp3Wh0A)
 - [ ] [FlinkSQL字段血缘解决方案及源码](https://mp.weixin.qq.com/s/ub3_so6q-0N78Sri9CVUew)
-
+- [x] [基于 Apache Calcite 的多引擎指标管理最佳实践](https://smartsi.blog.csdn.net/article/details/138056926)
 
 
 。。。

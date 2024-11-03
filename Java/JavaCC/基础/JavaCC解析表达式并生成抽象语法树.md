@@ -29,7 +29,7 @@ JavaCC 是 Java 应用程序中最流行的解析器(Parser)生成器。解析�
 - 词法分析: 解析代码并生成 Token(一个单词的字面和它的种类及语义值)序列, 词法分析的实现一般称为扫描器(Scanner);
 - 语法分析: 利用扫描器生成的 Token 序列来生成抽象语法树, 语法分析的实现一般称为解析器(Parser).
 
-![](../../../Image/JavaCC/javacc-expression-ast-1.png)
+![](img-javacc-expression-ast-1.png)
 
 如果不依赖任何工具, 那就必须手写扫描器和解析器, 但是随着人们对编译原理的深入研究, 发现扫描器和解析器都可以根据一定的规则自动生成. 于是就出现了一系列的解析器生成器, 如Yacc, Anltr, JavaCC等. 这些解析器生成器都可以根据自定义的语法规则文件自动生成解析器代码, 比如 JavaCC 可以根据后缀为 `.jj` 的语法规则文件生成解析器的 Java 代码, 这就避免了手动编写扫描器和解析器的繁琐, 可以让我们专注于语法规则的设计.
 
@@ -38,7 +38,7 @@ JavaCC 是 Java 应用程序中最流行的解析器(Parser)生成器。解析�
 JavaCC 可根据用户编写的后缀名为 `.jj` 的语法规则文件自动生成解析器. 由于本文重点关注的是解析表达式并构建抽象语法树这个系统过程, 这里遵循”够用即可”的原则, 仅讲述在表达式解析中需要用到的语法. 关于 JavaCC 语法规则更详细的描述可阅读参考[JavaCC Tutorials](https://javacc.github.io/javacc/tutorials/) 和 [自制编译器](https://book.douban.com/subject/26806041/), 其中”自制编译器”的第一, 二部分对 JavaCC 的语法规则有详尽的解释, 推荐阅读.
 
 JavaCC的语法文件一般包含如下内容：
-```
+```java
 options {
     JavaCC 的选项
 }
@@ -91,7 +91,6 @@ PARSER_END(Adder)
 
 // 扫描器的描述
 SKIP : { <[" ", "\t", "\r", "\n"]> }
-
 TOKEN : { <INTEGER: (["0"-"9"])+> }
 
 // 解析器的描述

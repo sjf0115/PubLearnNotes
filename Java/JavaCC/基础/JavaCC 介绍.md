@@ -20,20 +20,19 @@ Java Compiler Compiler (JavaCC) 是 Java 应用程序最流行的一种解析器
 
 ## 2. 示例
 
-下面的JavaCC语法示例识别匹配的大括号，后面跟着零个或多个行结束符，然后是文件结束符。该语法中合法字符串的示例如下:
-
+下面的 JavaCC 语法示例识别匹配的大括号，后面跟着零个或多个行结束符，然后是文件结束符。该语法中合法字符串的示例如下:
 ```
 {}, {{{{{}}}}} // … etc
 ```
 
-如下是一个非法字符串的示例:
-
+如下所示是一个非法字符串的示例:
 ```
 {}{}, }{}}, { }, {x} // … etc
 ```
 
-具体语法如下：
+### 2.1 语法
 
+具体语法如下：
 ```java
 PARSER_BEGIN(Example)
 
@@ -65,17 +64,15 @@ void MatchedBraces() :
 }
 ```
 
-一些执行和输出：
+### 2.2 执行与输出
 
-`{{}}` 没有错误：
-
+【1】`{{}}` 执行不会抛出异常：
 ```java
 $ java Example
 {{}}<return>
 ```
 
-`{x` 输出一个词法错误：
-
+【2】`{x` 抛出一个词法错误：
 ```java
 $ java Example
 {x<return>
@@ -88,8 +85,7 @@ TokenMgrError: Lexical error at line 1, column 2.  Encountered: "x" (120), after
         at Example.main(Example.java:6)
 ```
 
-`{}}` 输出一个ParseException：
-
+【3】`{}}` 抛出一个 ParseException 异常：
 ```java
 $ java Example
 {}}<return>
@@ -104,16 +100,15 @@ Was expecting one of:
         at Example.main(Example.java:6)
 ```
 
-## 3. Getting Started
+## 3. 入门
 
-您可以通过命令行或者ID来E使用 JavaCC。
+你可以通过命令行或者 IDE 来使用 JavaCC。
 
 ### 3.1 使用命令行
 
 #### 3.1.1 下载
 
 在下载目录中下载最新的稳定版本(至少是源代码和二进制文件):
-
 - JavaCC 7.0.14 -([源代码(zip)](https://github.com/javacc/javacc/archive/javacc-7.0.14.zip)，[源代码(tar.gz)](https://github.com/javacc/javacc/archive/javacc-7.0.14.tar.gz)，[二进制文件](https://repo1.maven.org/maven2/net/java/dev/javacc/javacc/7.0.14/javacc-7.0.14.jar)，[Javadocs](https://repo1.maven.org/maven2/net/java/dev/javacc/javacc/7.0.14/javacc-7.0.14-javadoc.jar)，[发行说明](https://javacc.github.io/javacc/release-notes.html#javacc-7.0.14))
 
 所有 JavaCC 版本都可以通过 GitHub 和 Maven 获得，对于所有以前的版本，请参阅[稳定版本]([JavaCC | The most popular parser generator for use with Java applications.](https://javacc.github.io/javacc/downloads.html))。
@@ -121,29 +116,26 @@ Was expecting one of:
 #### 3.1.2 安装
 
 下载完文件后，导航到下载目录并解压缩源文件，这样就创建了一个所谓的 JavaCC 安装目录:
-
 ```shell
 $ unzip javacc-7.0.14.zip
 或者
 $ tar xvf javacc-7.0.14.tar.gz
 ```
 
-然后将下载目录下的二进制文件 `javacc-7.0.14.jar` 移动到安装目录下的新 `target/` 目录下，并将其重命名为 `javacc.jar`。然后将 JavaCC 安装目录中的 `scripts/` 目录添加到PATH 中。JavaCC、JJTree 和 JJDoc 调用脚本/可执行文件位于此目录中。
+然后将下载目录下的二进制文件 `javacc-7.0.14.jar` 移动到安装目录下的新 `target/` 目录下，并将其重命名为 `javacc.jar`。然后将 JavaCC 安装目录中的 `scripts/` 目录添加到 PATH 中。JavaCC、JJTree 和 JJDoc 调用脚本/可执行文件位于此目录中。
 
-在基于UNIX的系统上，脚本可能无法立即执行。这可以通过使用 `javacc-7.0.14/` 目录中的命令来解决:
-
+在基于 UNIX 的系统上，脚本可能无法立即执行。这可以通过使用 `javacc-7.0.14/` 目录中的命令来解决:
 ```shell
 chmod +x scripts/javacc
 ```
 
 #### 3.1.3 编写语法并生成解析器
 
-您可以使用您喜欢的文本编辑器创建和编辑语法文件。然后使用适当的脚本从语法生成解析器。
+你可以使用你喜欢的文本编辑器创建和编辑语法文件。然后使用适当的脚本从语法生成解析器。
 
 ### 3.2 在 IDE 中使用 JavaCC
 
-将以下依赖项添加到pom.xml文件中：
-
+将以下依赖项添加到 pom.xml 文件中：
 ```xml
 <dependency>
     <groupId>net.java.dev.javacc</groupId>
@@ -152,4 +144,10 @@ chmod +x scripts/javacc
 </dependency>
 ```
 
-### 3. 3 重新构建 JavaCC
+### 3.3 重新构建 JavaCC
+
+
+
+
+
+> 原文:[](https://javacc.github.io/javacc/)

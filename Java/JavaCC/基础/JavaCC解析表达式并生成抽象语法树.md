@@ -124,7 +124,7 @@ long expr():
 ### 2.1 表达式扫描器
 
 为了构建表达式扫描器, 我们需要编写正则表达式, 以解析表达式中可能出现的所有字符, 并将其转化为相应的Token. 以下是表达式扫描器的描述, 第一个Token主要是数字的正则表达式, 第二个Token是一些三角函数, 读者可以加入更多的自定义Token, 比如sqrt等, 支持更丰富的运算.
-```
+```java
 SKIP : { " " | "\r" | "\t" }
 
 TOKEN:
@@ -150,7 +150,7 @@ TOKEN:
 - expr: 是一个表达式元素, 它可以是一个单独的 term, 也可以是第优先级的二元运算符(`+`和 `-`)连接的元素, 如 3-2, 42+34.
 
 依据上述描述的编写的词法解析规则如下, 为方便理解, 暂时去掉了所有 action, 读者可根据注释仔细理解.
-```
+```java
 void expr(): { }
 {
     term() ("+" expr() | "-" expr())*		// term开头, 后面可能有+expr或-expr, 也可能没有
@@ -185,10 +185,225 @@ void primary(): { }
 在插入action代码之前, 我们先来设计一下抽象语法树的各个节点.
 
 首先, 抽象语法树需要一个抽象的节点基类Node. Node类中只有一个属性sign用于指示当前节点的正负号. 抽象方法accept用于接收Visitor实现对节点的遍历.
+```java
+public abstract class Node {
+
+  protected int sign = 1;
+
+  public int getSign() {
+    return sign;
+  }
+
+  public void setSign(int sign) {
+    this.sign = sign;
+  }
+
+  public abstract <T> T accept(ASTVisitor<T> visitor);
+}
+```
+Node 类有多个实现类:
+- ExprNode 表示表示一个expr;
+- TermNode 表示一个term;
+- UnaryNode 表示一元运算符对应的节点, 有4个实现类;
+- ValueNode 表示一个数值节点.
+
+各个类的继承关系如下图, 由于其实现较为简单, 这里不再展示完整的代码, 如有需要可参考[这里](https://github.com/LB-Yu/data_systems_learning/tree/master/sql-recognition-learning/javacc-learning/src/main/java/javacc/learning/calculator/ast)
+
+![](img-javacc-expression-ast-2.png)
+
+基于上述节点类, 我们便可在语法文件中添加action, 从而在解析的过程中构建抽象语法树.
+
+primary添加action后如下, 其返回值为Node类型, 因为可能返回各种类型的节点, 这里统一用基类表示. 在每种情况后都增加了action, 其主要功能是为当前解析到的字符构建抽象语法树节点. 比如, 读到<NUMBER>表示当前读到了一个数字, 之后就会创建一个ValueNode; LOOKAHEAD(<NUMBER> "!")表示超前扫描, 也就是说当扫描到<NUMBER>后还要继续往后扫描, 判断下一个字符是不是!, 如果不是则回到<NUMBER>的情况, 否则需要生成一个阶乘节点FactorialNode. 其他情况类似, 这里不再赘述.
+
+```java
+Node primary():
+{
+    Token t;
+    Token p;
+    Node n;
+}
+{
+    t=<NUMBER>
+    {
+        double number = Double.parseDouble(t.image);
+        return new ValueNode(number);
+    }
+|   LOOKAHEAD(<NUMBER> "!")
+    t=<NUMBER> "!"
+    {
+        String value = t.image;
+        double number = Double.parseDouble(value);
+        return new FactorialNode(new ValueNode(number));
+    }
+|   LOOKAHEAD("(" n=expr() ")" "!")
+    "(" n=expr() ")" "!" { return new FactorialNode(n); }
+|   "+" n=primary() { return n; }
+|   "-" n=primary()
+    {
+        n.setSign(-1);
+        return n;
+    }
+|   "(" n=expr() ")"	{ return n; }
+|   <SIN> "(" n=expr() ")" { return new SinNode(n); }
+|   <COS> "(" n=expr() ")" { return new CosNode(n); }
+|   <TAN> "(" n=expr() ")" { return new TanNode(n); }
+}
+```
+term添加action之后如下, 其返回值同样为Node. term可能有一个单独的primary组成, 也可能在之后*或/ 另一个term, 每种情况下的action都返回了对应的节点.
+```java
+Node term():
+{
+    Node left;
+    Node right;
+}
+{
+    left=primary()
+    (
+        "*" right=term()    { return new TermNode(left, right, Operator.MUL); }
+    |   "/" right=term()    { return new TermNode(left, right, Operator.DIV); }
+    )*
+    { return left; }
+}
+```
+expr与term类似, 可能有一个单独的term组成, 也可能在之后+或-另一个expr, 每种情况都返回对应的节点.
+```java
+Node expr():
+{
+    Node left;
+    Node right;
+}
+{
+    left=term()
+    (
+        "+" right=expr()    { return new ExprNode(left, right, Operator.PLUS); }
+    |   "-" right=expr()    { return new ExprNode(left, right, Operator.MINUS); }
+    )*
+    { return left; }
+}
+```
+有了上述语法规则之后, 便可在PARSER_BEGIN和PARSER_END定义一个解析器类了. 这里我们将其称为Calculator.
+```java
+PARSER_BEGIN(Calculator)
+package javacc.learning.calculator.parser;
+
+import javacc.learning.calculator.ast.*;
+
+public class Calculator {
+
+    public Node parse() throws ParseException {
+        return expr();
+    }
+}
+PARSER_END(Calculator)
+```
+Calculator只有一个parse函数, 它调用了expr语法生成的同名函数. 通过JavaCC生成Calculator.java文件之后, 我们便可通过以下方式解析表达式并生成抽象语法树.
+```java
+Calculator calculator = new Calculator(System.in);
+// node为抽象语法树根节点
+Node node = calculator.parse();
+```
+上述表达式解析和生成抽象语法树的完整代码可参见 [Calculator.jj](https://github.com/LB-Yu/data_systems_learning/blob/master/sql-recognition-learning/javacc-learning/src/main/codegen/Calculator.jj).
+
+### 3.2 Vsitor模式遍历抽象语法树
+
+生成抽象语法树, 相当于利用JavaCC将无结构的表达式字符串转化为了内存中结构化的树. 完成了抽象语法树的生成JavaCC的任务也就完成了, 之后如何通过抽象语法树计算表达式的结果就需要我们自己解决了.
+
+在编译器中, 通常会将源代码解析为抽象语法树, 然后使用Visitor模式遍历抽象语法树进行语义分析, 如引用消解, 静态类型检查等. 这里我们也使用Visitor模式对表达式抽象语法树进行遍历计算结果.
+
+为了遍历抽象语法树计算结果, 我们也可以不使用Visitor模式, 而利用多态实现不同节点的计算. 比如我们可以在Node中增加一个calculate抽象方法, 让每个实现类依据节点语义实现不同的计算方法. 这样当调用抽象语法树根节点的calculate方法后, 就会递归调用子节点的calculate方法直到叶节点返回结果.
+```java
+public abstract class Node {
+  ...
+
+  public abstract double calculate();
+}
+
+public class ValueNode extends Node {
+
+  ...
+
+  public double calculate() {
+      return value;
+  }
+}
+
+public class SinNode extends UnaryNode {
+  ...
+
+  public double calculate() {
+    double value = node.calculate();
+    double result = 1;
+    for (int i = 1; i <= value; ++i) {
+      result *= i;
+    }
+    return result * getSign();
+  }
+}
+```
+然而使用上述方法存在诸多缺点:
+- 对不同的遍历场景需要为节点类添加不同的方法, 比如上面为了计算表达式结果添加了calculate方法, 如果需要打印抽象语法树就需要再新增一个方法dump. 这样一旦有新的需求就必须不断改动节点类群, 由于节点类群众多, 修改相当困难.
+- 由于对于一种场景, 其实现逻辑都分散在各个节点类中, 不便于阅读相关代码.
+
+由于上述缺点我们有必要引入Visitor模式对抽象语法树进行遍历. Visitor模式有一个抽象接口, 定义了对各种类型的节点进行访问的方法. 比如在表达式抽象语法树的遍历中, 我们定义了如下ASTVisitor接口, 其中包含对各种节点的visit方法.
+```java
+public interface ASTVisitor<T> {
+  T visit(ExprNode node);
+  T visit(TermNode node);
+  T visit(SinNode node);
+  T visit(CosNode node);
+  T visit(TanNode node);
+  T visit(FactorialNode node);
+  T visit(ValueNode node);
+}
+```
+有了ASTVisitor接口, 我们只需在Node类中定义一个抽象方法accept用于实现不同场景下各个节点的遍历逻辑.
+```java
+public abstract class Node {
+  ...
+
+  public abstract <T> T accept(ASTVisitor<T> visitor);
+}
+
+public class ValueNode extends Node {
+  ...
+
+  @Override
+  public <T> T accept(ASTVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+}
+```
+有了上述接口之后, 我们只需要为不同的场景添加不同的实现类即可对抽象语法树进行遍历, 从而实现不同的逻辑. 以计算表达式结果为例, 可以添加如下实现类. 在实现类的visit方法中我们根据节点类型的不同编写对于的计算逻辑即可.
+```java
+public class CalculateVisitor implements ASTVisitor<Double> {
+
+  public double calculate(Node node) {
+    return node.accept(this);
+  }
+
+  ...
+
+  @Override
+  public Double visit(FactorialNode node) {
+    double value = node.getNode().accept(this);
+    double result = 1;
+    for (int i = 1; i <= value; ++i) {
+      result *= i;
+    }
+    return result * node.getSign();
+  }
+
+  @Override
+  public Double visit(ValueNode node) {
+    return node.getValue() * node.getSign();
+  }
+}
+```
+如果要添加新的遍历逻辑, 比如打印抽象语法树, 我们只需要新增一个DumpVisitor并实现相应的方法即可. CalculateVisitor和DumpVisitor的完整代码都在这里.
+
+## 4. 总结
+
+本文以表达式这种简单的”语言”为依托, 讲述了使用JavaCC构建解析器并生成抽象语法树的方法. 写文本的主要目的是笔者在阅读一些编译器实战书籍时, 由于通用编程语言一般较为复杂解析难度大, 直接看这些语言的语法文件有时难以理解从解析到抽象语法树构建这个系统流程. 前文也说到, 表达式这种简单场景完全可以不构建抽象语法树, 但本文还是”费劲”构建并用Visitor模式进行遍历, 目的是理解语法分析到抽象语法树构建和遍历的整个流程. 理解了本文所描述的内容之后, 再去看通用编程语言的编译前端或SQL解析就会变得一目了然了, 因为框架原理都是一样的, 无非是要在语法文件中逐步添加更多的规则, 增加更多类型的抽象语法树节点, 实现更多类型的Visitor类以支持不同类型的语义分析.
 
 
-
-
-
-
-> 原文:[]()
+> 原文:[编译原理实践 - JavaCC解析表达式并生成抽象语法树](https://liebing.org.cn/javacc-expression-ast.html)

@@ -19,6 +19,7 @@
 - [ ] [calcite简单入门](https://blog.gavinzh.com/2019/06/29/calcite-learn/)
 - [ ] [介绍Calcite最好的PPT](https://mp.weixin.qq.com/s/QLI88ZRefuTNjkb_n6pGgA)
 - [ ] [Apache Calcite Tutorial](https://codetinkering.com/apache-calcite-tutorial/)
+- [ ] [Apache Calcite整体架构及处理流程](https://liebing.org.cn/apache-calcite-overview.html)
 
 ## 2. 解析
 

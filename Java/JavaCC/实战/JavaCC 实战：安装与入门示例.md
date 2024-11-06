@@ -109,20 +109,27 @@ Was expecting one of:
 #### 3.1.1 下载
 
 在下载目录中下载最新的稳定版本(至少是源代码和二进制文件):
-- JavaCC 7.0.14 -([源代码(zip)](https://github.com/javacc/javacc/archive/javacc-7.0.14.zip)，[源代码(tar.gz)](https://github.com/javacc/javacc/archive/javacc-7.0.14.tar.gz)，[二进制文件](https://repo1.maven.org/maven2/net/java/dev/javacc/javacc/7.0.14/javacc-7.0.14.jar)，[Javadocs](https://repo1.maven.org/maven2/net/java/dev/javacc/javacc/7.0.14/javacc-7.0.14-javadoc.jar)，[发行说明](https://javacc.github.io/javacc/release-notes.html#javacc-7.0.14))
+- JavaCC 7.0.13 -([源代码(zip)](https://github.com/javacc/javacc/archive/javacc-7.0.13.zip)，[源代码(tar.gz)](https://github.com/javacc/javacc/archive/javacc-7.0.13.tar.gz)，[二进制文件](https://repo1.maven.org/maven2/net/java/dev/javacc/javacc/7.0.13/javacc-7.0.13.jar)，[Javadocs](https://repo1.maven.org/maven2/net/java/dev/javacc/javacc/7.0.13/javacc-7.0.13-javadoc.jar)，[发行说明](https://javacc.github.io/javacc/release-notes.html#javacc-7.0.13)
 
 所有 JavaCC 版本都可以通过 GitHub 和 Maven 获得，对于所有以前的版本，请参阅[稳定版本]([JavaCC | The most popular parser generator for use with Java applications.](https://javacc.github.io/javacc/downloads.html))。
 
 #### 3.1.2 安装
 
-下载完文件后，导航到下载目录并解压缩源文件，这样就创建了一个所谓的 JavaCC 安装目录:
+下载完文件后，导航到下载目录并解压缩源文件到 `/opt` 目录下，这样就创建了一个所谓的 JavaCC 安装目录:
 ```shell
-$ unzip javacc-7.0.14.zip
-或者
-$ tar xvf javacc-7.0.14.tar.gz
+tar -zxvf javacc-javacc-7.0.13.tar.gz -C /opt
 ```
 
-然后将下载目录下的二进制文件 `javacc-7.0.14.jar` 移动到安装目录下的新 `target/` 目录下，并将其重命名为 `javacc.jar`。然后将 JavaCC 安装目录中的 `scripts/` 目录添加到 PATH 中。JavaCC、JJTree 和 JJDoc 调用脚本/可执行文件位于此目录中。
+```
+ln -s javacc-javacc-7.0.13/ javacc
+```
+
+然后将下载目录下的二进制文件 `javacc-7.0.14.jar` 移动到安装目录下的新 `target/` 目录下，并将其重命名为 `javacc.jar`。然后将 JavaCC 安装目录中的 `scripts/` 目录添加到 PATH 中：
+```
+export JAVACC_HOME=/opt/javacc/scripts
+export PATH=${JAVACC_HOME}/javacc:$PATH
+```
+> JavaCC、JJTree 和 JJDoc 调用脚本/可执行文件均位于此目录中。
 
 在基于 UNIX 的系统上，脚本可能无法立即执行。这可以通过使用 `javacc-7.0.14/` 目录中的命令来解决:
 ```shell
@@ -144,10 +151,8 @@ chmod +x scripts/javacc
 </dependency>
 ```
 
-### 3.3 重新构建 JavaCC
 
 
 
 
-
-> 原文:[](https://javacc.github.io/javacc/)
+> 原文:[JavaCC](https://javacc.github.io/javacc/)

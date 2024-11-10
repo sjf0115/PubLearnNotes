@@ -1,28 +1,28 @@
-在[上一篇文章](https://smartsi.blog.csdn.net/article/details/143661219)中我们实现了一个只支持整数加法运算的运算器，在这里我们再给运算器添加支持小数加法运算的能力。
+在[上一篇文章](https://smartsi.blog.csdn.net/article/details/143661219)中我们实现了一个只支持整数加法运算的计算器，在这里我们再给计算器添加支持小数加法运算的能力。
 
 ## 1. 编写语法文件
 
-你可以使用你喜欢的文本编辑器创建和编辑语法文件。在这我们创建一个 `adder_double.jj` 语法文件。在本节的其余部分中，代码示例将是 `adder_double.jj` 的文件的一部分内容。这个文件包含了用于解析器和词法分析器的 JavaCC 规范，并被用作 JavaCC 程序的输入。
+你可以使用你喜欢的文本编辑器创建和编辑语法文件。在这我们创建一个 `calculator_plus_decimal.jj` 语法文件。在本节的其余部分中，代码示例将是 `calculator_plus_decimal.jj` 的文件的一部分内容。这个文件包含了用于解析器和词法分析器的 JavaCC 规范，并被用作 JavaCC 程序的输入。
 
 ### 1.1 选项和类声明
 
-文件 `adder_double.jj` 的第一部分 还是和以前一样:
+文件 `calculator_plus_decimal.jj` 的第一部分 还是和以前一样:
 ```java
 options {
   STATIC = false ;
 }
-PARSER_BEGIN(AdderDouble)
+PARSER_BEGIN(CalculatorPlusDecimal)
   import java.io.PrintStream ;
-  class AdderDouble {
+  class CalculatorPlusDecimal {
       public static void main( String[] args ) throws ParseException, TokenMgrError, NumberFormatException {
-          AdderDouble parser = new AdderDouble( System.in ) ;
+          CalculatorPlusDecimal parser = new CalculatorPlusDecimal( System.in ) ;
           parser.Start(System.out) ;
       }
       double previousValue = 0.0 ;
   }
-PARSER_END(AdderDouble)
+PARSER_END(CalculatorPlusDecimal)
 ```
-AdderDouble 类中定义的 `previousValue` 变量，用于存储上一行的计算结果，将在下面介绍的 `Start` 方法中使用。`import` 语句说明可以在 `PARSER_BEGIN` 和 `PARSER_END` 之间进行 `import` 声明。这些会被复制到生成的解析器和词法分析器类中。除了 `import` 语句，也可以使用包声明，同样也会将其复制到所有的生成类中。
+CalculatorPlusDecimal 类中定义的 `previousValue` 变量，用于存储上一行的计算结果，将在下面介绍的 `Start` 方法中使用。`import` 语句说明可以在 `PARSER_BEGIN` 和 `PARSER_END` 之间进行 `import` 声明。这些会被复制到生成的解析器和词法分析器类中。除了 `import` 语句，也可以使用包声明，同样也会将其复制到所有的生成类中。
 
 ### 1.2 词法分析器规范
 
@@ -117,21 +117,21 @@ Primary --> NUMBER
 
 ## 2. 生成解析器和词法分析器
 
-至此我们完成了 `adder_double.jj` 语法文件的修改：
+至此我们完成了 `calculator_plus_decimal.jj` 语法文件的修改：
 ```java
 options {
   STATIC = false ;
 }
-PARSER_BEGIN(AdderDouble)
+PARSER_BEGIN(CalculatorPlusDecimal)
   import java.io.PrintStream ;
-  class AdderDouble {
+  class CalculatorPlusDecimal {
       public static void main( String[] args ) throws ParseException, TokenMgrError, NumberFormatException {
-          AdderDouble parser = new AdderDouble( System.in ) ;
+          CalculatorPlusDecimal parser = new CalculatorPlusDecimal( System.in ) ;
           parser.Start(System.out) ;
       }
       double previousValue = 0.0 ;
   }
-PARSER_END(AdderDouble)
+PARSER_END(CalculatorPlusDecimal)
 
 
 SKIP : { " " }
@@ -172,12 +172,12 @@ double Primary() throws NumberFormatException :
     { return Double.parseDouble( t.image ) ; }
 }
 ```
-生成 `adder_double.jj ` 文件后，我们对其调用 JavaCC 命令来生成解析器与词法分析器，JavaCC 的详细安装与运行请查阅[JavaCC 实战一：安装与入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。如下所示直接运行 `javacc adder_double.jj` 命令来生成：
+生成 `calculator_plus_decimal.jj ` 文件后，我们对其调用 JavaCC 命令来生成解析器与词法分析器，JavaCC 的详细安装与运行请查阅[JavaCC 实战一：安装与入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。如下所示直接运行 `javacc calculator_plus_decimal.jj` 命令来生成：
 ```java
-localhost:adder_double wy$ javacc adder_double.jj
+localhost:calculator_plus_decimal wy$ javacc calculator_plus_decimal.jj
 Java Compiler Compiler Version 7.0.13 (Parser Generator)
 (type "javacc" with no arguments for help)
-Reading from file adder_double.jj . . .
+Reading from file calculator_plus_decimal.jj . . .
 File "TokenMgrError.java" does not exist.  Will create one.
 File "ParseException.java" does not exist.  Will create one.
 File "Token.java" does not exist.  Will create one.
@@ -186,18 +186,18 @@ Parser generated successfully.
 ```
 执行完之后，同之前一样都会生成 7 个 Java 文件，包括了解析器以及词法分析器。接下来我们对这些 java 文件进行编译，编译完成之后可得到对应的 class 文件来运行：
 ```java
-localhost:adder_double wy$ javac *.java
-localhost:adder_double wy$
-localhost:adder_double wy$ ll
+localhost:calculator_plus_decimal wy$ javac *.java
+localhost:calculator_plus_decimal wy$
+localhost:calculator_plus_decimal wy$ ll
 total 200
 drwxr-xr-x  17 wy  wheel    544 Nov 10 17:38 ./
 drwxr-xr-x   6 wy  wheel    192 Nov 10 17:37 ../
--rw-r--r--   1 wy  wheel   5382 Nov 10 17:38 AdderDouble.class
--rw-r--r--   1 wy  wheel   6447 Nov 10 17:37 AdderDouble.java
--rw-r--r--   1 wy  wheel    571 Nov 10 17:38 AdderDoubleConstants.class
--rw-r--r--   1 wy  wheel    643 Nov 10 17:37 AdderDoubleConstants.java
--rw-r--r--   1 wy  wheel   6170 Nov 10 17:38 AdderDoubleTokenManager.class
--rw-r--r--   1 wy  wheel  10374 Nov 10 17:37 AdderDoubleTokenManager.java
+-rw-r--r--   1 wy  wheel   5382 Nov 10 17:38 CalculatorPlusDecimal.class
+-rw-r--r--   1 wy  wheel   6447 Nov 10 17:37 CalculatorPlusDecimal.java
+-rw-r--r--   1 wy  wheel    571 Nov 10 17:38 CalculatorPlusDecimalConstants.class
+-rw-r--r--   1 wy  wheel    643 Nov 10 17:37 CalculatorPlusDecimalConstants.java
+-rw-r--r--   1 wy  wheel   6170 Nov 10 17:38 CalculatorPlusDecimalTokenManager.class
+-rw-r--r--   1 wy  wheel  10374 Nov 10 17:37 CalculatorPlusDecimalTokenManager.java
 -rw-r--r--   1 wy  wheel   2936 Nov 10 17:38 ParseException.class
 -rw-r--r--   1 wy  wheel   6221 Nov 10 17:37 ParseException.java
 -rw-r--r--   1 wy  wheel   6586 Nov 10 17:38 SimpleCharStream.class
@@ -206,46 +206,46 @@ drwxr-xr-x   6 wy  wheel    192 Nov 10 17:37 ../
 -rw-r--r--   1 wy  wheel   4070 Nov 10 17:37 Token.java
 -rw-r--r--   1 wy  wheel   2363 Nov 10 17:38 TokenMgrError.class
 -rw-r--r--   1 wy  wheel   4568 Nov 10 17:37 TokenMgrError.java
--rw-r--r--   1 wy  wheel   1143 Nov 10 17:37 adder_double.jj
+-rw-r--r--   1 wy  wheel   1143 Nov 10 17:37 calculator_plus_decimal.jj
 ```
 
 ## 3. 运行示例
 
 跟[上一篇文章](https://smartsi.blog.csdn.net/article/details/143661219)一样我们可以通过准备合适的输入文件并执行如下命令来运行程序：
 ```java
-java AdderDouble <input.txt
+java CalculatorPlusDecimal <input.txt
 ```
 > 在 input.txt 文件中包含输入序列
 
 当数值中允许有小数点时，会出现 4 情况：没有小数点，小数点在中间，小数点在末尾，小数点在开始。假设输入数字中没有小数点 `123 + 456`，会在控制台看到结果 `579.0`：
 ```java
-localhost:adder_double wy$ cat input.txt
+localhost:calculator_plus_decimal wy$ cat input.txt
 123 + 456
-localhost:adder_double wy$ java AdderDouble <input.txt
+localhost:calculator_plus_decimal wy$ java CalculatorPlusDecimal <input.txt
 579.0
-localhost:adder_double wy$
+localhost:calculator_plus_decimal wy$
 ```
 假设输入数字的小数点在中间 `123.2 + 456.7`，会在控制台看到结果 `579.9`：
 ```java
-localhost:adder_double wy$ cat input.txt
+localhost:calculator_plus_decimal wy$ cat input.txt
 123.2 + 456.7
-localhost:adder_double wy$ java AdderDouble <input.txt
+localhost:calculator_plus_decimal wy$ java CalculatorPlusDecimal <input.txt
 579.9
-localhost:adder_double wy$
+localhost:calculator_plus_decimal wy$
 ```
 假设输入数字的小数点在末尾 `123. + 456`，会在控制台看到结果 `579.0`：
 ```java
-localhost:adder_double wy$ cat input.txt
+localhost:calculator_plus_decimal wy$ cat input.txt
 123. + 456
-localhost:adder_double wy$ java AdderDouble <input.txt
+localhost:calculator_plus_decimal wy$ java CalculatorPlusDecimal <input.txt
 579.0
-localhost:adder_double wy$
+localhost:calculator_plus_decimal wy$
 ```
 假设输入数字的小数点在开始 `.7 + 456.2`，会在控制台看到结果 `456.9`：
 ```java
-localhost:adder_double wy$ cat input.txt
+localhost:calculator_plus_decimal wy$ cat input.txt
 .7 + 456.2
-localhost:adder_double wy$ java AdderDouble <input.txt
+localhost:calculator_plus_decimal wy$ java CalculatorPlusDecimal <input.txt
 456.9
-localhost:adder_double wy$
+localhost:calculator_plus_decimal wy$
 ```

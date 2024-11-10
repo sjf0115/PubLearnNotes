@@ -8,7 +8,7 @@ localhost:adder wy$ cat input.txt
 localhost:adder wy$ java Adder <input.txt
 localhost:adder wy$
 ```
-从上面可以看到解析器在输入合法时没有任何的输出，不执行任何操作仅限于检查其输入的合法性。但是，我们可以使用 Java 代码来扩展 BNF 生产式，使其在输入合法时输出整数加和的结果。JavaCC 为我们提供了框架，只需要完善框架即可实现我们想要的效果。我们将对上一个示例中的 `adder.jj` 语法文件做一些修改来扩展 BNF 生产式：
+从上面可以看到解析器在输入合法时没有任何的输出，不执行任何操作仅限于检查其输入的合法性。但是，我们可以使用 Java 代码来扩展 BNF 生产式，使其在输入合法时输出整数加和的结果。只需要完善 JavaCC 为我们提供的框架即可实现我们想要的效果。我们将对上一个示例中的 `adder.jj` 语法文件做一些修改来扩展 BNF 生产式：
 ```java
 /* adder.jj Adding up numbers */
 options {
@@ -62,16 +62,16 @@ int Start() throws NumberFormatException :
 }
 ```
 
-首先第一个改动是 BNF 生产式的返回类型，以及由此生成的方法从 `void` 变为 `int`。第二个改动是，声明了可以从生成的方法中抛出 `NumberFormatException` 异常。此外我们还新增声明了三个变量，变量 `t` 为 `Token` 类型(`Token` 类是我们编译 `.jj` 文件之后生成的类)。`Token` 类的 `image` 字段记录匹配的字符串。在声明完变量之后，当 BNF 生产式匹配一个 token 时，我们可以通过为其分配引用来记录 `Token` 对象：
+首先第一个改动是 BNF 生产式的返回类型，以及由此生成的方法从 `void` 变为 `int`。第二个改动是，声明了可以从生成的方法中抛出 `NumberFormatException` 异常。此外我们还新增声明了三个变量，其中变量 `t` 为 `Token` 类型(`Token` 类型是我们编译 `.jj` 文件之后生成的类)。`Token` 类的 `image` 字段记录匹配的字符串。在声明完变量之后，当 BNF 生产式匹配一个 token 时，我们可以通过为其分配引用来记录 `Token` 对象：
 ```java
 t = <NUMBER>
 ```
-这样我们就可以通过引用来获取 `Token` 中的信息，在这可以获取 token 匹配的数字字符串并使用 Java 语法转换为一个 Int 值：
+这样我们就可以通过引用来获取 `Token` 的信息，在这可以获取 token 匹配的数字字符串并使用 Java 语法转换为一个 Int 值：
 ```java
 { i = Integer.parseInt( t.image ) ; }
 ```
 
-在 BNF 生产式的大括号内，我们可以添加任何我们想要的 Java 语句，这些 Java 语句在 javacc 编译生成解析器类时，将会被原封不动的复制到解析器类相应方法中。第一块是获取 token 匹配的数字并使用 `value` 变量存储：
+在 BNF 生产式的大括号内，我们可以添加任何我们想要的 Java 语句，这些 Java 语句在 javacc 编译生成解析器类时，将会被原封不动的复制到解析器类相应方法中。在改动中添加了三块 Java 语句，第一块是获取 token 匹配的数字并使用 `value` 变量存储：
 ```java
 { i = Integer.parseInt( t.image ) ; }
 { value = i ; }
@@ -86,7 +86,7 @@ t = <NUMBER>
 { return value ; }
 ```
 
-由于生成的 `Start` 方法现在返回一个值，因此我们必须修改 `main` 方法，使用 val 变量接收返回值并输出到控制台：
+由于生成的 `Start` 方法现在返回一个数值，因此我们必须修改 `main` 方法，使用 val 变量接收返回值并将其输出到控制台：
 ```java
 public static void main( String[] args ) throws ParseException, TokenMgrError, NumberFormatException {
   Adder parser = new Adder( System.in ) ;
@@ -94,12 +94,12 @@ public static void main( String[] args ) throws ParseException, TokenMgrError, N
   System.out.println(val);
 }
 ```
-此外还有一个小的优化要做。如下两行在上述语法文件中出现了两次：
+除了上面的改动之外，还有一个小的优化要做。如下两行在上述语法文件中出现了两次：
 ```java
 t = <NUMBER>
 { i = Integer.parseInt( t.image ) ; }
 ```
-虽然在这个例子中没有太大的区别，因为只涉及到两行代码，但是这种重复可能会导致后期维护问题。因此，我们将把这两行拆解成另一个 BNF 生产式，并命名为 `Primary`：
+虽然在这个例子中没有太大的影响，因为只涉及到两行代码，但是这种重复可能会导致后期维护问题。因此，我们将把这两行拆解成另一个 BNF 生产式，并命名为 `Primary`：
 ```java
 int Start() throws NumberFormatException :
 {
@@ -175,7 +175,7 @@ int Primary() throws NumberFormatException :
 }
 ```
 
-生成 `adder_v2.jj ` 文件后，我们对其调用 JavaCC 命令来生成解析器与词法分析器，详细安装与运行请查阅[JavaCC 实战一：安装与入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。如下所示直接运行 `javacc adder_v2.jj` 命令：
+生成 `adder_v2.jj ` 文件后，我们对其调用 JavaCC 命令来生成解析器与词法分析器，JavaCC 的详细安装与运行请查阅[JavaCC 实战一：安装与入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。如下所示直接运行 `javacc adder_v2.jj` 命令来生成：
 ```java
 localhost:adder_v2 wy$ javacc adder_v2.jj
 Java Compiler Compiler Version 7.0.13 (Parser Generator)
@@ -187,7 +187,7 @@ File "Token.java" does not exist.  Will create one.
 File "SimpleCharStream.java" does not exist.  Will create one.
 Parser generated successfully.
 ```
-执行完之后，同之前一样都会生成 7 个 Java 文件。接下来我们对这些 java 文件进行编译，编译完成之后可得到对应的 class 文件：
+执行完之后，同之前一样都会生成 7 个 Java 文件，包括了解析器以及词法分析器。接下来我们对这些 java 文件进行编译，编译完成之后可得到对应的 class 文件来运行：
 ```java
 localhost:adder_v2 wy$ javac *.java
 localhost:adder_v2 wy$
@@ -220,7 +220,7 @@ java Adder <input.txt
 ```
 > 在 input.txt 文件中包含输入序列
 
-[上一篇文章](https://smartsi.blog.csdn.net/article/details/143658003)已经介绍过可能会遇到的词法错误以及解析错误，在这里我们只关注合法输入时的输出情况，此时不会抛出任何错误异常，程序正常结束时会输出整数加和的结果到控制台。假设输入文件输入的是 `123 + 456`：
+[上一篇文章](https://smartsi.blog.csdn.net/article/details/143658003)已经介绍过可能会遇到的词法错误以及解析错误，在这里我们只关注合法输入时的输出情况，此时不会抛出任何错误异常，程序正常结束时会输出整数加和的结果到控制台。假设输入文件输入的是 `123 + 456`，会在控制台看到结果 `579`：
 ```java
 localhost:adder_v2 wy$ cat input.txt
 123 + 456

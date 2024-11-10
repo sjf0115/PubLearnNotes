@@ -123,13 +123,13 @@ drwxr-xr-x   4 wy  wheel    128 Nov  9 09:57 ../
 -rw-r--r--   1 wy  wheel    328 Nov  9 10:02 brace.jj
 ```
 其中：
-- `Brace` 是语法分析器。
-- `BraceConstants` 是一个接口，里面定义了一些词法分析器和语法分析器中都会用到的常量。
+- `Brace` 是解析器。
 - `BraceTokenManager` 是词法分析器。
-- `ParseException` 是一个用于定义在语法分析阶段检测错误的类。
-- `TokenMgrError` 是一个用于定义在词法分析阶段检测错误的类。
+- `BraceConstants` 是一个接口，里面定义了一些词法分析器和解析器中会用到的常量。
+- `TokenMgrError` 是一个简单的错误类，在词法分析器检测到错误时使用，是 Throwable 的子类。
+- `ParseException` 是另一个错误类，在解析器检测到的错误时使用，是 Exception 的子类，因此也是 Throwable 的子类。
 - `Token` 类是一个用于表示 token 的类。
-- `SimpleCharStream` 是一个转接器类，用于把字符传递给语法分析器。
+- `SimpleCharStream` 是一个转接器类，用于把字符传递给词法分析器。
 
 接下来我们对这些 java 文件进行编译，编译完成之后可得到对应的 class 文件：
 ```

@@ -110,8 +110,8 @@ PARSER_BEGIN(Adder)
         public static void main( String[] args ) throws ParseException, TokenMgrError {
             Adder parser = new Adder( System.in ) ;
             parser.Start() ;
+        }
     }
-}
 PARSER_END(Adder)
 
 SKIP : { " " }

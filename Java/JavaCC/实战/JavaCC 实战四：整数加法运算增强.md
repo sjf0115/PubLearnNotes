@@ -1,25 +1,31 @@
-## 5. 扩展解析器
 
-JavaCC 为 BNF 生产式生成的方法(例如 `Start`)在默认情况下只是检查输入是否与规范匹配。但是，我们可以用 Java 代码来扩展 BNF 生产式，使其包含在生成的方法中。JavaCC 为我们提供了框架，只需要完善框架即可。我们将对上面的 `adder.jj` 语法文件做一些修改来扩展 BNF 生产式，保存为 `adder1.jj` 语法文件。在 `Start` 方法中添加了一些声明和一些 Java 代码：
+在[上一个例子](https://smartsi.blog.csdn.net/article/details/143658003)中，JavaCC 为 BNF 生产式所生成的方法，比如 `Start`，这些方法默认只是简单的检查输入是否匹配 BNF 生产式指定的规范，实际上不会把数字加起来。假设输入文件输入的是 `123 + 456`：
+```java
+localhost:adder wy$ cat input.txt
+123 + 456
+localhost:adder wy$ java Adder <input.txt
+localhost:adder wy$
 ```
+从上面可以看到解析器在输入合法时没有任何的输出，不执行任何操作仅限于检查其输入的合法性。但是，我们可以使用 Java 代码来扩展 BNF 生产式，使其在输入合法时输出整数加和的结果。JavaCC 为我们提供了框架，只需要完善框架即可实现我们想要的效果。我们将对上面的 `adder.jj` 语法文件做一些修改来扩展 BNF 生产式，保存为 `adder1.jj` 语法文件。在 `Start` 方法中添加了一些声明和一些 Java 代码：
+```java
 int Start() throws NumberFormatException :
 {
-Token t ;
-int i ;
-int value ;
+    Token t ;
+    int i ;
+    int value ;
 }
 {
-t = <NUMBER>
-{ i = Integer.parseInt( t.image ) ; }
-{ value = i ; }
-(
-<PLUS>
-t = <NUMBER>
-{ i = Integer.parseInt( t.image ) ; }
-{ value += i ; }
-)*
-<EOF>
-{ return value ; }
+    t = <NUMBER>
+    { i = Integer.parseInt( t.image ) ; }
+    { value = i ; }
+    (
+        <PLUS>
+        t = <NUMBER>
+        { i = Integer.parseInt( t.image ) ; }
+        { value += i ; }
+    )*
+    <EOF>
+    { return value ; }
 }
 ```
 

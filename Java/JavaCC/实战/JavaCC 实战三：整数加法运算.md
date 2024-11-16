@@ -133,7 +133,7 @@ void Start() :
 }
 ```
 
-生成 `calculator_v1.jj ` 文件后，我们对其调用 JavaCC 命令来生成解析器与词法分析器，详细安装与运行请查阅[JavaCC 实战一：安装与入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。如下所示直接运行 `javacc calculator_v1.jj` 命令：
+生成 `calculator_v1.jj` 文件后，我们对其调用 JavaCC 命令来生成解析器与词法分析器，详细安装与运行请查阅[JavaCC 实战一：安装与入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。如下所示直接运行 `javacc calculator_v1.jj` 命令：
 ```java
 localhost:v1 wy$ javacc calculator_v1.jj
 Java Compiler Compiler Version 7.0.13 (Parser Generator)

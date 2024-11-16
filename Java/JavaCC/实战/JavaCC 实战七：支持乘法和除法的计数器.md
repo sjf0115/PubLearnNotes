@@ -216,7 +216,7 @@ double Primary() throws NumberFormatException :
     { return Double.parseDouble( t.image ) ; }
 }
 ```
-生成 `calculator_v5.jj ` 文件后，我们对其调用 JavaCC 命令来生成解析器与词法分析器，JavaCC 的详细安装与运行请查阅[JavaCC 实战一：安装与入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。如下所示直接运行 `javacc calculator_v5.jj` 命令来生成：
+生成 `calculator_v5.jj ` 文件后，我们对其调用 JavaCC 命令来生成解析器与词法分析器，JavaCC 的详细安装与运行请查阅[入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。如下所示直接运行 `javacc calculator_v5.jj` 命令来生成：
 ```java
 localhost:v5 wy$ javacc calculator_v5.jj
 Java Compiler Compiler Version 7.0.13 (Parser Generator)
@@ -228,7 +228,7 @@ File "Token.java" does not exist.  Will create one.
 File "SimpleCharStream.java" does not exist.  Will create one.
 Parser generated successfully.
 ```
-执行完之后，同之前一样都会生成 7 个 Java 文件，包括解析器以及词法分析器，具体说明请查阅[JavaCC 实战一：安装与入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。接下来我们对这些 Java 文件进行编译，编译完成之后可得到对应的 class 文件来运行：
+执行完之后，同之前一样都会生成 7 个 Java 文件，包括解析器以及词法分析器，具体说明请查阅[入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。接下来我们对这些 Java 文件进行编译，编译完成之后可得到对应的 class 文件来运行：
 ```java
 localhost:v5 wy$ javac *.java
 localhost:v5 wy$ ll

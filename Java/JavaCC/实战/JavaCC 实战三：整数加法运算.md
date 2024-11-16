@@ -95,9 +95,9 @@ void Start() :
     <EOF>
 }
 ```
-上述 BNF 生产式指定了无错误输入时合法 Token 类型的序列。这个生产式告诉我们序列必须以 `NUMBER` Token 开头，以 `EOF` Token 结束。在 `NUMBER` 和 `EOF` Token 中间，可以是零个或者多个由 `PLUS` 和 `NUMBER` Token 组成的子序列，而且必须是 `NUMBER` 紧跟在 `PLUS` 后面。
+上述 `BNF` 产生式指定了无错误输入时合法 Token 类型的序列。这个产生式告诉我们序列必须以 `NUMBER` Token 开头，以 `EOF` Token 结束。在 `NUMBER` 和 `EOF` Token 中间，可以是零个或者多个由 `PLUS` 和 `NUMBER` Token 组成的子序列，而且必须是 `NUMBER` 紧跟在 `PLUS` 后面。
 
-上面的解析器规范只能让解析器检测输入序列是否无错误，实际上不会把数字加起来。后面我们会修改解析器描述文件以修正此问题，但是首先，让我们生成 Java 组件来运行检测输入序列是否有错误。
+上面的解析器规范只能让解析器检测输入序列是否无错误，实际上不会把数字加起来。后面实战教程中我们会修改解析器描述文件以修正此问题，并完成一个支持加减乘除运算的计算器。但是首先，让我们生成 Java 组件来运行检测输入序列是否有错误。
 
 ## 2. 生成解析器和词法分析器
 
@@ -135,7 +135,7 @@ void Start() :
 
 生成 `calculator_v1.jj ` 文件后，我们对其调用 JavaCC 命令来生成解析器与词法分析器，详细安装与运行请查阅[JavaCC 实战一：安装与入门示例](https://smartsi.blog.csdn.net/article/details/143640803)。如下所示直接运行 `javacc calculator_v1.jj` 命令：
 ```java
-localhost:Calculator wy$ javacc calculator_v1.jj
+localhost:v1 wy$ javacc calculator_v1.jj
 Java Compiler Compiler Version 7.0.13 (Parser Generator)
 (type "javacc" with no arguments for help)
 Reading from file calculator_v1.jj . . .
@@ -147,18 +147,18 @@ Parser generated successfully.
 ```
 执行完之后，会生成 7 个 Java 文件，如下所示：
 ```java
-localhost:Calculator wy$ ll
+localhost:v1 wy$ ll
 total 120
-drwxr-xr-x  10 wy  wheel    320 Nov 10 10:21 ./
-drwxr-xr-x   4 wy  wheel    128 Nov 10 10:18 ../
--rw-r--r--   1 wy  wheel   5434 Nov 10 10:21 Calculator.java
--rw-r--r--   1 wy  wheel    555 Nov 10 10:21 CalculatorConstants.java
--rw-r--r--   1 wy  wheel   8353 Nov 10 10:21 CalculatorTokenManager.java
--rw-r--r--   1 wy  wheel   6221 Nov 10 10:21 ParseException.java
--rw-r--r--   1 wy  wheel  11826 Nov 10 10:21 SimpleCharStream.java
--rw-r--r--   1 wy  wheel   4070 Nov 10 10:21 Token.java
--rw-r--r--   1 wy  wheel   4568 Nov 10 10:21 TokenMgrError.java
--rw-r--r--   1 wy  wheel    496 Nov 10 10:21 calculator_v1.jj
+drwxr-xr-x  10 wy  wheel    320 Nov 16 18:30 ./
+drwxr-xr-x   9 wy  wheel    288 Nov 16 18:29 ../
+-rw-r--r--   1 wy  wheel   5529 Nov 16 18:30 Calculator.java
+-rw-r--r--   1 wy  wheel    565 Nov 16 18:30 CalculatorConstants.java
+-rw-r--r--   1 wy  wheel   8383 Nov 16 18:30 CalculatorTokenManager.java
+-rw-r--r--   1 wy  wheel   6221 Nov 16 18:30 ParseException.java
+-rw-r--r--   1 wy  wheel  11826 Nov 16 18:30 SimpleCharStream.java
+-rw-r--r--   1 wy  wheel   4070 Nov 16 18:30 Token.java
+-rw-r--r--   1 wy  wheel   4568 Nov 16 18:30 TokenMgrError.java
+-rw-r--r--   1 wy  wheel    544 Nov 16 18:30 calculator_v1.jj
 ```
 其中：
 - `Calculator` 是解析器。
@@ -170,33 +170,33 @@ drwxr-xr-x   4 wy  wheel    128 Nov 10 10:18 ../
 image 用来表示 Token 对应输入文件中的字符序列。
 - `SimpleCharStream` 是一个转接器类，用于把字符传递给词法分析器。
 
-接下来我们对这些 java 文件进行编译，编译完成之后可得到对应的 class 文件：
+接下来我们对这些 Java 文件进行编译，编译完成之后可得到对应的 class 文件：
 ```java
-localhost:Calculator wy$ javac *.java
-localhost:Calculator wy$ ll
+localhost:v1 wy$ javac *.java
+localhost:v1 wy$ ll
 total 200
-drwxr-xr-x  17 wy  wheel    544 Nov 10 10:31 ./
-drwxr-xr-x   4 wy  wheel    128 Nov 10 10:18 ../
--rw-r--r--   1 wy  wheel   4547 Nov 10 10:31 Calculator.class
--rw-r--r--   1 wy  wheel   5434 Nov 10 10:21 Calculator.java
--rw-r--r--   1 wy  wheel    515 Nov 10 10:31 CalculatorConstants.class
--rw-r--r--   1 wy  wheel    555 Nov 10 10:21 CalculatorConstants.java
--rw-r--r--   1 wy  wheel   5692 Nov 10 10:31 CalculatorTokenManager.class
--rw-r--r--   1 wy  wheel   8353 Nov 10 10:21 CalculatorTokenManager.java
--rw-r--r--   1 wy  wheel   2936 Nov 10 10:31 ParseException.class
--rw-r--r--   1 wy  wheel   6221 Nov 10 10:21 ParseException.java
--rw-r--r--   1 wy  wheel   6586 Nov 10 10:31 SimpleCharStream.class
--rw-r--r--   1 wy  wheel  11826 Nov 10 10:21 SimpleCharStream.java
--rw-r--r--   1 wy  wheel    985 Nov 10 10:31 Token.class
--rw-r--r--   1 wy  wheel   4070 Nov 10 10:21 Token.java
--rw-r--r--   1 wy  wheel   2363 Nov 10 10:31 TokenMgrError.class
--rw-r--r--   1 wy  wheel   4568 Nov 10 10:21 TokenMgrError.java
--rw-r--r--   1 wy  wheel    496 Nov 10 10:21 calculator_v1.jj
+drwxr-xr-x  17 wy  wheel    544 Nov 16 18:30 ./
+drwxr-xr-x   9 wy  wheel    288 Nov 16 18:29 ../
+-rw-r--r--   1 wy  wheel   4577 Nov 16 18:30 Calculator.class
+-rw-r--r--   1 wy  wheel   5529 Nov 16 18:30 Calculator.java
+-rw-r--r--   1 wy  wheel    525 Nov 16 18:30 CalculatorConstants.class
+-rw-r--r--   1 wy  wheel    565 Nov 16 18:30 CalculatorConstants.java
+-rw-r--r--   1 wy  wheel   5707 Nov 16 18:30 CalculatorTokenManager.class
+-rw-r--r--   1 wy  wheel   8383 Nov 16 18:30 CalculatorTokenManager.java
+-rw-r--r--   1 wy  wheel   2936 Nov 16 18:30 ParseException.class
+-rw-r--r--   1 wy  wheel   6221 Nov 16 18:30 ParseException.java
+-rw-r--r--   1 wy  wheel   6586 Nov 16 18:30 SimpleCharStream.class
+-rw-r--r--   1 wy  wheel  11826 Nov 16 18:30 SimpleCharStream.java
+-rw-r--r--   1 wy  wheel    985 Nov 16 18:30 Token.class
+-rw-r--r--   1 wy  wheel   4070 Nov 16 18:30 Token.java
+-rw-r--r--   1 wy  wheel   2363 Nov 16 18:30 TokenMgrError.class
+-rw-r--r--   1 wy  wheel   4568 Nov 16 18:30 TokenMgrError.java
+-rw-r--r--   1 wy  wheel    544 Nov 16 18:30 calculator_v1.jj
 ```
 
 ## 3. 运行示例
 
-现在让我们再看一下 Calculator 类中的主方法：
+现在让我们再看一下 `Calculator` 类中的主方法：
 ```java
 static void main( String[] args ) throws ParseException, TokenMgrError {
   Calculator parser = new Calculator( System.in ) ;
@@ -205,15 +205,15 @@ static void main( String[] args ) throws ParseException, TokenMgrError {
 ```
 首先注意到 `main` 方法可能会抛出 `ParseException` 和 `TokenMgrError` 两个异常。这样抛出异常的风格并不是很好，更好的是应该捕捉这些异常，但是这样写可以让第本例子保持简短和整洁。
 
-`main` 方法第一行语句创建了一个解析器 parser 对象。使用的是 Calculator 类的默认构造器，接收一个 InputStream 类型对象作为输入。此外还有一个接收 Reader 对象的构造器。构造器依次创建生成 `SimpleCharacterStream` 类的实例和 `CalculatorTokenManager` 类的词法分析器对象。因此，结果是词法分析器通过 `SimpleCharacterStream` 实例对象从 `System.in` 中读取字符，解析器则是从词法分析器中读取 Token。
+`main` 方法第一行语句创建了一个解析器 `parser` 对象。使用的是 `Calculator` 类的默认构造器，接收一个 `InputStream` 类型对象作为输入。此外还有一个接收 `Reader` 对象的构造器。构造器依次创建生成 `SimpleCharacterStream` 类的实例和 `CalculatorTokenManager` 类的词法分析器对象。因此，结果是词法分析器通过 `SimpleCharacterStream` 实例对象从 `System.in` 中读取字符，解析器则是从词法分析器中读取 Token。
 
-第二行语句调用词法分析器中一个名为 `Start` 的生成方法。对于在规范中的每个 BNF 生产式，JavaCC 都会在解析器类中生成相应的方法。这个方法会尝试在输入流中查找与输入描述匹配的内容。在本例中，调用 `Start` 方法会让解析器尝试在输入中查找 Token 序列来与如下规范匹配：
+第二行语句调用词法分析器中一个名为 `Start` 的生成方法。对于在规范中的每个 `BNF` 产生式，JavaCC 都会在解析器类中生成相应的方法。这个方法会尝试在输入流中查找与输入描述匹配的内容。在本例中，调用 `Start` 方法会让解析器尝试在输入中查找 Token 序列来与如下规范匹配：
 ```java
 <NUMBER> (<PLUS> <NUMBER>)* <EOF>
 ```
 
-我们可以通过准备合适的输入文件并执行如下命令来运行程序：
-```
+跟[入门示例](https://smartsi.blog.csdn.net/article/details/143640803)一样我们可以通过准备合适的输入文件并执行如下命令来运行程序：
+```java
 java Calculator <input.txt
 ```
 > 在 input.txt 文件中包含输入序列
@@ -224,9 +224,9 @@ java Calculator <input.txt
 
 第一种是出现一个词法错误。在本例中，只有在输入中出现意外字符时才会发生词法错误。假设输入文件是 `123 - 456` 输入时就会产生词法错误。在这种情况下，程序将抛出 `TokenMgrError` 错误：
 ```java
-localhost:Calculator wy$ cat input.txt
+localhost:v1 wy$ cat input.txt
 123 - 456
-localhost:Calculator wy$ java Calculator <input.txt
+localhost:v1 wy$ java Calculator <input.txt
 Exception in thread "main" TokenMgrError: Lexical error at line 1, column 5.  Encountered: '-' (45),
 	at CalculatorTokenManager.getNextToken(CalculatorTokenManager.java:219)
 	at calculator_v1.jj_ntk_f(Calculator.java:156)
@@ -238,9 +238,9 @@ Exception in thread "main" TokenMgrError: Lexical error at line 1, column 5.  En
 
 第二种是出现有一个解析错误。当 Token 序列与 `Start` 的规范不匹配时，就会发生这种情况。例如 `123 ++ 456` 或者 `123 456`。在这种情况下，程序将抛出一个 `ParseException`。假设输入文件输入的是 `123 ++ 456`：
 ```java
-localhost:Calculator wy$ cat input.txt
+localhost:v1 wy$ cat input.txt
 123 ++ 456
-localhost:Calculator wy$ java Calculator <input.txt
+localhost:v1 wy$ java Calculator <input.txt
 Exception in thread "main" ParseException: Encountered " "+" "+ "" at line 1, column 6.
 Was expecting:
     <NUMBER> ...
@@ -252,9 +252,9 @@ Was expecting:
 ```
 假设输入文件输入的是 `123 456`：
 ```java
-localhost:Calculator wy$ cat input.txt
+localhost:v1 wy$ cat input.txt
 123 456
-localhost:Calculator wy$ java Calculator <input.txt
+localhost:v1 wy$ java Calculator <input.txt
 Exception in thread "main" ParseException: Encountered " <NUMBER> "456 "" at line 1, column 5.
 Was expecting one of:
     <EOF>
@@ -270,12 +270,12 @@ Was expecting one of:
 
 第三种情况是输入包含一系列与 `Start` 规范匹配的 Token。在这种情况下，不会抛出任何错误异常，程序正常结束。假设输入文件输入的是 `123 + 456`：
 ```java
-localhost:Calculator wy$ cat input.txt
+localhost:v1 wy$ cat input.txt
 123 + 456
-localhost:Calculator wy$ java Calculator <input.txt
-localhost:Calculator wy$
+localhost:v1 wy$ java Calculator <input.txt
+localhost:v1 wy$
 ```
-在这由于该解析器在输入合法时不执行任何操作，因此它的用途仅限于检查其输入的合法性。在后面内容中，我们将进行一些修改，使解析器更有用。
+在这由于该解析器在输入合法时不执行任何操作，因此它的用途仅限于检查其输入的合法性。在后面的实战内容中，我们将进行一些修改，使解析器输出计算结果。
 
 ## 4. 生成代码
 

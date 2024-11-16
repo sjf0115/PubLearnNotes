@@ -1,14 +1,15 @@
+[上一篇文章](https://smartsi.blog.csdn.net/article/details/143661219)中介绍了如何使用 Javacc 实现判断输入是否是一个合法的加法运算表达式，但是仅限于检查其输入的合法性，并没有输出表达式计算的结果。从这篇文章开始，我们会一步一步的介绍如何实现一个支持加减乘除运算的计算器。在这篇文章中介绍如何为计算器添加加法运算并输出计算结果。
 
 ## 1. 解析器规范优化
 
-在[上一个例子](https://smartsi.blog.csdn.net/article/details/143658003)中，JavaCC 为 BNF 生产式所生成的方法，比如 `Start`，这些方法默认只是简单的检查输入是否匹配 BNF 生产式指定的规范，实际上不会把数字加起来。假设输入文件输入的是 `123 + 456`：
+在[上一篇文章](https://smartsi.blog.csdn.net/article/details/143658003)中，JavaCC 为 `BNF` 产生式所生成的方法，比如 `Start`，这些方法默认只是简单的检查输入是否匹配 BNF 产生式指定的规范，实际上不会把数字加起来。假设输入文件输入的是 `123 + 456`：
 ```java
 localhost:adder wy$ cat input.txt
 123 + 456
 localhost:adder wy$ java Adder <input.txt
 localhost:adder wy$
 ```
-从上面可以看到解析器在输入合法时没有任何的输出，不执行任何操作仅限于检查其输入的合法性。但是，我们可以使用 Java 代码来扩展 BNF 生产式，使其在输入合法时输出整数加和的结果。只需要完善 JavaCC 为我们提供的框架即可实现我们想要的效果。我们将对上一个示例中的 `adder.jj` 语法文件做一些修改来扩展 BNF 生产式：
+从上面可以看到解析器在输入合法时没有任何的输出，不执行任何操作仅限于检查其输入的合法性。但是，我们可以使用 Java 代码来扩展 BNF 产生式，使其在输入合法时输出整数加和的结果。只需要完善 JavaCC 为我们提供的框架即可实现我们想要的效果。我们将对上一个示例中的 `adder.jj` 语法文件做一些修改来扩展 BNF 产生式：
 ```java
 /* adder.jj Adding up numbers */
 options {
@@ -62,7 +63,7 @@ int Start() throws NumberFormatException :
 }
 ```
 
-首先第一个改动是 BNF 生产式的返回类型，以及由此生成的方法从 `void` 变为 `int`。第二个改动是，声明了可以从生成的方法中抛出 `NumberFormatException` 异常。此外我们还新增声明了三个变量，其中变量 `t` 为 `Token` 类型(`Token` 类型是我们编译 `.jj` 文件之后生成的类)。`Token` 类的 `image` 字段记录匹配的字符串。在声明完变量之后，当 BNF 生产式匹配一个 token 时，我们可以通过为其分配引用来记录 `Token` 对象：
+首先第一个改动是 BNF 产生式的返回类型，以及由此生成的方法从 `void` 变为 `int`。第二个改动是，声明了可以从生成的方法中抛出 `NumberFormatException` 异常。此外我们还新增声明了三个变量，其中变量 `t` 为 `Token` 类型(`Token` 类型是我们编译 `.jj` 文件之后生成的类)。`Token` 类的 `image` 字段记录匹配的字符串。在声明完变量之后，当 BNF 产生式匹配一个 token 时，我们可以通过为其分配引用来记录 `Token` 对象：
 ```java
 t = <NUMBER>
 ```
@@ -71,7 +72,7 @@ t = <NUMBER>
 { i = Integer.parseInt( t.image ) ; }
 ```
 
-在 BNF 生产式的大括号内，我们可以添加任何我们想要的 Java 语句，这些 Java 语句在 javacc 编译生成解析器类时，将会被原封不动的复制到解析器类相应方法中。在改动中添加了三块 Java 语句，第一块是获取 token 匹配的数字并使用 `value` 变量存储：
+在 BNF 产生式的大括号内，我们可以添加任何我们想要的 Java 语句，这些 Java 语句在 javacc 编译生成解析器类时，将会被原封不动的复制到解析器类相应方法中。在改动中添加了三块 Java 语句，第一块是获取 token 匹配的数字并使用 `value` 变量存储：
 ```java
 { i = Integer.parseInt( t.image ) ; }
 { value = i ; }
@@ -99,7 +100,7 @@ public static void main( String[] args ) throws ParseException, TokenMgrError, N
 t = <NUMBER>
 { i = Integer.parseInt( t.image ) ; }
 ```
-虽然在这个例子中没有太大的影响，因为只涉及到两行代码，但是这种重复可能会导致后期维护问题。因此，我们将把这两行拆解成另一个 BNF 生产式，并命名为 `Primary`：
+虽然在这个例子中没有太大的影响，因为只涉及到两行代码，但是这种重复可能会导致后期维护问题。因此，我们将把这两行拆解成另一个 BNF 产生式，并命名为 `Primary`：
 ```java
 int Start() throws NumberFormatException :
 {

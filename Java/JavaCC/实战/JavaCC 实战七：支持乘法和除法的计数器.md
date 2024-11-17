@@ -1,22 +1,22 @@
-为了得到一个很实用的计算器，我们需要支持加法、减法、乘法和除法等运算符。这篇文章介绍如何为计算器添加乘法和除法运算。
+在[上一篇文章](https://smartsi.blog.csdn.net/article/details/143825513)中我们实现了一个支持加法、减法运算的计算器。为了得到一个更实用的计算器，我们需要更多的运算符，例如乘法和除法。这篇文章介绍如何为计算器添加乘法和除法运算。
 
 ## 1. 编写语法文件
 
-你可以使用你喜欢的文本编辑器创建和编辑语法文件。在这我们创建一个 `calculator_v5.jj` 语法文件。在本节的其余部分中，代码示例将是 `calculator_v5.jj` 的文件的一部分内容。这个文件包含了用于解析器和词法分析器的 JavaCC 规范，并被用作 JavaCC 程序的输入。截止到[上一个例子]()我们已经为计算器添加了加法、减法运算并支持小数运算：
+你可以使用你喜欢的文本编辑器创建和编辑语法文件。在这我们创建一个 `calculator_v5.jj` 语法文件。在本节的其余部分中，代码示例将是 `calculator_v5.jj` 的文件的一部分内容。这个文件包含了用于解析器和词法分析器的 JavaCC 规范，并被用作 JavaCC 程序的输入。截止到[上一个例子](https://smartsi.blog.csdn.net/article/details/143825513)我们已经为计算器添加了加法、减法运算并支持小数运算：
 ```java
 options {
   STATIC = false ;
 }
-PARSER_BEGIN(CalculatorMinus)
+PARSER_BEGIN(Calculator)
   import java.io.PrintStream ;
-  class CalculatorMinus {
+  class Calculator {
       public static void main( String[] args ) throws ParseException, TokenMgrError, NumberFormatException {
-          CalculatorMinus parser = new CalculatorMinus( System.in ) ;
+          Calculator parser = new Calculator( System.in ) ;
           parser.Start(System.out) ;
       }
       double previousValue = 0.0 ;
   }
-PARSER_END(CalculatorMinus)
+PARSER_END(Calculator)
 
 
 SKIP : { " " }
@@ -273,4 +273,11 @@ localhost:v5 wy$ cat input.txt
 2+3*4+5
 localhost:v5 wy$ java Calculator <input.txt
 19.0
+```
+假设输入是 `2+10/2+5*2-2`，会在控制台看到结果 `15.0`：
+```java
+localhost:v5 wy$ cat input.txt
+2+10/2+5*2-2
+localhost:v5 wy$ java Calculator <input.txt
+15.0
 ```

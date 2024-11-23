@@ -40,11 +40,11 @@ permalink: relational-algebra-of-sql-in-calcite
 
 (1) 在User关系中查找出年龄大于18的所有元组并返回这些元组组成的关系
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Calcite/relational-algebra-of-sql-in-calcite-1.png?raw=true)
+![](img-relational-algebra-of-sql-in-calcite-1.png)
 
 (2) 在User关系中查找出年龄大于20并且工资高于10000的所有元组并返回这些元组组成的关系
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Calcite/relational-algebra-of-sql-in-calcite-2.png?raw=true)
+![](img-relational-algebra-of-sql-in-calcite-2.png)
 
 ### 2. 投影
 
@@ -57,7 +57,7 @@ permalink: relational-algebra-of-sql-in-calcite
 
 在User关系中查找出年龄大于18的所有元组并返回这些元组的姓名name组成的关系。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Calcite/relational-algebra-of-sql-in-calcite-3.png?raw=true)
+![](img-relational-algebra-of-sql-in-calcite-3.png)
 
 ### 3. 并
 
@@ -69,7 +69,7 @@ permalink: relational-algebra-of-sql-in-calcite
 
 在User关系中找出所有年龄大于18的姓名，在Home关系中找出所有家在NewYork的人的姓名，将这两个关系取并集，得到一个并关系。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Calcite/relational-algebra-of-sql-in-calcite-4.png?raw=true)
+![](img-relational-algebra-of-sql-in-calcite-4.png)
 
 ### 4. 差
 
@@ -81,7 +81,7 @@ permalink: relational-algebra-of-sql-in-calcite
 
 在User关系中找出所有年龄大于18的姓名，在Home关系中找出所有家在NewYork的人的姓名，得到User中存在而Home中不存在的人的姓名的关系。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Calcite/relational-algebra-of-sql-in-calcite-5.png?raw=true)
+![](img-relational-algebra-of-sql-in-calcite-5.png)
 
 ### 5. 笛卡儿积
 
@@ -93,7 +93,7 @@ permalink: relational-algebra-of-sql-in-calcite
 
 将User关系和Home关系做笛卡儿乘积运算
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Calcite/relational-algebra-of-sql-in-calcite-6.png?raw=true)
+![](img-relational-algebra-of-sql-in-calcite-6.png)
 
 ### 6. 更名
 
@@ -106,7 +106,7 @@ permalink: relational-algebra-of-sql-in-calcite
 
 将User关系中所有年龄大于18的人的姓名取出作为一个新的关系，并把这个关系起名为adult。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Calcite/relational-algebra-of-sql-in-calcite-7.png?raw=true)
+![](img-relational-algebra-of-sql-in-calcite-7.png)
 
 ### 7. 交
 
@@ -118,7 +118,7 @@ permalink: relational-algebra-of-sql-in-calcite
 
 在User关系中找出所有年龄大于18的姓名，在Home关系中找出所有家在NewYork的人的姓名，将这两个关系中都存在的姓名取出作为新的关系。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Calcite/relational-algebra-of-sql-in-calcite-8.png?raw=true)
+![](img-relational-algebra-of-sql-in-calcite-8.png)
 
 ### 8. 自然连接
 
@@ -132,7 +132,7 @@ permalink: relational-algebra-of-sql-in-calcite
 
 将User关系和Home关系做自然连接
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Calcite/relational-algebra-of-sql-in-calcite-9.png?raw=true)
+![](img-relational-algebra-of-sql-in-calcite-9.png)
 
 ### 9. 赋值
 
@@ -144,10 +144,4 @@ permalink: relational-algebra-of-sql-in-calcite
 
 在User关系中找出所有年龄大于18的姓名，在Home关系中找出所有家在NewYork的人的姓名，将这两个关系中都存在的姓名取出作为新的关系。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Calcite/relational-algebra-of-sql-in-calcite-10.png?raw=true)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
-
-原文：[SQL 形式化语言——关系代数](https://blog.csdn.net/QuinnNorris/article/details/70739094)
+![](img-relational-algebra-of-sql-in-calcite-10.png)

@@ -13,15 +13,15 @@ Apache Calcite 是一个基础软件框架，能够为许多流行的开源数�
 
 ## 1. 介绍
 
-在开创性的 System R 之后，传统的关系数据库引擎主导了数据处理领域。然而，早在 2005 年，Stonebraker 和 Çetintemel 就预测我们会看到一系列有特性的引擎的出现，例如列式存储，流处理引擎，文本搜索引擎等等。他们认为这些专用的引擎可以提供更具成本效益的性能，并且终结 `One size fits all` 的模式。现在许多专门的开源数据系统已经变得流行，如 Storm 和 Flink（流处理），Elasticsearch（文本搜索），Apache Spark，Druid 等。随着组织投资于针对其特定需求量身定制的数据处理系统，出现了两个主要问题：
-- 这些专用系统的开发人员会遇到查询优化的问题、需要像 SQL 以及相关扩展(例如流查询、LINQ 的语言集成查询)查询语言的支持。如果没有统一的框架，每个开发工程师都独立开发类似的优化逻辑和语言支持会大大浪费人力。
+在开创性的 System R 之后，传统的关系数据库引擎主导了数据处理领域。然而，早在 2005 年，Stonebraker 和 Çetintemel 就预测我们会看到一系列有特性的引擎的出现，例如列式存储，流处理引擎，文本搜索引擎等等。他们认为这些专用的引擎可以提供更具成本效益的性能，并且终结 `One size fits all` 的模式。现在已经有许多专门的开源数据系统越来越流行，如 Storm 和 Flink（流处理），Elasticsearch（文本搜索），Apache Spark，Druid 等。随着投资于针对其特定需求量身定制的数据处理系统，出现了两个主要问题：
+- 这些专用系统的开发人员会遇到查询优化的问题、需要像 SQL 以及相关扩展(例如流查询、LINQ 的语言集成查询)查询语言的支持。如果没有统一的框架，每个开发工程师都独立开发类似的优化逻辑和支持语言会大大浪费人力。
 - 使用这些专用系统的程序员通常必须将其中的几个集成在一起使用。可能依赖 Elasticsearch，Apache Spark 或者 Druid。我们需要构建能够支持跨异构数据源的优化查询的系统。
 
-Apache Calcite 是为解决这些问题而开发的。它是一个完整的查询处理系统，提供许多常见功能：查询执行，查询优化以及查询语言，这是任何数据库管理系统都需要的功能，但是不提供数据存储和管理功能，留给专用引擎来实现。Calcite 很快被 Hive、Drill、Storm 以及许多其他数据处理引擎采用了，为它们提供了高级查询优化和查询语言。例如，Hive 是一个建立在 Apache Hadoop 之上的流行数据仓库项目。随着 Hive 从批处理转向交互式 SQL 查询平台，很明显这个项目核心需要一个强大的优化器。因此，Hive 采用了 Calcite 作为它的优化器，并且它们之间的集成一直在持续增长。许多其他项目和产品也纷纷效仿，包括 Flink，MapD 等。
+Apache Calcite 是为解决这些问题而开发的。它是一个完整的查询处理系统，提供了许多常见功能：查询执行，查询优化以及查询语言，这是任何数据库管理系统都需要的功能，但是不提供数据存储和管理功能，留给专用引擎来实现。Calcite 很快被 Hive、Drill、Storm 以及许多其他数据处理引擎采用了，为它们提供了高级查询优化和查询语言。例如，Hive 是一个建立在 Apache Hadoop 之上的流行数据仓库项目。随着 Hive 从批处理转向交互式 SQL 查询平台，很明显这个项目核心需要一个强大的优化器。因此，Hive 采用 Calcite 作为它的优化器，并且它们之间的集成越来越紧密。许多其他项目和产品也纷纷效仿，包括 Flink，MapD 等。
 
-此外，Calcite 通过向多个系统暴露一个通用接口来实现跨平台优化。为了保证效率，优化器需要全局推理，例如，在物化视图跨不同系统中做出决策。建立一个通用框架并非没有挑战。特别是，框架需要有足够的可扩展性和灵活性来适应需要集成的不同类型的系统。我们相信如下特性有助于 Calcite 在开源社区和行业中的广泛采用：
+此外，Calcite 通过向多个系统暴露一个通用接口来实现跨平台优化。为了保证效率，优化器需要全局推理，例如，在物化视图跨不同系统中做出决策。建立一个通用框架并非没有挑战。特别是，框架需要有足够的可扩展性和灵活性来适应不同类型的集成系统。我们相信如下特性有助于 Calcite 在开源社区和行业中的广泛采用：
 - 开源友好
-  - 过去十年中，许多主要的数据处理平台要么是开源的，要么很大程度上是基于开源的。Calcite 是一个 Apache 软件基金会(ASF)孵化的开源的框架，提供了协作开发项目的手段。此外，该软件由 Java 编写，更易与许多最新的数据处理系统（它们也大都由 Java 编写）进行集成，尤其是那些在 Hadoop 生态系统里的。
+  - 过去十年中，许多主要的数据处理平台要么是开源的，要么很大程度上是基于开源的。Calcite 是一个 Apache 软件基金会(ASF)孵化的开源框架，提供了协作开发项目的手段。此外，该软件由 Java 编写，更易与许多最新的数据处理系统（它们也大都由 Java 编写）进行集成，尤其是那些在 Hadoop 生态系统里的。
 - 多种数据模型
   - Calcite 提供对查询优化和查询语言的支持，同时使用流和常规数据处理范例。Calcite 将流视为有时间顺序的记录或事件集合，这些记录或事件不像传统数据处理系统那样持久保存到磁盘。
 - 灵活的查询优化器
@@ -53,16 +53,16 @@ Myria 是用于大数据分析的通用引擎，具有对 Python 语言的高级
 
 ## 3. 架构
 
-Apache Calcite 包含了许多传统数据库管理系统所具备的组件，但同时也丢弃了一些关键组件，例如数据存储、处理数据的算法以及用于存储元数据的存储库。Calcite 是有意丢弃这些组件的，这样能让 Calcite 成为衔接多数据存储以及多数据处理引擎的一种更好的选择，同时也为构建定制化的数据处理系统提供坚实的基础。
+Apache Calcite 包含了许多传统数据库管理系统所具备的组件，但同时也放弃了一些其它的关键组件，例如数据存储、处理数据的算法以及用于存储元数据的存储库。Calcite 是有意放弃这些组件的，这样能让 Calcite 成为连接多数据存储以及多数据处理引擎的一种更好的选择，同时也为构建定制化的数据处理系统提供坚实的基础。
 
-![](1)
+![](img-apache-calcite-a-foundational-framework-for-optimized-query-processing-over-heterogeneous-data-sources-1.png)
 
 上图展示了 Apache Calcite 架构的主要组成组件。Calcite 采用关系操作树作为其内部表示。优化引擎主要包括三个组件：规则，元数据提供程序以及计划引擎，我们将在第 6 节详细讨论这些组件。图中虚线表示与外部框架的交互，Caclcite 提供了多种方式与外部框架交互。
 
-首先，Calcite 包含一个查询解析器和验证器，可以将 SQL 查询转换为关系操作树。由于 Calcite 不包含存储层，它提供了一种机制，可以通过适配器在外部存储引擎中定义模式 Schema 和视图(第 5 节会详细介绍)，因此 Calcite 可以在这些引擎之上使用。其次，尽管 Calcite 为需要这种数据库语言支持的系统提供了优化的 SQL 支持，但它也为已经拥有自己的语言解析和解释的系统提供了优化支持：
-- 有些系统支持 SQL 查询，但是没有或者只是有限的 SQL 查询优化。例如，Hive 和 Spark 最初均提供了对 SQL 查询的支持，但是它们并没有优化器。对于这种情况，一旦查询被优化后，Calcite 就可以将关系表达式转回 SQL。这种特性使得 Calcite 能够作为独立的系统在在那些有 SQL 接口，但无优化器的数据管理系统之上运行。
-- Calcite 架构不仅仅面向 SQL 查询优化。数据处理系统通常会为他们自己的查询语言选择他们自己的解析器。对于这种情况，Calcite 也能起作用。实际上，Calcite 还允许通过直接实例化关系操作来轻松地构造操作树。可以使用内置的关系表达式 Builder 接口来实现。例如，假设我们想使用表达式构建器表达以下 Apache Pig 脚本：
-```
+首先，Calcite 包含一个查询解析器和验证器，可以将 SQL 查询转换为关系操作树。由于 Calcite 不包含存储层，它提供了一种可以通过适配器在外部存储引擎中定义模式 Schema 和视图的机制(第 5 节会详细介绍)，因此 Calcite 可以在这些引擎之上使用。其次，尽管 Calcite 为需要这种数据库语言支持的系统提供了优化的 SQL 支持，但它也为已经拥有自己的语言解析和解释的系统提供了优化支持：
+- 有些系统支持 SQL 查询，但是没有或者只是有限的 SQL 查询优化。例如，Hive 和 Spark 最初均提供了对 SQL 查询的支持，但是它们并没有优化器。对于这种情况，一旦查询被优化后，Calcite 就可以将关系表达式转回 SQL。这种特性使得 Calcite 能够作为独立的系统在那些有 SQL 接口，但无优化器的数据管理系统之上运行。
+- Calcite 架构不仅仅面向 SQL 查询优化。数据处理系统通常会为他们自己的查询语言选择他们自己的解析器。对于这种情况，Calcite 也能起作用。实际上，Calcite 还允许通过直接实例化关系操作来轻松地构造操作树。可以使用内置的关系表达式 Builder 接口来实现。例如，假设我们想使用表达式构建器表达如下 Apache Pig 脚本：
+```sql
 emp = LOAD 'employee_data' AS (deptno, sal);
 emp_by_dept = GROUP emp by (deptno);
 emp_agg = FOREACH emp_by_dept GENERATE GROUP as deptno, COUNT(emp.sal) AS c, SUM(emp.sal) as s;
@@ -88,7 +88,7 @@ final RelNode node = builder.scan("employee_data")
 
 除了这些性质外，Calcite 的一个主要特点是即调用约定（calling convention）。本质上，特质表示表达式执行的数据处理系统。将调用约定当作特质，可以使 Calcite 能够保持透明的优化查询，对于跨引擎执行而言，该约定被看作是其他物理属性。
 
-![](2)
+![](img-apache-calcite-a-foundational-framework-for-optimized-query-processing-over-heterogeneous-data-sources-2.png)
 
 例如，考虑将存储在 MySQL 的 Products 表与存储在 Splunk 中的 Orders 表，如上图所示。首先，Orders 表的扫描发生在 Splunk 中，而 Products 表的扫描发生在位 jdbc-MySQL 中。这些表必须在各自的引擎中进行扫描。连接 JOIN 在逻辑约定中，这意味着关联操作在逻辑上没有选择具体的执行引擎。此外，上图中的 SQL 查询包含一个 filter(where子句)，通过适配器特定的规则(参见第5节)被下推到 Splunk。一种可能的实现是使用 Apache Spark 作为外部引擎：将关联 JOIN 操作转换到在 Spark 中实现，同时也将 MySQL 和 Splunk 的输入也转换至 Spark 中实现。还有一种更有效的实现：Splunk 可以通过 ODBC 实现对 MySQL 的查找，如此就可以实现整个操作在 Splunk 引擎中执行。
 
@@ -126,7 +126,7 @@ ORDER BY COUNT(*) DESC;
 ```
 上面查询对应的关系代数表达式如下图中的左图所示，因为 WHERE 子句只应用在 sales 表中，我们可以将过滤 Filter 下推到 JOIN 之前，如此就变成下图中右图所示的关系代数表达式。这种优化可以显著减少查询的执行时间，因为我们不必对满足谓词匹配的行执行关联操作。此外，如果 sales 表和 pruducts 表保存在各自的后端中，将 Filter 下推到 Join 之前可以使适配器将 Filter 下推至具体的后端中。Calcite 通过 FilterIntoJoinRule 规则实现了这样的优化，该规则检测 Filter 节点的父节点是否为 JOIN，如果是则执行前文说到的优化。这种的优化方式使得 Calcite 的优化方法非常灵活。
 
-![](3)
+![](img-apache-calcite-a-foundational-framework-for-optimized-query-processing-over-heterogeneous-data-sources-3.png)
 
 ### 6.2 元数据 Provider
 
@@ -248,7 +248,7 @@ Calcite 被广泛采用，特别是在业界的开源项目中。由于 Calcite 
 - 是否使用 Calcite 的查询关系代数表示对数据的操作；
 - 依赖 Calcite 执行的引擎，例如集成 Calcite 的本地引擎，Calcite 操作符，或任何其他项目。
 
-![](4)
+![](img-apache-calcite-a-foundational-framework-for-optimized-query-processing-over-heterogeneous-data-sources-4.png)
 
 Drill 是一个基于 Dremel 的系统，灵活的数据处理引擎。其内部采用无模式 Schema 的 JSON 文档数据模型。类似于 SQL++，Drill 有自己的 SQL 方言，包含了对半结构化数据查询的扩展。
 

@@ -112,6 +112,15 @@
 - [ ] [【Flink】第二十七篇：三天撸了一个 Flink SQL 字段血缘算法](https://mp.weixin.qq.com/s/liTG35nbfIec-jrpp3Wh0A)
 - [ ] [FlinkSQL字段血缘解决方案及源码](https://mp.weixin.qq.com/s/ub3_so6q-0N78Sri9CVUew)
 - [x] [基于 Apache Calcite 的多引擎指标管理最佳实践](https://smartsi.blog.csdn.net/article/details/138056926)
-
+- [ ] [使用Calcite实现一个简单的数据库](https://mp.weixin.qq.com/s/xaCEkCi85FSrzcqwq3n3xA)
+- [ ] [如何使用calcite构建SQL并执行查询](https://mp.weixin.qq.com/s/KrXXlNyjpZQaC0GaUsbbvg)
+- [ ] [如何使用calcite rule做SQL重写（上）](https://mp.weixin.qq.com/s/1zHmQj3JPKiBfKBeHOdcSg)
+- [ ] [Apache Calcite SQL Parser 原理剖析](https://mp.weixin.qq.com/s/Dr485AZqQ2doT0wNZJmzIw)
+- [ ] [Apache Calcite 快速入门指南](https://mp.weixin.qq.com/s/MZoP0j7SD8apkd1nsUd1UA)
+- [x] [基于 Apache Calcite 的多引擎指标管理最佳实践](https://smartsi.blog.csdn.net/article/details/138056926)
+- [ ] [Apache Calcite System Catalog 实现探究](https://mp.weixin.qq.com/s/uX0ss0Z1RWYo04bhkPulvQ)
+- [ ] [CBO 优化的基石——Apache Calcite 统计信息和代价模型详解](https://mp.weixin.qq.com/s/dfnh7ja_rCO2MqRvtSboTg)
+- [ ] [深入理解 Apache Calcite ValcanoPlanner 优化器](https://mp.weixin.qq.com/s/rBDSs4Ul7RdpvBPPkYq8Mw)
+- [ ] [深度探究 Apache Calcite SQL 校验器实现原理](https://mp.weixin.qq.com/s/vev4QM0eczofP1R_3dlsYg)
 
 。。。

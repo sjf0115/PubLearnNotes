@@ -36,20 +36,6 @@ scala>
 ```
 在这我们创建一个具有两个执行线程的本地 StreamingContext，并且批处理间隔为 10 秒：
 ```scala
-Spark context Web UI available at http://192.168.5.21:4041
-Spark context available as 'sc' (master = local[2], app id = local-1733560667535).
-Spark session available as 'spark'.
-Welcome to
-      ____              __
-     / __/__  ___ _____/ /__
-    _\ \/ _ \/ _ `/ __/  '_/
-   /___/ .__/\_,_/_/ /_/\_\   version 3.1.3
-      /_/
-
-Using Scala version 2.12.10 (Java HotSpot(TM) 64-Bit Server VM, Java 1.8.0_161)
-Type in expressions to have them evaluated.
-Type :help for more information.
-
 scala> import org.apache.spark.streaming._
 import org.apache.spark.streaming._
 
@@ -105,6 +91,7 @@ Time: 1733566330000 ms
 -------------------------------------------
 648
 ```
+需要注意的是 Spark Streaming Context 一旦启动，便不能添加的新的 DStream，也不能修改现有的 DStream 结构。
 
 ## 5. 停止 Streaming 进程
 

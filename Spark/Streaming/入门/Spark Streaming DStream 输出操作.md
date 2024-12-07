@@ -1,19 +1,32 @@
-输出操作允许将DStream的数据推送到外部系统，如数据库或文件系统。 由于输出操作实际上允许外部系统使用转换操作后的数据，所以它们触发所有DStream转换操作的实际执行（类似于RDD的动作操作）(they trigger the actual execution of all the DStream transformations (similar to actions for RDDs))。 目前，定义了以下输出操作：
+> Spark 版本：3.1.3
 
+输出操作允许将 DStream 的数据推送到外部系统，例如数据库或者文件系统。由于输出操作实际上让外部系统消费转换操作后的数据，所以它们会触发 DStream 所有转换操作的实际执行（类似于 RDD 的动作操作）。 目前，定义了以下输出操作：
 
 函数 | 描述
 ---|---
-print() | 在运行流应用程序的驱动器节点上打印DStream每个批次中的前十个元素．这对开发和调试很有用。在Python API中称为`pprint()`
-saveAsTextFiles(prefix, [suffix]) |将此DStream的内容另存为文本文件。每个批处理间隔的文件名是根据前缀和后缀`prefix-TIME_IN_MS [.suffix]`生成的
+print() | 在运行流应用程序的 Driver 节点上打印 DStream 每个批次中的前十个元素。这对开发和调试很有帮助。在 Python API 中为 `pprint()`
+saveAsTextFiles(prefix, [suffix]) | 将此 DStream 的内容另存为文本文件。每个批处理间隔的文件名是根据前缀和后缀`prefix-TIME_IN_MS [.suffix]`生成的
 saveAsObjectFiles(prefix, [suffix])|将此DStream的内容保存为Java对象序列化后的SequenceFiles。每个批处理间隔的文件名是根据前缀和后缀`prefix-TIME_IN_MS [.suffix]`生成的．这在Python API中是不可用的
 saveAsHadoopFiles(prefix, [suffix])|将此DStream的内容另存为Hadoop文件。每个批处理间隔的文件名是根据前缀和后缀`prefix-TIME_IN_MS [.suffix]`生成的
 foreachRDD(func)|这是最常用的输出操作，接收一个函数`func`，`func`应用到从流生成的每个RDD上。该函数将每个RDD中的数据推送到外部系统，例如将RDD保存到文件，或将其通过网络写入数据库。请注意，函数`func`在运行流应用程序的驱动程序进程中执行，通常会在其中包含RDD动作操作，强制流式RDD计算。
 
 
-
-==备注==
-
 输出操作指定了流数据经转换操作得到的数据所要执行的操作．与RDD中的惰性求值类似，如果一个DStream以及派生的DStream都没有被执行输出操作，那么这些DStream就都不会被求值．如果StreamingContext中没有设定输出操作，整个context就都不会启动．
+
+## 1. print
+
+print 输出操作在运行流应用程序的 Driver 节点上打印 DStream 每个批次中的前十个元素。
+
+## 2. saveAsTextFiles
+
+
+
+## 3. saveAsObjectFiles
+
+## 4. saveAsHadoopFiles
+
+## 5. foreachRDD
+
 
 ### 使用foreachRDD的设计模式
 
@@ -186,8 +199,4 @@ dstream.foreachRDD(lambda rdd: rdd.foreachPartition(sendPartition))
 - 默认情况下，输出操作是一次执行一个的。它们按照它们在应用程序中定义的顺序执行。
 
 
-原文：http://spark.apache.org/docs/latest/streaming-programming-guide.html#output-operations-on-dstreams
-
-
-
-
+原文：[Output Operations on DStreams](https://archive.apache.org/dist/spark/docs/3.1.3/streaming-programming-guide.html#output-operations-on-dstreams)

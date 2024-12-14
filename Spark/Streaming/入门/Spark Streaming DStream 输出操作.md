@@ -17,6 +17,16 @@ foreachRDD(func)|这是最常用的输出操作，接收一个函数`func`，`fu
 
 print 输出操作在运行流应用程序的 Driver 节点上打印 DStream 每个批次中的前十个元素。
 
+```sql
+INSERT INTO TABLE tag_user VALUES ('tag3', '1'), ('tag3', '2');
+```
+
+<property>
+      <name>fs.defaultFS</name>
+      <value>hdfs://localhost:9000</value>
+   </property>
+
+
 ## 2. saveAsTextFiles
 
 将此 DStream 的内容另存为文本文件

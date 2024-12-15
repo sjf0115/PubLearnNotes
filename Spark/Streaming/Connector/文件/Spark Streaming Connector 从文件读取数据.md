@@ -27,18 +27,15 @@ StreamingContext.fileStream(directory, kClass, vClass, fClass)
 
 下面让我们详细看一下 Spark Streaming 中文件 Source 在某个时刻的记忆窗口：
 
-![](1)
+![](img-spark-streaming-connector-text-file-1.png)
 
 从上图中可以看到记忆窗口长度为 60 秒，批次间隔为 10 秒，记忆窗口包含了 6 个批次。文件 F1 和 F2 处于被忽略区域，可能是因为之前被处理过了，也有可能是从程序上线开始就不曾出现在记忆窗口中。文件 F3、F4 和 F5 已经在之前中被处理了，则会从记忆列表中移除，被程序遗忘掉。文件 F6 是新产生的且不曾被处理，因此会加入记忆列表等待被处理。
 
 等到下一个批次间隔，如下图所示，我们可以看到 F3 加入了被忽略区域、F6 从记忆列表中移除。新文件 F7 加入记忆列表等待被处理:
 
-![](2)
+![](img-spark-streaming-connector-text-file-2.png)
 
-该过程会随着 Spark Streaming 一直持续进行。可以通过设置 `spark.streaming.minRememberDuration` 参数配置记忆窗口的长度，默认为 60 秒。需要注意的是这里假定文件系统的时钟与 Spark Streaming 作业中 executor 的时钟是保持同步的。这个参数对于动态调整 Spark Streaming 的数据保留时间至关重要，因为它决定了微批次在处理过程中应当保留数据的最小时间。如果你在代码中看到类似 `streamingContext.remember(Minutes.minutes(10))` 这样的调用，实际上是在设置 `spark.streaming.minRememberDuration` 的值。
-
-假设配置 `spark.streaming.minRememberDuration` 参数为 45 秒，记忆窗口也可能不为 45 秒。因为记忆窗口会根据微批来计算，实际记忆窗口计算公式为 `记忆窗口/批次间隔的值向上取值 * 批次间隔`，即批次间隔的整数倍数。假设使用默认 60 秒的记忆窗口和 45 秒的批次间隔，那么实际记忆窗口为 `ceil(60/45) * 45`，即实际的记忆窗口长度为 90 秒。
-
+该过程会随着 Spark Streaming 一直持续进行。可以通过设置 `spark.streaming.minRememberDuration` 参数配置记忆窗口的长度，默认为 60 秒。需要注意的是这里假定文件系统的时钟与 Spark Streaming 作业中 executor 的时钟是保持同步的。这个参数对于动态调整 Spark Streaming 的数据保留时间至关重要，因为它决定了微批次在处理过程中应当保留数据的最小时间。假设配置 `spark.streaming.minRememberDuration` 参数为 45 秒，记忆窗口也可能不为 45 秒。因为记忆窗口还会根据微批来计算，实际记忆窗口计算公式为 `记忆窗口/批次间隔的值向上取值 * 批次间隔`，即批次间隔的整数倍数。假设使用默认 60 秒的记忆窗口和 45 秒的批次间隔，那么实际记忆窗口为 `ceil(60/45) * 45`，即实际的记忆窗口长度为 90 秒。
 
 ## 3. 实战
 

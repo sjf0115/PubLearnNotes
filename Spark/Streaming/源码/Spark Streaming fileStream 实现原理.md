@@ -5,4 +5,199 @@ fileStream 是Spark Streaming Basic Source 的一种，用于“近实时”地�
 
 之所以称之为“近实时”就是基于约束条件（2），文件的数据必须全部写入完成，并且被“移动”或“重命名”至目录dataDirectory中之后，这些文件才可以被处理。
 
-调用示例如下：
+## 1. fileStream
+
+创建一个输入流，用于监视 Hadoop 兼容的文件系统中的新文件，并使用给定的键值类型和输入格式读取它们。需要注意的是以 `.` 开头的文件会被被忽略，后文中会介绍。
+```java
+def fileStream[K, V, F <: NewInputFormat[K, V]](
+    directory: String,
+    kClass: Class[K],
+    vClass: Class[V],
+    fClass: Class[F],
+    filter: JFunction[Path, JBoolean],
+    newFilesOnly: Boolean,
+    conf: Configuration): JavaPairInputDStream[K, V] = {
+  implicit val cmk: ClassTag[K] = ClassTag(kClass)
+  implicit val cmv: ClassTag[V] = ClassTag(vClass)
+  implicit val cmf: ClassTag[F] = ClassTag(fClass)
+  def fn: (Path) => Boolean = (x: Path) => filter.call(x).booleanValue()
+  ssc.fileStream[K, V, F](directory, fn, newFilesOnly, conf)
+}
+
+def fileStream[
+    K: ClassTag,
+    V: ClassTag,
+    F <: NewInputFormat[K, V]: ClassTag
+  ] (directory: String,
+     filter: Path => Boolean,
+     newFilesOnly: Boolean,
+     conf: Configuration): InputDStream[(K, V)] = {
+    new FileInputDStream[K, V, F](this, directory, filter, newFilesOnly, Option(conf))
+  }
+```
+该方法中的几个参数如下所示：
+- directory：监控新文件的 HDFS 目录
+- kClass：读取 HDFS 文件键的类
+- vClass：读取 HDFS 文件值的类
+- fClass：读取 HDFS 文件的输入格式类
+- filter：用户指定的文件过滤器，用于过滤 directory 中的文件
+- newFilesOnly：是否只处理新文件，忽略目录中已有文件。如果为 true，表示忽略已有文件；如果为 false，表示需要处理已有文件；
+- conf：Hadoop 配置
+
+> fileStream 还有另外两个重载方法，在此不再赘述。
+
+## 2. FileInputDStream
+
+fileStream 的核心逻辑交由 DStream 的一个实现类 `FileInputDStream`。而 FileInputDStream 的核心逻辑就是以固定的批次间隔时间不断地探测监控目录 directory，每次探测时将文件最近修改时间处于时间段 `(currentTime - modTimeIgnoreThreshold, currentTime]` 内的新文件(以及满足过滤条件)封装为 RDD 最终交由 Spark 处理。该逻辑由方法 compute 实现：
+```java
+override def compute(validTime: Time): Option[RDD[(K, V)]] = {
+  // 计算新文件
+  val newFiles = findNewFiles(validTime.milliseconds)
+  // 新文件加入待处理列表中
+  batchTimeToSelectedFiles.synchronized {
+      batchTimeToSelectedFiles += ((validTime, newFiles))
+  }
+  recentlySelectedFiles ++= newFiles
+  val rdds = Some(filesToRDD(newFiles))
+  val metadata = Map(
+    "files" -> newFiles.toList,
+    StreamInputInfo.METADATA_KEY_DESCRIPTION -> newFiles.mkString("\n"))
+  val inputInfo = StreamInputInfo(id, 0, metadata)
+  ssc.scheduler.inputInfoTracker.reportInfo(validTime, inputInfo)
+  rdds
+}
+```
+整个过程可以分为探测新文件、加入文件列表、封装 RDD 几个核心步骤。
+
+查找自上次调用此方法以来被修改的新文件，并封装生成 RDD。需要注意的是，在这会维护一个在上一次调用此方法的最新修改时间内处理的文件列表 。这是因为 FileStatus API 返回的修改时间在HDFS中似乎只返回秒粒度的时间。新文件的修改时间可能与前一次调用该方法的最新修改时间相同，但在前一次调用中没有处理。
+
+### 2.1 探测新文件
+
+```java
+private def findNewFiles(currentTime: Long): Array[String] = {
+  try {
+    lastNewFileFindingTime = clock.getTimeMillis()
+
+    // 计算忽略阈值
+    val modTimeIgnoreThreshold = math.max(
+        initialModTimeIgnoreThreshold,
+        currentTime - durationToRemember.milliseconds
+    )
+
+    // 计算新文件
+    val directories = Option(fs.globStatus(directoryPath)).getOrElse(Array.empty[FileStatus])
+      .filter(_.isDirectory)
+      .map(_.getPath)
+    val newFiles = directories.flatMap(dir =>
+      fs.listStatus(dir)
+        .filter(isNewFile(_, currentTime, modTimeIgnoreThreshold))
+        .map(_.getPath.toString))
+    val timeTaken = clock.getTimeMillis() - lastNewFileFindingTime
+    if (timeTaken > slideDuration.milliseconds) {
+      logWarning(
+        s"Time taken to find new files $timeTaken exceeds the batch size. " +
+          "Consider increasing the batch size or reducing the number of " +
+          "files in the monitored directories."
+      )
+    }
+    newFiles
+  } catch {
+      ...
+  }
+}
+```
+
+#### 2.1.1 计算忽略阈值 IgnoreThreshold
+
+忽略阈值 `modTimeIgnoreThreshold` 由两个变量决定:
+- 根据 `newFilesOnly` 配置决定的文件修改时间初始化忽略阈值 `initialModTimeIgnoreThreshold`
+- 记忆窗口时长 `durationToRemember`
+```java
+val modTimeIgnoreThreshold = math.max(
+  initialModTimeIgnoreThreshold,
+  currentTime - durationToRemember.milliseconds
+)
+```
+
+通过下面两个变量的介绍我们可以看出忽略阈值 `modTimeIgnoreThreshold` 取决于 `newFilesOnly` 配置：
+- 如果 `newFilesOnly` 为 true 表示只处理新文件，阈值为当前系统时钟
+- 如果 `newFilesOnly` 为 false 表示还需要处理已有文件，阈值为当前时间往前倒退记忆窗口时长
+
+##### 2.1.1.1 文件修改时间初始化忽略阈值 initialModTimeIgnoreThreshold
+
+文件修改时间初始化忽略阈值 initialModTimeIgnoreThreshold 的值与 `fileStream` 中的 `newFilesOnly` 参数有关：
+```java
+private val initialModTimeIgnoreThreshold = if (newFilesOnly) clock.getTimeMillis() else 0L
+```
+`fileStream` 中的 `newFilesOnly` 参数表示 Spark Streaming 应用程序刚刚启动时是否处理监控目录 `directory` 中已有的文件。从上面代码中可以都看到：
+- 如果 `newFilesOnly` 为 true 表示不需要处理监控目录 directory 中已有的文件，因此 `initialModTimeIgnoreThreshold` 的值被设置为系统时钟的当前时间，表示仅仅处理最近修改时间大于当前时间的文件，小于当前时间的文件自动被忽略；
+- 如果 `newFilesOnly` 为 false 表示需要处理监控目录 directory 中已有的文件，因此 `initialModTimeIgnoreThreshold` 的值被设置为 0，表示只要有文件的最近修改时间就可以得到处理的机会，实际能否处理还需要看进一步的条件。
+
+##### 2.1.1.2 记忆窗口时长 durationToRemember
+
+记忆窗口时长 `durationToRemember` 为批次间隔大小 `slideDuration` 与记忆窗口批次个数的乘积：
+```java
+private val durationToRemember = slideDuration * numBatchesToRemember
+```
+> slideDuration 批次间隔大小
+
+而记忆窗口中有多少个批次取决于批次间隔大小 `slideDuration` 和记忆窗口最小保留时长 `minRememberDurationS`：记忆窗口最小保留时长与批次间隔大小相除值向上取值：
+```java
+def calculateNumBatchesToRemember(batchDuration: Duration, minRememberDurationS: Duration): Int = {
+  math.ceil(minRememberDurationS.milliseconds.toDouble / batchDuration.milliseconds).toInt
+}
+
+private val numBatchesToRemember = FileInputDStream.calculateNumBatchesToRemember(slideDuration, minRememberDurationS)
+```
+假设配置的记忆窗口最小保留时长为 60 秒，批次间隔大小为 45 秒，那么记忆窗口批次个数为 `ceil(60/45)=2`，即记忆窗口中包含两个批次。
+
+那记忆窗口最小保留时长 `minRememberDurationS` 是怎么来的呢？可以通过 SparkConf 的 `spark.streaming.fileStream.minRememberDuration` 属性进行修改，如果不提供则默认值为 60s：
+```java
+private val minRememberDurationS = {
+  Seconds(
+      ssc.conf.getTimeAsSeconds(
+          "spark.streaming.fileStream.minRememberDuration",
+          ssc.conf.get("spark.streaming.minRememberDuration", "60s")
+      )
+  )
+}
+```
+如果文件的修改时间比这个记忆窗口更早将会被忽略。如果新文件在此窗口中可见，那么该文件将在下一个批次处理中被处理。
+
+从上面可以看到记忆窗口时长 `durationToRemember` 等于 `slideDuration * math.ceil(minRememberDurationS.milliseconds.toDouble / batchDuration.milliseconds).toInt`。
+
+
+#### 2.1.2 计算新文件
+
+新文件的计算依赖于 isNewFile 方法，新文件的标准需要满足以下四个条件：
+- 过滤不满足过滤器 filter 指定的文件，此处的 filter 就是 fileStream 中指定的过滤器
+- 过滤文件最近修改时间小于等于忽略阈值 modTimeIgnoreThreshold 的文件，即不处理某些历史文件
+- 过滤文件最近修改时间大于系统时钟当前时间 currentTime 的文件，即不属于该批次
+- 过滤已处理过的文件，即文件没有出现在最近已处理文件的列表 recentlySelectedFiles 中
+
+```java
+private def isNewFile(fileStatus: FileStatus, currentTime: Long, modTimeIgnoreThreshold: Long): Boolean = {
+  val path = fileStatus.getPath
+  val pathStr = path.toString
+  // (1) 过滤不满足过滤器 filter 指定的文件
+  if (!filter(path)) {
+    return false
+  }
+  // (2) 过滤文件最近修改时间小于等于忽略阈值 modTimeIgnoreThreshold 的文件
+  val modTime = fileStatus.getModificationTime()
+  if (modTime <= modTimeIgnoreThreshold) {
+    return false
+  }
+  // (3) 过滤文件最近修改时间大于系统时钟当前时间 currentTime 的文件
+  if (modTime > currentTime) {
+    return false
+  }
+  // (4) 过滤已处理过的文件
+  if (recentlySelectedFiles.contains(pathStr)) {
+    return false
+  }
+  return true
+}
+```
+
+### 2.2 文件处理列表

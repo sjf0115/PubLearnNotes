@@ -21,10 +21,7 @@ print 输出操作在运行流应用程序的 Driver 节点上打印 DStream 每
 INSERT INTO TABLE tag_user VALUES ('tag3', '1'), ('tag3', '2');
 ```
 
-<property>
-      <name>fs.defaultFS</name>
-      <value>hdfs://localhost:9000</value>
-   </property>
+
 
 
 ## 2. saveAsTextFiles

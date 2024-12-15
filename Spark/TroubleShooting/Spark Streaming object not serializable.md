@@ -66,3 +66,15 @@ public class LongWritable implements WritableComparable<LongWritable> {
     ...
 }
 ```
+
+## 2， 解决方案
+
+在 [Spark Task not serializable](https://smartsi.blog.csdn.net/article/details/144485998) 一文中我们提出了几种解决序列化的方法，不过这几种方法是基于对象可以被修改的。假设对象来自于第三方，例如上述的 `org.apache.hadoop.io.LongWritable` 我们是无法修改的，这时候就需要一种注册序列化类的方法：
+```java
+SparkConf conf = new SparkConf()
+        .setAppName("text-file-stream")
+        .setMaster("local[2]");
+// 序列化
+conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+```
+在 SparkConf 中设置 `spark.serializer` 为 `org.apache.spark.serializer.KryoSerializer`。

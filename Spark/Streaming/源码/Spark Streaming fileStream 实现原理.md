@@ -48,16 +48,17 @@ def fileStream[
 
 ## 2. FileInputDStream
 
-fileStream 的核心逻辑交由 DStream 的一个实现类 `FileInputDStream`。而 FileInputDStream 的核心逻辑就是以固定的批次间隔时间不断地探测监控目录 directory，每次探测时将文件最近修改时间处于时间段 `(currentTime - modTimeIgnoreThreshold, currentTime]` 内的新文件(以及满足过滤条件)封装为 RDD 最终交由 Spark 处理。该逻辑由方法 compute 实现：
+`fileStream` 的核心逻辑交由 `DStream` 的一个实现类 `FileInputDStream` 实现。而 `FileInputDStream` 的核心逻辑就是以固定的批次间隔时间 `duration` 不断地探测监控目录 `directory`，每次探测时将文件最近修改时间处于时间段 `(currentTime - duration, currentTime]` 内的新文件(此外还需满足其它过滤条件)封装为 RDD 最终交由 Spark 处理。该逻辑由方法最终由 `compute` 方法实现：
 ```java
 override def compute(validTime: Time): Option[RDD[(K, V)]] = {
-  // 计算新文件
+  // 探测新文件
   val newFiles = findNewFiles(validTime.milliseconds)
-  // 新文件加入待处理列表中
+  // 维护文件列表
   batchTimeToSelectedFiles.synchronized {
       batchTimeToSelectedFiles += ((validTime, newFiles))
   }
   recentlySelectedFiles ++= newFiles
+  // 封装 RDD
   val rdds = Some(filesToRDD(newFiles))
   val metadata = Map(
     "files" -> newFiles.toList,
@@ -67,18 +68,33 @@ override def compute(validTime: Time): Option[RDD[(K, V)]] = {
   rdds
 }
 ```
-整个过程可以分为探测新文件、加入文件列表、封装 RDD 几个核心步骤。
+整个过程可以分为探测新文件、维护文件列表、封装 RDD 几个核心步骤。探测新文件和封装 RDD 下面会详细介绍，在这先介绍一下为什么需要维护文件列表。假设探测时间间隔为 `duration`，当前时间为 `currentTime`，那么本次选择的文件需要满足条件：文件的最近修改时间需要处于区间 `(currentTime - duration, currentTime]`，此时文件最后修改时间可能：
+- 小于或等于 `currentTime - duration`，不在探测范围内
+- 处于探测区间 `(currentTime - duration, currentTime)` 内；
+- 等于 `currentTime`，处于探测边界；
+- 大于 `currentTime`，不在探测范围内
 
-查找自上次调用此方法以来被修改的新文件，并封装生成 RDD。需要注意的是，在这会维护一个在上一次调用此方法的最新修改时间内处理的文件列表 。这是因为 FileStatus API 返回的修改时间在HDFS中似乎只返回秒粒度的时间。新文件的修改时间可能与前一次调用该方法的最新修改时间相同，但在前一次调用中没有处理。
+如果文件最后修改时间处于探测边界等于 `currentTime`，那么有可能是在探测之前移动至监控目录 `directory`，但是也有可能是在探测完成之后被移动至监控目录(因为 FileStatus API 返回的修改时间在 HDFS 中似乎只返回秒粒度的时间。新文件的修改时间可能与前一次的最新修改时间相同)。如果是后者就可能会出现文件"丢失"的情况，因为下次探测的时间点为 `currentTime + duration`，探测的时间范围为 `(currentTime, currentTime + duration]`，最近修改时间等于 `currentTime` 的文件如果上一次探测时不处于探测区间，这次也不会处于探测区间。为了避免或减少文件"丢失"的情况，Spark Streaming 允许将探测的时间范围向"前"扩展为 `(currentTime - n * duration, currentTime]`，如下所示：
+
+![](1)
+
+- 忽略阈值 ignore threshold：`currentTime - n * duration`
+- 当前批次时间 current batch time：`currentTime`
+- 记忆窗口 remember window：`n * duration`
+
+也就是说，每一次探测时我们会选择文件的最后修改时间处于区间 `(ignore threshold, current batch time]` 的文件，但其中有些文件可能在前几次的探测中已经被处理，为了防止出现重复处理的情况，我们需要使用 `recentlySelectedFiles` 记录记忆窗口内已经被处理过的文件。
+
+> 这里的 `n * duration` 为记忆窗口时长，下面会详细介绍
 
 ### 2.1 探测新文件
 
+通过 `findNewFiles` 方法来探测新文件，核心点在于计算上图提到的忽略阈值和记忆窗口，然后根据忽略阈值就可以探测出新文件：
 ```java
 private def findNewFiles(currentTime: Long): Array[String] = {
   try {
     lastNewFileFindingTime = clock.getTimeMillis()
 
-    // 计算忽略阈值
+    // 计算忽略阈值(记忆窗口)
     val modTimeIgnoreThreshold = math.max(
         initialModTimeIgnoreThreshold,
         currentTime - durationToRemember.milliseconds
@@ -109,8 +125,9 @@ private def findNewFiles(currentTime: Long): Array[String] = {
 
 #### 2.1.1 计算忽略阈值 IgnoreThreshold
 
-忽略阈值 `modTimeIgnoreThreshold` 由两个变量决定:
+首先看一下如何计算忽略阈值 `modTimeIgnoreThreshold`，忽略阈值由两个变量决定:
 - 根据 `newFilesOnly` 配置决定的文件修改时间初始化忽略阈值 `initialModTimeIgnoreThreshold`
+  - 引入这个变量的应用场景是只处理当前新文件，忽略已存在的文件
 - 记忆窗口时长 `durationToRemember`
 ```java
 val modTimeIgnoreThreshold = math.max(
@@ -169,7 +186,7 @@ private val minRememberDurationS = {
 
 #### 2.1.2 计算新文件
 
-新文件的计算依赖于 isNewFile 方法，新文件的标准需要满足以下四个条件：
+新文件的计算依赖于 `isNewFile` 方法，新文件的标准需要满足以下四个条件：
 - 过滤不满足过滤器 filter 指定的文件，此处的 filter 就是 fileStream 中指定的过滤器
 - 过滤文件最近修改时间小于等于忽略阈值 modTimeIgnoreThreshold 的文件，即不处理某些历史文件
 - 过滤文件最近修改时间大于系统时钟当前时间 currentTime 的文件，即不属于该批次
@@ -199,5 +216,3 @@ private def isNewFile(fileStatus: FileStatus, currentTime: Long, modTimeIgnoreTh
   return true
 }
 ```
-
-### 2.2 文件处理列表

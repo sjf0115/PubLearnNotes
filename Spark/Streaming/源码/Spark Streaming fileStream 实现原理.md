@@ -176,7 +176,7 @@ private val minRememberDurationS = {
 ```
 如果文件的修改时间比这个记忆窗口更早将会被忽略。如果新文件在此窗口中可见，那么该文件将在下一个批次处理中被处理。
 
-从上面可以看到记忆窗口时长 `durationToRemember` 等于 `slideDuration * math.ceil(minRememberDurationS.milliseconds.toDouble / batchDuration.milliseconds).toInt`。
+从上面可以看到记忆窗口时长 `durationToRemember` 等于 `slideDuration * math.ceil(minRememberDurationS.milliseconds.toDouble / slideDuration.milliseconds).toInt`。
 
 
 #### 2.1.2 计算新文件

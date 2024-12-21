@@ -1,48 +1,177 @@
-DStream.foreachRDD对于开发而言提供了很大的灵活性，但在使用时也要避免很多常见的“坑”。通常，将数据保存到外部系统中的流程是：建立远程连接→通过连接传输数据到远程系统→关闭连接。针对这个流程我们想到了下面的程序代码：
-
-        dstream.foreachRDD { rdd =>
-          val connection = createNewConnection()            // 在Driver执行
-          rdd.foreach { record =>
-            connection.send(record)                            // 在Worker执行
-          }
+DStream.foreachRDD 对于开发而言提供了很大的灵活性，但在使用时也要避免很多常见的“坑”。通常，将数据保存到外部系统中的流程是：建立远程连接→通过连接传输数据到远程系统→关闭连接。针对这个流程我们想到了下面的程序代码：
+```java
+dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
+    @Override
+    public void call(JavaRDD<String> rdd) throws Exception {
+        // 1. 通过连接池获取连接
+        DruidDataSource dataSource = DruidConfig.getDataSource();
+        DruidPooledConnection connection = dataSource.getConnection(); // 在 Driver 执行
+        // 2. 遍历 RDD 通过连接与外部存储系统交互
+        rdd.foreach(new VoidFunction<String>() {
+            @Override
+            public void call(String record) throws Exception {
+                String[] params = record.split(",");
+                String sql = "INSERT INTO tb_user (id, name, age, email) VALUES (?, ?, ?, ?)";
+                PreparedStatement stmt = null;
+                try {
+                    stmt = connection.prepareStatement(sql); // 在 Worker 执行
+                    stmt.setInt(1, Integer.parseInt(params[0]));
+                    stmt.executeUpdate();
+                } catch (Exception e) {
+                    LOG.error("与外部存储系统交互失败：" + e.getMessage());
+                } finally {
+                    if (stmt != null) {
+                        stmt.close();
+                    }
+                }
+            }
+        });
+        // 3. 关闭连接
+        if(connection != null) {
+            connection.close();
         }
-在2.2节中对Spark的Worker和Driver进行了详细的介绍，我们知道在集群模式下，上述代码中的connection需要通过序列化对象的形式从Driver发送到Worker，但是connection是无法在机器之间传递的，即connection是无法序列化的，这样可能会引起_serialization errors (connection object not serializable)_的错误。为了避免这种错误，我们在Worker当中建立conenction，代码如下：
+    }
+});
+```
+我们知道在集群模式下，上述代码中的 connection 需要通过序列化对象的形式从 Driver 发送到 Worker，但是 connection 是无法序列化，无法在机器之间传递的。这样可能会引起 `object not serializable` 的错误：
+```java
+24/12/21 18:33:50 ERROR JobScheduler: Error running job streaming job 1734777230000 ms.0
+org.apache.spark.SparkException: Task not serializable
+	at org.apache.spark.util.ClosureCleaner$.ensureSerializable(ClosureCleaner.scala:416)
+	...
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: java.io.NotSerializableException: com.alibaba.druid.pool.DruidPooledConnection
+Serialization stack:
+	- object not serializable (class: com.alibaba.druid.pool.DruidPooledConnection, value: com.mysql.cj.jdbc.ConnectionImpl@4267bcd0)
+	- field (class: com.spark.example.streaming.connector.mysql.DataBaseSinkExample$1$1, name: val$connection, type: class com.alibaba.druid.pool.DruidPooledConnection)
+	- object (class com.spark.example.streaming.connector.mysql.DataBaseSinkExample$1$1, com.spark.example.streaming.connector.mysql.DataBaseSinkExample$1$1@2b3c85a8)
+	- element of array (index: 0)
+	- array (class [Ljava.lang.Object;, size 1)
+	- field (class: java.lang.invoke.SerializedLambda, name: capturedArgs, type: class [Ljava.lang.Object;)
+	- object (class java.lang.invoke.SerializedLambda, SerializedLambda[capturingClass=interface org.apache.spark.api.java.JavaRDDLike, functionalInterfaceMethod=scala/Function1.apply:(Ljava/lang/Object;)Ljava/lang/Object;, implementation=invokeStatic org/apache/spark/api/java/JavaRDDLike.$anonfun$foreach$1$adapted:(Lorg/apache/spark/api/java/function/VoidFunction;Ljava/lang/Object;)Ljava/lang/Object;, instantiatedMethodType=(Ljava/lang/Object;)Ljava/lang/Object;, numCaptured=1])
+	- writeReplace data (class: java.lang.invoke.SerializedLambda)
+	- object (class org.apache.spark.api.java.JavaRDDLike$$Lambda$1269/1560726547, org.apache.spark.api.java.JavaRDDLike$$Lambda$1269/1560726547@4d1feaa1)
+	at org.apache.spark.serializer.SerializationDebugger$.improveException(SerializationDebugger.scala:41)
+	at org.apache.spark.serializer.JavaSerializationStream.writeObject(JavaSerializer.scala:47)
+	at org.apache.spark.serializer.JavaSerializerInstance.serialize(JavaSerializer.scala:101)
+	at org.apache.spark.util.ClosureCleaner$.ensureSerializable(ClosureCleaner.scala:413)
+	... 31 more
+Exception in thread "main" org.apache.spark.SparkException: Task not serializable
+	...
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: java.io.NotSerializableException: com.alibaba.druid.pool.DruidPooledConnection
+Serialization stack:
+	- object not serializable (class: com.alibaba.druid.pool.DruidPooledConnection, value: com.mysql.cj.jdbc.ConnectionImpl@4267bcd0)
+	- field (class: com.spark.example.streaming.connector.mysql.DataBaseSinkExample$1$1, name: val$connection, type: class com.alibaba.druid.pool.DruidPooledConnection)
+	- object (class com.spark.example.streaming.connector.mysql.DataBaseSinkExample$1$1, com.spark.example.streaming.connector.mysql.DataBaseSinkExample$1$1@2b3c85a8)
+	- element of array (index: 0)
+	- array (class [Ljava.lang.Object;, size 1)
+	- field (class: java.lang.invoke.SerializedLambda, name: capturedArgs, type: class [Ljava.lang.Object;)
+	- object (class java.lang.invoke.SerializedLambda, SerializedLambda[capturingClass=interface org.apache.spark.api.java.JavaRDDLike, functionalInterfaceMethod=scala/Function1.apply:(Ljava/lang/Object;)Ljava/lang/Object;, implementation=invokeStatic org/apache/spark/api/java/JavaRDDLike.$anonfun$foreach$1$adapted:(Lorg/apache/spark/api/java/function/VoidFunction;Ljava/lang/Object;)Ljava/lang/Object;, instantiatedMethodType=(Ljava/lang/Object;)Ljava/lang/Object;, numCaptured=1])
+	- writeReplace data (class: java.lang.invoke.SerializedLambda)
+	- object (class org.apache.spark.api.java.JavaRDDLike$$Lambda$1269/1560726547, org.apache.spark.api.java.JavaRDDLike$$Lambda$1269/1560726547@4d1feaa1)
+	at org.apache.spark.serializer.SerializationDebugger$.improveException(SerializationDebugger.scala:41)
+	at org.apache.spark.serializer.JavaSerializationStream.writeObject(JavaSerializer.scala:47)
+	at org.apache.spark.serializer.JavaSerializerInstance.serialize(JavaSerializer.scala:101)
+	at org.apache.spark.util.ClosureCleaner$.ensureSerializable(ClosureCleaner.scala:413)
+	... 31 more
+```
 
-        dstream.foreachRDD { rdd =>
-          rdd.foreach { record =>
-            // 建立连接
-            val connection = createNewConnection()
-            // 发送记录
-        connection.send(record)
-            // 关闭连接
-        connection.close()
-          }
-        }
-上面的程序在运行时是没有问题的，但是这里我们忽略了一个严重的性能问题：在RDD的每条记录进行外部存储操作时，都需要建立和关闭连接，这个开销在大规模数据集中是很夸张的，会降低系统的吞吐量。
-所以这里需要用到前面介绍的foreachPartition，即按照RDD的不同分区（partition）来遍历RDD，再在每个分区遍历每条记录。由于每个partition是运行在同一Worker之上的，不存在跨机器的网络传输，我们便可以将外部连接的建立和关闭操作在每个分区只建立一次，代码如下：
+为了避免这种错误，我们在 Worker 当中建立 conenction，代码如下：
+```
+dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
+    @Override
+    public void call(JavaRDD<String> rdd) throws Exception {
+        rdd.foreach(new VoidFunction<String>() {
+            @Override
+            public void call(String record) throws Exception {
+                LOG.info("record：" + record);
+                // 1. 通过连接池获取连接
+                DruidDataSource dataSource = DruidConfig.getDataSource();
+                DruidPooledConnection connection = dataSource.getConnection();
 
-        dstream.foreachRDD { rdd =>
-          rdd.foreachPartition { partitionOfRecords =>
-            // partition内建立连接
-        val connection = createNewConnection()
-        // 发送记录
-        partitionOfRecords.foreach(record => connection.send(record))
-        // 关闭连接
-            connection.close()
-          }
-        }
-这样就降低了频繁建立连接的负载，通常在连接数据库时会使用连接池，把连接池的概念引入，代码优化如下：
-dstream.foreachRDD { rdd =>
+                // 2. 遍历 RDD 通过连接与外部存储系统交互
+                String[] params = record.split(",");
+                String sql = "INSERT INTO tb_user (id, name, age, email) VALUES (?, ?, ?, ?)";
+                PreparedStatement stmt = null;
+                try {
+                    stmt = connection.prepareStatement(sql);
+                    // 设置参数并执行插入操作
+                    stmt.setInt(1, Integer.parseInt(params[0]));
+                    stmt.setString(2, params[1]);
+                    stmt.setInt(3, Integer.parseInt(params[2]));
+                    stmt.setString(4, params[3]);
+                    stmt.executeUpdate();
+                } catch (Exception e) {
+                    LOG.error("与外部存储系统交互失败：" + e.getMessage());
+                } finally {
+                    // 3. 关闭连接
+                    if (stmt != null) {
+                        stmt.close();
+                    }
+                    if(connection != null) {
+                        connection.close();
+                    }
+                }
+            }
+        });
 
-          rdd.foreachPartition { partitionOfRecords =>
-            // 连接池是静态，惰性初始化的连接池
-            al connection = ConnectionPool.getConnection()
-            partitionOfRecords.foreach(record => connection.send(record))
-            ConnectionPool.returnConnection(connection)
-                                                      // 将连接返回连接池，以供继续使用
-          }
-        }
-通过建立静态惰性初始化的连接池，我们可以循环获取连接，更进一步减少建立、关闭连接的开销。同数据库的连接池类似，我们这里所说的连接池同样应该是lazy的按需建立连接，并且及时地收回超时的连接。
-另外值得注意的是：
-● 程序中如果存在多个foreachRDD，其会顺序执行，不会同步进行。
-● 因为DStream对于输出操作是惰性策略（lazy），所以假设在foreachRDD中不添加任何RDD的action操作，Spark Streaming仅仅会接收数据然后将数据丢弃。
+    }
+});
+```
+上面的程序在运行时是没有问题的，但是这里我们忽略了一个严重的性能问题：在 RDD 的每条记录进行外部存储操作时，都需要建立和关闭连接，这个开销在大规模数据集中是很夸张的，会降低系统的吞吐量：
+```java
+24/12/21 19:58:30 INFO DataBaseSink2Example: record：6,jark,12,jark@qq.com
+24/12/21 19:58:30 INFO DruidConfig: getDataSource...........
+...
+24/12/21 19:59:10 INFO DataBaseSink2Example: record：7,zhu,31,zhu@qq.com
+24/12/21 19:59:10 INFO DruidConfig: getDataSource...........
+```
+所以这里需要用到 `foreachPartition`，即按照 RDD 的不同分区（partition）来遍历 RDD，再在每个分区遍历每条记录。由于每个 partition 是运行在同一 Worker 之上的，不存在跨机器的网络传输，我们便可以将外部连接的建立和关闭操作在每个分区只建立一次：
+```java
+dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
+    @Override
+    public void call(JavaRDD<String> rdd) throws Exception {
+        rdd.foreachPartition(new VoidFunction<Iterator<String>>() {
+            @Override
+            public void call(Iterator<String> iterator) throws Exception {
+                // 1. 通过连接池获取连接
+                DruidDataSource dataSource = DruidConfig.getDataSource();
+                DruidPooledConnection connection = dataSource.getConnection();
+                LOG.info("[INFO] 建立连接");
+                while (iterator.hasNext()) {
+                    String record = iterator.next();
+                    LOG.info("[INFO] 数据记录：" + record);
+                    // 2. 遍历 RDD 通过连接与外部存储系统交互
+                    String[] params = record.split(",");
+                    String sql = "INSERT INTO tb_user (id, name, age, email) VALUES (?, ?, ?, ?)";
+                    PreparedStatement stmt = null;
+                    try {
+                        stmt = connection.prepareStatement(sql);
+                        // 设置参数并执行插入操作
+                        stmt.setInt(1, Integer.parseInt(params[0]));
+                        stmt.setString(2, params[1]);
+                        stmt.setInt(3, Integer.parseInt(params[2]));
+                        stmt.setString(4, params[3]);
+                        stmt.executeUpdate();
+                        LOG.info("[INFO] 通过连接与外部存储系统交互");
+                    } catch (Exception e) {
+                        LOG.error("[ERROR] 与外部存储系统交互失败：" + e.getMessage());
+                    } finally {
+                        if (stmt != null) {
+                            stmt.close();
+                        }
+                    }
+                }
+                // 3. 关闭连接
+                if(connection != null) {
+                    connection.close();
+                    LOG.info("[INFO] 关闭连接");
+                }
+            }
+        });
+    }
+});
+```
+这样就降低了频繁建立连接的负载。

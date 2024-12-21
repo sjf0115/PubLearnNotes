@@ -1,13 +1,8 @@
-fileStream 是Spark Streaming Basic Source 的一种，用于“近实时”地分析HDFS（或者与HDFS API兼容的文件系统）指定目录（假设：dataDirectory）中新近写入的文件，dataDirectory中的文件需要满足以下约束条件：
-- 这些文件格式必须相同，如：统一为文本文件；
-- 这些文件在目录dataDirectory中的创建形式比较特殊：必须以原子方式被“移动”或“重命名”至目录dataDirectory中；
-- 一旦文件被“移动”或“重命名”至目录dataDirectory中，文件不可以被改变，例如：追加至这些文件的数据可能不会被处理。
-
-之所以称之为“近实时”就是基于约束条件（2），文件的数据必须全部写入完成，并且被“移动”或“重命名”至目录dataDirectory中之后，这些文件才可以被处理。
+fileStream 是 Spark Streaming Basic Source 的一种，用于近实时地读取 HDFS（或者与 HDFS API 兼容的文件系统）指定目录中新写入的文件。之所以称之为近实时是因为文件的数据必须全部写入完成，并且被"移动"或"重命名"至要读取的目录中，这些文件才可以被处理。
 
 ## 1. fileStream
 
-创建一个输入流，用于监视 Hadoop 兼容的文件系统中的新文件，并使用给定的键值类型和输入格式读取它们。需要注意的是以 `.` 开头的文件会被被忽略，后文中会介绍。
+使用 Spark Streaming 读取 HDFS（或者与 HDFS API 兼容的文件系统）指定目录中新写入的文件可以使用 `fileStream` 方法。创建一个输入流来监视 Hadoop 兼容的文件系统中的新文件，并使用给定的键值类型和输入格式读取它们：
 ```java
 def fileStream[K, V, F <: NewInputFormat[K, V]](
     directory: String,
@@ -48,7 +43,7 @@ def fileStream[
 
 ## 2. FileInputDStream
 
-`fileStream` 的核心逻辑交由 `DStream` 的一个实现类 `FileInputDStream` 实现。而 `FileInputDStream` 的核心逻辑就是以固定的批次间隔时间 `duration` 不断地探测监控目录 `directory`，每次探测时将文件最近修改时间处于时间段 `(currentTime - duration, currentTime]` 内的新文件(此外还需满足其它过滤条件)封装为 RDD 最终交由 Spark 处理。该逻辑由方法最终由 `compute` 方法实现：
+`fileStream` 的核心逻辑交由 `DStream` 的一个实现类 `FileInputDStream` 实现。而 `FileInputDStream` 的核心逻辑就是以固定的批次间隔时间 `duration` 不断地探测监控目录 `directory`，每次探测时将文件最近修改时间处于时间段 `(currentTime - duration, currentTime]` 内的新文件(此外还需满足其它过滤条件)封装为 RDD 最终交由 Spark 处理。该逻辑最终由 `compute` 方法实现：
 ```java
 override def compute(validTime: Time): Option[RDD[(K, V)]] = {
   // 探测新文件
@@ -68,7 +63,7 @@ override def compute(validTime: Time): Option[RDD[(K, V)]] = {
   rdds
 }
 ```
-整个过程可以分为探测新文件、维护文件列表、封装 RDD 几个核心步骤。探测新文件和封装 RDD 下面会详细介绍，在这先介绍一下为什么需要维护文件列表。假设探测时间间隔为 `duration`，当前时间为 `currentTime`，那么本次选择的文件需要满足条件：文件的最近修改时间需要处于区间 `(currentTime - duration, currentTime]`，此时文件最后修改时间可能：
+整个过程可以分为探测新文件、维护文件列表、封装 RDD 几个核心步骤。探测新文件和封装 RDD 下面会详细介绍，在这先介绍一下为什么需要维护文件列表。假设探测时间间隔为 `duration`，当前时间为 `currentTime`，那么本次选择的文件初始想法是需要满足条件：文件的最近修改时间需要处于区间 `(currentTime - duration, currentTime]`，此时文件最后修改时间可能：
 - 小于或等于 `currentTime - duration`，不在探测范围内
 - 处于探测区间 `(currentTime - duration, currentTime)` 内；
 - 等于 `currentTime`，处于探测边界；
@@ -76,7 +71,7 @@ override def compute(validTime: Time): Option[RDD[(K, V)]] = {
 
 如果文件最后修改时间处于探测边界等于 `currentTime`，那么有可能是在探测之前移动至监控目录 `directory`，但是也有可能是在探测完成之后被移动至监控目录(因为 FileStatus API 返回的修改时间在 HDFS 中似乎只返回秒粒度的时间。新文件的修改时间可能与前一次的最新修改时间相同)。如果是后者就可能会出现文件"丢失"的情况，因为下次探测的时间点为 `currentTime + duration`，探测的时间范围为 `(currentTime, currentTime + duration]`，最近修改时间等于 `currentTime` 的文件如果上一次探测时不处于探测区间，这次也不会处于探测区间。为了避免或减少文件"丢失"的情况，Spark Streaming 允许将探测的时间范围向"前"扩展为 `(currentTime - n * duration, currentTime]`，如下所示：
 
-![](1)
+![](img-spark-streaming-filestream-code-1.png)
 
 - 忽略阈值 ignore threshold：`currentTime - n * duration`
 - 当前批次时间 current batch time：`currentTime`
@@ -189,7 +184,7 @@ private val minRememberDurationS = {
 新文件的计算依赖于 `isNewFile` 方法，新文件的标准需要满足以下四个条件：
 - 过滤不满足过滤器 filter 指定的文件，此处的 filter 就是 fileStream 中指定的过滤器
 - 过滤文件最近修改时间小于等于忽略阈值 modTimeIgnoreThreshold 的文件，即不处理某些历史文件
-- 过滤文件最近修改时间大于系统时钟当前时间 currentTime 的文件，即不属于该批次
+- 过滤文件最近修改时间大于系统时钟当前时间 currentTime 的文件，即不属于该批次的文件
 - 过滤已处理过的文件，即文件没有出现在最近已处理文件的列表 recentlySelectedFiles 中
 
 ```java
@@ -216,3 +211,45 @@ private def isNewFile(fileStatus: FileStatus, currentTime: Long, modTimeIgnoreTh
   return true
 }
 ```
+
+### 2.2 封装 RDD
+
+探测出新文件之后就需要封装为 RDD 交由 Spark 处理：
+```java
+override def compute(validTime: Time): Option[RDD[(K, V)]] = {
+  // Find new files
+  ...
+  val rdds = Some(filesToRDD(newFiles))
+  // Copy newFiles to immutable.List to prevent from being modified by the user
+  val metadata = Map(
+    "files" -> newFiles.toList,
+    StreamInputInfo.METADATA_KEY_DESCRIPTION -> newFiles.mkString("\n"))
+  val inputInfo = StreamInputInfo(id, 0, metadata)
+  ssc.scheduler.inputInfoTracker.reportInfo(validTime, inputInfo)
+  rdds
+}
+```
+封装 RDD 的逻辑由 filesToRDD 方法实现：
+```java
+private def filesToRDD(files: Seq[String]): RDD[(K, V)] = {
+  val fileRDDs = files.map { file =>
+    val rdd = serializableConfOpt.map(_.value) match {
+      case Some(config) => context.sparkContext.newAPIHadoopFile(
+        file,
+        fm.runtimeClass.asInstanceOf[Class[F]],
+        km.runtimeClass.asInstanceOf[Class[K]],
+        vm.runtimeClass.asInstanceOf[Class[V]],
+        config)
+      case None => context.sparkContext.newAPIHadoopFile[K, V, F](file)
+    }
+    if (rdd.partitions.isEmpty) {
+      logError("File " + file + " has no data in it. Spark Streaming can only ingest " +
+        "files that have been \"moved\" to the directory assigned to the file stream. " +
+        "Refer to the streaming programming guide for more details.")
+    }
+    rdd
+  }
+  new UnionRDD(context.sparkContext, fileRDDs)
+}
+```
+遍历新文件，将每一个新文件通过 SparkContext.newAPIHadoopFile 转换为一个RDD，最后形成一个 RDD 列表：fileRDDs。最后将 fileRDDs 转换为一个 UnionRDD 返回。

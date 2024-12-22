@@ -1,4 +1,4 @@
-这一篇文章我们来介绍 Spark Streaming 如何将数据输出到 MySQL 中。MySQL 非常常见，我们简单地概述一下，主要介绍如何在 Spark Streaming 中创建可序列化的类来建立 MySQL 连接。另外我们可以直接建立连接，但对于大规模存储一般要用到连接池，所以也会介绍如何应用C3P0连接池。
+这一篇文章我们来介绍 Spark Streaming 如何将数据输出到 MySQL 中。MySQL 非常常见，我们简单地概述一下，主要介绍如何在 Spark Streaming 中创建可序列化的类来建立 MySQL 连接。另外我们可以直接建立连接，但对于大规模存储一般要用到连接池，所以也会介绍如何应用 Druid 连接池。
 
 MySQL作为一个关系型数据库管理系统，在各个应用场景是非常常见的，其类似于一张一张的表格，表头需要提前定好，并且每行记录有一个唯一标识的字段，即主键，然后将数据按照表头一条一条地插入；而一个数据库中往往会有多个表格，表格间会有相互依赖关系，存在外键的依赖。
 
@@ -22,9 +22,9 @@ MySQL作为一个关系型数据库管理系统，在各个应用场景是非常
 </dependency>
 ```
 
-## 2. 配置Druid连接池‌
+## 2. 在 Spark Streaming 中使用 Druid 连接池‌
 
-你可以通过编程方式或者配置文件方式来配置 Druid 连接池。以下是通过编程方式配置 Druid 连接池的示例：
+在你的 Spark Streaming 应用程序中，你可以使用 foreachRDD 方法来处理每个RDD，并在其中使用 Druid 连接池来执行数据库操作。你可以通过编程方式或者配置文件方式来配置 Druid 连接池。如下所示是通过编程方式建立一个数据库连接的 Druid 通用配置类：
 ```java
 public class DruidConfig {
     public static DruidDataSource getDataSource() {
@@ -51,79 +51,26 @@ public class DruidConfig {
     }
 }
 ```
-## 3. ‌在Spark Streaming中使用Druid连接池‌
+## 3. MySQL 输出操作
 
-在你的 Spark Streaming 应用程序中，你可以使用 foreachRDD 方法来处理每个RDD，并在其中使用 Druid 连接池来执行数据库操作。以下是一个示例：
+以下是一个示例：
 ```
 
 ```
 
-在这个示例中，我们创建了一个Spark Streaming应用程序，它从本地主机的9999端口接收数据，并将每条记录插入到MySQL数据库中。我们使用foreachRDD方法来处理每个RDD，并在其中获取Druid连接池的连接，然后执行插入操作。
+在这个示例中，我们创建了一个 Spark Streaming 应用程序，它从本地主机的 9100 端口接收数据，并将每条记录插入到 MySQL 数据库中。我们使用 foreachRDD 方法来处理每个 RDD，并在其中获取 Druid 连接池的连接，然后执行插入操作。
 
 请注意，这个示例仅用于演示目的，并没有处理所有可能的错误和异常情况。在实际生产环境中，你应该添加适当的错误处理和日志记录，并确保你的应用程序能够处理各种故障情况。此外，对于大量的数据插入操作，你可能需要考虑使用批量插入或其他优化策略来提高性能。
 
-在 Spark Streaming 中我们建立一个数据库连接的通用类如下：
 
+```java
 
+```
+在每次获取 MySQL 连接时，利用 Druid 建立连接池，从连接池中获取，进一步缩减建立连接的开销。
 
-        import java.sql.Connection
-        import java.util.Properties
-        import com.mchange.v2.c3p0.ComboPooledDataSource
-        class MysqlPool extends Serializable {
-          private val cpds: ComboPooledDataSource = new ComboPooledDataSource(true)
-          private val conf = Conf.mysqlConfig
-          try {
-            // 利用c3p0设置MySQL的各类信息
-        cpds.setJdbcUrl(conf.get("url").getOrElse("jdbc:mysql://127.0.0.1:3306/test_
-    bee? useUnicode=true&amp; characterEncoding=UTF-8"));
-            cpds.setDriverClass("com.mysql.jdbc.Driver");
-            cpds.setUser(conf.get("username").getOrElse("root"));
-            cpds.setPassword(conf.get("password").getOrElse(""))
-            cpds.setMaxPoolSize(200)                                // 连接池最大连接数
-            cpds.setMinPoolSize(20)                                 // 连接池最小连接数
-            cpds.setAcquireIncrement(5)                            // 每次递增数量
-            cpds.setMaxStatements(180)                             // 连接池最大空闲时间
-          } catch {
-            case e: Exception => e.printStackTrace()
-          }
-          // 获取连接
-          def getConnection: Connection = {
-            try {
-              return cpds.getConnection();
-            } catch {
-              case ex: Exception =>
-                ex.printStackTrace()
-                null
-            }
-          }
-        }
-        object MysqlManager {
-          var mysqlManager: MysqlPool = _
-          def getMysqlManager: MysqlPool = {
-            synchronized {
-              if (mysqlManager == null) {
-                mysqlManager = new MysqlPool
-              }
-            }
-            mysqlManager
-          }
-        }
-在每次获取MySQL连接时，利用c3p0建立连接池，从连接池中获取，进一步缩减建立连接的开销。
-6.3.3 MySQL输出操作
-同样利用之前的foreachRDD设计模式，将Dstream输出到MySQL的代码如下：
+## 4. MySQL 输出操作
 
-        dstream.foreachRDD(rdd => {
-            if (! rdd.isEmpty) {
-            rdd.foreachPartition(partitionRecords => {
-              //从连接池中获取一个连接
-              val conn = MysqlManager.getMysqlManager.getConnection
-              val statement = conn.createStatement
-              try {
-                conn.setAutoCommit(false)
-
-                c3p0建立连接池，从连接池中获取，进一步缩减建立连接的开销。
-6.3.3 MySQL输出操作
-同样利用之前的foreachRDD设计模式，将Dstream输出到MySQL的代码如下：
+同样利用之前的 foreachRDD 设计模式，将 Dstream 输出到 MySQL 的代码如下：
 
         dstream.foreachRDD(rdd => {
             if (! rdd.isEmpty) {

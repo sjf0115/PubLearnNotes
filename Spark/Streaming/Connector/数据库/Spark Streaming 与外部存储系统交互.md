@@ -1,11 +1,11 @@
-DStream.foreachRDD 对于开发而言提供了很大的灵活性，但在使用时也要避免很多常见的“坑”。通常，将数据保存到外部系统中的流程是：建立远程连接→通过连接传输数据到远程系统→关闭连接。针对这个流程我们想到了下面的程序代码：
+`DStream.foreachRDD` 对于开发而言提供了很大的灵活性，但在使用时也要避免很多常见的"坑"。在这篇文章中我们会一步一步的介绍如何使用 `DStream.foreachRDD` 实现与外部存储系统交互(例如，MySQL)。通常，将数据保存到外部系统中的一般是：建立连接、通过连接传输数据到外部存储系统、关闭连接。针对这个流程我们很自然的想到与外部存储系统交互如下所示：
 ```java
 dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
     @Override
     public void call(JavaRDD<String> rdd) throws Exception {
         // 1. 通过连接池获取连接
         DruidDataSource dataSource = DruidConfig.getDataSource();
-        DruidPooledConnection connection = dataSource.getConnection(); // 在 Driver 执行
+        DruidPooledConnection connection = dataSource.getConnection(); // 在 Driver 上执行
         // 2. 遍历 RDD 通过连接与外部存储系统交互
         rdd.foreach(new VoidFunction<String>() {
             @Override
@@ -14,8 +14,12 @@ dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
                 String sql = "INSERT INTO tb_user (id, name, age, email) VALUES (?, ?, ?, ?)";
                 PreparedStatement stmt = null;
                 try {
-                    stmt = connection.prepareStatement(sql); // 在 Worker 执行
+                    stmt = connection.prepareStatement(sql); // 在 Worker 上执行
+                    // 设置参数并执行插入操作
                     stmt.setInt(1, Integer.parseInt(params[0]));
+                    stmt.setString(2, params[1]);
+                    stmt.setInt(3, Integer.parseInt(params[2]));
+                    stmt.setString(4, params[3]);
                     stmt.executeUpdate();
                 } catch (Exception e) {
                     LOG.error("与外部存储系统交互失败：" + e.getMessage());
@@ -78,15 +82,15 @@ Serialization stack:
 	... 31 more
 ```
 
-为了避免这种错误，我们在 Worker 当中建立 conenction，代码如下：
-```
+为了避免这种错误，我们可以考虑在 Worker 中建立连接，如下所示：
+```java
 dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
     @Override
     public void call(JavaRDD<String> rdd) throws Exception {
         rdd.foreach(new VoidFunction<String>() {
             @Override
             public void call(String record) throws Exception {
-                LOG.info("record：" + record);
+                LOG.info("[INFO] 输入记录：" + record);
                 // 1. 通过连接池获取连接
                 DruidDataSource dataSource = DruidConfig.getDataSource();
                 DruidPooledConnection connection = dataSource.getConnection();
@@ -103,8 +107,9 @@ dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
                     stmt.setInt(3, Integer.parseInt(params[2]));
                     stmt.setString(4, params[3]);
                     stmt.executeUpdate();
+                    LOG.info("[INFO] 通过连接与外部存储系统交互");
                 } catch (Exception e) {
-                    LOG.error("与外部存储系统交互失败：" + e.getMessage());
+                    LOG.error("[ERROR] 与外部存储系统交互失败：" + e.getMessage());
                 } finally {
                     // 3. 关闭连接
                     if (stmt != null) {
@@ -112,6 +117,7 @@ dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
                     }
                     if(connection != null) {
                         connection.close();
+                        LOG.info("[INFO] 关闭连接");
                     }
                 }
             }
@@ -122,13 +128,28 @@ dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
 ```
 上面的程序在运行时是没有问题的，但是这里我们忽略了一个严重的性能问题：在 RDD 的每条记录进行外部存储操作时，都需要建立和关闭连接，这个开销在大规模数据集中是很夸张的，会降低系统的吞吐量：
 ```java
-24/12/21 19:58:30 INFO DataBaseSink2Example: record：6,jark,12,jark@qq.com
-24/12/21 19:58:30 INFO DruidConfig: getDataSource...........
-...
-24/12/21 19:59:10 INFO DataBaseSink2Example: record：7,zhu,31,zhu@qq.com
-24/12/21 19:59:10 INFO DruidConfig: getDataSource...........
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 输入记录：1,lily,12,lily@qq.com
+24/12/22 10:29:20 INFO DruidConfig: [INFO] 创建 DruidDataSource
+24/12/22 10:29:20 INFO DruidDataSource: {dataSource-1} inited
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 通过连接与外部存储系统交互
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 关闭连接
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 输入记录：2,lucy,21,lucy@qq.com
+24/12/22 10:29:20 INFO DruidConfig: [INFO] 创建 DruidDataSource
+24/12/22 10:29:20 INFO DruidDataSource: {dataSource-2} inited
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 通过连接与外部存储系统交互
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 关闭连接
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 输入记录：3,jark,18,jark@qq.com
+24/12/22 10:29:20 INFO DruidConfig: [INFO] 创建 DruidDataSource
+24/12/22 10:29:20 INFO DruidDataSource: {dataSource-3} inited
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 通过连接与外部存储系统交互
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 关闭连接
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 输入记录：4,tom,35,tom@qq.com
+24/12/22 10:29:20 INFO DruidConfig: [INFO] 创建 DruidDataSource
+24/12/22 10:29:20 INFO DruidDataSource: {dataSource-4} inited
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 通过连接与外部存储系统交互
+24/12/22 10:29:20 INFO DataBaseSinkRddWorkerExample: [INFO] 关闭连接
 ```
-所以这里需要用到 `foreachPartition`，即按照 RDD 的不同分区（partition）来遍历 RDD，再在每个分区遍历每条记录。由于每个 partition 是运行在同一 Worker 之上的，不存在跨机器的网络传输，我们便可以将外部连接的建立和关闭操作在每个分区只建立一次：
+针对上述 RDD 的每条记录进行外部存储操作时都需要建立和关闭连接的瓶颈使用 `foreachPartition` 优化，即按照 RDD 的不同分区（partition）来遍历 RDD，再在每个分区遍历每条记录。由于每个 partition 是运行在同一 Worker 之上的，不存在跨机器的网络传输，我们便可以在每个分区上实现只建立和关闭连接一次：
 ```java
 dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
     @Override
@@ -139,11 +160,10 @@ dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
                 // 1. 通过连接池获取连接
                 DruidDataSource dataSource = DruidConfig.getDataSource();
                 DruidPooledConnection connection = dataSource.getConnection();
-                LOG.info("[INFO] 建立连接");
                 while (iterator.hasNext()) {
                     String record = iterator.next();
-                    LOG.info("[INFO] 数据记录：" + record);
-                    // 2. 遍历 RDD 通过连接与外部存储系统交互
+                    LOG.info("[INFO] 输入记录：" + record);
+                    // 2. 通过连接与外部存储系统交互
                     String[] params = record.split(",");
                     String sql = "INSERT INTO tb_user (id, name, age, email) VALUES (?, ?, ?, ?)";
                     PreparedStatement stmt = null;
@@ -174,4 +194,17 @@ dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
     }
 });
 ```
-这样就降低了频繁建立连接的负载。
+这样就降低了频繁建立连接的负载。如下所示，相对比上一方案建立和关闭连接的次数大大减少：
+```java
+24/12/22 10:35:50 INFO DruidConfig: [INFO] 创建 DruidDataSource
+24/12/22 10:35:51 INFO DruidDataSource: {dataSource-1} inited
+24/12/22 10:35:51 INFO DataBaseSinkPartitionExample: [INFO] 输入记录：1,lily,12,lily@qq.com
+24/12/22 10:35:51 INFO DataBaseSinkPartitionExample: [INFO] 通过连接与外部存储系统交互
+24/12/22 10:35:51 INFO DataBaseSinkPartitionExample: [INFO] 输入记录：2,lucy,21,lucy@qq.com
+24/12/22 10:35:51 INFO DataBaseSinkPartitionExample: [INFO] 通过连接与外部存储系统交互
+24/12/22 10:35:51 INFO DataBaseSinkPartitionExample: [INFO] 输入记录：3,jark,18,jark@qq.com
+24/12/22 10:35:51 INFO DataBaseSinkPartitionExample: [INFO] 通过连接与外部存储系统交互
+24/12/22 10:35:51 INFO DataBaseSinkPartitionExample: [INFO] 输入记录：4,tom,35,tom@qq.com
+24/12/22 10:35:51 INFO DataBaseSinkPartitionExample: [INFO] 通过连接与外部存储系统交互
+24/12/22 10:35:51 INFO DataBaseSinkPartitionExample: [INFO] 关闭连接
+```

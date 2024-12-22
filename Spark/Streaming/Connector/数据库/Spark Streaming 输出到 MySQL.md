@@ -53,56 +53,98 @@ public class DruidConfig {
 ```
 ## 3. MySQL 输出操作
 
-以下是一个示例：
-```
-
-```
-
-在这个示例中，我们创建了一个 Spark Streaming 应用程序，它从本地主机的 9100 端口接收数据，并将每条记录插入到 MySQL 数据库中。我们使用 foreachRDD 方法来处理每个 RDD，并在其中获取 Druid 连接池的连接，然后执行插入操作。
-
-请注意，这个示例仅用于演示目的，并没有处理所有可能的错误和异常情况。在实际生产环境中，你应该添加适当的错误处理和日志记录，并确保你的应用程序能够处理各种故障情况。此外，对于大量的数据插入操作，你可能需要考虑使用批量插入或其他优化策略来提高性能。
-
-
+在[Spark Streaming 与外部存储系统交互](https://smartsi.blog.csdn.net/article/details/144643428)文章中我们一步一步的介绍如何使用 `DStream.foreachRDD` 实现与外部存储系统交互。为了避免在 RDD 的每条记录进行外部存储操作时都需要建立和关闭连接，我们配合使用了 `foreachPartition` 来优化。按照 RDD 的不同分区来遍历 RDD，这样可以在分区遍历时通过连接池获取连接，从而实现每个分区只建立和关闭连接一次的目的，缩减建立连接的开销。然后在每个分区遍历每条记录实现与外部存储系统交互：
 ```java
-
+dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
+    @Override
+    public void call(JavaRDD<String> rdd) throws Exception {
+        rdd.foreachPartition(new VoidFunction<Iterator<String>>() {
+            @Override
+            public void call(Iterator<String> iterator) throws Exception {
+                // 1. 通过连接池获取连接
+                DruidDataSource dataSource = DruidConfig.getDataSource();
+                DruidPooledConnection connection = dataSource.getConnection();
+                // 2. 通过连接与外部存储系统交互
+                while (iterator.hasNext()) {
+                    String record = iterator.next();
+                    String sql = "xxx";
+                    PreparedStatement stmt = null;
+                    try {
+                        PreparedStatement stmt = connection.prepareStatement(sql);
+                        ...
+                        stmt.executeUpdate();
+                    } catch (Exception e) {
+                        LOG.error("[ERROR] 与外部存储系统交互失败：" + e.getMessage());
+                    } finally {
+                        if (stmt != null) {
+                            stmt.close();
+                        }
+                    }
+                }
+                // 3. 关闭连接
+                if(connection != null) {
+                    connection.close();
+                }
+            }
+        });
+    }
+});
 ```
-在每次获取 MySQL 连接时，利用 Druid 建立连接池，从连接池中获取，进一步缩减建立连接的开销。
 
-## 4. MySQL 输出操作
+## 4. 示例
 
-同样利用之前的 foreachRDD 设计模式，将 Dstream 输出到 MySQL 的代码如下：
+假设我们 MySQL 数据库中有一张 `tb_user` 表：
+```sql
+CREATE TABLE `tb_user` (
+  `id` bigint(20) NOT NULL COMMENT '主键ID',
+  `name` varchar(30) DEFAULT NULL COMMENT '姓名',
+  `age` int(11) DEFAULT NULL COMMENT '年龄',
+  `email` varchar(50) DEFAULT NULL COMMENT '邮箱',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
+```
 
-        dstream.foreachRDD(rdd => {
-            if (! rdd.isEmpty) {
-            rdd.foreachPartition(partitionRecords => {
-              //从连接池中获取一个连接
-              val conn = MysqlManager.getMysqlManager.getConnection
-              val statement = conn.createStatement
-              try {
-                conn.setAutoCommit(false)
-                partitionRecords.foreach(record => {
-                  val sql = "insert into table..."               // 需要执行的SQL操作
-                  statement.addBatch(sql)                          // 加入batch
-                })
-                statement.executeBatch                             // 执行batch
-                conn.commit                                         // 提交执行
-              } catch {
-                case e: Exception =>
-                  // 做一些错误日志记录
-              } finally {
-                statement.close()                                  // 关闭状态
-                conn.close()                                        // 关闭连接
-              }
-            })
-          }
-        })
-值得注意的是：
-● 在提交MySQL的操作的时候，并不是每条记录提交一次，而是采用了批量提交的形式，所以需要设置为conn.setAutoCommit(false)，这样可以进一步提高MySQL的效率。
-● 如果更新MySQL中带索引的字段时，会导致更新速度较慢，这种情况应想办法避免，如果不可避免，那就慢慢等吧（T^T）。
-其中Maven配置如下：
-
-
-https://blog.csdn.net/chixushuchu/article/details/85233492?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-1-85233492-blog-136529108.235^v43^pc_blog_bottom_relevance_base4&spm=1001.2101.3001.4242.2&utm_relevant_index=4
-
-
-https://cloud.tencent.com/developer/article/1004820
+在这个示例中，我们创建了一个 Spark Streaming 应用程序，从本地主机的 9100 端口接收用户数据，并将每条记录插入到 MySQL 数据库 `tb_user` 表中。我们使用上述 `foreachRDD` + `foreachPartition` 的方法来处理每个 RDD，并在其中获取 Druid 连接池的连接，然后执行插入操作：
+```java
+usersStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
+@Override
+public void call(JavaRDD<String> rdd) throws Exception {
+    rdd.foreachPartition(new VoidFunction<Iterator<String>>() {
+        @Override
+        public void call(Iterator<String> iterator) throws Exception {
+            // 1. 通过连接池获取连接
+            DruidDataSource dataSource = DruidConfig.getDataSource();
+            DruidPooledConnection connection = dataSource.getConnection();
+            // 2. 遍历 RDD 通过连接与外部存储系统交互
+            String sql = "INSERT INTO tb_user (id, name, age, email) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+                while (iterator.hasNext()) {
+                    String record = iterator.next();
+                    LOG.info("[INFO] 输入记录：" + record);
+                    String[] params = record.split(",");
+                    stmt.setInt(1, Integer.parseInt(params[0]));
+                    stmt.setString(2, params[1]);
+                    stmt.setInt(3, Integer.parseInt(params[2]));
+                    stmt.setString(4, params[3]);
+                    stmt.addBatch(); // 添加到批处理
+                }
+                // 执行批量操作
+                stmt.executeBatch();
+                LOG.info("[INFO] 通过连接与外部存储系统交互");
+            } catch (Exception e) {
+                LOG.error("[ERROR] 与外部存储系统交互失败：" + e.getMessage());
+            }
+            // 3. 关闭连接
+            if(connection != null) {
+                connection.close();
+                LOG.info("[INFO] 关闭连接");
+            }
+            if (dataSource != null) {
+                dataSource.close();
+            }
+        }
+    });
+}
+});
+```
+在提交 MySQL 的操作的时候，并不是每条记录提交一次，而是采用了批量提交的形式，这样可以进一步提高 MySQL 的效率。

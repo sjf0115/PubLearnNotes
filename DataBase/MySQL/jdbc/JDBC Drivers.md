@@ -32,7 +32,7 @@ Type-1 驱动程序(JDBC-ODBC桥驱动程序)使用 ODBC 驱动程序连接到�
 - 需要在各个客户端计算机上安装 ODBC 桥驱动程序。
 - Type-1 驱动程序不是用 Java 编写的，这就是它不是便携式驱动程序的原因。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/MySQL/how-to-understand-jdbc-drivers-1.jpg?raw=true)
+![](img-how-to-understand-jdbc-drivers-1.jpg)
 
 ### 3. Type-2 driver
 
@@ -41,7 +41,7 @@ Native API 驱动程序使用客户端的数据库类库。此驱动程序将 JD
 - Vendor客户端库需要安装在客户端计算机上。
 - Type-2 驱动程序不是用 Java编写的，这也是它不是便携式驱动程序的原因。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/MySQL/how-to-understand-jdbc-drivers-2.jpg?raw=true)
+![](img-how-to-understand-jdbc-drivers-2.jpg)
 
 ### 4. Type-3 driver
 
@@ -51,7 +51,7 @@ Native API 驱动程序使用客户端的数据库类库。此驱动程序将 JD
 - 客户端计算机上需要网络支持。
 - 维护网络协议驱动程序的代价非常昂贵，因为它需要在中间层中完成特定于数据库的编码。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/MySQL/how-to-understand-jdbc-drivers-3.jpg?raw=true)
+![](img-how-to-understand-jdbc-drivers-3.jpg)
 
 ### 5. Type-4 driver
 
@@ -59,7 +59,7 @@ Type-4 驱动程序也称为本机协议驱动程序。此驱动程序直接与�
 - 不需要任何本地类库和中间件服务器，因此不需要在客户端或服务器上安装特殊的软件。此外，这些驱动程序可以动态下载。
 - 它完全用 Java 语言编写，因此它们是便携式的驱动程序。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/MySQL/how-to-understand-jdbc-drivers-4.jpg?raw=true)
+![](img-how-to-understand-jdbc-drivers-4.jpg)
 
 > MySQL Connector/J驱动程序是类型4驱动程序。
 

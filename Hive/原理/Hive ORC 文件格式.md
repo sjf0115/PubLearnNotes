@@ -12,7 +12,7 @@ permalink: hive-base-orc-file-format
 
 ### 1. ORC文件格式
 
-> 在Hive 0.11.0版本引入此功能
+> 在 Hive 0.11.0 版本引入此功能
 
 ORC 是 Optimized Row Columnar 的缩写，ORC 文件格式提供一种高效的方法来存储 Hive 数据。旨在解决其他 Hive 文件格式的局限。当 Hive 读取，写入和处理数据时，使用 ORC 文件格式可以提高性能。
 
@@ -30,9 +30,9 @@ ORC 是 Optimized Row Columnar 的缩写，ORC 文件格式提供一种高效的
 
 ORC 文件包含了多个 Stripe。除此之外，File Footer 还包含了一些额外辅助信息。在文件的末尾，PostScript 保存了压缩参数和压缩页脚的大小。Stripe 默认大小为250MB。大的 Stripe 可实现 HDFS 的高效读取。File Footer 包含了文件中的 Stripe 列表，每个 Stripe 有多少行以及每列的数据类型。还包了一些含列级聚合的计数，最小值，最大值以及总和。
 
-下图说明了ORC文件结构：
+下图说明了 ORC 文件结构：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hive/hive-base-orc-file-format-3.png?raw=true)
+![](img-hive-base-orc-file-format-1.png)
 
 #### 1.2 Stripe结构
 
@@ -77,7 +77,7 @@ CREATE TABLE Addresses_ORC STORED AS ORC AS SELECT * FROM Addresses_TEXT;
 
 属性全部放在 TBLPROPERTIES 中。ORC具有通常不需要修改的属性。但是，对于特殊情况，你可以修改下表中列出的属性：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hive/hive-base-orc-file-format-2.png?raw=true)
+![](img-hive-base-orc-file-format-2.png)
 
 > 从Hive 0.14.0开始　ALTER TABLE table_name [PARTITION partition_spec] CONCATENATE 可用于将小的ORC文件合并为一个更大的文件。合并发生在 Stripe 级别，这可以避免对数据进行解压缩和解码。
 

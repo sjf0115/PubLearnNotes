@@ -24,7 +24,7 @@ MySQL作为一个关系型数据库管理系统，在各个应用场景是非常
 
 ## 2. 在 Spark Streaming 中使用 Druid 连接池‌
 
-在你的 Spark Streaming 应用程序中，你可以使用 foreachRDD 方法来处理每个RDD，并在其中使用 Druid 连接池来执行数据库操作。你可以通过编程方式或者配置文件方式来配置 Druid 连接池。如下所示是通过编程方式建立一个数据库连接的 Druid 通用配置类：
+在你的 Spark Streaming 应用程序中，你可以使用 foreachRDD 方法来处理每个 RDD，并在其中使用 Druid 连接池来执行数据库操作。你可以通过编程方式或者配置文件方式来配置 Druid 连接池。如下所示是通过编程方式建立一个数据库连接的 Druid 通用配置类：
 ```java
 public class DruidConfig {
     public static DruidDataSource getDataSource() {

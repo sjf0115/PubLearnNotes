@@ -2,20 +2,32 @@
 
 ## 1. 添加依赖
 
+需要添加与你的 Spark 版本相对应的 Spark Streaming 依赖：
+```xml
+<dependency>
+    <groupId>org.apache.spark</groupId>
+    <artifactId>spark-streaming_2.12</artifactId>
+    <version>3.1.3</version> <!-- 根据需要选择版本 -->
+    <scope>provided</scope>
+</dependency>
+```
+> `_2.12` 表示 Scala 版本为 2.12，你需要根据你的 Spark 安装版本选择相应的 Scala 版本。
+
 如果输出数据到 MySQL 中需要添加 `mysql-connector-java` 依赖。此外为了更好的性能采用了 Druid 连接池，需要添加 `druid` 依赖：
 ```xml
 <dependency>
     <groupId>mysql</groupId>
     <artifactId>mysql-connector-java</artifactId>
-    <version>8.0.26</version> <!-- 请使用最新版本 -->
+    <version>8.0.26</version> <!-- 根据需要选择版本 -->
 </dependency>
 
 <dependency>
     <groupId>com.alibaba</groupId>
     <artifactId>druid</artifactId>
-    <version>1.2.4</version> <!-- 请使用最新版本 -->
+    <version>1.2.4</version> <!-- 根据需要选择版本 -->
 </dependency>
 ```
+> 8.0.26 表示 MySQL JDBC 驱动的版本，你可能需要根据你的 MySQL 服务器版本选择相应的 JDBC 驱动版本。
 
 ## 2. 在 Spark Streaming 中使用 Druid 连接池‌
 
@@ -79,6 +91,9 @@ dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
                 // 3. 关闭连接
                 if(connection != null) {
                     connection.close();
+                }
+                if (dataSource != null) {
+                    dataSource.close();
                 }
             }
         });
@@ -148,6 +163,8 @@ dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
 ```java
 dataSource.setUrl("jdbc:mysql://localhost:3306/test?rewriteBatchedStatements=true&useSSL=false&serverTimezone=UTC");
 ```
+> 批处理执行可以参阅[MySQL JDBC 实战: PreparedStatement 使用 executeBatch 批量执行生效了吗](https://smartsi.blog.csdn.net/article/details/144844331)
+
 然后在应用程序中使用 `executeBatch` 批处理执行：
 ```java
 try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -166,6 +183,8 @@ try (PreparedStatement stmt = connection.prepareStatement(sql)) {
     LOG.error("[ERROR] 与外部存储系统交互失败：" + e.getMessage());
 }
 ```
+> 完整代码请查阅:[MySQLSinkExample](https://github.com/sjf0115/data-example/blob/master/spark-example-3.1/src/main/java/com/spark/example/streaming/connector/mysql/MySQLSinkExample.java)
+
 通过 MySQL 服务端日志可以看出批处理执行的效果：
 ```sql
 2024-12-31T03:46:30.879538Z	  732 Query	SHOW WARNINGS

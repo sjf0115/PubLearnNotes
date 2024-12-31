@@ -1,13 +1,8 @@
-这一篇文章我们来介绍 Spark Streaming 如何将数据输出到 MySQL 中。MySQL 非常常见，我们简单地概述一下，主要介绍如何在 Spark Streaming 中创建可序列化的类来建立 MySQL 连接。另外我们可以直接建立连接，但对于大规模存储一般要用到连接池，所以也会介绍如何应用 Druid 连接池。
-
-MySQL作为一个关系型数据库管理系统，在各个应用场景是非常常见的，其类似于一张一张的表格，表头需要提前定好，并且每行记录有一个唯一标识的字段，即主键，然后将数据按照表头一条一条地插入；而一个数据库中往往会有多个表格，表格间会有相互依赖关系，存在外键的依赖。
-
-在 Spark Streaming 操作 MySQL 时，与以往使用数据库不同的是，数据量会非常庞大，往往需要考虑同一张表格根据时间进行分表的情况，这样更加便于维护数据。比如对于网上大规模用户评论进行词频统计，然后存储在MySQL数据库中。
-
-因为这是一个长期的过程，如果我们将数据不断更新插入在同一张表格中，这个表格会非常巨大，并且一旦出错很难恢复，而且不容易删除过时数据，所以我们可以按照天的量级建立数据表格 word_freq_yyyy_MM_dd，其中yyyy_MM_dd表示年_月_日。
+这一篇文章我们来介绍 Spark Streaming 如何将数据输出到 MySQL 中。主要介绍如何在 Spark Streaming 中创建可序列化的类来建立 MySQL 连接。另外我们可以直接建立连接，但对于大规模存储一般要用到连接池，所以也会介绍如何应用 Druid 连接池。
 
 ## 1. 添加依赖
 
+如果输出数据到 MySQL 中需要添加 `mysql-connector-java` 依赖。此外为了更好的性能采用了 Druid 连接池，需要添加 `druid` 依赖：
 ```xml
 <dependency>
     <groupId>mysql</groupId>
@@ -93,58 +88,93 @@ dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
 
 ## 4. 示例
 
-假设我们 MySQL 数据库中有一张 `tb_user` 表：
+假设我们 MySQL 数据库中有一张 `tb_test` 表：
 ```sql
-CREATE TABLE `tb_user` (
-  `id` bigint(20) NOT NULL COMMENT '主键ID',
-  `name` varchar(30) DEFAULT NULL COMMENT '姓名',
-  `age` int(11) DEFAULT NULL COMMENT '年龄',
-  `email` varchar(50) DEFAULT NULL COMMENT '邮箱',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1
+CREATE TABLE `tb_test` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `gmt_create` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `gmt_modified` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
 ```
 
-在这个示例中，我们创建了一个 Spark Streaming 应用程序，从本地主机的 9100 端口接收用户数据，并将每条记录插入到 MySQL 数据库 `tb_user` 表中。我们使用上述 `foreachRDD` + `foreachPartition` 的方法来处理每个 RDD，并在其中获取 Druid 连接池的连接，然后执行插入操作：
+在这个示例中，我们创建了一个 Spark Streaming 应用程序，从本地主机的 9100 端口接收用户数据，并将每条记录插入到 MySQL 数据库 `tb_test` 表中。我们使用上述 `foreachRDD` + `foreachPartition` 的方法来处理每个 RDD，并在其中获取 Druid 连接池的连接，然后执行插入操作：
 ```java
-usersStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
-@Override
-public void call(JavaRDD<String> rdd) throws Exception {
-    rdd.foreachPartition(new VoidFunction<Iterator<String>>() {
-        @Override
-        public void call(Iterator<String> iterator) throws Exception {
-            // 1. 通过连接池获取连接
-            DruidDataSource dataSource = DruidConfig.getDataSource();
-            DruidPooledConnection connection = dataSource.getConnection();
-            // 2. 遍历 RDD 通过连接与外部存储系统交互
-            String sql = "INSERT INTO tb_user (id, name, age, email) VALUES (?, ?, ?, ?)";
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+dStream.foreachRDD(new VoidFunction<JavaRDD<String>>() {
+    @Override
+    public void call(JavaRDD<String> rdd) throws Exception {
+        rdd.foreachPartition(new VoidFunction<Iterator<String>>() {
+            @Override
+            public void call(Iterator<String> iterator) throws Exception {
+                // 1. 通过连接池获取连接
+                DruidDataSource dataSource = DruidConfig.getDataSource();
+                DruidPooledConnection connection = dataSource.getConnection();
                 while (iterator.hasNext()) {
                     String record = iterator.next();
                     LOG.info("[INFO] 输入记录：" + record);
+                    // 2. 遍历 RDD 通过连接与外部存储系统交互
                     String[] params = record.split(",");
-                    stmt.setInt(1, Integer.parseInt(params[0]));
-                    stmt.setString(2, params[1]);
-                    stmt.setInt(3, Integer.parseInt(params[2]));
-                    stmt.setString(4, params[3]);
-                    stmt.addBatch(); // 添加到批处理
+                    String sql = "INSERT INTO tb_test (id, name) VALUES (?, ?)";
+                    PreparedStatement stmt = null;
+                    try {
+                        stmt = connection.prepareStatement(sql);
+                        // 设置参数并执行插入操作
+                        stmt.setInt(1, Integer.parseInt(params[0]));
+                        stmt.setString(2, UUID.randomUUID().toString().replace("-", ""));
+                        stmt.executeUpdate();
+                        LOG.info("[INFO] 通过连接与外部存储系统交互");
+                    } catch (Exception e) {
+                        LOG.error("[ERROR] 与外部存储系统交互失败：" + e.getMessage());
+                    } finally {
+                        if (stmt != null) {
+                            stmt.close();
+                        }
+                    }
                 }
-                // 执行批量操作
-                stmt.executeBatch();
-                LOG.info("[INFO] 通过连接与外部存储系统交互");
-            } catch (Exception e) {
-                LOG.error("[ERROR] 与外部存储系统交互失败：" + e.getMessage());
+                // 3. 关闭连接
+                if(connection != null) {
+                    connection.close();
+                    LOG.info("[INFO] 关闭连接");
+                }
+                if (dataSource != null) {
+                    dataSource.close();
+                }
             }
-            // 3. 关闭连接
-            if(connection != null) {
-                connection.close();
-                LOG.info("[INFO] 关闭连接");
-            }
-            if (dataSource != null) {
-                dataSource.close();
-            }
-        }
-    });
-}
+        });
+    }
 });
 ```
-在提交 MySQL 的操作的时候，并不是每条记录提交一次，而是采用了批量提交的形式，这样可以进一步提高 MySQL 的效率。
+在提交 MySQL 的操作的时候，并不是每条记录提交一次，而是采用了批量提交的形式，这样可以进一步提高 MySQL 的效率。首先在 DruidConfig 类中修改 JDBC URL，如下所示添加 `rewriteBatchedStatements` 参数开启批处理重写特性：
+```java
+dataSource.setUrl("jdbc:mysql://localhost:3306/test?rewriteBatchedStatements=true&useSSL=false&serverTimezone=UTC");
+```
+然后在应用程序中使用 `executeBatch` 批处理执行：
+```java
+try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+    while (iterator.hasNext()) {
+        String record = iterator.next();
+        LOG.info("[INFO] 输入记录：" + record);
+        String[] params = record.split(",");
+        stmt.setInt(1, Integer.parseInt(params[0]));
+        stmt.setString(2, UUID.randomUUID().toString().replace("-", ""));
+        stmt.addBatch();
+    }
+    // 执行批量操作
+    stmt.executeBatch();
+    LOG.info("[INFO] 通过连接与外部存储系统交互 批次执行");
+} catch (Exception e) {
+    LOG.error("[ERROR] 与外部存储系统交互失败：" + e.getMessage());
+}
+```
+通过 MySQL 服务端日志可以看出批处理执行的效果：
+```sql
+2024-12-31T03:46:30.879538Z	  732 Query	SHOW WARNINGS
+2024-12-31T03:46:30.879858Z	  732 Query	SET NAMES latin1
+2024-12-31T03:46:30.880043Z	  732 Query	SET character_set_results = NULL
+2024-12-31T03:46:30.880256Z	  732 Query	SET autocommit=1
+2024-12-31T03:46:30.880558Z	  732 Query	SELECT 1
+2024-12-31T03:46:30.881403Z	  732 Query	SELECT @@session.transaction_read_only
+2024-12-31T03:46:30.882222Z	  732 Query	SELECT @@session.transaction_isolation
+2024-12-31T03:46:30.885779Z	  732 Query	SELECT @@session.transaction_read_only
+2024-12-31T03:46:30.886213Z	  732 Query	INSERT INTO tb_test (id, name) VALUES (1, '549bbef3bfcc4da18fa481d09151b025'),(2, '5c9fa50fdee84020804dca25da9f51af'),(3, '41ccc33ea13c40e48957c67ebe49b5af'),(4, '55f4c255b651476d9ce31205d4d15da9'),(5, '882df32846754f548f4d636172d8c0be'),(6, '00e67bf3b7e2485db417ae02ce62313e'),(7, 'ce670a4da9b248d586f823285c41339d'),(8, 'da8fcade10d44ae98d2cd69a182674e8'),(9, '3d4aba7170b24bf3b2f972f3a5e163ff'),(10, 'ec38b79f10bc4199967b4a232df075df')
+```

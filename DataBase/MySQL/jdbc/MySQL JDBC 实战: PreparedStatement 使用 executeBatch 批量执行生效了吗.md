@@ -87,7 +87,7 @@ public class JdbcBatchInsertExample {
 2024-12-30T09:52:20.867722Z	  522 Query	INSERT INTO tb_test(id, name) VALUES(3,'3')
 2024-12-30T09:52:20.890768Z	  522 Quit
 ```
-这是什么原因呢？代码中明明是通过 `executeBatch()` 来设置批量执行的，但是没生效？带着这个问题查阅 MySQL 驱动源码()从源头查起。我们查阅 `PrepareStatement` 的 `executeBatch()` 实现逻辑：
+这是什么原因呢？代码中明明是通过 `executeBatch()` 来设置批量执行的，但是没生效？带着这个问题查阅 MySQL 驱动源码(8.0.22)从源头查起。我们查阅 `PrepareStatement` 的 `executeBatch()` 实现逻辑：
 ```java
 protected long[] executeBatchInternal() throws SQLException {
     synchronized (checkClosed().getConnectionMutex()) {
@@ -115,18 +115,57 @@ protected long[] executeBatchInternal() throws SQLException {
 ```java
 String URL = "jdbc:mysql://localhost:3306/test?rewriteBatchedStatements=true";
 ```
+对于 INSERT 语句而言，如果要实现批量插入重写优化，SQL 语句中必须只能有一条 SQL，INSERT 语句中不能包含 SELECT 关键词，此外 `ON DUPLICATE KEY UPDATE` 语句后不能出现占位符，也不能使用 `LAST_INSERT_ID`。
 
+> 对于非 INSERT 语句还有其他要求，具体参阅[MySQL JDBC 实战: PreparedStatement rewriteBatchedStatements 实现原理](https://smartsi.blog.csdn.net/article/details/144839563)
 
-还可以发现当PrepareStatement中含有空语句，或实际批量执行的SQL数量未大于3条（使用Statement时未大于4条），MySQL驱动仍将继续按照单条SQL的方式进行执行，而非批量执行。因此，在JDBC连接串中增加该参数配置，如：
+## 3. 批量处理重写优化
 
+从上面分析知道要实现批处理重写优化效果，需要在 JDBC URL 中添加 `rewriteBatchedStatements` 参数：
+```java
+public class JdbcBatchInsertRewriteBatchExample {
 
+    private static final String URL = "jdbc:mysql://localhost:3306/test?rewriteBatchedStatements=true&useSSL=false&characterEncoding=utf8";
 
-
-
-
-
-
-
-
-
-....
+    public static void main(String[] args) {
+        Connection conn = null;
+        try {
+            // 获得数据库连接
+            conn = DriverManager.getConnection(URL, "root", "root");
+            // 查询 SQL
+            String sql = "INSERT INTO tb_test(id, name) VALUES(?,?)";
+            // 创建 PreparedStatement
+            PreparedStatement ps = conn.prepareStatement(sql);
+            for (int i = 1; i < 4 ;i++) {
+                ps.setInt(1, i);
+                ps.setString(2, i+"");
+                ps.addBatch();
+            }
+            // 执行更新
+            int[] result = ps.executeBatch();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            // 关闭连接
+            try {
+                if (conn != null) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+```
+相对第一版本代码只在 JDBC URL 中添加了 `rewriteBatchedStatements` 参数。执行上述代码通过数据库服务端日志可以看到，三条 INSERT 合并为一条语句执行的，如下所示:
+```java
+...
+2024-12-31T02:41:21.264470Z	  548 Query	SHOW WARNINGS
+2024-12-31T02:41:21.275973Z	  548 Query	SET NAMES utf8mb4
+2024-12-31T02:41:21.276325Z	  548 Query	SET character_set_results = NULL
+2024-12-31T02:41:21.276804Z	  548 Query	SET autocommit=1
+2024-12-31T02:41:21.318997Z	  548 Query	SELECT @@session.transaction_read_only
+2024-12-31T02:41:21.320111Z	  548 Query	INSERT INTO tb_test(id, name) VALUES(1,'1'),(2,'2'),(3,'3')
+2024-12-31T02:41:21.369262Z	  548 Quit
+```

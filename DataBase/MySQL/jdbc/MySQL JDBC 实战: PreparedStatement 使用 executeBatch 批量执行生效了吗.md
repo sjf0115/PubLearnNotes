@@ -87,7 +87,37 @@ public class JdbcBatchInsertExample {
 2024-12-30T09:52:20.867722Z	  522 Query	INSERT INTO tb_test(id, name) VALUES(3,'3')
 2024-12-30T09:52:20.890768Z	  522 Quit
 ```
-这是什么原因呢？代码中明明是通过 `executeBatch()` 来设置批量执行的，但是没生效？带着这个问题查阅 MySQL 驱动源码()从源头查起。分别查阅Statement和PrepareStatement的executeBatch()实现方式，发现要达到批量方式执行效果，二者均对关键属性rewriteBatchedStatements进行了判断。还可以发现当PrepareStatement中含有空语句，或实际批量执行的SQL数量未大于3条（使用Statement时未大于4条），MySQL驱动仍将继续按照单条SQL的方式进行执行，而非批量执行。因此，在JDBC连接串中增加该参数配置，如：
+这是什么原因呢？代码中明明是通过 `executeBatch()` 来设置批量执行的，但是没生效？带着这个问题查阅 MySQL 驱动源码()从源头查起。我们查阅 `PrepareStatement` 的 `executeBatch()` 实现逻辑：
+```java
+protected long[] executeBatchInternal() throws SQLException {
+    synchronized (checkClosed().getConnectionMutex()) {
+        ...
+        // 是否是批处理
+        if (!this.batchHasPlainStatements && this.rewriteBatchedStatements.getValue()) {
+            // 批量插入
+            if (((PreparedQuery<?>) this.query).getParseInfo().canRewriteAsMultiValueInsertAtSqlLevel()) {
+                return executeBatchedInserts(batchTimeout);
+            }
+            // 多语句批量执行
+            if (!this.batchHasPlainStatements && this.query.getBatchedArgs() != null && this.query.getBatchedArgs().size() > 3) {
+                return executePreparedBatchAsMultiStatement(batchTimeout);
+            }
+        }
+        // 串行执行批处理
+        return executeBatchSerially(batchTimeout);
+        ...
+    }
+}
+```
+> executeBatch 的详细逻辑请参阅[MySQL JDBC 实战: PreparedStatement rewriteBatchedStatements 实现原理](https://smartsi.blog.csdn.net/article/details/144839563)
+
+从上面发现要实现批处理执行效果，前提条件是需要在 JDBC URL 中添加 `rewriteBatchedStatements` 参数(由于使用的是 `addBatch()` 方法，`batchHasPlainStatements` 为 `false`)：
+```java
+String URL = "jdbc:mysql://localhost:3306/test?rewriteBatchedStatements=true";
+```
+
+
+还可以发现当PrepareStatement中含有空语句，或实际批量执行的SQL数量未大于3条（使用Statement时未大于4条），MySQL驱动仍将继续按照单条SQL的方式进行执行，而非批量执行。因此，在JDBC连接串中增加该参数配置，如：
 
 
 

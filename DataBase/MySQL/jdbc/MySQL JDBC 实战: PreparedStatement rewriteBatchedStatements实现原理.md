@@ -149,7 +149,19 @@ protected static boolean canRewrite(String sql, boolean isOnDuplicateKeyUpdate, 
             && StringUtils.indexOfIgnoreCase(statementStartPos, sql, "SELECT", "\"'`", "\"'`", StringUtils.SEARCH_MODE__MRK_COM_WS) == -1;
 }
 ```
-可以看到 `rewriteBatchedStatements` 值为 true，必须是插入操作或者 REPLACE 操作，不能是 `INSERT ... SELECT` 或者 `INSERT ... ON DUPLICATE KEY UPDATE` 操作。
+canRewriteAsMultiValueInsert 判断条件有3个，最基本的 2 个条件：
+- `numberOfQueries` 必须为 1，即必须是一条 SQL，即不能是 `sql;sql` 的形式
+- `parametersInDuplicateKeyClause` 必须为 `false`，即 `on duplicate key update` 后不能有占位符。举个例子:
+```sql
+# 不能重写
+insert into tb_test (c1) values (?) on duplicate key update c1 = ?
+# 可以重写
+insert into tb_test (c1) values (?) on duplicate key update c1 = 123
+```
+除了这两个条件外，还有 `canRewrite()` 函数也需要为 `true`。可以看到必须是插入操作或者 REPLACE 操作，但不能是 `INSERT ... SELECT` 或者 `INSERT ... ON DUPLICATE KEY UPDATE with an id=LAST_INSERT_ID(...)` 操作。
+
+> 对于 INSERT 语句，如果 SQL 中存在 SELECT，则不能被重写。
+> 对于 ON DUPLICATE KEY UPDATE 语句不能使用 LAST_INSERT_ID。
 
 ### 2. 多语句批处理
 

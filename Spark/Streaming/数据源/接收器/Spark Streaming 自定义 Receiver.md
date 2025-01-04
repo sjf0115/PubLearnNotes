@@ -132,57 +132,7 @@ public class CustomSourceReceiver extends Receiver<String> {
 
 示例代码：
 
-import org.apache.spark.streaming.receiver.Receiver
-import org.apache.spark.storage.StorageLevel
-import java.net.Socket
-import scala.io.Source
-import scala.util.control.NonFatal
 
-class CustomReceiver(host: String, port: Int) extends Receiver[String](StorageLevel.MEMORY_AND_DISK_2) {
-
-    @volatile private var socket: Socket = _
-
-    def onStart(): Unit = {
-        // 启动一个新的线程来接收数据
-        new Thread("Custom Receiver") {
-            override def run() { receive() }
-        }.start()
-    }
-
-    def onStop(): Unit = {
-        // 关闭 socket 连接
-        if (socket != null) {
-            try {
-                socket.close()
-            } catch {
-                case NonFatal(e) => // 日志记录错误
-            }
-        }
-    }
-
-    /** 主要接收数据的方法 */
-    private def receive(): Unit = {
-        try {
-            socket = new Socket(host, port)
-            val source = Source.fromInputStream(socket.getInputStream, "UTF-8")
-            for (line <- source.getLines()) {
-                if (!isStopped()) {
-                    store(line)
-                } else {
-                    source.close()
-                    return
-                }
-            }
-            // 连接关闭，尝试重启 Receiver
-            restart("Connection closed")
-        } catch {
-            case e: java.net.ConnectException =>
-                restart("Error connecting to " + host + ":" + port, e)
-            case NonFatal(e) =>
-                restart("Error receiving data", e)
-        }
-    }
-}
 3.4 在 Spark Streaming 应用中使用自定义 Receiver
 在创建 Spark Streaming 程序时，通过 ssc.receiverStream 方法将自定义 Receiver 集成到数据流中。
 

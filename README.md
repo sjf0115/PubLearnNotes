@@ -2,6 +2,4 @@
 
 CSDN博客:http://blog.csdn.net/sunnyyoona
 
-个人博客:http://smartsi.club/
-
 如果有问题，可以发送到我的邮箱: 1203745031@qq.com

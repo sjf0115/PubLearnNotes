@@ -70,19 +70,16 @@ public class CustomSourceReceiver extends Receiver<String> {
 
 自定义 Receiver 必须要实现如下两个核心方法：
 - `onStart()`:
-  - 在 Receiver 启动时调用，此方法中应包含接收数据的逻辑。
-  - 这个函数必须初始化接收数据所需的所有资源（线程、缓冲区等）。
-  - 此外这个函数必须是非阻塞的，也就是说接收数据必须发生在不同的线程上。
-  - 接收到的数据可以通过调用 `store(data)` 在 Spark 中存储。
+  - 在 Receiver 启动时被调用。此方法中应包含接收数据的逻辑以及初始化接收数据所需的所有资源（线程、缓冲区等）。
+  - 确保 onStart 方法尽量快速返回，避免阻塞 Receiver 启动过程。一般会在 onStart 中启动一个新的线程来处理数据接收，以防止阻塞主线程。
+  - 接收到的数据可以通过调用 `store(...)` 在 Spark 中存储。
   - 如果在这里启动的线程中有错误，那么可以执行如下选择
-    - 可以调用 `reportterror(...)` 向 Driver 报告错误。数据接收不会间断；
+    - 可以调用 `reportterror(...)` 向 Driver 报告错误。数据接收不会间断。
     - 可以调用 `stop(...)` 来停止接收数据。
-    - 可以调用 `restart(...)` 来重启 Receiver。这将立即调用 `onStop(...)`，然后再调用 `onStart(...)`
+    - 可以调用 `restart(...)` 来重启 Receiver。
 - `onStop()`:
-  - 在 Receiver 停止时调用，用于清除在 `onStart(...)` 期间分配的所有资源（线程，缓冲区等）
-
-此外，可以实现数据接收的具体逻辑，调用 `store(T data)` 方法将接收到的数据存储到 Spark 内存中。
-
+  - 在 Receiver 停止时被调用，用于清除在 `onStart(...)` 期间分配的所有资源（线程，缓冲区等）
+  - 确保 onStop 方法能够优雅地停止数据接收，避免资源泄漏。需要处理线程的中断和终止，确保所有资源正确释放。
 
 ```java
 public class CustomSourceReceiver extends Receiver<String> {
@@ -103,171 +100,163 @@ public class CustomSourceReceiver extends Receiver<String> {
 }
 ```
 
-需要注意的是 onStart() 和 onStop() 不能够无限期的阻塞。通常情况下，onStart() 启动线程负责数据的接收，onStop() 确保这个接收过程停止。接收线程也能够调用 receiver的 isStopped
-方法去检查是否已经停止接收数据。
+此外实现数据接收逻辑的过程中可能还需要如下几个方法：
+- `isStarted()`:
+  - 检查 Receiver 是否已经启动。
+- `isStopped()`:
+  - 检查 Receiver 是否已经停止。使用它来确定何时应该停止接收数据。
+- `store(...)`:
+  - 用于将接收到的数据存储到 Spark Streaming 的内存中，以便后续的 DStream 计算和处理使用。
+  - 需要注意的是避免频繁调用 store，以减少内存压力。可以批量存储数据，提高效率。
+- `restart(...)`:
+  - 重新启动 Receiver。通过异步的方式首先调用 `onStop(...)` 方法，然后在一段延迟之后调用 `onStart(...)` 方法。
+  - 用于在发生错误或异常时重启 Receiver。这是为了增强系统的容错性和稳定性。
+  - 当 Receiver 在接收数据过程中遇到不可恢复的错误，需要重新启动以恢复数据接收时，调用 restart 方法。
+- `stop(...)`:
+  - 用于手动停止 Receiver，可以选择性地提供错误信息和异常对象。
+  - 在接收数据过程中遇到严重错误或需要终止 Receiver 时，调用 stop 方法。例如，检测到数据源不可达且无法恢复时，终止 Receiver。
+  - 提供准确的错误信息，有助于系统监控和问题排查。
+- `reportError(...)`:
+  - 用于报告接收数据过程中发生的错误，通常会触发 Spark Streaming 的重启机制。
 
-一旦接收了数据，这些数据就能够通过调用store(data)方法存到Spark中，store(data)是[Receiver]类中的方法。有几个重载的store()方法允许你存储接收到的数据（record-at-a-time or as whole collection of objects/serialized bytes）
+### 2.4 如何使用自定义 Receiver
 
-在接收线程中出现的任何异常都应该被捕获或者妥善处理从而避免receiver在没有提示的情况下失败。restart(<exception>)方法将会重新启动receiver，它通过异步的方式首先调用onStop()方法，
-然后在一段延迟之后调用onStart()方法。stop(<exception>)将会调用onStop()方法终止receiver。reportError(<error>)方法在不停止或者重启receiver的情况下打印错误消息到
-驱动程序(driver)。
+在创建 Spark Streaming 程序时，通过 `streamingContext.receiverStream` 方法将自定义 Receiver 集成到数据流中。这将使用自定义接收器实例接收到的数据创建一个输入DStream，如下所示：
+```java
+...
+// 自定义 Receiver
+CustomSourceReceiver receiver = new CustomSourceReceiver(...);
+// 集成到数据流中
+JavaDStream<String> dStream = ssc.receiverStream(receiver);
+...
+```
 
-如下所示，是一个自定义的receiver，它通过套接字接收文本数据流。它用分界符’\n’把文本流分割为行记录，然后将它们存储到Spark中。如果接收线程碰到任何连接或者接收错误，receiver将会
-重新启动以尝试再一次连接。
+## 3. 实践：创建一个自定义 Socket Receiver
 
+以下是一个完整的自定义 Socket Receiver 示例，用于从指定的主机和端口接收文本数据，并将其存储到 Spark Streaming 中：
+```java
+public class CustomSocketReceiver extends Receiver<String> {
+    private static final Logger LOG = LoggerFactory.getLogger(CustomSocketReceiver.class);
+    private String host;
+    private int port;
+    private Socket socket;
+    private BufferedReader reader;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-示例代码：
-
-
-3.4 在 Spark Streaming 应用中使用自定义 Receiver
-在创建 Spark Streaming 程序时，通过 ssc.receiverStream 方法将自定义 Receiver 集成到数据流中。
-
-示例代码：
-
-import org.apache.spark.SparkConf
-import org.apache.spark.streaming.{Seconds, StreamingContext}
-
-object CustomReceiverApp {
-    def main(args: Array[String]): Unit = {
-        val conf = new SparkConf().setAppName("CustomReceiverApp").setMaster("local[*]")
-        val ssc = new StreamingContext(conf, Seconds(5))
-
-        // 创建自定义 Receiver 的 DStream
-        val customStream = ssc.receiverStream(new CustomReceiver("localhost", 9999))
-
-        // 简单的处理逻辑：打印接收到的数据
-        customStream.print()
-
-        // 启动 Streaming
-        ssc.start()
-        ssc.awaitTermination()
-    }
-}
-关键注意事项
-在定义和使用自定义 Receiver 时，需要注意以下几个方面，以确保其稳定性和高效性。
-
-4.1 资源管理与释放
-确保在 onStop() 方法中正确关闭所有外部资源（如网络连接、文件句柄等），防止资源泄漏。此外，在接收数据的线程中，需定期检查 isStopped() 方法，以便及时响应 Receiver 的停止信号。
-
-4.2 错误处理与恢复机制
-在数据接收过程中，可能会遇到各种异常情况（如网络中断、数据格式错误等）。应在接收逻辑中捕获并处理这些异常，必要时调用 restart() 方法重新启动 Receiver。同时，合理配置 Spark Streaming 的重启策略，以应对长时间的异常情况。
-
-4.3 数据可靠性与幂等性
-确保接收的数据能够可靠地存储到 Spark 中。若自定义 Receiver 涉及到数据的写入或保存操作，应考虑幂等性，避免因重启或重试导致数据重复或丢失。可以结合 Spark 的检查点机制，增强数据的可靠性。
-
-4.4 性能优化
-对于高吞吐量的数据源，自定义 Receiver 需要具备高效的数据接收和存储能力。可以采用批量接收和批量存储的方式，减少 store() 调用的频率。此外，尽量使用高效的数据结构和算法，优化连接和数据处理的性能。
-
-示例：创建一个自定义 Socket Receiver
-以下是一个完整的自定义 Socket Receiver 示例，用于从指定的主机和端口接收文本数据，并将其存储到 Spark Streaming 中。
-
-CustomSocketReceiver.scala
-
-import org.apache.spark.streaming.receiver.Receiver
-import org.apache.spark.storage.StorageLevel
-import java.net.Socket
-import scala.io.Source
-import scala.util.control.NonFatal
-
-class CustomSocketReceiver(host: String, port: Int) extends Receiver[String](StorageLevel.MEMORY_AND_DISK_2) {
-
-    @volatile private var socket: Socket = _
-
-    def onStart(): Unit = {
-        // 启动接收线程
-        new Thread("Custom Socket Receiver") {
-            override def run() { receive() }
-        }.start()
+    public CustomSocketReceiver(String host, int port) {
+        super(StorageLevel.MEMORY_AND_DISK_2());
+        this.host = host;
+        this.port = port;
     }
 
-    def onStop(): Unit = {
-        // 关闭 socket 连接
-        if (socket != null) {
-            try {
-                socket.close()
-            } catch {
-                case NonFatal(e) => // 日志记录错误
-            }
-        }
+    public CustomSocketReceiver() {
+        this("localhost", 9100);
     }
 
-    private def receive(): Unit = {
+    @Override
+    public void onStart() {
+        // 启动一个新的线程来接收数据
+        new Thread(this::receive).start();
+        LOG.info("onStart 启动一个新的线程来接收数据");
+    }
+
+    @Override
+    public void onStop() {
+        // 释放资源：关闭 socket 连接
         try {
-            socket = new Socket(host, port)
-            val source = Source.fromInputStream(socket.getInputStream, "UTF-8")
-            for (line <- source.getLines()) {
-                if (!isStopped()) {
-                    store(line)
-                } else {
-                    source.close()
-                    return
-                }
+            if (reader != null) {
+                reader.close();
             }
-            // 连接关闭，尝试重启 Receiver
-            restart("Connection closed")
-        } catch {
-            case e: java.net.ConnectException =>
-                restart("Error connecting to " + host + ":" + port, e)
-            case NonFatal(e) =>
-                restart("Error receiving data", e)
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+        } catch (IOException e) {
+            LOG.error("onStop 关闭 socket 连接失败", e);
+        }
+    }
+
+    // 接收数据
+    private void receive() {
+        String line;
+        try {
+            socket = new Socket(host, port);
+            reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+
+            while (!isStopped() && (line = reader.readLine()) != null) {
+                LOG.info("[INFO] 接收数据：" + line);
+                store(line);
+            }
+            // 如果断开连接 重启 Receiver
+            if (!isStopped()) {
+                restart("尝试再次重启 Receiver");
+            }
+        } catch(IOException e) {
+            LOG.error("接收数据失败", e);
+            if (!isStopped()) {
+                restart("发生错误 尝试再次重启 Receiver");
+            }
         }
     }
 }
-CustomReceiverApp.scala
+```
+> 完整代码：[CustomSocketReceiver](https://github.com/sjf0115/data-example/blob/master/spark-example-3.1/src/main/java/com/spark/example/streaming/connector/receiver/CustomSocketReceiver.java)
 
-import org.apache.spark.SparkConf
-import org.apache.spark.streaming.{Seconds, StreamingContext}
+在定义和使用自定义 Receiver 时，需要注意以下几个方面，以确保其稳定性和高效性。
+- 资源管理与释放
+  - 确保在 onStop() 方法中正确关闭所有外部资源（如网络连接、文件句柄等），防止资源泄漏。此外，在接收数据的线程中，需定期检查 isStopped() 方法，以便及时响应 Receiver 的停止信号。
+- 错误处理与恢复机制
+  - 在数据接收过程中，可能会遇到各种异常情况（如网络中断、数据格式错误等）。应在接收逻辑中捕获并处理这些异常，必要时调用 restart() 方法重新启动 Receiver。同时，合理配置 Spark Streaming 的重启策略，以应对长时间的异常情况。
+- 数据可靠性与幂等性
+  - 确保接收的数据能够可靠地存储到 Spark 中。若自定义 Receiver 涉及到数据的写入或保存操作，应考虑幂等性，避免因重启或重试导致数据重复或丢失。可以结合 Spark 的检查点机制，增强数据的可靠性。
+- 性能优化
+  - 对于高吞吐量的数据源，自定义 Receiver 需要具备高效的数据接收和存储能力。可以采用批量接收和批量存储的方式，减少 store() 调用的频率。此外，尽量使用高效的数据结构和算法，优化连接和数据处理的性能。
 
-object CustomReceiverApp {
-    def main(args: Array[String]): Unit = {
-        // 创建 Spark 配置和 StreamingContext
-        val conf = new SparkConf().setAppName("CustomReceiverApp").setMaster("local[*]")
-        val ssc = new StreamingContext(conf, Seconds(5))
+有了自定义 Socket Receiver 之后，创建一个应用示例看一下实际效果：
+```java
+public class CustomSocketReceiverExample {
+    public static void main(String[] args) throws InterruptedException {
+        SparkConf conf = new SparkConf().setAppName("CustomSocketReceiverExample").setMaster("local[2]");
+        JavaSparkContext sparkContext = new JavaSparkContext(conf);
+        JavaStreamingContext ssc = new JavaStreamingContext(sparkContext, Durations.seconds(10));
 
-        // 使用自定义 Receiver 创建 DStream
-        val customStream = ssc.receiverStream(new CustomSocketReceiver("localhost", 9999))
+        // 自定义 Receiver
+        CustomSocketReceiver receiver = new CustomSocketReceiver("localhost", 9100);
+        // 集成到数据流中
+        JavaDStream<String> dStream = ssc.receiverStream(receiver);
+        dStream.print();
 
-        // 对接收到的数据进行简单处理
-        customStream.foreachRDD { rdd =>
-            rdd.foreach { record =>
-                println(s"Received: $record")
-            }
-        }
-
-        // 启动 StreamingContext
-        ssc.start()
-        ssc.awaitTermination()
+        ssc.start();
+        ssc.awaitTermination();
     }
 }
-运行步骤：
+```
+> 完整代码：[CustomSocketReceiverExample](https://github.com/sjf0115/data-example/blob/master/spark-example-3.1/src/main/java/com/spark/example/streaming/connector/receiver/CustomSocketReceiverExample.java)
 
-启动数据发送端：在本地的 9999 端口启动一个简单的 Netcat 服务器，用于发送数据。
-
-    nc -lk 9999
-运行 Spark Streaming 应用：提交 Spark 应用，启动自定义 Receiver。
-
-    spark-submit --class CustomReceiverApp --master local[*] path/to/your/jarfile.jar
-发送数据：在 Netcat 终端输入文本，Spark Streaming 应用将实时接收并打印这些数据。
-
-    Hello Spark Streaming!
-    This is a custom Receiver.
-**Spark Streaming 输出：**
-
-    Received: Hello Spark Streaming!
-    Received: This is a custom Receiver.
-总结
-自定义 Receiver 为 Spark Streaming 的扩展性和灵活性提供了强有力的支持。通过继承 Receiver 类，并实现必要的方法，我们可以轻松地将各种数据源集成到 Spark Streaming 流程中。然而，在开发自定义 Receiver 时，需要注意资源管理、错误处理、数据可靠性以及性能优化等关键方面，以确保数据流处理的稳定性和效率。希望本文对您在实际项目中实现自定义 Receiver 提供了有价值的参考和指导。
+首先启动数据发送端，在本地的 9100 端口启动一个简单的 Netcat 服务器，用于发送数据：
+```
+netcat -l -p 9100
+```
+然后运行 Spark Streaming 应用，提交 Spark 应用，启动自定义 Receiver：
+```
+spark-submit --class CustomSocketReceiverExample --master local[*] path/to/your/jarfile.jar
+```
+最后在数据发送端的 Netcat 终端输入文本：
+```
+1
+2
+3
+4
+5
+6
+```
+Spark Streaming 应用将实时接收并打印这些数据：
+```
+-------------------------------------------
+Time: 1735985060000 ms
+-------------------------------------------
+1
+2
+3
+4
+5
+6
+```

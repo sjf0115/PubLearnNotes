@@ -74,7 +74,7 @@ public class CustomSourceReceiver extends Receiver<String> {
   - 确保 onStart 方法尽量快速返回，避免阻塞 Receiver 启动过程。一般会在 onStart 中启动一个新的线程来处理数据接收，以防止阻塞主线程。
   - 接收到的数据可以通过调用 `store(...)` 在 Spark 中存储。
   - 如果在这里启动的线程中有错误，那么可以执行如下选择
-    - 可以调用 `reportterror(...)` 向 Driver 报告错误。数据接收不会间断。
+    - 可以调用 `reportterror(...)` 向 Driver 报告错误，数据接收不会间断。
     - 可以调用 `stop(...)` 来停止接收数据。
     - 可以调用 `restart(...)` 来重启 Receiver。
 - `onStop()`:
@@ -121,7 +121,7 @@ public class CustomSourceReceiver extends Receiver<String> {
 
 ### 2.4 如何使用自定义 Receiver
 
-在创建 Spark Streaming 程序时，通过 `streamingContext.receiverStream` 方法将自定义 Receiver 集成到数据流中。这将使用自定义接收器实例接收到的数据创建一个输入DStream，如下所示：
+在创建 Spark Streaming 程序时，通过 `streamingContext.receiverStream` 方法将自定义 Receiver 集成到数据流中。这将使用自定义接 Receiver 实例接收到的数据创建一个输入 DStream，如下所示：
 ```java
 ...
 // 自定义 Receiver

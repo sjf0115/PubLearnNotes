@@ -27,7 +27,7 @@ permalink: hive-query-federation
 
 需要注意的是，目前 JdbcStorageHandler 仅仅支持从 JDBC 数据源读取数据，还不支持支持将数据写入到 JDBC 数据源。
 
-![](../../../Image/Hive/hive-query-federation-1.jpg)
+![](img-hive-query-federation-1.jpg)
 
 ## 2. JdbcStorageHandler 支持 CBO（Cost-based optimizer）
 
@@ -52,11 +52,11 @@ LIMIT 100;
 ```
 上面这条 SQL 在优化前的执行计划，如下：
 
-![](../../../Image/Hive/hive-query-federation-2.jpg)
+![](img-hive-query-federation-2.jpg)
 
 其中绿色的框框是在 MySQL 或者 PostgreSQL 里面执行的，橘色的是在 Hive 执行的。从上图可以看出，三次扫描的文件直接返回到 Hive 处理，这样效率是很低下的，其实我们可以对其进行算子下沉优化，经过 Apache Calcite 的 CBO 优化之后，执行计划如下：
 
-![](../../../Image/Hive/hive-query-federation-3.jpg)
+![](img-hive-query-federation-3.jpg)
 
 对应的 SQL 执行如下：
 ```sql

@@ -22,7 +22,7 @@ ON A.id	=	B.id;
 
 A表有一个 id　列，在数值 `k1` 上有数据倾斜，即相对于这一列的其他值来说 `k1` 数据量比较大。B表 id 列也有 `k1` 值，但是数据量远没有A表的大。这种情形下，第一步是扫描B表并将 `k1` 对应的所有行数据保存在内存中的 HashTable 中。完成后，然后运行一组 Mapper 来读取A表 `k1` 的数据完成一个 map-join。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hive/hive-optimization-how-to-use-skewed-join-1.png?raw=true)
+![](img-hive-optimization-how-to-use-skewed-join-1.png)
 
 > 黄色的 A表的 `k1` 有数据倾斜，对应的B表 `k1`　没有数据倾斜，因此后续的 MapReduce 作业(Job2) 是一个 `map-join`。
 

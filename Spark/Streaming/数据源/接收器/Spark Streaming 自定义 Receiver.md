@@ -200,11 +200,12 @@ public class CustomSocketReceiver extends Receiver<String> {
 ```
 > 完整代码：[CustomSocketReceiver](https://github.com/sjf0115/data-example/blob/master/spark-example-3.1/src/main/java/com/spark/example/streaming/connector/receiver/CustomSocketReceiver.java)
 
-在定义和使用自定义 Receiver 时，需要注意以下几个方面，以确保其稳定性和高效性。
+在定义自定义 Receiver 时，需要注意以下几个方面，以确保其稳定性和高效性:
 - 资源管理与释放
-  - 确保在 onStop() 方法中正确关闭所有外部资源（如网络连接、文件句柄等），防止资源泄漏。此外，在接收数据的线程中，需定期检查 isStopped() 方法，以便及时响应 Receiver 的停止信号。
+  - 确保在 `onStop()` 方法中正确关闭所有外部资源（如网络连接、文件句柄等），防止资源泄漏。
+  - 此外，在接收数据的线程中，需定期检查 `isStopped()` 方法，以便及时响应 Receiver 的停止信号。
 - 错误处理与恢复机制
-  - 在数据接收过程中，可能会遇到各种异常情况（如网络中断、数据格式错误等）。应在接收逻辑中捕获并处理这些异常，必要时调用 restart() 方法重新启动 Receiver。同时，合理配置 Spark Streaming 的重启策略，以应对长时间的异常情况。
+  - 在数据接收过程中，可能会遇到各种异常情况（如网络中断、数据格式错误等）。应在接收逻辑中捕获并处理这些异常，必要时调用 `restart()` 方法重新启动 Receiver。同时，合理配置 Spark Streaming 的重启策略，以应对长时间的异常情况。
 - 数据可靠性与幂等性
   - 确保接收的数据能够可靠地存储到 Spark 中。若自定义 Receiver 涉及到数据的写入或保存操作，应考虑幂等性，避免因重启或重试导致数据重复或丢失。可以结合 Spark 的检查点机制，增强数据的可靠性。
 - 性能优化

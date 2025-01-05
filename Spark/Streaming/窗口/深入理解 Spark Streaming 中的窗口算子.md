@@ -34,6 +34,8 @@ reduceFunc: 聚合函数，将两个输入元素合并成一个。
 invReduceFunc: 反聚合函数，用于减少窗口滑动时需要的计算。
 windowDuration: 窗口的持续时间。
 slideDuration: 窗口滑动的时间间隔。
+
+
 countByWindow
 countByWindow 用于计算窗口内的元素数量。
 

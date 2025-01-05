@@ -23,14 +23,16 @@ Redis 是一种基于客户端-服务端模型以及请求/响应协议的TCP服
 这个时间被称为 RTT (Round Trip Time)，例如上面过程的发送命令和返回结果两个过程。当客户端需要连续执行多次请求时很容易看到这是如何影响性能的（例如，添加多个元素到同一个列表中）。例如，如果 RTT 时间是250毫秒（网络连接很慢的情况下），即使服务端每秒能处理100k的请求量，那我们每秒最多也只能处理4个请求。如果使用的是本地环回接口，RTT 就短得多，但如如果需要连续执行多次写入，这也是一笔很大的开销。
 
 下面我们看一下执行 N 次命令的模型:
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Redis/using-pipelining-to-speedup-redis-queries-1.png?raw=true)
+
+![](img-using-pipelining-to-speedup-redis-queries-1.png)
 
 ### 2. Pipeline
 
 我们可以使用 Pipeline 改善这种情况。Pipeline 并不是一种新的技术或机制，很多技术上都使用过。RTT 在不同网络环境下会不同，例如同机房和同机房会比较快，跨机房跨地区会比较慢。Redis 很早就支持 Pipeline 技术，因此无论你运行的是什么版本，你都可以使用 Pipeline 操作 Redis。
 
 Pipeline 能将一组 Redis 命令进行组装，通过一次 RTT 传输给 Redis，再将这组 Redis 命令按照顺序执行并将结果返回给客户端。上图没有使用 Pipeline 执行了 N 条命令，整个过程需要 N 次 RTT。下图为使用 Pipeline 执行 N 条命令，整个过程仅需要 1 次 RTT：
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Redis/using-pipelining-to-speedup-redis-queries-2.png?raw=true)
+
+![](img-using-pipelining-to-speedup-redis-queries-2.png)
 
 > Redis 提供了批量操作命令(例如 mget，mset等)，有效的节约了RTT。但大部分命令是不支持批量操作的。
 
@@ -81,7 +83,7 @@ public void mdel(List<String> keys){
 
 欢迎关注我的公众号和博客：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
+![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg)
 
 参考:
 -  [Using pipelining to speedup Redis queries](https://redis.io/topics/pipelining#using-pipelining-to-speedup-redis-queries)

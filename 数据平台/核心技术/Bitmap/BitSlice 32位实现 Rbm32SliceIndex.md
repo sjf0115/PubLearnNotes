@@ -5,6 +5,54 @@
 1678 - bitSlice(user_id, 1678)
 
 
+
+
+
+
+
+Collection<Integer> values();
+
+
+
+
+
+- 构建 BSI
+  - int sliceSize();
+  - long getLongCardinality();
+  - void clear();
+  - boolean isEmpty();
+  - void put(int key, int value);
+  - void putAll(BitSliceIndex otherBsi);
+- 序列化
+  - void serialize(ByteBuffer buffer) throws IOException;
+  - void deserialize(ByteBuffer buffer) throws IOException;
+- 键操作
+  - boolean containsKey(int key);
+  - int remove(int key);
+  - RoaringBitmap keys();
+- 精确查询值
+  - boolean containsValue(int value);
+  - int get(int key);
+- 范围查询值
+  - max
+  - min
+  - eq
+  - lt
+  - le
+  - gt
+  - ge
+  - range
+- 运算
+  - SUM
+  - Top
+  - and
+  - or
+  - xor
+  - not
+
+
+
+
 ## 1. 存储结构
 
 BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩。下面以用户与用户获取的积分为例为你介绍 BSI 的原理与结构。
@@ -124,8 +172,57 @@ private int getValueInternal(int key) {
 ```
 例如 key 为 user_id = 6，则该 key 在切片 0，3，4，5 中，通过计算 value 为 57(二进制 111001)。
 
+## 范围查询
 
+```java
+private RoaringBitmap oNeilRange(Operation operation, int value) {
+    RoaringBitmap GT = new RoaringBitmap();
+    RoaringBitmap LT = new RoaringBitmap();
+    RoaringBitmap EQ = this.ebm;
 
+    for (int i = this.sliceSize - 1; i >= 0; i--) {
+        int bit = (value >> i) & 1;
+        if (bit == 1) {
+            LT = RoaringBitmap.or(LT, RoaringBitmap.andNot(EQ, this.slices[i]));
+            EQ = RoaringBitmap.and(EQ, this.slices[i]);
+        } else {
+            GT = RoaringBitmap.or(GT, RoaringBitmap.and(EQ, this.slices[i]));
+            EQ = RoaringBitmap.andNot(EQ, this.slices[i]);
+        }
+    }
 
+    switch (operation) {
+        case EQ:
+            return EQ;
+        case NEQ:
+            return RoaringBitmap.andNot(this.ebm, EQ);
+        case GT:
+            return GT;
+        case LT:
+            return LT;
+        case LE:
+            return RoaringBitmap.or(LT, EQ);
+        case GE:
+            return RoaringBitmap.or(GT, EQ);
+        default:
+            throw new IllegalArgumentException("");
+    }
+}
+```
+## SUM
+
+```java
+public Long sum(RoaringBitmap rbm) {
+    if (null == rbm || rbm.isEmpty()) {
+        return 0L;
+    }
+    long sum = 0;
+    for (int i = 0; i < this.sliceSize; i ++) {
+        long sliceValue = 1 << i;
+        sum += sliceValue * RoaringBitmap.andCardinality(this.slices[i], rbm);
+    }
+    return sum;
+}
+```
 
 ...

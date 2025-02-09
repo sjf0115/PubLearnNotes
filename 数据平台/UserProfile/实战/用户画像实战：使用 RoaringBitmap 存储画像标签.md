@@ -32,7 +32,7 @@
 
 > dws_app_user_profile_prefer_label_td 标签宽表描述用户偏好标签
 
-如果需求从上述两张表中圈选出使用喜欢体育的女性用户 `[gender = 女] & [category = 体育]`，通常可以关联、过滤最终获得用户。但在数据规模较大的场景，关联、去重运算会带来严重的性能负担。Bitmap 优化方案通过预构建标签的 Bitmap 表来减少即席运算的成本，比如将两张表中的列拆开分别构建 Bitmap 表如下所示，通过表中 Bitmap 的与运算计算出人数：
+如果需求从上述两张表中圈选出喜欢体育的女性用户 `[gender = 女] & [category = 体育]`，通常可以关联、过滤最终获得用户。但在数据规模较大的场景，关联、去重运算会带来严重的性能负担。Bitmap 优化方案通过预构建标签的 Bitmap 表来减少即席运算的成本，比如将两张表中的列拆开分别构建 Bitmap 表如下所示，通过表中 Bitmap 的与运算计算出人数：
 
 ![](img_user_profile_label_bitmap_table_3.png)
 
@@ -48,52 +48,18 @@
 
 ### 3.2 方案实践
 
-#### 3.2.1 用户信息编码处理
+依据上述方案按列拆分的思路，将 dws_app_user_profile_attr_label_td 用户基础属性标签宽表与 dws_app_user_profile_prefer_label_td 用户偏好标签宽表进行拆分转换为一个 Bitmap 表 dws_app_user_profile_bitmap_label_td。
 
-用户标识可能是字符类型的，由于 Bitmap 只能保存整数信息，因此需要先将 user_id 进行整数编码。对用户标识进行编码不仅可以方便存储进 Bitmap，还可以使 ID 信息保持连续性。如下图所示bitmap2由于存储的ID数据稀疏，存储效率相比bitmap1低很多，因此对ID编码处理，也会降低存储成本，提升运算效率。
-
-对于数值类型，如果较为稀疏也可以考虑编码，但是进行编码有利有弊，例如在广告DMP系统中除了需要高性能的画像能力，也需要实时输出人群明细的能力；而一旦需要输出人群明细，就需要Join用户ID表进行还原，这一部分的性能开销，也应当纳入技术选型的考虑因素中。因此您可以依据使用场景权衡选择，是否进行编码建议如下：
-- 字符ID：建议编码。
-- 整数ID且需要频繁还原原始值：建议不编码。
-- 整数ID且不需要还原原始值：建议编码。
-
-#### 3.2.2 Bitmap 加工和查询
-
-依据上述方案按列拆分的思路，将dws_userbase表与dws_shop_cust表进行拆分，按照分别为省份、性别的列Bitmap拆分为一个表，但是性别只有男、女两个选项，压缩出来的Bitmap只能分布于集群中的两个节点，计算存储都很不平均，集群的资源并不能充分利用。因此有必要将Bitmap拆分成多段，并将它们打散到集群中来提升并发执行的能力，假设将Bitmap打散成65536段，SQL命令如下。
-
-
-
-当进行 `[shop_id = A] & [cust_type = 新客] & [province = 北京]` 的客群人数预估时，按照标签的与或非逻辑组织对应的Bitmap关系运算，即可完成对应的查询，SQL命令如下。
+当圈选喜欢体育的女性用户 `[gender = 女] & [category = 体育]` 用户数时，按照标签的与或非逻辑组织对应的 Bitmap 关系运算，即可完成对应的查询，SQL命令如下：
 ```sql
-SELECT SUM(RB_CARDINALITY(rb_and(ub.bitmap, uc.bitmap)))
-FROM
-  (SELECT rb_or_agg(bitmap) AS bitmap,
-          bucket
-   FROM rb_dws_userbase_province
-   WHERE province = '北京'
-   GROUP BY bucket) ub
-JOIN
-  (SELECT rb_or_agg(bitmap) AS bitmap,
-          bucket
-   FROM rb_dws_shop_cust_sid_ctype
-   WHERE shop_id = 'A'
-     AND cust_type = '新客'
-   GROUP BY bucket) uc ON ub.bucket = uc.bucket;
+SELECT rbm_bitmap_count(rbm_group_bitmap_and(bitmap)) AS uv
+FROM dws_app_user_profile_bitmap_label_td
+WHERE (label_name = '性别' AND label_value = '女') OR (label_name = '分类偏好' AND label_value = '体育')
 ```
+> rbm_bitmap_count、rbm_group_bitmap_and 是 Hive 自定义实现 UDF，分别用来计算位图 bitmap 的基数、计算位图 Bitmap 列的交集(与操作)，并返回一个新的位图 Bitmap，详细参考[Hive 实战：位图 Bitmap 系列-位图计算函数](https://smartsi.blog.csdn.net/article/details/139701146)。
+
+> 此外需要注意的是用户标识可能是字符类型，由于 Bitmap 只能保存整数信息，因此需要先将 user_id 进行整数编码。对用户标识进行编码不仅可以方便存储进 Bitmap，还可以使 ID 信息保持连续性。具体可以参考[用户画像实战：分布式全局字典设计与实现](https://smartsi.blog.csdn.net/article/details/140573151)
 
 ## 4. 行为标签处理
 
-常见的实时表往往包含时间维度，比如按天汇总的用户行为实时表。就某一天的数据而言，用户的数据仅包含有限几条数据。由于Bitmap本身存在结构行存储开销，压缩成Bitmap不但不能节省存储空间，更可能造成存储浪费。另一方面，事实表典型的计算模式中需要汇总多天数据进行聚合过滤，如果使用Bitmap存储可能需要展开再汇总运算。同时由于这类数据变更频繁，有时更需要实时更新；在[option->bitmap]的存储结构中，无法直接找到需要更新的数据。因此Bitmap并不适合用于压缩行为数据，不适合进行汇总运算，不适合实时更新。
-
-当涉及到行为标签数据处理的场景时，在Hologres中可以保持原有的存储格式。当发生事实表与属性表联合运算时，可以将实时表过滤结果实时生成Bitmap，再与属性表Bitmap索引进行运算。同时由于Bitmap索引表使用Bucket作为分布键（Distribution Key），通过Local Join提升性能。
-
-当我们计算[province=北京] & [shop_id=A且7天未购买]的用户时，SQL命令如下所示。
-
-## 5. 离线Bitmap处理方案
-
-为了避免Bitmap数据计算对生产业务的影响，可以选择在离线完成Bitmap数据的加工，通过Hologres外部表能力从MaxCompute或者Hive中直接加载数据。离线处理Bitmap的过程与在线流程思路类似，也可以通过编码、聚合方式产生数据，在MaxCompute中离线构建Bitmap数据示例如下。
-
-
-> [画像分析 - RoaringBitmap优化方案](https://www.alibabacloud.com/help/zh/hologres/use-cases/roaring-bitmaps?spm=a2c63.p38356.0.0.5b0813d7h5WDXZ)
-
-。。。
+当涉及到行为标签数据处理的场景时，可以在计算引擎中可以保持原有的存储格式。当发生行为标签与属性标签联合运算时，可以将行为标签过滤之后的结果生成 Bitmap，再与属性标签 Bitmap 进行运算。

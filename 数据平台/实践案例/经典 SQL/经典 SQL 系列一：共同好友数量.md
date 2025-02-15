@@ -1,15 +1,3 @@
----
-layout: post
-author: sjf0115
-title: Hive SQL 共同好友的数量
-date: 2021-12-12 13:25:01
-tags:
-  - Hive
-
-categories: Hive
-permalink: hive-sql-common-friends-num
----
-
 ## 1. 需求
 
 计算两个用户的共同好友个数
@@ -35,7 +23,7 @@ permalink: hive-sql-common-friends-num
 
 > `<user_id, friend_id>` 表示是一对好友关系
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sql-common-friends-num.png?raw=true)
+![](img-sql-common-friends-num.png)
 
 ## 3. 分析
 

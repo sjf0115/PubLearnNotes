@@ -8,7 +8,7 @@ tags:
   - ZooKeeper
 
 categories: Docker
-permalink: build-zookeeper-image-with-docker
+permalink: img-build-zookeeper-image-with-docker
 ---
 
 这篇文章中我们将使用 Docker 创建 Zookeeper 镜像，包括如何将 Zookeeper 安装到容器，如何配置 ZooKeeper 应用程序以及如何在宿主机和容器之间共享数据卷。本教程利用 Dockerfile 来指定容器的内容。如果您需要有关编写 Dockerfile 的更多信息，请参阅[官方文档](https://docs.docker.com/engine/reference/builder/)。
@@ -169,8 +169,7 @@ docker build -t smartsi/docker-zookeeper:3.5.8 .
 ```
 > 使用默认Dockerfile文件
 
-![](build-zookeeper-image-with-docker-1.jpg)
-
+![](img-build-zookeeper-image-with-docker-1.jpg)
 
 ### 9. 运行
 
@@ -178,11 +177,11 @@ docker build -t smartsi/docker-zookeeper:3.5.8 .
 ```
 docker run -p 2181:2818 -p 2888:2888 -p 3888:3888 --name standalone-zookeeper  smartsi/docker-zookeeper:3.5.8
 ```
-![](build-zookeeper-image-with-docker-2.jpg)
+![](img-build-zookeeper-image-with-docker-2.jpg)
 
 上述命令启动一个名为 `standalone-zookeeper` 的容器。通过 `docker ps` 命令查看运行中的 Zookeeper 容器：
 
-![](build-zookeeper-image-with-docker-3.jpg)
+![](img-build-zookeeper-image-with-docker-3.jpg)
 
 通过如下命令进入容器：
 ```shell
@@ -201,6 +200,6 @@ Mode: standalone
 ./bin/zkCli.sh -server localhost:2181
 ```
 
-![](build-zookeeper-image-with-docker-4.jpg)
+![](img-build-zookeeper-image-with-docker-4.jpg)
 
 参考：[Docker Step By Step: Containerizing Zookeeper](https://sookocheff.com/post/docker/containerizing-zookeeper-a-guided-tour/)

@@ -173,10 +173,6 @@ networks:
 - `networks`: 将服务连接到 `seatunnel_network` 网络上。这个网络在 `networks` 一级key中声明已经创建，Docker Compose 不需要尝试创建它。加入这个网络之后，不同服务就可以通过服务名（`master`、`worker1`、`worker2`）找到并实现容器间以及跨项目的网络访问。在每个服务中都会指定 `ipv4_address`，目的是使用静态 IP 分配保障节点间稳定通信。
 
 
-
-- `volumes`：对于生产环境中的 ZooKeeper 集群，数据持久化是至关重要的。这意味着你需要将容器内的数据绑定到宿主机上的数据卷来存储数据，这样即使容器重启，数据也不会丢失。为每个 ZooKeeper 节点提供了独立的数据卷 `xxx_data` 和 `xxx_datalog`，分别用于存储 ZooKeeper 的数据(`/data`)和事务日志(`/datalog`)。
-
-
 ### 3.3 创建公共网络
 
 上述配置文件中我们声明加入一个 `pub-network` 的网络：

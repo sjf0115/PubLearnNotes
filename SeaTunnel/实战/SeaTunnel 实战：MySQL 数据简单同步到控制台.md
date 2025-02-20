@@ -61,11 +61,11 @@ sink {
 ```yaml
 source {
   MySQL {
-    url = "jdbc:mysql://localhost:3306/your_database"
-    username = "your_username"
-    password = "your_password"
-    table = "your_table"
-    result_table_name = "mysql_source_table"
+    url = "jdbc:mysql://localhost:3306/test"
+    username = "root"
+    password = "root"
+    table = "tb_user"
+    result_table_name = "mysql_tb_user"
   }
 }
 ```
@@ -78,8 +78,9 @@ source {
 
 ```yaml
 transform {
+  # 可选：添加数据转换逻辑
   sql {
-    sql = "SELECT id, name, age FROM mysql_source_table WHERE age > 18"
+    sql = "SELECT id, name, age FROM mysql_tb_user WHERE age > 18"
   }
 }
 ```
@@ -90,7 +91,7 @@ transform {
 ```yaml
 sink {
   Console {
-    limit = 100
+    limit = 100  # 限制输出到控制台的行数
   }
 }
 ```
@@ -103,7 +104,7 @@ sink {
 
 在 SeaTunnel 根目录下运行以下命令提交任务：
 ```
-bin/seatunnel.sh --config config/mysql_to_console.conf
+bin/seatunnel.sh --config conf/mysql_to_console.conf
 ```
 
 ### 3.2 查看输出

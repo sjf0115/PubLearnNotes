@@ -170,6 +170,32 @@ seatunnel:
 
 > 检查点配置只有 Master 服务才会读取，Worker 服务不会读取检查点配置。如果 Master 和 Worker 进程在同一个机器上启动，Master 和 Worker 会共用 seatunnel.yaml 配置文件，此时 Worker 节点服务会忽略 checkpoint 配置。
 
+## 4. 启动节点
+
+### 4.1 启动 Master 节点
+
+可以通过守护进程使用 -d 参数启动。
+```shell
+localhost:seatunnel wy$ ./bin/seatunnel-cluster.sh -d -r master
+```
+> 日志将写入 `$SEATUNNEL_HOME/logs/seatunnel-engine-master.log`
+
+### 4.2 启动 Worker 节点
+
+可以通过守护进程使用 -d 参数启动。
+```shell
+./bin/seatunnel-cluster.sh -d -r worker
+```
+> 日志将写入 `$SEATUNNEL_HOME/logs/seatunnel-engine-worker.log`
+
+## 5. 提交作业和管理作业
+
+
+
+
+
+
+
 
 
 

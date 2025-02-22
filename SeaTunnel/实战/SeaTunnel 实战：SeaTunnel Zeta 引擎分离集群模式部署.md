@@ -110,5 +110,68 @@ seatunnel:
             slot-num: 20
 ```
 
+### 3.3 历史作业过期配置
+
+每个完成的作业的信息，如状态、计数器和错误日志，都存储在 IMap 对象中。随着运行作业数量的增加，内存会增加，最终内存将溢出。因此，您可以调整 `history-job-expire-minutes` 参数来解决这个问题。此参数的时间单位是分钟。默认值是 1440 分钟，即一天。
+
+```yaml
+seatunnel:
+  engine:
+    history-job-expire-minutes: 1440
+```
+
+### 3.4 类加载器缓存模式
+
+此配置主要解决不断创建和尝试销毁类加载器所导致的资源泄漏问题。如果您遇到与 metaspace 空间溢出相关的异常，您可以尝试启用此配置。为了减少创建类加载器的频率，在启用此配置后，SeaTunnel 在作业完成时不会尝试释放相应的类加载器，以便它可以被后续作业使用，也就是说，当运行作业中使用的 Source/Sink 连接器类型不是太多时，它更有效。 默认值是 false。
+
+```yaml
+seatunnel:
+  engine:
+    classloader-cache-mode: true
+```
+
+### 3.5 作业调度策略
+
+当资源不足时，作业调度策略可以配置为以下两种模式：
+- WAIT：等待资源可用。
+- REJECT：拒绝作业，默认值。
+
+```yaml
+seatunnel:
+  engine:
+    job-schedule-strategy: WAIT
+```
+当 `dynamic-slot: ture` 时，`job-schedule-strategy: WAIT` 配置会失效，将被强制修改为 `job-schedule-strategy: REJECT`，因为动态 Slot时该参数没有意义，可以直接提交。
+
+### 3.6 检查点管理器
+
+> 该参数在Worker节点无效
+
+与 Flink 一样，SeaTunnel Zeta Engine 支持 Chandy–Lamport 算法。因此，可以实现无数据丢失和重复的数据同步。检查点是一种容错恢复机制。这种机制确保程序在运行时，即使突然遇到异常，也能自行恢复。检查点定时触发，每次检查点进行时每个 Task 都会被要求将自身的状态信息（比如读取 kafka 时读取到了哪个offset）上报给检查点线程，由该线程写入一个分布式存储（或共享存储）。当任务失败然后自动容错恢复时，或者通过 `seatunnel.sh -r` 指令恢复之前被暂停的任务时，会从检查点存储中加载对应作业的状态信息，并基于这些状态信息进行作业的恢复。
+
+```yaml
+seatunnel:
+  engine:
+    checkpoint:
+      interval: 10000
+      timeout: 60000
+      storage:
+        type: hdfs
+        max-retained: 3
+        plugin-config:
+          namespace: /tmp/seatunnel/checkpoint_snapshot
+          storage.type: hdfs
+          fs.defaultFS: file:///tmp/ # Ensure that the directory has written permission
+```
+
+`interval` 配置两个检查点之间的间隔，单位是毫秒。`timeout` 配置检查点的超时时间。如果在超时时间内无法完成检查点，则会触发检查点失败，作业失败。如果这两个参数分别在作业的配置文件的 env 中配置了，将以作业配置文件中设置的为准。
+
+如果集群的节点大于1，检查点存储必须是一个分布式存储，或者共享存储，这样才能保证任意节点挂掉后依然可以在另一个节点加载到存储中的任务状态信息。SeaTunnel Zeta Engine 支持 HDFS、OSS 等多种检查点存储类型，检查点存储配置通过 `checkpoint.storage` 配置。
+
+> 检查点配置只有 Master 服务才会读取，Worker 服务不会读取检查点配置。如果 Master 和 Worker 进程在同一个机器上启动，Master 和 Worker 会共用 seatunnel.yaml 配置文件，此时 Worker 节点服务会忽略 checkpoint 配置。
+
+
+
+
 
 。。。。

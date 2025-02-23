@@ -33,7 +33,7 @@ services:
     image: apache/seatunnel:2.3.8
     container_name: docker_master
     environment:
-      - ST_DOCKER_MEMBER_LIST=seatunnel_master,docker_worker1,docker_worker2
+      - ST_DOCKER_MEMBER_LIST=docker_master,docker_worker1,docker_worker2
     entrypoint: >
       /bin/sh -c "
       /opt/seatunnel/bin/seatunnel-cluster.sh -r master
@@ -47,7 +47,7 @@ services:
     image: apache/seatunnel:2.3.8
     container_name: docker_worker1
     environment:
-      - ST_DOCKER_MEMBER_LIST=seatunnel_master,docker_worker1,docker_worker2
+      - ST_DOCKER_MEMBER_LIST=docker_master,docker_worker1,docker_worker2
     entrypoint: >
       /bin/sh -c "
       /opt/seatunnel/bin/seatunnel-cluster.sh -r worker
@@ -61,7 +61,7 @@ services:
     image: apache/seatunnel:2.3.8
     container_name: docker_worker2
     environment:
-      - ST_DOCKER_MEMBER_LIST=seatunnel_master,docker_worker1,docker_worker2
+      - ST_DOCKER_MEMBER_LIST=docker_master,docker_worker1,docker_worker2
     entrypoint: >
       /bin/sh -c "
       /opt/seatunnel/bin/seatunnel-cluster.sh -r worker
@@ -79,23 +79,26 @@ networks:  # 网络
 
 > 可以为使用 `.yml` 或 `.yaml` 扩展名
 
+#### 3.2.1 全局配置
+
 `services` 用于定义不同的应用服务。上边的例子定义了三个服务(`seatunnel_master`、`seatunnel_worker1`、`seatunnel_worker2`)，分别对应 SeaTunnel 集群的三个节点（一个 master 节点，2个 worker 节点）。Docker Compose 会将每个服务部署在各自的容器中，在这里我们自定义了容器名称，因此 Docker Compose 会部署三个名为 `docker_master`、`docker_worker1` 和 `docker_worker2` 的容器。
 
 `networks` 配置用于声明服务要连接的网络 `pub-network`。`external: true` 表示网络是在 Docker Compose 配置文件之外定义的，即它已经存在了，Docker Compose 不需要尝试创建它。只要加入这个网络的服务就能够实现项目容器间以及跨项目通信。具体可以查阅 [Docker 实战：使用 Docker Compose 部署实现跨项目网络访问](https://smartsi.blog.csdn.net/article/details/138734487)。
 
+#### 3.2.2 基础配置
+
 `services` 定义的服务中包含如下指令：
-- `image`：指定了要使用的 Docker 镜像及其版本。三个服务均使用 `apache/seatunnel` 镜像确保所有节点运行同一版本的 Seatunnel，保持集群的一致性。这里没有指定版本，生产环境最好指定使用的版本。
+- `image`：指定了要使用的 Docker 镜像及其版本。三个服务均使用 `apache/seatunnel:2.3.8` 镜像确保所有节点运行同一版本的 Seatunnel，保持集群的一致性。这里的版本 2.3.8 可以根据需求替换为最新或特定版本。
 - `container_name`：自定义的容器名称 `docker_master`、`docker_worker1` 和 `docker_worker2`，避免自动生成随机名称便于识别。
 - `environment`：
-  - `ST_DOCKER_MEMBER_LIST`：这个环境变量指定了每个 SeaTunnel 实例节点的 IP。
-- `entrypoint`：覆盖默认启动命令
+  - `ST_DOCKER_MEMBER_LIST`：这个环境变量定义集群成员列表，供 Hazelcast 发现节点。
+- `entrypoint`：覆盖默认启动命令，直接运行 SeaTunnel 的集群模式脚本
   - `-r master`：指定节点角色为 Master
   - `-r worker`：指定节点角色为 Worker
 - `ports`：配置用来将容器的端口映射到宿主机的端口，使得宿主机能够与集群进行通信。通常，只有服务需要直接从宿主机的网络访问时，我们才会映射端口。对于 SeaTunnel 分布式集群来说，节点之间的通信是在内部 Docker 网络中进行的，无需额外的端口映射。只有外部客户端需要访问集群时，才需要一个入口点，所以不需要为集群中的每个节点都映射端口到宿主机。我们只需要为集群中的一个节点映射端口即可。这个例子中，我们只将 `5801` 端口映射到了 `Master` 节点，这足以让外部客户端通过宿主机的 `5801` 端口来访问到 SeaTunnel 集群。
 - `networks`: 将服务连接到 `pub-network` 网络上。这个网络在 `networks` 一级key中声明已经创建，Docker Compose 不需要尝试创建它。加入这个网络之后，不同服务就可以通过服务名（`seatunnel_master`、`seatunnel_worker1`、`seatunnel_worker2`）找到并实现容器间以及跨项目的网络访问。
 
 > SeaTunnel Engine 自身可以处理集群协调，不需要外部服务如 Zookeeper。这意味着在 docker-compose 文件中不需要包含 Zookeeper 服务，而是通过 SeaTunnel 自身的配置来管理集群节点。
-
 
 ### 3.3 创建公共网络
 
@@ -120,7 +123,6 @@ localhost:seatunnel wy$ docker compose up -d
  ✔ Container docker_worker1  Started 0.3s
  ✔ Container docker_worker2  Started 0.4s
 ```
-
 上述命令会在后台启动 SeaTunnel 集群的三个服务。
 
 ### 3.5 验证
@@ -133,71 +135,66 @@ docker_master    apache/seatunnel   "/bin/sh -c ' /opt/s…"   seatunnel_master 
 docker_worker1   apache/seatunnel   "/bin/sh -c ' /opt/s…"   seatunnel_worker1   About a minute ago   Up About a minute
 docker_worker2   apache/seatunnel   "/bin/sh -c ' /opt/s…"   seatunnel_worker2   About a minute ago   Up About a minute
 ```
-可以看到有三个服务已经启动成功，然后我们就可以用 `zkServer.sh status` 命令来查看每个 ZooKeeper 实例的状态：
-```shell
-(base) localhost:zookeeper wy$ docker exec -it docker_zk1 zkServer.sh status
-ZooKeeper JMX enabled by default
-Using config: /conf/zoo.cfg
-Client port found: 2181. Client address: localhost. Client SSL: false.
-Mode: follower
-
-(base) localhost:zookeeper wy$ docker exec -it docker_zk2 zkServer.sh status
-ZooKeeper JMX enabled by default
-Using config: /conf/zoo.cfg
-Client port found: 2181. Client address: localhost. Client SSL: false.
-Mode: follower
-
-(base) localhost:zookeeper wy$ docker exec -it docker_zk3 zkServer.sh status
-ZooKeeper JMX enabled by default
-Using config: /conf/zoo.cfg
-Client port found: 2181. Client address: localhost. Client SSL: false.
-Mode: leader
-```
-
-
-
-
+可以看到有三个服务已经启动成功，然后我们就可以提交一个示例作业来验证集群是否部署成功：
 ```shell
 docker run --name seatunnel_client \
     --network pub-network \
     -e ST_DOCKER_MEMBER_LIST=seatunnel_master:5801 \
     --rm \
-    apache/seatunnel \
+    apache/seatunnel:2.3.8 \
     ./bin/seatunnel.sh  -c config/v2.batch.config.template
-
-
-
-docker run --name seatunnel_client \
-    --network pub-network \
-    -e ST_DOCKER_MEMBER_LIST=seatunnel_master:5801 \
-    --rm \
-    apache/seatunnel \
-    ./bin/seatunnel.sh  -l
-
-    docker run --name seatunnel_client \
-        --network pub-network \
-        -e ST_DOCKER_MEMBER_LIST=seatunnel_master:5801 \
-        --rm \
-        apache/seatunnel \
-        ./bin/seatunnel.sh  --version
-
-
-
-
-
-    ./bin/seatunnel.sh \
-      --config /opt/seatunnel/config/v2.batch.config.template \
-      --cluster \
-      -m localhost:5801 \
-      --cluster-name seatunnel
-
-
-
-
 ```
-
-docker inspect s_master \
-  --format '{{range .Config.Env}}{{println .}}{{end}}' | grep ST_CLUSTER_NAME
-
-
-https://seatunnel.apache.org/zh-CN/docs/2.3.9/start-v2/docker/#%E4%BD%BF%E7%94%A8docker-compose
+通过如下日志中 `Job Statistic Information` 信息可以确定提交的示例同步作业运行成功，即我们的集群部署成功了：
+```java
+localhost:apache-seatunnel-2.3.8 wy$ docker run --name seatunnel_client \
+>     --network pub-network \
+>     -e ST_DOCKER_MEMBER_LIST=seatunnel_master:5801 \
+>     --rm \
+>     apache/seatunnel:2.3.8 \
+>     ./bin/seatunnel.sh  -c config/v2.batch.config.template
+2025-02-23 09:57:16,412 INFO  [c.h.i.c.AbstractConfigLocator ] [main] - Loading configuration '/opt/seatunnel/config/seatunnel.yaml' from System property 'seatunnel.config'
+2025-02-23 09:57:16,422 INFO  [c.h.i.c.AbstractConfigLocator ] [main] - Using configuration file at /opt/seatunnel/config/seatunnel.yaml
+2025-02-23 09:57:16,431 INFO  [o.a.s.e.c.c.SeaTunnelConfig   ] [main] - seatunnel.home is /opt/seatunnel
+...
+2025-02-23 09:57:20,234 INFO  [o.a.s.c.s.u.ConfigBuilder     ] [main] - Parsed config file:
+{
+    "sink" : [
+        {
+            "plugin_name" : "Console"
+        }
+    ],
+    "source" : [
+        {
+            "schema" : {
+                "fields" : {
+                    "name" : "string",
+                    "age" : "int"
+                }
+            },
+            "row.num" : 16,
+            "parallelism" : 2,
+            "result_table_name" : "fake",
+            "plugin_name" : "FakeSource"
+        }
+    ],
+    "env" : {
+        "job.mode" : "BATCH",
+        "parallelism" : 2,
+        "checkpoint.interval" : 10000
+    }
+}
+...
+2025-02-23 09:57:23,897 INFO  [o.a.s.e.c.j.ClientJobProxy    ] [main] - Job (945982651481718786) end with state FINISHED
+2025-02-23 09:57:23,912 INFO  [s.c.s.s.c.ClientExecuteCommand] [main] -
+***********************************************
+           Job Statistic Information
+***********************************************
+Start Time                : 2025-02-23 09:57:19
+End Time                  : 2025-02-23 09:57:23
+Total Time(s)             :                   4
+Total Read Count          :                  32
+Total Write Count         :                  32
+Total Failed Count        :                   0
+***********************************************
+...
+```

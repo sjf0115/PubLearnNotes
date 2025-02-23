@@ -32,26 +32,36 @@ curl -X POST http://localhost:5801/api/v1/job/submit \
 ### 2.1 下载 SeaTunnel 发行版
 
 ```
-wget https://download.apache.org/seatunnel/2.3.3/apache-seatunnel-2.3.3-bin.tar.gz
-tar -zxvf apache-seatunnel-2.3.3-bin.tar.gz
-cd apache-seatunnel-2.3.3
+wget https://download.apache.org/seatunnel/2.3.8/apache-seatunnel-2.3.8-bin.tar.gz
+tar -zxvf apache-seatunnel-2.3.8-bin.tar.gz -C /opt
+cd /opt/apache-seatunnel-2.3.8
 ```
 
 ### 2.2 提交作业
 
-```
+```shell
 ./bin/seatunnel.sh \
-  --config ~/seatunnel-jobs/v2.batch.config.template \
-  --cluster \
-  -m localhost:5801
+  --config config/v2.batch.config.template \
+  --master cluster
 ```
+
+
 
 这种提交范式直接使用官方 CLI 工具，查看实时日志更方便。
 
 ## 3. 通过 Docker 容器提交（容器化方案）
 
-```
+```shell
 # 提交作业（自动清理容器）
+docker run --name seatunnel_client \
+    --network pub-network \
+    -e ST_DOCKER_MEMBER_LIST=seatunnel_master:5801 \
+    --rm \
+    apache/seatunnel:2.3.8 \
+    ./bin/seatunnel.sh  -c config/v2.batch.config.template
+```
+
+```
 docker run --rm \
   -v ~/seatunnel-jobs:/jobs \  # 挂载作业目录
   --network host \  # 直接使用宿主机网络
@@ -61,5 +71,17 @@ docker run --rm \
     --cluster \
     -m localhost:5801
 ```
+
+```
+docker run --name seatunnel_client \
+    --network pub-network \
+    -e ST_DOCKER_MEMBER_LIST=seatunnel_master:5801 \
+    --rm \
+    apache/seatunnel:2.3.8 \
+    ./bin/seatunnel.sh  -l
+```
+
+
+
 优势：
 无需安装本地环境，保持与集群环境一致性。

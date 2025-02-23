@@ -144,6 +144,10 @@ docker run --name seatunnel_client \
     apache/seatunnel:2.3.8 \
     ./bin/seatunnel.sh  -c config/v2.batch.config.template
 ```
+上述命令使用 SeaTunnel 2.3.8 镜像启动一个临时客户端容器 `seatunnel_client`，连接到指定的 Docker `pub-network` 网络，配置集群成员地址，最终向集群提交一个 SeaTunnel 示例作业。
+
+> 容器停止后自动删除，避免残留无用容器占用资源。
+
 通过如下日志中 `Job Statistic Information` 信息可以确定提交的示例同步作业运行成功，即我们的集群部署成功了：
 ```java
 localhost:apache-seatunnel-2.3.8 wy$ docker run --name seatunnel_client \

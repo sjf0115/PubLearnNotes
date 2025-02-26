@@ -1,11 +1,21 @@
 
+`.env` 配置文件：
+```
+HUB=ghcr.io/apache/dolphinscheduler
+TAG=latest
+
+TZ=Asia/Shanghai
+DATABASE=postgresql
+SPRING_JACKSON_TIME_ZONE=UTC
+SPRING_DATASOURCE_URL=jdbc:postgresql://dolphinscheduler-postgresql:5432/dolphinscheduler
+REGISTRY_ZOOKEEPER_CONNECT_STRING=dolphinscheduler-zookeeper:2181
+```
 
 ```yaml
-version: "3.8"
-
 services:
   dolphinscheduler-postgresql:
     image: bitnami/postgresql:11.11.0
+    container_name: postgresql
     ports:
       - "5432:5432"
     profiles: ["all", "schema"]
@@ -25,6 +35,7 @@ services:
 
   dolphinscheduler-zookeeper:
     image: bitnami/zookeeper:3.6.2
+    container_name: zookeeper
     profiles: ["all"]
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
@@ -41,6 +52,7 @@ services:
 
   dolphinscheduler-schema-initializer:
     image: ${HUB}/dolphinscheduler-tools:${TAG}
+    container_name: schema_initializer
     env_file: .env
     profiles: ["schema"]
     command: [ tools/bin/upgrade-schema.sh ]
@@ -56,6 +68,7 @@ services:
 
   dolphinscheduler-api:
     image: ${HUB}/dolphinscheduler-api:${TAG}
+    container_name: api
     ports:
       - "12345:12345"
       - "25333:25333"
@@ -78,6 +91,7 @@ services:
 
   dolphinscheduler-alert:
     image: ${HUB}/dolphinscheduler-alert-server:${TAG}
+    container_name: alert
     profiles: ["all"]
     env_file: .env
     healthcheck:
@@ -92,6 +106,7 @@ services:
 
   dolphinscheduler-master:
     image: ${HUB}/dolphinscheduler-master:${TAG}
+    container_name: master
     profiles: ["all"]
     env_file: .env
     healthcheck:
@@ -110,6 +125,7 @@ services:
 
   dolphinscheduler-worker:
     image: ${HUB}/dolphinscheduler-worker:${TAG}
+    container_name: worker
     profiles: ["all"]
     env_file: .env
     healthcheck:
@@ -139,7 +155,6 @@ volumes:
   dolphinscheduler-logs:
   dolphinscheduler-shared-local:
   dolphinscheduler-resource-local:
-
 ```
 
 

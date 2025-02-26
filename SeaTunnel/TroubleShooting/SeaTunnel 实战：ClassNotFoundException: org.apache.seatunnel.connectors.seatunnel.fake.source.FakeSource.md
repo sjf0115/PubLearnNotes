@@ -1,8 +1,10 @@
 ## 1. 问题
 
 使用
-```
-
+```shell
+./bin/seatunnel.sh \
+    --config /opt/seatunnel/config/v2.batch.config.template \
+    -m cluster \
 ```
 
 
@@ -35,3 +37,4 @@
 2025-02-23 17:24:57     at java.io.ObjectInputStream.readObject(ObjectInputStream.java:461)
 2025-02-23 17:24:57     at com.hazelcast.internal.serialization.impl.defaultserializers.JavaDefaultSerializers$JavaSerializer.read(JavaDefaultSerializers.java:92)
 ```
+修改执行路径为 `/opt/seatunnel` 可以正常运行。

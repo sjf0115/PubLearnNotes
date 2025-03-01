@@ -47,14 +47,12 @@ smartsi@localhost docker % cd hadoop
 
 Docker Compose 简化了对整个应用程序堆栈的控制，使得在一个易于理解的 YAML 配置文件中轻松管理服务、网络和数据卷。要使用 Docker Compose 部署，首先需创建一个`docker-compose.yml`文件，从 [bde2020](https://github.com/big-data-europe/docker-hadoop/tree/master)下载配置文件，按照自己的需求修改即可。在这我们的配置如下所示：
 ```yaml
-version: "3"
-
 services:
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
     container_name: namenode
     networks:
-      - hadoop-network
+      - pub-network
     restart: always
     ports:
       - 9870:9870
@@ -70,7 +68,7 @@ services:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
     container_name: datanode
     networks:
-      - hadoop-network
+      - pub-network
     restart: always
     volumes:
       - hadoop_datanode:/hadoop/dfs/data
@@ -83,7 +81,7 @@ services:
     image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
     container_name: resourcemanager
     networks:
-      - hadoop-network
+      - pub-network
     restart: always
     ports:
       - "8088:8088"  # Web UI
@@ -96,7 +94,7 @@ services:
     image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
     container_name: nodemanager
     networks:
-      - hadoop-network
+      - pub-network
     restart: always
     environment:
       SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
@@ -107,7 +105,7 @@ services:
     image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
     container_name: historyserver
     networks:
-      - hadoop-network
+      - pub-network
     restart: always
     ports:
       - "8188:8188"
@@ -123,23 +121,20 @@ volumes:
   hadoop_datanode:
   hadoop_historyserver:
 
-networks:
-  hadoop-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.22.0.0/24
+networks:  # 网络
+  pub-network:
+      external: true
 ```
 
 
 #### 3.2.1 服务定义（Services）
 
 `services` 用于定义 Hadoop 集群的各个组件，每个组件对应一个容器。上面的配置定义了5个服务：
-- `namenode`：HDFS 的 NameNode，负责管理文件系统的元数据。
-- `datanode`：HDFS 的 DataNode，负责存储实际的数据块。
-- `resourcemanager`：YARN 的 ResourceManager，负责集群资源管理和任务调度。
-- `nodemanager`：YARN 的 NodeManager，负责管理单个节点上的资源和任务。
-- `historyserver`：YARN 的 HistoryServer，负责保存和展示已完成任务的历史信息。
+- `namenode`：`HDFS` 的 `NameNode`，负责管理文件系统的元数据。
+- `datanode`：`HDFS` 的 `DataNode`，负责存储实际的数据块。
+- `resourcemanager`：YARN 的 `ResourceManager`，负责集群资源管理和任务调度。
+- `nodemanager`：`YARN` 的 `NodeManager`，负责管理单个节点上的资源和任务。
+- `historyserver`：`YARN` 的 `HistoryServer`，负责保存和展示已完成任务的历史信息。
 
 Docker Compose 会将每个服务部署在各自的容器中，在这里我们自定义了与服务名称一致的容器名称，因此 Docker Compose 会部署5个名为 `namenode`、`datanode`、`resourcemanager`、`nodemanager` 以及 `historyserver` 的容器。
 
@@ -150,7 +145,7 @@ namenode:
   image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
   container_name: namenode
   networks:
-    - hadoop-network
+    - pub-network
   restart: always
   ports:
     - 9870:9870
@@ -166,7 +161,7 @@ namenode:
 核心配置：
 - `image`：使用基于 Hadoop 3.2.1 版本预构建的 2.0.0 版本 `bde2020/hadoop-namenode` 镜像部署 `NameNode` 服务。
 - `container_name`：容器名称固定为 `namenode`，便于其他服务引用。
-- `networks`：连接到自定义桥接网络 `hadoop-network`，确保容器间通信。
+- `networks`：服务连接到 `pub-network` 网络上，确保容器间通信。
 - `restart`：`always` 指定容器异常退出时自动重启。
 - `ports`：
   - `9870:9870`：暴露 `NameNode` 的 Web UI。
@@ -183,7 +178,7 @@ datanode:
   image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
   container_name: datanode
   networks:
-    - hadoop-network
+    - pub-network
   restart: always
   volumes:
     - hadoop_datanode:/hadoop/dfs/data
@@ -196,12 +191,12 @@ datanode:
 核心配置：
 - `image`：使用基于 Hadoop 3.2.1 版本预构建的 2.0.0 版本 `bde2020/hadoop-datanode` 镜像部署 `DataNode` 服务。
 - `container_name`：容器名称固定为 `datanode`，便于其他服务引用。
-- `networks`：连接到自定义桥接网络 `hadoop-network`，确保容器间通信。
+- `networks`：服务连接到 `pub-network` 网络上，确保容器间通信。
 - `restart`：`always` 指定容器异常退出时自动重启。
 - `volumes`：将宿主机数据卷 `hadoop_namenode` 挂载到容器内的 `/hadoop/dfs/data`，持久化存储数据块。
 - `environment`：
-  - `SERVICE_PRECONDITION`：定义服务启动前提条件，需等待 `namenode:9870` 端口可用，即 NameNode 完全启动后再启动 `DataNode`。
-- `env_file`：从 `hadoop.env` 文件加载环境变量（如 CORE_CONF、HDFS_CONF 等 Hadoop 配置）。
+  - `SERVICE_PRECONDITION`：定义服务启动前提条件，需等待 `namenode:9870` 端口可用，即 `NameNode` 完全启动后再启动 `DataNode`。
+- `env_file`：从 `hadoop.env` 文件加载环境变量（如 `CORE_CONF`、`HDFS_CONF` 等 `Hadoop` 配置）。
 
 > 当前配置通过 `SERVICE_PRECONDITION` 环境变量实现服务等待机制（基于镜像内置的wait-for-it脚本），而非传统的 `depends_on`。这种设计的优势在于：
 - 真实依赖检测：等待端口级可用而不仅是容器启动
@@ -215,7 +210,7 @@ resourcemanager:
   image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
   container_name: resourcemanager
   networks:
-    - hadoop-network
+    - pub-network
   restart: always
   ports:
     - "8088:8088"  # Web UI
@@ -227,7 +222,7 @@ resourcemanager:
 核心配置：
 - `image`：使用基于 Hadoop 3.2.1 版本预构建的 2.0.0 版本 `bde2020/hadoop-resourcemanager` 镜像部署 `ResourceManager` 服务。
 - `container_name`：容器名称固定为 `resourcemanager`，便于其他服务引用。
-- `networks`：连接到自定义桥接网络 `hadoop-network`，确保容器间通信。
+- `networks`：服务连接到 `pub-network` 网络上，确保容器间通信。
 - `restart`：`always` 指定容器异常退出时自动重启。
 - `ports`：
   - `8088:8088`：暴露 `YARN` 的 Web UI。
@@ -242,7 +237,7 @@ nodemanager:
   image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
   container_name: nodemanager
   networks:
-    - hadoop-network
+    - pub-network
   restart: always
   environment:
     SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
@@ -252,7 +247,7 @@ nodemanager:
 核心配置：
 - `image`：使用基于 Hadoop 3.2.1 版本预构建的 2.0.0 版本 `bde2020/hadoop-nodemanager` 镜像部署 `NodeManager` 服务。
 - `container_name`：容器名称固定为 `nodemanager`，便于其他服务引用。
-- `networks`：连接到自定义桥接网络 `hadoop-network`，确保容器间通信。
+- `networks`：服务连接到 `pub-network` 网络上，确保容器间通信。
 - `restart`：`always` 指定容器异常退出时自动重启。
 - `environment`：
   - `SERVICE_PRECONDITION`：需确保 `NameNode`、`DataNode` 和 `ResourceManager` 相关端口就绪（9000、9870、9864、8088）。
@@ -265,7 +260,7 @@ historyserver:
   image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
   container_name: historyserver
   networks:
-    - hadoop-network
+    - pub-network
   restart: always
   ports:
     - "8188:8188"
@@ -279,7 +274,7 @@ historyserver:
 核心配置：
 - `image`：使用基于 Hadoop 3.2.1 版本预构建的 2.0.0 版本 `bde2020/hadoop-historyserver` 镜像部署 `HistoryServer` 服务。
 - `container_name`：容器名称固定为 `historyserver`，便于其他服务引用。
-- `networks`：连接到自定义桥接网络 `hadoop-network`，确保容器间通信。
+- `networks`：服务连接到 `pub-network` 网络上，确保容器间通信。
 - `restart`：`always` 指定容器异常退出时自动重启。
 - `ports`：
   - `8188:8188`：暴露历史任务监控端口。
@@ -303,18 +298,14 @@ volumes:
 #### 3.2.3 网络定义（Networks）
 
 ```yaml
-networks:
-  hadoop-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.22.0.0/24
+networks:  # 网络
+  pub-network:
+      external: true
 ```
 
 核心配置：
-- `hadoop-network`：自定义网络名称
-- `driver: bridge`：创建桥接网络，允许容器间通过容器名称通信。
-- `ipam`：配置静态 IP 地址范围（172.22.0.0/24），避免容器 IP 变动导致服务不可用。
+- `pub-network`：配置用于声明服务要连接的网络。
+- `external: true`：表示网络是在 Docker Compose 配置文件之外定义的，即它已经存在了，Docker Compose 不需要尝试创建它。
 
 ### 3.3 配置 `hadoop.env` 文件
 
@@ -397,31 +388,32 @@ CORE_CONF_fs_defaultFS = hdfs://namenode: 8020
 
 在项目目录中执行 `docker-compose up -d` 命令启动 `Hadoop` 集群：
 ```bash
-smartsi@smartsi hadoop % docker-compose up -d
-[+] Running 14/14
-✔ Network hadoop_hadoop-network         Created   0.0s
-✔ Volume "hadoop_hadoop_historyserver"  Created   0.0s
-✔ Volume "hadoop_hadoop_namenode"       Created   0.0s
-✔ Volume "hadoop_hadoop_datanode"       Created   0.0s
-✔ Container datanode                    Started   0.1s
-✔ Container historyserver               Started   0.1s
-✔ Container namenode                    Started   0.1s
-✔ Container nodemanager                 Started   0.1s
-✔ Container resourcemanager             Started   0.1s
+smartsi@smartsi hadoop wy$ docker-compose up -d
+[+] Running 8/8
+ ✔ Volume "hadoop_hadoop_datanode"       Created   0.0s
+ ✔ Volume "hadoop_hadoop_historyserver"  Created   0.0s
+ ✔ Volume "hadoop_hadoop_namenode"       Created   0.0s
+ ✔ Container datanode                    Started   0.3s
+ ✔ Container namenode                    Started   0.4s
+ ✔ Container nodemanager                 Started   0.3s
+ ✔ Container resourcemanager             Started   0.3s
+ ✔ Container historyserver               Started   0.3s
 ```
 > `-d` 表示后台运行容器。
+
+> Docker Compose 默认使用 `{项目名}_{数据卷名}` 的格式来命名数据卷，以此避免不同项目间的数据卷名冲突。
 
 ### 3.5 查看容器状态
 
 通过 `docker-compose ps` 命令查看所有容器的状态：
 ```bash
-smartsi@smartsi hadoop % docker-compose ps
-NAME              IMAGE                                                    COMMAND                   SERVICE           CREATED         STATUS                   PORTS
-datanode          bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8          "/entrypoint.sh /run…"   datanode          2 minutes ago   Up 2 minutes (healthy)   9864/tcp
-historyserver     bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8     "/entrypoint.sh /run…"   historyserver     2 minutes ago   Up 2 minutes (healthy)   0.0.0.0:8188->8188/tcp
-namenode          bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8          "/entrypoint.sh /run…"   namenode          2 minutes ago   Up 2 minutes (healthy)   0.0.0.0:9000->9000/tcp, 0.0.0.0:9870->9870/tcp
-nodemanager       bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8       "/entrypoint.sh /run…"   nodemanager       2 minutes ago   Up 2 minutes (healthy)   8042/tcp
-resourcemanager   bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8   "/entrypoint.sh /run…"   resourcemanager   2 minutes ago   Up 2 minutes (healthy)   0.0.0.0:8088->8088/tcp
+smartsi@smartsi hadoop wy$ docker-compose ps
+NAME              IMAGE                                                    COMMAND                  SERVICE           CREATED              STATUS                        PORTS
+datanode          bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8          "/entrypoint.sh /run…"   datanode          About a minute ago   Up About a minute (healthy)   9864/tcp
+historyserver     bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8     "/entrypoint.sh /run…"   historyserver     About a minute ago   Up About a minute (healthy)   0.0.0.0:8188->8188/tcp
+namenode          bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8          "/entrypoint.sh /run…"   namenode          About a minute ago   Up About a minute (healthy)   0.0.0.0:9000->9000/tcp, 0.0.0.0:9870->9870/tcp
+nodemanager       bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8       "/entrypoint.sh /run…"   nodemanager       About a minute ago   Up About a minute (healthy)   8042/tcp
+resourcemanager   bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8   "/entrypoint.sh /run…"   resourcemanager   About a minute ago   Up About a minute (healthy)   0.0.0.0:8088->8088/tcp
 ```
 你会看到所有服务 `namenode`、`datanode`、`resourcemanager`、`nodemanager`、`historyserver` 都处于正常运行 "Up" 状态。
 
@@ -530,7 +522,7 @@ DFS Used%: 0.00%
 -------------------------------------------------
 Live datanodes (1):
 
-Name: 172.20.0.2:9866 (datanode.hadoop_hadoop-network)
+Name: 172.20.0.2:9866 (datanode.pub-network)
 Hostname: 1aa6d471e2ae
 Decommission Status : Normal
 ...

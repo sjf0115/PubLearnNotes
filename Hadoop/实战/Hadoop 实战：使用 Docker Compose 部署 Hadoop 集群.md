@@ -21,9 +21,9 @@ Docker Compose 是一个用于定义和运行多容器 Docker 应用程序的工
 
 在开始之前，首先需要确保已经安装了 Docker Compose，如果没有安装或者不熟悉 Compose 的具体查阅 [Docker 实战：使用 Docker Compose 实现高效的多容器部署](https://smartsi.blog.csdn.net/article/details/138414972)。
 
-## 3. Docker Compose 部署 Hadoop
+## 3. Docker Compose 部署 Hadoop 集群
 
-接下来，我们将一步步通过 Docker Compose 来部署一个包含三个节点的 Hadoop 集群。在开始部署之前，请确保以下环境已经准备好：
+接下来，我们将一步步通过 Docker Compose 来部署一个 Hadoop 集群。在开始部署之前，请确保以下环境已经准备好：
 - 安装 Docker：确保 Docker 已经安装并运行在你的机器上。可以通过以下命令验证 Docker 是否安装：
    ```bash
    docker --version
@@ -45,7 +45,7 @@ smartsi@localhost docker % cd hadoop
 
 ### 3.2 构建 Compose 文件
 
-Docker Compose 简化了对整个应用程序堆栈的控制，使得在一个易于理解的 YAML 配置文件中轻松管理服务、网络和数据卷。要使用 Docker Compose 部署，首先需创建一个`docker-compose.yml`文件，如下所示：
+Docker Compose 简化了对整个应用程序堆栈的控制，使得在一个易于理解的 YAML 配置文件中轻松管理服务、网络和数据卷。要使用 Docker Compose 部署，首先需创建一个`docker-compose.yml`文件，从 [bde2020](https://github.com/big-data-europe/docker-hadoop/tree/master)下载配置文件，按照自己的需求修改即可。在这我们的配置如下所示：
 ```yaml
 version: "3"
 
@@ -131,9 +131,10 @@ networks:
         - subnet: 172.22.0.0/24
 ```
 
+
 #### 3.2.1 服务定义（Services）
 
-`services` 用于定义 Hadoop 集群的各个组件，每个组件对应一个容器。上边的例子定义了5个服务：
+`services` 用于定义 Hadoop 集群的各个组件，每个组件对应一个容器。上面的配置定义了5个服务：
 - `namenode`：HDFS 的 NameNode，负责管理文件系统的元数据。
 - `datanode`：HDFS 的 DataNode，负责存储实际的数据块。
 - `resourcemanager`：YARN 的 ResourceManager，负责集群资源管理和任务调度。
@@ -168,9 +169,9 @@ namenode:
 - `networks`：连接到自定义桥接网络 `hadoop-network`，确保容器间通信。
 - `restart`：`always` 指定容器异常退出时自动重启。
 - `ports`：
-  - `9870:9870`：暴露 `NameNode` 的 Web UI（用于监控 HDFS）。
+  - `9870:9870`：暴露 `NameNode` 的 Web UI。
   - `9000:9000`：HDFS 客户端（如 `DataNode`）与 `NameNode` 通信的 RPC 端口。
-- `volumes`：将宿主机卷 `hadoop_namenode` 挂载到容器内的 `/hadoop/dfs/name`，持久化存储 `NameNode` 元数据。
+- `volumes`：将宿主机数据卷 `hadoop_namenode` 挂载到容器内的 `/hadoop/dfs/name`，持久化存储 `NameNode` 元数据。
 - `environment`：
   - `CLUSTER_NAME`: 定义集群名称为 `docker-hadoop-cluster`。
 - `env_file`：从 `hadoop.env` 文件加载环境变量（如 CORE_CONF、HDFS_CONF 等 Hadoop 配置）。
@@ -197,7 +198,7 @@ datanode:
 - `container_name`：容器名称固定为 `datanode`，便于其他服务引用。
 - `networks`：连接到自定义桥接网络 `hadoop-network`，确保容器间通信。
 - `restart`：`always` 指定容器异常退出时自动重启。
-- `volumes`：将宿主机卷 `hadoop_namenode` 挂载到容器内的 `/hadoop/dfs/data`，持久化存储数据块。
+- `volumes`：将宿主机数据卷 `hadoop_namenode` 挂载到容器内的 `/hadoop/dfs/data`，持久化存储数据块。
 - `environment`：
   - `SERVICE_PRECONDITION`：定义服务启动前提条件，需等待 `namenode:9870` 端口可用，即 NameNode 完全启动后再启动 `DataNode`。
 - `env_file`：从 `hadoop.env` 文件加载环境变量（如 CORE_CONF、HDFS_CONF 等 Hadoop 配置）。
@@ -284,7 +285,7 @@ historyserver:
   - `8188:8188`：暴露历史任务监控端口。
 - `environment`：
   - `SERVICE_PRECONDITION`：需确保 `NameNode`、`DataNode` 和 `ResourceManager` 相关端口就绪（9000、9870、9864、8088）。
-- `volumes`：将宿主机卷 `hadoop_historyserver` 挂载到容器内的 `/hadoop/yarn/timeline`，存储作业历史数据。
+- `volumes`：将宿主机数据卷 `hadoop_historyserver` 挂载到容器内的 `/hadoop/yarn/timeline`，存储作业历史数据。
 - `env_file`：从 `hadoop.env` 文件加载环境变量（如 CORE_CONF、HDFS_CONF 等 Hadoop 配置）。
 
 #### 3.2.2 卷定义（Volumes）
@@ -384,7 +385,7 @@ CORE_CONF_fs_defaultFS = hdfs://namenode: 8020
 - `KMS_CONF`：对应 `/etc/hadoop/kms-site.xml ` 配置文件
 - `MAPRED_CONF`：对应 `/etc/hadoop/mapred-site.xml` 配置文件
 
-此外需要注意的是 配置参数中定义的横线需要使用三重下划线表示，例如 `yarn_conf_yarn_log___aggregation___enable=true` (yarn-site.xml) 对应如下配置：
+此外需要注意的是配置参数中定义的横线需要使用三重下划线表示，例如 `yarn_conf_yarn_log___aggregation___enable=true` (yarn-site.xml) 对应如下配置：
 ```xml
 <property>
   <name>yarn.log-aggregation-enable</name>
@@ -394,7 +395,7 @@ CORE_CONF_fs_defaultFS = hdfs://namenode: 8020
 
 ### 3.4 启动集群
 
-在项目目录中执行 `docker-compose up -d` 命令启动 Hadoop 集群：
+在项目目录中执行 `docker-compose up -d` 命令启动 `Hadoop` 集群：
 ```bash
 smartsi@smartsi hadoop % docker-compose up -d
 [+] Running 14/14
@@ -422,7 +423,7 @@ namenode          bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8          "/ent
 nodemanager       bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8       "/entrypoint.sh /run…"   nodemanager       2 minutes ago   Up 2 minutes (healthy)   8042/tcp
 resourcemanager   bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8   "/entrypoint.sh /run…"   resourcemanager   2 minutes ago   Up 2 minutes (healthy)   0.0.0.0:8088->8088/tcp
 ```
-你会看到所有服务 namenode、datanode、resourcemanager、nodemanager、historyserver 都处于正常运行 "Up" 状态。
+你会看到所有服务 `namenode`、`datanode`、`resourcemanager`、`nodemanager`、`historyserver` 都处于正常运行 "Up" 状态。
 
 ### 3.6 查看日志
 
@@ -457,8 +458,6 @@ namenode  |  - Setting yarn.log-aggregation-enable=true
 ...
 ```
 
----
-
 ## 4. 验证集群运行状态
 
 ### 4.1 Web UI 验证集群
@@ -470,38 +469,42 @@ namenode  |  - Setting yarn.log-aggregation-enable=true
 | HistoryServer  | http://localhost:8188     | 无需认证    |
 
 检查要点：
-- Datanode 显示1个活跃节点
+- `Datanode` 显示1个活跃节点
 - 存储容量正常显示
 - 集群状态为 "active"
 
 #### 4.1.1 访问 HDFS Web UI
 
-HDFS 的 Web UI 默认运行在 `namenode` 容器的 `9870` 端口。你可以通过以下地址访问：
+`HDFS` 的 Web UI 默认运行在 `namenode` 容器的 `9870` 端口。你可以通过以下地址访问：
 ```
 http://localhost:9870
 ```
 
 在浏览器中打开该地址，你应该会看到 HDFS 的 Web 界面，如下图所示：
 
-![HDFS Web UI](https://example.com/hdfs-web-ui.png)
+![HDFS Web UI](img-docker-compose-hadoop-1.png)
 
 #### 4.1.2 访问 YARN Web UI
 
-YARN 的 ResourceManager Web UI 默认运行在 `resourcemanager` 容器的 `8088` 端口。你可以通过以下地址访问：
+`YARN` 的 `ResourceManager` Web UI 默认运行在 `resourcemanager` 容器的 `8088` 端口。你可以通过以下地址访问：
 ```
 http://localhost:8088
 ```
 
-在浏览器中打开该地址，你应该会看到 YARN 的 ResourceManager 界面，如下图所示：
+在浏览器中打开该地址，你应该会看到 ResourceManager 界面，如下图所示：
 
-![YARN Web UI](https://example.com/yarn-web-ui.png)
+![YARN Web UI](img-docker-compose-hadoop-2.png)
 
 #### 4.1.3 访问 HistoryServer Web UI
 
-YARN 的 HistoryServer Web UI 默认运行在 `HistoryServer` 容器的 `8188` 端口。你可以通过以下地址访问：
+`YARN` 的 `HistoryServer` Web UI 默认运行在 `HistoryServer` 容器的 `8188` 端口。你可以通过以下地址访问：
 ```
 http://localhost:8188/applicationhistory
 ```
+
+在浏览器中打开该地址，你应该会看到 HistoryServer 界面，如下图所示：
+
+![HistoryServer Web UI](img-docker-compose-hadoop-3.png)
 
 ### 4.2 使用 Hadoop 命令验证集群
 
@@ -514,7 +517,7 @@ root@ef3db9867111:/#
 
 #### 4.2.1 检查 HDFS 状态
 
-执行 `hdfs dfsadmin -report` 命令检查 HDFS 状态，你会看到如下类似的 DataNode 状态信息：
+执行 `hdfs dfsadmin -report` 命令检查 HDFS 状态，你会看到如下类似的 `DataNode` 状态信息：
 ```bash
 root@ef3db9867111:/# hdfs dfsadmin -report
 Configured Capacity: xxx (xxx GB)
@@ -535,7 +538,7 @@ Decommission Status : Normal
 
 #### 4.2.2 检查 YARN 状态
 
-执行 `yarn node -list` 命令检查 YARN 状态，你会看到如下类似的 NodeManager 状态信息：
+执行 `yarn node -list` 命令检查 `YARN` 状态，你会看到如下类似的 `NodeManager` 状态信息：
 ```bash
 root@ef3db9867111:/# yarn node -list
 2025-02-28 04:57:59,347 INFO client.RMProxy: Connecting to ResourceManager at resourcemanager/172.20.0.5:8032
@@ -545,14 +548,14 @@ Total Nodes:1
 a6a82c91028f:45381        RUNNINGa6a82c91028f:8042                           0
 ```
 
-### 4.3 YARN作业测试
+### 4.3 YARN 作业测试
 
-可以通过下面的命令提交一个示例 MapReduce作业来验证：
+可以通过下面的命令提交一个示例 `MapReduce` 作业来验证：
 ```bash
 hadoop jar /opt/hadoop-3.2.1/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.2.1.jar pi 10 100
 ```
 如果任务成功运行，你会看到计算结果：
-```
+```bash
 root@ef3db9867111:/# hadoop jar /opt/hadoop-3.2.1/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.2.1.jar pi 10 100
 Number of Maps  = 10
 Samples per Map = 100
@@ -602,6 +605,9 @@ Job Finished in 41.772 seconds
 2025-02-28 05:00:08,964 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
 Estimated value of Pi is 3.14800000000000000000
 ```
+这时候再查看 HistoryServer Web UI，你会看到一个运行完成状态的作业：
+
+![HistoryServer Web UI](img-docker-compose-hadoop-4.png)
 
 ### 4.4 数据持久化验证
 
@@ -618,16 +624,3 @@ docker exec namenode hdfs dfs -ls /
 ```
 
 > 删除容器时使用 `docker-compose down -v` 会清除数据，生产环境建议绑定宿主目录代替匿名卷
-
-
-> 常用维护命令
-```
-# 查看 HDFS 节点状态
-docker exec namenode hdfs dfsadmin -report
-
-# 查看 YARN 节点状态
-docker exec resourcemanager yarn node -list
-
-# 清理历史作业日志
-docker exec historyserver yarn historyserver clear
-```

@@ -168,9 +168,7 @@ metastore:
       - '9083:9083'
   volumes:
       - warehouse:/opt/hive/data/warehouse
-      - type: bind
-        source: ./lib/postgresql-42.5.6.jar
-        target: /opt/hive/lib/postgres.jar
+      - ./lib/postgresql-42.5.6.jar:/opt/hive/lib/postgres.jar
   networks:
     - hive-network
 ```
@@ -314,7 +312,7 @@ smartsi@smartsi:hive wy$ docker compose up -d
 
 通过 `docker-compose ps` 命令查看所有容器的状态：
 ```bash
-(base) localhost:hive wy$ docker-compose ps
+localhost:hive wy$ docker-compose ps
 WARN[0000] /opt/workspace/docker/hive/docker-compose.yml: `version` is obsolete
 NAME          IMAGE               COMMAND                  SERVICE       CREATED         STATUS              PORTS
 hiveserver2   apache/hive:4.0.0   "sh -c /entrypoint.sh"   hiveserver2   2 minutes ago   Up About a minute   0.0.0.0:10000->10000/tcp, 9083/tcp, 0.0.0.0:10002->10002/tcp
@@ -331,7 +329,7 @@ docker-compose logs <service_name>
 ```
 例如，查看 metastore 的日志：
 ```bash
-(base) localhost:hive wy$ docker-compose logs metastore
+localhost:hive wy$ docker-compose logs metastore
 metastore  | + : postgres
 metastore  | + SKIP_SCHEMA_INIT=false
 metastore  | + [[ '' = \t\r\u\e ]]
@@ -384,16 +382,9 @@ metastore  | 2025-03-01 06:43:53: Starting Hive Metastore Server
 
 ### 4.2 使用 HiveSQL 验证
 
-```
-docker exec -it hiveserver2 beeline -u 'jdbc:hive2://hiveserver2:10000/'
-# If beeline is installed on host machine, HiveServer2 can be simply reached via:
-beeline -u 'jdbc:hive2://localhost:10000/'
-```
-
-
 执行 `docker-compose exec namenode /bin/bash` 命令进入 `NameNode` 容器来检查 HDFS、YARN 状态：
 ```bash
-(base) localhost:hive wy$ docker exec -it hiveserver2 beeline -u 'jdbc:hive2://hiveserver2:10000/'
+localhost:hive wy$ docker exec -it hiveserver2 beeline -u 'jdbc:hive2://hiveserver2:10000/'
 ...
 Connecting to jdbc:hive2://hiveserver2:10000/
 Connected to: Apache Hive (version 4.0.0)
@@ -520,7 +511,7 @@ Hive 的默认数据存储路径由 `hive.metastore.warehouse.dir` 配置项控�
 
 进入 Hive 容器并检查数据目录来验证数据存储位置：
 ```
-(base) localhost:hive wy$ docker exec -it metastore bash
+localhost:hive wy$ docker exec -it metastore bash
 hive@metastore:/opt/hive$
 hive@metastore:/opt/hive$ ls /opt/hive/data/warehouse
 hive_example
@@ -539,7 +530,6 @@ hive_example
 
 调整之后的配置文件如下所示，下面会具体介绍为什么以及怎么调整：
 ```yaml
-version: '3.9'
 services:
   postgres:
     image: postgres:15.7
@@ -555,10 +545,10 @@ services:
     volumes:
       - pg:/var/lib/postgresql
     networks:
-      - hadoop-network
+      - pub-network
 
   metastore:
-    image: apache/hive:4.0.0
+    image: apache/hive:3.1.3
     depends_on:
       - postgres
     restart: unless-stopped
@@ -578,14 +568,20 @@ services:
         - ./lib/postgresql-42.5.6.jar:/opt/hive/lib/postgres.jar
         - ./hadoop-conf:/opt/hive/conf  # 覆盖 Hive 的默认配置
     networks:
-      - hadoop-network
+      - pub-network
 
   hiveserver2:
-    image: apache/hive:4.0.0
+    image: apache/hive:3.1.3
     depends_on:
       - metastore
     restart: unless-stopped
     container_name: hiveserver2
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /home/hive/.beeline && chmod 777 /home/hive/.beeline;
+        /opt/hive/bin/hiveserver2
     environment:
       HIVE_SERVER2_THRIFT_PORT: 10000
       SERVICE_OPTS: '-Xmx1G -Dhive.metastore.uris=thrift://metastore:9083'
@@ -598,15 +594,15 @@ services:
       - warehouse:/opt/hive/data/warehouse
       - ./hadoop-conf:/opt/hive/conf  # 覆盖 Hive 的默认配置
     networks:
-      - hadoop-network
+      - pub-network
 
 volumes:
   pg:
   warehouse:
 
 networks:
-  hadoop-network:
-    external: true  # 引用Hadoop网络
+  pub-network:
+    external: true  # 引用Hadoop所在的网络
 ```
 
 #### 5.1.1 挂载 Hadoop 配置文件到 Hive 容器
@@ -625,13 +621,13 @@ mkdir hadoop-conf
 
 你可以通过如下命令直接提取 Hadoop 配置文件到本地配置文件目录：
 ```bash
-(base) localhost:hive wy$ docker cp namenode:/etc/hadoop/core-site.xml ./hadoop-conf/
+localhost:hive wy$ docker cp namenode:/etc/hadoop/core-site.xml ./hadoop-conf/
 Successfully copied 4.1kB to /opt/workspace/docker/hive/hadoop-conf/
-(base) localhost:hive wy$
-(base) localhost:hive wy$ docker cp namenode:/etc/hadoop/hdfs-site.xml ./hadoop-conf/
+localhost:hive wy$
+localhost:hive wy$ docker cp namenode:/etc/hadoop/hdfs-site.xml ./hadoop-conf/
 Successfully copied 6.14kB to /opt/workspace/docker/hive/hadoop-conf/
-(base) localhost:hive wy$
-(base) localhost:hive wy$ docker cp resourcemanager:/etc/hadoop/yarn-site.xml ./hadoop-conf/
+localhost:hive wy$
+localhost:hive wy$ docker cp resourcemanager:/etc/hadoop/yarn-site.xml ./hadoop-conf/
 Successfully copied 39.9kB to /opt/workspace/docker/hive/hadoop-conf/
 ```
 第三步修改 Hive 的 docker-compose.yml 配置文件并挂载配置文件。在 `metastore` 和 `hiveserver2` 服务的 `volumes` 中挂载配置文件：
@@ -645,21 +641,21 @@ volumes:
 
 确保 Hive 服务能通过容器名访问 Hadoop 组件（如namenode:9000）。修改 Hive 的 docker-compose.yml：
 ```yaml
-# 使用Hadoop的外部网络，移除原hive-network
+# 使用 Hadoop 的外部网络，移除原 hive-network
 networks:
-  hadoop-network:
-    external: true  # 引用Hadoop网络
+  pub-network:
+    external: true  # 引用 Hadoop 所在的 pub-network 网络
 
 services:
   postgres:
     networks:
-      - hadoop-network  # 所有服务加入Hadoop网络
+      - pub-network  # 所有服务加入 Hadoop 所在的 pub-network 网络
   metastore:
     networks:
-      - hadoop-network
+      - pub-network
   hiveserver2:
     networks:
-      - hadoop-network
+      - pub-network
 ```
 
 ### 5.2 配置 Hive 的 `hive-site.xml`
@@ -707,6 +703,10 @@ services:
         -Dmapreduce.framework.name=yarn
         -Dyarn.resourcemanager.address=resourcemanager:8032
 ```
+
+
+
+
 #### 5.5 初始化HDFS目录
 
 在Hadoop集群中创建Hive仓库目录并设置权限：
@@ -717,39 +717,53 @@ docker exec namenode hdfs dfs -mkdir -p /tmp
 docker exec namenode hdfs dfs -chmod 777 /tmp
 ```
 
+### 5.3 启动 Hive 服务
 
+在项目目录中执行 `docker-compose up -d` 命令启动 `Hive` 服务：
+```
+(base) localhost:hive wy$ docker compose up -d
+[+] Running 5/5
+ ✔ Volume "hive_warehouse"  Created   0.0s
+ ✔ Volume "hive_pg"         Created   0.0s
+ ✔ Container postgres       Started   0.3s
+ ✔ Container metastore      Started   0.4s
+ ✔ Container hiveserver2    Started   0.1s
+```
 
-
-
-
-### 5.3 验证 Hadoop 集群连通性
+### 5.4 验证 Hadoop 集群连通性
 
 在 Hive 容器内执行以下命令，验证是否能访问 Hadoop 服务。
 
-1. **进入 Hive 容器**  
-   ```bash
-   docker exec -it metastore bash
-   ```
+1. 进入 Hive 容器
+    ```bash
+    localhost:hive wy$ docker exec -it metastore bash
+    hive@metastore:/opt/hive$
+    ```
 
-2. **检查 HDFS 连通性**  
-   ```bash
-   hdfs dfs -ls hdfs://namenode:8020/
-   ```
-   如果成功，会列出 HDFS 根目录内容。
+2. 检查 HDFS 连通性：如果成功，会列出 HDFS 根目录内容：
+    ```bash
+    hive@metastore:/opt/hive$ hdfs dfs -ls hdfs://namenode:9000/
+    Found 4 items
+    drwxrwxrwt   - root root                0 2025-03-01 13:16 hdfs://namenode:9000/app-logs
+    drwxr-xr-x   - root supergroup          0 2025-03-01 13:11 hdfs://namenode:9000/rmstate
+    drwx------   - root supergroup          0 2025-03-01 13:43 hdfs://namenode:9000/tmp
+    drwxr-xr-x   - root supergroup          0 2025-03-01 13:15 hdfs://namenode:9000/user
+    ```
 
-3. **检查 YARN 连通性**  
+3. 检查 YARN 连通性
    ```bash
    yarn node -list
    ```
    应返回 YARN 集群的节点列表。
 
 
-#### 5.2.6 验证 Hive 集成 Hadoop**
+### 5.5 验证 Hive 集成 Hadoop**
+
 通过 Beeline 连接 HiveServer2 并执行操作，验证数据是否写入 HDFS。
 
-1. **启动 Beeline 客户端**  
+1. 启动 Beeline 客户端
    ```bash
-   docker exec -it hiveserver2 beeline -u 'jdbc:hive2://localhost:10000'
+   docker exec -it hiveserver2 beeline -u 'jdbc:hive2://hiveserver2:10000/'
    ```
 
 2. **创建测试表并插入数据**  

@@ -104,6 +104,88 @@ networks:
     name: hive-network
 ```
 
+```yaml
+services:
+  postgres:
+    image: postgres:15.7
+    restart: unless-stopped
+    container_name: postgres
+    hostname: postgres
+    environment:
+      POSTGRES_DB: 'hive_metastore'
+      POSTGRES_USER: 'admin'
+      POSTGRES_PASSWORD: 'admin'
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg:/var/lib/postgresql
+    networks:
+      - pub-network
+
+  metastore:
+    image: apache/hive:3.1.3
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    container_name: metastore
+    hostname: metastore
+    environment:
+      DB_DRIVER: postgres
+      SERVICE_NAME: 'metastore'
+      SERVICE_OPTS: '-Xmx1G -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
+                     -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres:5432/hive_metastore
+                     -Djavax.jdo.option.ConnectionUserName=admin
+                     -Djavax.jdo.option.ConnectionPassword=admin'
+    ports:
+        - '9083:9083'
+    volumes:
+        - warehouse:/opt/hive/data/warehouse
+        - ./lib/postgresql-42.5.6.jar:/opt/hive/lib/postgres.jar
+        - ./hadoop-conf:/opt/hive/conf
+    networks:
+      - pub-network
+
+hiveserver2:
+  image: apache/hive:3.1.3
+  depends_on:
+    - metastore
+  restart: unless-stopped
+  container_name: hiveserver2
+  command:
+    - /bin/sh
+    - -c
+    - |
+      mkdir -p /home/hive/.beeline && \
+      chown -R hive:hive /home/hive/.beeline && \
+      chmod 750 /home/hive/.beeline && \
+      /opt/hive/bin/hiveserver2
+  privileged: true
+  environment:
+    HIVE_SERVER2_THRIFT_PORT: 10000
+    SERVICE_OPTS: '-Xmx1G -Dhive.metastore.uris=thrift://metastore:9083'
+    IS_RESUME: 'true'
+    SERVICE_NAME: 'hiveserver2'
+  ports:
+    - '10000:10000'
+    - '10002:10002'
+  volumes:
+    - warehouse:/opt/hive/data/warehouse
+    - ./hadoop-conf:/opt/hive/conf
+  networks:
+    - pub-network
+
+volumes:
+  pg:
+  warehouse:
+
+networks:
+  pub-network:
+    external: true
+```
+
+
+
+
 
 #### 3.2.1 服务定义（Services）
 
@@ -605,6 +687,77 @@ networks:
     external: true  # 引用Hadoop所在的网络
 ```
 
+```yaml
+services:
+  postgres:
+    image: postgres:15.7
+    restart: unless-stopped
+    container_name: postgres
+    hostname: postgres
+    environment:
+      POSTGRES_DB: 'hive_metastore'
+      POSTGRES_USER: 'admin'
+      POSTGRES_PASSWORD: 'admin'
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg:/var/lib/postgresql
+    networks:
+      - pub-network
+
+  metastore:
+    image: apache/hive:3.1.3
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    container_name: metastore
+    hostname: metastore
+    environment:
+      DB_DRIVER: postgres
+      SERVICE_NAME: 'metastore'
+      SERVICE_OPTS: '-Xmx1G -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
+                     -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://postgres:5432/hive_metastore
+                     -Djavax.jdo.option.ConnectionUserName=admin
+                     -Djavax.jdo.option.ConnectionPassword=admin'
+    ports:
+        - '9083:9083'
+    volumes:
+        - warehouse:/opt/hive/data/warehouse
+        - ./lib/postgresql-42.5.6.jar:/opt/hive/lib/postgres.jar
+        - ./hadoop-conf:/opt/hive/conf
+    networks:
+      - pub-network
+
+  hiveserver2:
+    image: apache/hive:3.1.3
+    depends_on:
+      - metastore
+    restart: unless-stopped
+    container_name: hiveserver2
+    environment:
+      HIVE_SERVER2_THRIFT_PORT: 10000
+      SERVICE_OPTS: '-Xmx1G -Dhive.metastore.uris=thrift://metastore:9083'
+      IS_RESUME: 'true'
+      SERVICE_NAME: 'hiveserver2'
+    ports:
+      - '10000:10000'
+      - '10002:10002'
+    volumes:
+      - warehouse:/opt/hive/data/warehouse
+      - ./hadoop-conf:/opt/hive/conf
+    networks:
+      - pub-network
+
+volumes:
+  pg:
+  warehouse:
+
+networks:
+  pub-network:
+    external: true
+```
+
+
 #### 5.1.1 挂载 Hadoop 配置文件到 Hive 容器
 
 Hive 需要 Hadoop 的核心配置文件（`core-site.xml`, `hdfs-site.xml`, `yarn-site.xml`）才能与远程集群通信。需要挂载到 Hive 的配置目录，并确保配置一致性。
@@ -627,8 +780,10 @@ localhost:hive wy$
 localhost:hive wy$ docker cp namenode:/etc/hadoop/hdfs-site.xml ./hadoop-conf/
 Successfully copied 6.14kB to /opt/workspace/docker/hive/hadoop-conf/
 localhost:hive wy$
-localhost:hive wy$ docker cp resourcemanager:/etc/hadoop/yarn-site.xml ./hadoop-conf/
+localhost:hive wy$ docker cp namenode:/etc/hadoop/yarn-site.xml ./hadoop-conf/
 Successfully copied 39.9kB to /opt/workspace/docker/hive/hadoop-conf/
+
+localhost:hive wy$ docker cp namenode:/etc/hadoop/mapred-site.xml ./hadoop-conf/
 ```
 第三步修改 Hive 的 docker-compose.yml 配置文件并挂载配置文件。在 `metastore` 和 `hiveserver2` 服务的 `volumes` 中挂载配置文件：
 ```yaml

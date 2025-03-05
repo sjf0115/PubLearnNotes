@@ -1,0 +1,27 @@
+# https://smartsi.blog.csdn.net/article/details/139390099
+services:
+  postgres_db: # 服务名称
+    image: postgres:15.7 # 指定镜像及其版本
+    container_name: docker_postgres # 指定容器的名称
+    environment:
+      POSTGRES_PASSWORD: root
+      #POSTGRES_DB: default
+    ports: # 端口映射
+      - "5432:5432"
+    volumes: # 数据持久化的配置
+      - data:/var/lib/postgresql/data
+      - log:/var/log/postgresql
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:  # 网络配置
+      - pub-network  # 加入到 pub-network 网络
+
+volumes: # 数据卷
+  data:
+  log:
+
+networks:  # 网络
+  pub-network:
+      external: true

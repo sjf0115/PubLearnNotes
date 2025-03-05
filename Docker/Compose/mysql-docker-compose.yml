@@ -1,0 +1,25 @@
+# https://smartsi.blog.csdn.net/article/details/138426780
+services:  # 定义你需要运行的服务
+  mysql_db:  # 服务名称
+    image: mysql:8.4  # 指定镜像及其版本
+    container_name: docker_mysql # 指定容器的名称
+    environment:  # 定义环境变量
+      MYSQL_ROOT_PASSWORD: root  # 设置 MySQL 的 root 用户密码
+      MYSQL_DATABASE: default  # 创建一个初始数据库
+      MYSQL_USER: admin  # 创建一个MySQL用户
+      MYSQL_PASSWORD: admin  # 为新用户设置密码
+    ports: # 端口映射
+      - "3306:3306"
+    volumes:  # 数据持久化的配置
+      - data:/var/lib/mysql  # 将命名数据卷挂载到容器内的指定目录
+      - log:/var/log/mysql
+    networks:  # 网络配置
+      - pub-network  # 加入到 pub-network 网络
+
+volumes:  # 数据卷
+  data:
+  log:
+
+networks:  # 网络
+  pub-network:
+      external: true

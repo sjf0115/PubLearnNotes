@@ -1,0 +1,51 @@
+# https://smartsi.blog.csdn.net/article/details/138471015
+services:
+  zk1:
+    image: zookeeper:3.6.3
+    container_name: docker_zk1
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+    ports:
+      - "2181:2181"
+    volumes:
+      - zk1_data:/data
+      - zk1_datalog:/datalog
+    networks:
+      - pub-network
+
+  zk2:
+    image: zookeeper:3.6.3
+    container_name: docker_zk2
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+    volumes:
+      - zk2_data:/data
+      - zk2_datalog:/datalog
+    networks:
+      - pub-network
+
+  zk3:
+    image: zookeeper:3.6.3
+    container_name: docker_zk3
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zk1:2888:3888;2181 server.2=zk2:2888:3888;2181 server.3=zk3:2888:3888;2181
+    volumes:
+      - zk3_data:/data
+      - zk3_datalog:/datalog
+    networks:
+      - pub-network
+
+volumes:
+  zk1_data:
+  zk1_datalog:
+  zk2_data:
+  zk2_datalog:
+  zk3_data:
+  zk3_datalog:
+
+networks:  # 网络
+  pub-network:
+      external: true

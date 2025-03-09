@@ -153,23 +153,6 @@ services:
     networks:
       - pub-network
 
-  spark-history:
-    image: bitnami/spark:3.5.0
-    container_name: spark-history
-    restart: unless-stopped
-    depends_on:
-      - spark-master
-    environment:
-      - SPARK_MODE=history-server
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-    ports:
-      - "18080:18080"
-    networks:
-      - pub-network
-
 volumes:
   spark-data:
 
@@ -182,12 +165,11 @@ networks:  # 网络
 
 ### 4.1 服务定义
 
-`services` 是 `docker-compose.yml` 的核心部分，定义了多个容器服务。每个服务对应一个 `Spark` 组件。上面的配置定义了3个服务：
+`services` 是 `docker-compose.yml` 的核心部分，定义了多个容器服务。每个服务对应一个 `Spark` 组件。上面的配置定义了2个服务：
 - `spark-master`：集群资源调度和任务分配。
 - `spark-worker`：执行具体计算任务。
-- `spark-history`：存储和展示已完成任务日志。
 
-Docker Compose 会将每个服务部署在各自的容器中，在这里我们自定义了与服务名称一致的容器名称，因此 Docker Compose 会部署3个名为 `spark-master`、`spark-worker` 以及 `spark-history` 的容器。
+Docker Compose 会将每个服务部署在各自的容器中，在这里我们自定义了与服务名称一致的容器名称，因此 Docker Compose 会部署2个名为 `spark-master`、`spark-worker` 的容器。
 
 #### 4.1.1 Master 服务
 
@@ -294,44 +276,6 @@ spark-worker:
 
 ---
 
-#### 4.1.3 HistoryServer 服务
-
-```yaml
-spark-history:
-  image: bitnami/spark:3.5.0
-  container_name: spark-history
-  restart: unless-stopped
-  depends_on:
-    - spark-master
-  environment:
-    - SPARK_MODE=history
-    - SPARK_RPC_AUTHENTICATION_ENABLED=no
-    - SPARK_RPC_ENCRYPTION_ENABLED=no
-    - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-    - SPARK_SSL_ENABLED=no
-  ports:
-    - "18080:18080"
-  networks:
-    - pub-network
-```
-
-核心配置：
-- `image`: 使用 Bitnami 维护的 `bitnami/spark` 镜像部署 `Master` 服务(对应 Apache Spark 3.5.0 版本)。
-- `container_name`：容器名称固定为 `spark-history`，便于其他服务引用。
-- `restart`: `unless-stopped` 指定容器异常退出时自动重启（除非手动停止）。
-- `depends_on`: 确保 `spark-master` 服务先启动。
-- `ports`: 暴露端口
-  - 将容器内的 18080 端口映射到宿主机的 18080 端口，用于提供历史任务查询。
-- `environment`：设置环境变量，配置 `HistoryServer` 服务的运行参数
-  - `SPARK_MODE`: 定义节点角色，指定节点模式为 `history-server`。
-  - `SPARK_RPC_AUTHENTICATION_ENABLED`: 关闭 RPC 身份认证(默认为 `no`，生产环境应开启)
-  - `SPARK_RPC_ENCRYPTION_ENABLED`: 关闭 RPC 加密(默认为 `no`，生产环境应开启)
-  - `SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED`: 关闭本地存储加密(默认为 `no`，生产环境应开启)
-  - `SPARK_SSL_ENABLED`: 关闭 SSL 配置(默认为 `no`，生产环境应开启)
-- `networks`：服务连接到 `pub-network` 网络上，确保容器间通信。
-
----
-
 ### 4.2 卷定义（Volumes）
 
 ```yaml
@@ -375,84 +319,81 @@ localhost:docker wy$ mkdir spark
 localhost:docker wy$ cd spark
 ```
 
-### 5.3 启动 Spark
+### 5.3 启动 Spark 集群
 
 在 `docker-compose.yml` 文件所在目录下运行以下命令：
 ```bash
-
+localhost:spark wy$ docker compose up -d
+[+] Running 4/4
+ ✔ Volume "spark_spark-data"       Created  0.0s
+ ✔ Container spark-master          Started  0.1s
+ ✔ Container spark-spark-worker-2  Started  0.2s
+ ✔ Container spark-spark-worker-1  Started  0.2s
+```
+默认情况下，当您部署 `docker-compose` 文件时，您将得到一个包含1个主节点和2个工作节点的 Apache Spark 集群。如果你想要 N 个 `Worker`，你所需要做的就是用下面的命令启动 docker-compose 部署：
+```bash
+docker-compose up --scale spark-worker=3
 ```
 
-默认情况下，当您部署 docker-compose 文件时，您将得到一个包含1个主节点和1个工作节点的 Apache Spark 集群。
-
-
-
-如果你想要N个worker，你所需要做的就是用下面的命令启动docker-compose部署：
-
-
-### 4.4 查看服务状态
+### 5.4 查看服务状态
 
 通过 `docker-compose ps` 命令查看所有容器的状态：
 ```bash
-
+localhost:spark wy$ docker-compose ps
+NAME                   IMAGE                 COMMAND                  SERVICE        CREATED         STATUS                     PORTS
+spark-master           bitnami/spark:3.5.0   "/opt/bitnami/script…"   spark-master   3 minutes ago   Up 3 minutes (unhealthy)   0.0.0.0:7077->7077/tcp, 0.0.0.0:8080->8080/tcp
+spark-spark-worker-1   bitnami/spark:3.5.0   "/opt/bitnami/script…"   spark-worker   3 minutes ago   Up 3 minutes
+spark-spark-worker-2   bitnami/spark:3.5.0   "/opt/bitnami/script…"   spark-worker   3 minutes ago   Up 3 minutes
 ```
-
-# 动态增加Worker节点
-docker-compose scale spark-worker=3
 
 ---
 
+## 6. 验证
 
-## 5. 验证
+### 6.1 Web 控制台验证
 
-### 5.1 Web UI
-
-不管你是用那种方式启动的服务，只要服务启动后，你都可以通过 `http://localhost:12345/dolphinscheduler/ui` 访问 `DolphinScheduler`。访问上述链接后会跳转到登陆页面，`DolphinScheduler` 默认的用户和密码分别为 `admin` 和 `dolphinscheduler123`。
-
-![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/ed9d9eb99bfb441c9ba3b38c9046cda8.png#pic_center)
-### 5.2 验证任务调度
-
-创建一个简单的工作流任务（如 Shell 脚本），并验证任务是否能正常调度和执行。
-
-
-### 6.1 基础状态检查
-```bash
-# 检查容器运行状态
-docker-compose ps -a
-
-# 预期输出：
-NAME                COMMAND                  STATUS   PORTS
-spark-master   "/opt/bitnami/script..."   Up       0.0.0.0:4040->4040/tcp,...
-spark-worker_1 "/opt/bitnami/script..."   Up       8081/tcp
-```
-
-### 6.2 Web控制台验证
 访问 `http://localhost:8080` 应该看到：
 - **Alive Workers** 显示正确的节点数
 - 每个Worker的**Memory**和**Cores**与配置一致
 
-![Spark Master WebUI](https://i.stack.imgur.com/6f8xT.png)
+![Spark Master WebUI](img-spark-docker-compose-1.png)
 
-### 6.3 提交测试任务
+### 6.2 提交测试任务
+
+进入 Master 容器，提交 Spark 的示例 PI 计算：
 ```bash
-# 进入Master容器
+# 进入 Master 容器
 docker exec -it spark-master bash
 
 # 运行计算Pi的示例
-/opt/bitnami/spark/bin/spark-submit \
+bin/spark-submit \
     --master spark://spark-master:7077 \
     --class org.apache.spark.examples.SparkPi \
     /opt/bitnami/spark/examples/jars/spark-examples_2.12-3.5.0.jar \
     1000
-
-# 查看输出中的结果
-Pi is roughly 3.14159
 ```
 
-### 6.4 历史服务器验证
-```bash
-# 查看历史日志
-docker exec spark-master ls /bitnami/spark/eventlogs
+如果成功运行的话，查看输出中的结果如下所示：
+```
+Pi is roughly 3.1417806314178063
+```
 
-# 访问历史界面
-http://localhost:18080
+### 6.3 YARN集成验证
+
+进入 Master 容器，提交 Spark 的示例 PI 计算：
+```bash
+# 进入 Master 容器
+docker exec -it spark-master bash
+
+# 运行计算Pi的示例
+bin/spark-submit \
+    --master yarn \
+    --class org.apache.spark.examples.SparkPi \
+    /opt/bitnami/spark/examples/jars/spark-examples_2.12-3.5.0.jar \
+    1000
+```
+
+如果成功运行的话，查看输出中的结果如下所示：
+```
+Pi is roughly 3.1417806314178063
 ```

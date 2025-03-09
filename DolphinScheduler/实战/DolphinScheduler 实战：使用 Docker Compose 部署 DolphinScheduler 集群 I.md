@@ -352,7 +352,7 @@ networks:  # 网络
       external: true
 ```
 
-### **1. 服务定义**
+### 服务定义（Services）
 `services` 是 `docker-compose.yml` 的核心部分，定义了多个容器服务。每个服务对应一个 DolphinScheduler 组件。
 
 ---

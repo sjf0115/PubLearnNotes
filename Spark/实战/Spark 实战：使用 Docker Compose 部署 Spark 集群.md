@@ -388,6 +388,14 @@ docker exec -it spark-master bash
 # 运行计算Pi的示例
 bin/spark-submit \
     --master yarn \
+    --deploy-mode client \
+    --class org.apache.spark.examples.SparkPi \
+    /opt/bitnami/spark/examples/jars/spark-examples_2.12-3.5.0.jar \
+    1000
+
+bin/spark-submit \
+    --master yarn \
+    --deploy-mode cluster \
     --class org.apache.spark.examples.SparkPi \
     /opt/bitnami/spark/examples/jars/spark-examples_2.12-3.5.0.jar \
     1000

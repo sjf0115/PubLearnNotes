@@ -152,3 +152,82 @@ I have no name!@spark-master:/opt/bitnami/spark$ bin/spark-submit \
 25/03/10 15:15:00 INFO Client: Preparing resources for our AM container
 25/03/10 15:15:00 WARN Client: Neither spark.yarn.jars nor spark.yarn.archive is set, falling back to uploading libraries under SPARK_HOME.
 25/03/10 15:15:19 INFO Client: Uploading resource file:/tmp/spark-f4460c90-cd8c-4520-b35a-fc1380562bfe/__spark_libs__13777774246483308415.zip -> hdfs://namenode:9000/user/spark/.sparkStaging/application_1741617430753_0005/__spark_libs__13777774246483308415.zip
+
+
+
+5/03/10 15:15:37 INFO SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: spark; groups with view permissions: EMPTY; users with modify permissions: spark; groups with modify permissions: EMPTY
+25/03/10 15:15:38 INFO Client: Submitting application application_1741617430753_0005 to ResourceManager
+25/03/10 15:15:38 INFO YarnClientImpl: Submitted application application_1741617430753_0005
+25/03/10 15:15:39 INFO Client: Application report for application_1741617430753_0005 (state: ACCEPTED)
+25/03/10 15:15:39 INFO Client:
+	 client token: N/A
+	 diagnostics: [Mon Mar 10 15:15:39 +0000 2025] Scheduler has assigned a container for AM, waiting for AM container to be launched
+	 ApplicationMaster host: N/A
+	 ApplicationMaster RPC port: -1
+	 queue: default
+	 start time: 1741619738140
+	 final status: UNDEFINED
+	 tracking URL: http://resourcemanager:8088/proxy/application_1741617430753_0005/
+	 user: spark
+25/03/10 15:16:03 INFO Client: Application report for application_1741617430753_0005 (state: RUNNING)
+25/03/10 15:16:03 INFO Client:
+	 client token: N/A
+	 diagnostics: N/A
+	 ApplicationMaster host: 172.21.0.5
+	 ApplicationMaster RPC port: -1
+	 queue: default
+	 start time: 1741619738140
+	 final status: UNDEFINED
+	 tracking URL: http://resourcemanager:8088/proxy/application_1741617430753_0005/
+	 user: spark
+25/03/10 15:16:03 INFO YarnClientSchedulerBackend: Application application_1741617430753_0005 has started running.
+25/03/10 15:16:03 INFO Utils: Successfully started service 'org.apache.spark.network.netty.NettyBlockTransferService' on port 38317.
+25/03/10 15:16:03 INFO NettyBlockTransferService: Server created on spark-master:38317
+25/03/10 15:16:03 INFO BlockManager: Using org.apache.spark.storage.RandomBlockReplicationPolicy for block replication policy
+25/03/10 15:16:03 INFO BlockManagerMaster: Registering BlockManager BlockManagerId(driver, spark-master, 38317, None)
+25/03/10 15:16:03 INFO BlockManagerMasterEndpoint: Registering block manager spark-master:38317 with 434.4 MiB RAM, BlockManagerId(driver, spark-master, 38317, None)
+25/03/10 15:16:03 INFO BlockManagerMaster: Registered BlockManager BlockManagerId(driver, spark-master, 38317, None)
+25/03/10 15:16:03 INFO BlockManager: Initialized BlockManager: BlockManagerId(driver, spark-master, 38317, None)
+25/03/10 15:16:04 INFO YarnClientSchedulerBackend: Add WebUI Filter. org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter, Map(PROXY_HOSTS -> resourcemanager, PROXY_URI_BASES -> http://resourcemanager:8088/proxy/application_1741617430753_0005), /proxy/application_1741617430753_0005
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /jobs: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /jobs/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /jobs/job: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /jobs/job/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /stages: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /stages/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /stages/stage: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /stages/stage/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /stages/pool: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /stages/pool/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /storage: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /storage/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /storage/rdd: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /storage/rdd/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /environment: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /environment/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /executors: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /executors/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /executors/threadDump: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /executors/threadDump/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /executors/heapHistogram: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /executors/heapHistogram/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:04 INFO ServerInfo: Adding filter to /static: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:05 INFO ServerInfo: Adding filter to /: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:05 INFO ServerInfo: Adding filter to /api: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:05 INFO ServerInfo: Adding filter to /jobs/job/kill: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:05 INFO ServerInfo: Adding filter to /stages/stage/kill: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:05 INFO ServerInfo: Adding filter to /metrics/json: org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter
+25/03/10 15:16:05 INFO YarnClientSchedulerBackend: SchedulerBackend is ready for scheduling beginning after waiting maxRegisteredResourcesWaitingTime: 30000000000(ns)
+25/03/10 15:16:05 INFO YarnSchedulerBackend$YarnSchedulerEndpoint: ApplicationMaster registered as NettyRpcEndpointRef(spark-client://YarnAM)
+25/03/10 15:16:08 INFO SparkContext: Starting job: reduce at SparkPi.scala:38
+25/03/10 15:16:08 INFO DAGScheduler: Got job 0 (reduce at SparkPi.scala:38) with 1000 output partitions
+25/03/10 15:16:08 INFO DAGScheduler: Final stage: ResultStage 0 (reduce at SparkPi.scala:38)
+25/03/10 15:16:08 INFO DAGScheduler: Parents of final stage: List()
+25/03/10 15:16:08 INFO DAGScheduler: Missing parents: List()
+25/03/10 15:16:08 INFO DAGScheduler: Submitting ResultStage 0 (MapPartitionsRDD[1] at map at SparkPi.scala:34), which has no missing parents
+25/03/10 15:16:09 INFO MemoryStore: Block broadcast_0 stored as values in memory (estimated size 4.0 KiB, free 434.4 MiB)
+25/03/10 15:16:09 INFO MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 2.3 KiB, free 434.4 MiB)
+25/03/10 15:16:09 INFO BlockManagerInfo: Added broadcast_0_piece0 in memory on spark-master:38317 (size: 2.3 KiB, free: 434.4 MiB)
+25/03/10 15:16:09 INFO SparkContext: Created broadcast 0 from broadcast at DAGScheduler.scala:1580
+25/03/10 15:16:10 INFO DAGScheduler: Submitting 1000 missing tasks from ResultStage 0 (MapPartitionsRDD[1] at map at SparkPi.scala:34) (first 15 tasks are for partitions Vector(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14))
+25/03/10 15:16:10 INFO YarnScheduler: Adding task set 0.0 with 1000 tasks resource profile 0

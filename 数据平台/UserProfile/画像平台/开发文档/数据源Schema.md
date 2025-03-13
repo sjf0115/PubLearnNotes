@@ -17,7 +17,6 @@ private static String passwd = "";
     "componentName": "Input"
   },
   {
-
     "id": "auth_enable",
     "label": "HIVE登录方式",
     "tip": "访问HIVE是否需要用户名密码",
@@ -37,7 +36,7 @@ private static String passwd = "";
   {
     "id": "user_name",
     "label": "HIVE用户名",
-    "componentName": "Input",
+    "componentName": "Input"
   },
   {
     "id": "user_password",

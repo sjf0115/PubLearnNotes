@@ -277,14 +277,13 @@ public SeaTunnelConfig() {
 ```
 #### 2.3.4 构建执行环境并提交作业
 
-通过 `createExecutionContext()` 整合作业配置与引擎配置，生成可执行上下文环境：
+通过 `createExecutionContext()` 整合作业配置与引擎全局配置，生成可执行上下文环境：
 ```java
-ClientJobExecutionEnvironment jobExecutionEnv =
-        seaTunnelClient.createExecutionContext(filePath, jobConfig, seaTunnelConfig);
+ClientJobExecutionEnvironment jobExecutionEnv = seaTunnelClient.createExecutionContext(filePath, jobConfig, seaTunnelConfig);
 ```
 > filePath 为作业配置文件路径（如 job.yaml），定义数据源、转换逻辑、输出目标。
 
-然后通过 `execute()` 提交作业到 SeaTunnel 引擎，返回 ClientJobProxy 用于状态监控和生命周期管理：
+然后通过 `execute()` 提交作业到 `SeaTunnel` 引擎，返回 `ClientJobProxy` 用于状态监控和生命周期管理：
 ```java
 ClientJobProxy clientJobProxy = jobExecutionEnv.execute();
 ```

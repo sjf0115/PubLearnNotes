@@ -199,6 +199,8 @@ clickhouse-client --host <hostname> --port <port> --user <username> --password <
 ```
 其中，`<hostname>`、`<port>`、`<username>` 和 `<password>` 分别代表 ClickHouse 服务器的地址、端口、用户名和密码。如果没有提供用户名和密码，clickhouse-client 默认尝试以 default 用户进行连接，而且默认的端口是 9000。如下所示通过我们创建的 `test` 用户登录：
 ```shell
+(base) localhost:clickhouse wy$ docker-compose exec ck1 /bin/bash
+root@473f6e967d7a:/#
 root@473f6e967d7a:/# clickhouse-client --host ck1 --port 9000 --user test --password test
 ClickHouse client version 23.3.13.6 (official build).
 Connecting to ck1:9000 as user test.

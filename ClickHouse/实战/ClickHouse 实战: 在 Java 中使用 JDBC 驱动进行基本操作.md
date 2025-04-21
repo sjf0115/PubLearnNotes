@@ -18,7 +18,7 @@ ClickHouse 作为一款高性能的 OLAP 数据库，近年来在 Java 生态中
 ### 2. 建立连接
 
 在 Java 代码中，你需要注册驱动并建立到 ClickHouse 数据库的连接。示例代码如下：
-```
+```java
 String url = "jdbc:ch:http://localhost:8123/default";
 Properties properties = new Properties();
 properties.setProperty("user", "default");
@@ -37,16 +37,20 @@ try (Connection connection = new ClickHouseDataSource(url, properties).getConnec
 ## 3. 基础操作
 
 ### 3.1 创建表
+
 在演示基本操作之前我们先创建如下 test 表:
-```sql
-String createSQL = """
-  CREATE TABLE default.test (
-      `entity_id` String,
-      `value` String
-  ) ENGINE = MergeTree
-  PRIMARY KEY entity_id
-  ORDER BY entity_id SETTINGS index_granularity = 8192
-""";
+```java
+String createSQL = "CREATE TABLE default.test (\n" +
+        "              `entity_id` String,\n" +
+        "              `value` String\n" +
+        "          ) ENGINE = MergeTree\n" +
+        "          PRIMARY KEY entity_id\n" +
+        "          ORDER BY entity_id SETTINGS index_granularity = 8192";
+
+String url = "jdbc:ch:http://localhost:8123/default";
+Properties properties = new Properties();
+properties.setProperty("user", "default");
+properties.setProperty("password", "");
 
 try (Connection connection = new ClickHouseDataSource(url, properties).getConnection()) {
     Statement st = connection.createStatement();
@@ -82,16 +86,26 @@ try (Connection connection = new ClickHouseDataSource(url, properties).getConnec
 
 #### 3.2.2 批量插入
 
+推荐批量插入来提升性能：
 ```java
-try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
-    for (int i = 0; i < 1000; i++) {
-        pstmt.setLong(1, i);
-        pstmt.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
-        pstmt.setString(3, "view");
-        pstmt.setObject(4, Collections.emptyMap());
-        pstmt.addBatch();
+String insertSQL = "INSERT INTO test VALUES (?, ?, ?, ?)";
+
+String url = "jdbc:ch:http://localhost:8123/default";
+Properties properties = new Properties();
+properties.setProperty("user", "default");
+properties.setProperty("password", "");
+
+try (Connection connection = new ClickHouseDataSource(url, properties).getConnection();
+     PreparedStatement pt = connection.prepareStatement(insertSQL)) {
+    for (int i = 0; i < 10; i++) {
+        pt.setString(1, "a"+i);
+        pt.setString(2, "男");
+        pt.addBatch();
     }
-    pstmt.executeBatch(); // 执行批量操作
+    pt.executeBatch(); // 执行批量操作
+
+} catch (SQLException e) {
+    e.printStackTrace();
 }
 ```
 
@@ -99,108 +113,205 @@ try (PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
 
 ### 3.3 查询数据
 
-使用 Statement或 PreparedStatement执行SQL查询。这里以查询为例：
+使用 Statement 或 PreparedStatement 执行 SQL 查询。这里以查询为例：
 ```java
-String querySQL = """
-    SELECT user_id, count(*) AS event_count
-    FROM user_behavior
-    WHERE event_time > ?
-    GROUP BY user_id
-    ORDER BY event_count DESC
-    LIMIT 10
-""";
+String selectSQL = "SELECT value, count(*) AS num\n" +
+                "FROM test\n" +
+                "GROUP BY value";
 
-try (PreparedStatement pstmt = conn.prepareStatement(querySQL)) {
-    pstmt.setTimestamp(1, Timestamp.valueOf("2024-01-01 00:00:00"));
+String url = "jdbc:ch:http://localhost:8123/default";
+Properties properties = new Properties();
+properties.setProperty("user", "default");
+properties.setProperty("password", "");
 
-    ResultSet rs = pstmt.executeQuery();
+try (Connection connection = new ClickHouseDataSource(url, properties).getConnection();
+     PreparedStatement pt = connection.prepareStatement(selectSQL)) {
+    ResultSet rs = pt.executeQuery();
     while (rs.next()) {
-        long userId = rs.getLong("user_id");
-        int count = rs.getInt("event_count");
-        System.out.printf("User %d: %d events%n", userId, count);
+        String value = rs.getString("value");
+        int num = rs.getInt("num");
+        System.out.printf("性别 %s: %d 名%n", value, num);
     }
+} catch (SQLException e) {
+    e.printStackTrace();
 }
+```
+输出结果如下所示:
+```
+性别 女: 1 名
+性别 男: 11 名
 ```
 
 ---
 
 ### 3.4 更新数据
-```java
-String updateSQL = """
-    ALTER TABLE user_behavior
-    UPDATE properties = {'source': 'mobile'}
-    WHERE user_id = ?
-""";
 
-try (PreparedStatement pstmt = conn.prepareStatement(updateSQL)) {
-    pstmt.setLong(1, 12345L);
-    pstmt.executeUpdate();  // 返回受影响的行数
+可以执行 executeUpdate 方法来更新数据:
+```java
+String updateSQL = "UPDATE test SET value = ? WHERE entity_id = ?";
+
+String url = "jdbc:ch:http://localhost:8123/default";
+Properties properties = new Properties();
+properties.setProperty("user", "default");
+properties.setProperty("password", "");
+
+try (Connection connection = new ClickHouseDataSource(url, properties).getConnection();
+     PreparedStatement pt = connection.prepareStatement(updateSQL)) {
+    pt.setString(1, "女");
+    pt.setString(2, "a0");
+    pt.executeUpdate();
+} catch (SQLException e) {
+    e.printStackTrace();
 }
 ```
 
 ---
 
 ### 3.5 删除数据
-```java
-String deleteSQL = "ALTER TABLE user_behavior DELETE WHERE user_id = ?";
 
-try (PreparedStatement pstmt = conn.prepareStatement(deleteSQL)) {
-    pstmt.setLong(1, 12345L);
-    int deletedRows = pstmt.executeUpdate();
-    System.out.println("Deleted " + deletedRows + " rows");
+删除操作与更新类似，只需要更改 SQL 语句即可:
+```java
+String deleteSQL = "DELETE FROM test WHERE entity_id = ?";
+
+String url = "jdbc:ch:http://localhost:8123/default";
+Properties properties = new Properties();
+properties.setProperty("user", "default");
+properties.setProperty("password", "");
+
+try (Connection connection = new ClickHouseDataSource(url, properties).getConnection();
+     PreparedStatement pt = connection.prepareStatement(deleteSQL)) {
+    pt.setString(1, "a9");
+    pt.executeUpdate();
+} catch (SQLException e) {
+    e.printStackTrace();
 }
 ```
 
 ---
 
-## 高级技巧
+## 4. 高级技巧-使用连接池
 
-### 1. 使用连接池
-推荐使用HikariCP：
-```java
-HikariConfig config = new HikariConfig();
-config.setJdbcUrl("jdbc:ch:https://localhost:8123/default");
-config.setUsername("default");
-config.setPassword("");
-
-HikariDataSource ds = new HikariDataSource(config);
+推荐使用 HikariCP 连接池。需要在 pom 中添加如下依赖:
 ```
-
-### 2. 处理数组类型
-```java
-// 插入数组
-String insertArraySQL = "INSERT INTO table (tags) VALUES (?)";
-pstmt.setArray(1, conn.createArrayOf("String", new String[]{"tag1", "tag2"}));
-
-// 读取数组
-String[] tags = (String[]) rs.getArray("tags").getArray();
+<!-- HikariCP 依赖 -->
+<dependency>
+    <groupId>com.zaxxer</groupId>
+    <artifactId>HikariCP</artifactId>
+    <version>4.0.3</version>
+</dependency>
 ```
+连接池配置如下所示:
+```java
+public class ClickHousePool {
+    private static final String JDBC_URL = "jdbc:ch://localhost:8123/default";
+    private static final String USER = "default";
+    private static final String PASSWORD = "";
+    private static HikariDataSource dataSource;
 
----
+    static {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(JDBC_URL);
+        config.setUsername(USER);
+        config.setPassword(PASSWORD);
 
-## 注意事项
+        // 核心参数优化
+        config.setMaximumPoolSize(20);          // 根据CPU核心数调整
+        config.setMinimumIdle(5);               // 最小空闲连接
+        config.setConnectionTimeout(30000);      // 30秒连接超时
+        config.setIdleTimeout(30000);          // 30秒空闲超时
+        config.setMaxLifetime(60000);         // 1分钟连接生命周期
+        config.setValidationTimeout(5000);      // 5秒验证超时
+        config.setConnectionTestQuery("SELECT 1"); // 保活查询
+        config.setPoolName("HikariPool");
 
-1. **事务支持**：ClickHouse主要面向分析场景，对事务支持有限
-2. **批量写入**：建议批量提交（每次1000-10000行）
-3. **时区处理**：建议统一使用UTC时区
-4. **连接参数**：
-   ```properties
-   socket_timeout=300000
-   connect_timeout=30000
-   ```
+        // ClickHouse专用参数
+        config.addDataSourceProperty("socket_timeout", "600000"); // 10分钟Socket超时
+        config.addDataSourceProperty("compress", "true");         // 启用压缩
 
----
+        dataSource = new HikariDataSource(config);
+    }
 
-## 总结
+    public static Connection getConnection() throws SQLException {
+        return dataSource.getConnection();
+    }
+}
+```
+下面通过连接池5个线程并发插入数据，每批数据10000条，共10批：
+```
+public class BulkInsert {
+    private final static Integer INSERT_BATCH_SIZE = 10000;
+    private final static Integer INSERT_BATCH_NUM = 10;
 
-新版ClickHouse JDBC驱动（0.4.x+）通过优化实现了：
-- 更好的类型映射
-- 更高效的批量写入
-- 增强的SSL/TLS支持
-- 改进的连接池兼容性
+    /**
+     * 批量插入
+     * @param conn
+     * @throws SQLException
+     */
+    public static void batchInsert(Connection conn) throws SQLException {
+        String insertSQL = "INSERT INTO test VALUES (?, ?, ?, ?)";
+        PreparedStatement pt = conn.prepareStatement(insertSQL);
 
-官方文档参考：[ClickHouse JDBC Driver Documentation](https://github.com/ClickHouse/clickhouse-jdbc)
+        String[] genders = {"男", "女"};
+        Random random = new Random();
+        for (int i = 0; i < INSERT_BATCH_NUM; i++) {
+            long insertStartTime = System.currentTimeMillis();
+            for (int j = 0; j < INSERT_BATCH_SIZE; j++) {
+                int id = i * 1000000 + j;
+                pt.setString(1, "user_" + id);
+                pt.setString(2, genders[random.nextInt(genders.length)]);
+                pt.addBatch();
+            }
+            pt.executeBatch();
 
----
+            System.out.printf("[%d] insert batch [%d/%d] success, cost %d ms\n",
+                    Thread.currentThread().getId(), i + 1, INSERT_BATCH_NUM, System.currentTimeMillis() - insertStartTime);
+        }
+    }
 
-通过本文的示例，您应该已经掌握了使用Java操作ClickHouse的基本方法。实际应用中请根据具体场景调整参数和优化策略。
+    /**
+     * 条数
+     * @param conn
+     * @throws Exception
+     */
+    public static void count(Connection conn) throws Exception {
+        ResultSet resultSet = conn.createStatement().executeQuery("SELECT count(*) as cnt FROM test");
+        if (resultSet.next()) {
+            System.out.printf("table `test` has %d rows\n", resultSet.getInt("cnt"));
+        }
+    }
+
+    public static void main(String[] args) {
+        try(Connection connection = ClickHousePool.getConnection()) {
+            // 并发插入数据
+            int concurrentNum = 5;
+            //开启5个线程
+            CountDownLatch countDownLatch = new CountDownLatch(concurrentNum);
+            ExecutorService executorService = Executors.newFixedThreadPool(concurrentNum);
+            for (int i = 0; i < concurrentNum; i++) {
+                executorService.submit(() -> {
+                    System.out.printf("[%d] Thread start inserting\n", Thread.currentThread().getId());
+                    try {
+                        //插入数据
+                        batchInsert(connection);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        System.out.printf("[%d] Thread stop inserting\n", Thread.currentThread().getId());
+                        countDownLatch.countDown();
+                    }
+                });
+            }
+            // 等待每个线程完成数据插入
+            countDownLatch.await();
+            // 插入后查看结果
+            count(connection);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```

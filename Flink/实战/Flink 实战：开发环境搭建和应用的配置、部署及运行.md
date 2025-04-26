@@ -24,9 +24,13 @@ mvn clean package -DskipTests
 常用编译参数：
 - -Dfast：主要是忽略 QA plugins 和 JavaDocs 的编译
 - -Dhadoop.version=2.6.1：指定 hadoop 版本
-- --settings=${maven_file_path}：显式指定 maven settings.xml 配置文件
+- `--settings=${maven_file_path}`：显式指定 maven settings.xml 配置文件
 
-当成功编译完成后就能在当前 Flink 代码目录下的 flink-dist/target/ 子目录中看到编译后的文件。
+当成功编译完成后就能在当前 Flink 代码目录下的 flink-dist/target/ 子目录中看到编译后的文件（不同的 Flink 代码分支编译出的版本号不同，这里的版本号是 Flink 1.5.1）。
+
+![](img-development-env-setup-and-application-deployment-1.png)
+
+
 
 ### 1.2 开发环境准备
 

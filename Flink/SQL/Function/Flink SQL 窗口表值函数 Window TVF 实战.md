@@ -22,7 +22,7 @@ Apache Flink 提供了 3 个内置窗口 TVF：TUMBLE、HOP 和 CUMULATE。
 
 TUMBLE 函数将每个元素分配给指定窗口大小的滚动窗口。滚动窗口有固定的大小，不重叠。例如假设你指定一个大小为 5 分钟的滚动窗口，Flink 会每五分钟启动一个新窗口，如下图所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-table-valued-function-in-action-1.png?raw=true)
+![](himg-flink-sql-table-valued-function-in-action-1.png)
 
 TUMBLE 函数根据时间属性字段为表的每一行分配一个窗口。在流模式中，时间属性字段必须是事件或处理时间属性；在批处理模式下，必须为 TIMESTAMP 或者 TIMESTAMP_LTZ 类型的属性。TUMBLE 函数的返回值是一个新表，包含了原表的所有列，以及另外 3 列：window_start、window_end、window_time。window_time 用来指示分配的窗口。原表中的时间属性 timecol 会作为窗口 TVF 之后的一个常规时间戳列。具体如下使用 TUMBLE 函数：
 ```sql
@@ -175,7 +175,7 @@ GROUP BY window_start, window_end
 
 与 TUMBLE 函数一样，HOP 函数也是将元素分配给指定窗口大小的窗口，在这称之为跳跃窗口(或者滑动窗口)。不一样的地方是，可以通过窗口滑动参数控制窗口启动的频率(滑动步长)。如果滑动步长小于窗口大小，那么跳跃窗口会发生重叠。在本例中，元素会被分配给多个窗口。例如，将数据记录分配给窗口大小为 10 分钟的窗口，并且每 5 分钟滑动一次。这样，每隔 5 分钟就会有一个新窗口，包含了最近 10 分钟内到达的事件，如下图所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-table-valued-function-in-action-2.png?raw=true)
+![](himg-flink-sql-table-valued-function-in-action-2.png)
 
 HOP 函数分配的窗口覆盖了窗口大小间隔内的行，并基于时间属性字段进行滑动。在流模式中，时间属性字段必须是事件或处理时间属性；在批处理模式下，必须为 TIMESTAMP 或者 TIMESTAMP_LTZ 类型的属性。HOP 的返回值是一个新表，包含了原表的所有列，以及另外 3 列：window_start、window_end、window_time。window_time 用来指示分配的窗口。原表中的时间属性 timecol 会作为窗口 TVF 之后的一个常规时间戳列。具体如下使用 HOP 函数：
 ```sql
@@ -245,7 +245,7 @@ CUMULATE 函数将元素分配给窗口，这些窗口覆盖了初始步长间�
 
 例如，你有一个窗口大小为1天的累积窗口，步长设置为一个小时。在这种情况下你每小时都会得到一个新的窗口：`[00:00,01:00)`，`[00:00,02:00)`，`[00:00,03:00)`，…，`[00:00,24:00)`。这些窗口都有相同的起始时间，窗口结束时间有几个步长的差异。由于步长设置为1小时，所以每小时都会产生一个新的窗口，窗口结束时间都在前一个窗口结束时间基础之上再添加一个小时。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-table-valued-function-in-action-3.png?raw=true)
+![](himg-flink-sql-table-valued-function-in-action-3.png)
 
 CUMULATE 函数根据时间属性列分配窗口，并提前滑动输出窗口截止到当前的计算结果。在流模式中，时间属性字段必须是事件或处理时间属性；在批处理模式下，必须为 TIMESTAMP 或者 TIMESTAMP_LTZ 类型的属性。CUMULATE 函数的返回值是一个新表，包含了原表的所有列，以及另外 3 列：window_start、window_end、window_time。window_time 用来指示分配的窗口。原表中的时间属性 timecol 会作为窗口 TVF 之后的一个常规时间戳列。具体如下使用 CUMULATE 函数：
 ```sql
@@ -320,7 +320,7 @@ GROUP BY window_start, window_end
 
 Offset 是一个可选参数，表示窗口的偏移量。可以是正数也可以是负数，Offset 的默认值为 0。如果设置不同的偏移值，同一条记录可能会分配给不同的窗口中。例如，对于一个窗口大小为 10 分钟的 Tumble 窗口，时间戳为 `2021-06-30 00:00:04` 的记录会分配到哪个窗口中呢?具体如下图所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-table-valued-function-in-action-4.png?raw=true)
+![](himg-flink-sql-table-valued-function-in-action-4.png)
 
 时间戳为 `2021-06-30 00:00:04` 的记录分配到的窗口就是红色虚线穿过的窗口，可以看到：
 - 如果 Offset 值为 -16 MINUTE，则将记录分配给窗口 `[2021-06-29 23:54:00,2021-06-30 00:04:00)`。

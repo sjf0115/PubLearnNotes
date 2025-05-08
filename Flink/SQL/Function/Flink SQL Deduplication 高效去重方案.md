@@ -2,6 +2,9 @@
 
 Deduplication 其实就是去重，删除在一组指定列上重复的行，只保留第一行或者最后一行。在某些情况下，上游 ETL 作业并不能保证端到端的 Exactly-Once 语义。在故障恢复时，可能会导致 Sink 中出现重复的记录。然而，重复记录会影响下游分析作业的正确性，例如 SUM, COUNT，因此在进一步分析之前需要删除重复数据。
 
+
+
+
 ## 2. 语法
 
 由于 SQL 上没有直接支持去重的语法，还要灵活地保留第一行或者保留最后一行。因此我们使用了 SQL 的 ROW_NUMBER OVER WINDOW 功能来实现去重语法：
@@ -20,9 +23,11 @@ WHERE rownum = 1
 - `ORDER BY timeAttributeCol [asc|desc])`：指定排序列，必须是一个时间属性的字段（即 Proctime 或 Rowtime）。可以指定顺序（Keep FirstRow）或者倒序 （Keep LastRow）。
 - `WHERE rownum = 1`：仅支持rownum=1或rownum<=1。
 
-从上面语法可以看出，Deduplication 去重本质上是一种特殊的 TopN。但是这里有一点不一样的地方是排序字段必须是时间属性列，不能是其他非时间属性的普通列。在 rownum = 1 时，如果排序字段是普通列 planner 会翻译成 TopN 算子；如果是时间属性列 planner 会翻译成 Deduplication，这两者最终的执行算子是不一样的，Deduplication 相比 TopN 算子专门做了对应的优化，性能会有很大提升。此外，如果排序字段是 Proctime 列，Flink 就会按照系统时间去重，其每次运行的结果是不确定的；如果排序字段是 Rowtime 列，Flink 就会按照业务时间去重，其每次运行的结果是确定的。
+从上面语法可以看出，Deduplication 去重本质上是一种特殊的 TopN，限定 rownum=1 的场景。Deduplication 的特殊之处在于，排序字段必须是时间属性列，不能是其他非时间属性的普通列。在 rownum = 1 时，如果排序字段是普通列 planner 会将 SQL 作业翻译成 TopN 算子；如果是时间属性列 planner 会将 SQL 作业翻译成 Deduplication 算子。这两者最终的执行算子是不一样的，Deduplication 相比 TopN 算子专门做了对应的优化，性能会有很大提升。此外，如果排序字段是 Proctime 列，Flink 就会按照系统时间去重，其每次运行的结果是不确定的；如果排序字段是 Rowtime 列，Flink 就会按照业务时间去重，其每次运行的结果是确定的。
 
 Deduplication 去重对排名进行过滤，只取第一条（rownum = 1），从而达到了去重的目的。根据排序字段的方向不同，有保留第一行（Deduplicate Keep FirstRow）和保留最后一行（Deduplicate Keep LastRow）2种去重策略。如果排序字段方向是 `ASC`（正序方向），即对应只保留第一行（Deduplicate Keep FirstRow）策略；如果排序字段方向是 `DESC`（倒序方向），即对应保留最后一行（Deduplicate Keep LastRow）策略。
+
+Deduplication 通常应用于按照主键去重或者按照主键保留最新快照数据的场景。注意，Deduplication 的输入数据流只能为 Append-only 流，不能是 Retract 流。
 
 ## 3. 去重策略
 

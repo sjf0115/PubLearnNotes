@@ -22,7 +22,7 @@ DataStream API 中所有的转换函数都有对应的富函数，例如 MapFunc
 
 我们以 RichMapFunction 为例具体看一下富函数的层次关系：
 
-![](../../../Image/Flink/flink-stream-richfunction.png)
+![](img-flink-stream-richfunction.png)
 
 Function 接口是所有用户自定义函数的基本接口，RichFunction 和 MapFunction 都是继承在 Function 接口。可以看到，MapFunction 接口只提供了核心转换操作 `map`：
 ```java

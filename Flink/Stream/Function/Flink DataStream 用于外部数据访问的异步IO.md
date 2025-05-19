@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Flink1.4 用于外部数据访问的异步IO
+title: Flink DataStream 用于外部数据访问的异步IO
 date: 2018-02-28 17:17:17
 tags:
   - Flink
@@ -142,4 +142,4 @@ val resultStream: DataStream[(String, String)] =
 
 异步 I/O 算子提供 `exactly-once` 语义容错保证。它将检查点中正在进行的异步请求记录存储起来，并在从故障中恢复时恢复/重新触发请求。
 
-原文： https://ci.apache.org/projects/flink/flink-docs-release-1.4/dev/stream/operators/asyncio.html
+> 原文：[Asynchronous I/O for External Data Access](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/dev/datastream/operators/asyncio/)

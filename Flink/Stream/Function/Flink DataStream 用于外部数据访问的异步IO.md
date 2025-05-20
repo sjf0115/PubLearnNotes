@@ -13,11 +13,11 @@ permalink: flink-stream-asynchronous-io-for-external-data-access
 
 ### 1. 异步IO操作的必要性
 
-当与外部系统交互时（例如，使用存储在数据库中数据丰富流事件），需要注意与外部系统的通信延迟并不决定流应用程序的整体工作。访问外部数据库中的数据（例如在 `MapFunction` 中）通常意味着同步交互：将请求发送到数据库，`MapFunction` 会等待直到收到响应。在许多情况下，这个等待时间占了该函数绝大部分时间。
+当与外部系统交互时（例如，使用存储在数据库中数据丰富数据流事件），需要注意与外部系统的通信延迟并不主导流应用程序的整体工作。访问外部数据库中的数据（例如在 `MapFunction` 中）通常意味着同步交互：将请求发送到数据库，`MapFunction` 会等待直到收到响应。在许多情况下，这个等待时间占了该函数绝大部分时间。
 
 与外部数据库进行异步交互意味着一个并行函数实例可以并发地处理多个请求和并发地接收多个响应。那样的话，可以通过发送其他请求和接收响应来重叠等待时间。至少，等待时间可以被多个请求平摊，这在很多情况下会导致更高的流吞吐量。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/flink-stream-asynchronous-io-for-external-data-access-1.png?raw=true)
+![](img-flink-stream-asynchronous-io-for-external-data-access-1.png)
 
 通过扩展 `MapFunction` 到一个很高的并发度来提高吞吐量在一定程度上是可行的，但是常常会导致很高的资源成本：有更多的并行 `MapFunction` 实例意味着更多的任务、线程、Flink内部网络连接、与数据库之间的网络连接、缓存以及通常的内部开销。
 
@@ -35,15 +35,7 @@ Flink 的异步 I/O API允许用户在数据流中使用异步请求客户端。
 - 将异步 I/O 操作作为转换操作应用于 `DataStream`
 
 以下代码示例说明了基本模式：
-
-Java版本:
 ```java
-// This example implements the asynchronous request and callback with Futures that have the
-// interface of Java 8's futures (which is the same one followed by Flink's Future)
-
-/**
- * An implementation of the 'AsyncFunction' that sends requests and sets the callback.
- */
 class AsyncDatabaseRequest extends RichAsyncFunction<String, Tuple2<String, String>> {
 
     /** The database specific client that can issue concurrent requests with callbacks */
@@ -82,41 +74,6 @@ DataStream<String> stream = ...;
 DataStream<Tuple2<String, String>> resultStream =
     AsyncDataStream.unorderedWait(stream, new AsyncDatabaseRequest(), 1000, TimeUnit.MILLISECONDS, 100);
 ```
-Scala版本:
-```scala
-/**
- * An implementation of the 'AsyncFunction' that sends requests and sets the callback.
- */
-class AsyncDatabaseRequest extends AsyncFunction[String, (String, String)] {
-
-    /** The database specific client that can issue concurrent requests with callbacks */
-    lazy val client: DatabaseClient = new DatabaseClient(host, post, credentials)
-
-    /** The context used for the future callbacks */
-    implicit lazy val executor: ExecutionContext = ExecutionContext.fromExecutor(Executors.directExecutor())
-
-
-    override def asyncInvoke(str: String, resultFuture: ResultFuture[(String, String)]): Unit = {
-
-        // issue the asynchronous request, receive a future for the result
-        val resultFuture: Future[String] = client.query(str)
-
-        // set the callback to be executed once the request by the client is complete
-        // the callback simply forwards the result to the result future
-        resultFuture.onSuccess {
-            case result: String => resultFuture.complete(Iterable((str, result)))
-        }
-    }
-}
-
-// create the original stream
-val stream: DataStream[String] = ...
-
-// apply the async I/O transformation
-val resultStream: DataStream[(String, String)] =
-    AsyncDataStream.unorderedWait(stream, new AsyncDatabaseRequest(), 1000, TimeUnit.MILLISECONDS, 100)
-```
-
 > 重要提示
 > ResultFuture是在第一次调用 ResultFuture.complete 时已经完成。所有后续的 `complete` 调用都将被忽略。
 

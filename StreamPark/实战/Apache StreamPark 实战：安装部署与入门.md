@@ -3,10 +3,10 @@
 为了顺利成功安装 StreamPark，首先需要准备好如下的环境：
 
 | 环境 | 版本要求 | 是否必须 | 备注 |
-| :------------- | :------------- |
+| :------------- | :------------- | :------------- | :------------- |
 | 操作系统  | Linux/MacOS | 是 | 不支持 Windows 系统 |
 | Java	| 1.8+	|	是 | Java version >=1.8 |
-| Scala	2.12+	| 是 |	Scala version >=2.12 |
+| Scala	| 2.12+	| 是 |	Scala version >=2.12 |
 | 数据库	| MySQL: 5.6+、Postgresql: 9.6+	| 否 |	默认使用 H2 数据库，支持 MySQL 和 Postgresql |
 | Flink	| 1.12+	| 否 |	Flink 版本最低支持1.12 |
 | Hadoop |	2+	|	否 | 非必须，如果部署作业至 Yarn，需要准备 Hadoop 环境 |

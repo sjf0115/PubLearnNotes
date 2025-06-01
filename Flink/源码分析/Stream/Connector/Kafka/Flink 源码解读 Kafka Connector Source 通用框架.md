@@ -1,9 +1,81 @@
+## 1. 架构
+
+### 1.1 FlinkKafkaConsumer
+
+```java
+public class FlinkKafkaConsumer<T> extends FlinkKafkaConsumerBase<T> {
+  //
+}
+```
+
+### 1.2 FlinkKafkaConsumerBase
+
+`FlinkKakfaConsumerBase` 需要实现 3 个接口 `ResultTypeQueryable`、`CheckpointedFunction`、`CheckpointListener` 以及派生 1 个抽象类 `RichParallelSourceFunction`：
+
+```java
+public class FlinkKafkaConsumerBase<T> extends RichParallelSourceFunction<T>  implements CheckpointListener, CheckpointedFunction, ResultTypeQueryable<T> {
+    // 1. 构造器
+    public FlinkKafkaConsumerBase2(List<String> topics, Pattern topicPattern,
+            KafkaDeserializationSchema<T> deserializer, long discoveryIntervalMillis, boolean useMetrics) {
+        //
+    }
+
+    // 2. ResultTypeQueryable
+    @Override
+    public TypeInformation<T> getProducedType() {
+        // 返回类型
+        return null;
+    }
+
+    // 3. RichParallelSourceFunction
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        // 初始化资源
+    }
+
+    @Override
+    public void close() throws Exception {
+        // 释放资源
+    }
+
+    @Override
+    public void run(SourceContext<T> ctx) throws Exception {
+        // 拉取数据
+    }
+
+    @Override
+    public void cancel() {
+        // 取消拉取数据
+    }
+
+    // 4. CheckpointListener
+    @Override
+    public void notifyCheckpointComplete(long checkpointId) throws Exception {
+        // 通知检查点完成
+    }
+
+    @Override
+    public void notifyCheckpointAborted(long checkpointId) throws Exception {
+        // 通知检查点取消
+    }
+
+    // 5. CheckpointedFunction
+    @Override
+    public void snapshotState(FunctionSnapshotContext context) throws Exception {
+        // 快照状态
+    }
+    @Override
+    public void initializeState(FunctionInitializationContext context) throws Exception {
+        // 初始化状态
+    }
+}
+```
 
 
 
-## 1. FlinkKakfaConsumerBase
+## 2. 核心实现
 
-FlinkKakfaConsumerBase 需要实现 3 个接口 ResultTypeQueryable、CheckpointedFunction、CheckpointListener 以及派生 1 个抽象类 RichParallelSourceFunction。
+### 2.1 构造器
 
 ```java
 public FlinkKafkaConsumerBase(List<String> topics, Pattern topicPattern,
@@ -19,15 +91,31 @@ public FlinkKafkaConsumerBase(List<String> topics, Pattern topicPattern,
 }
 ```
 
-### 1.1 RichParallelSourceFunction
+### 2.2 ResultTypeQueryable
 
-#### 1.1.1 Open
+`ResultTypeQueryable` 接口比较简单，只需要实现 `getProducedType` 方法返回序列化器的返回值数据类型信息即可：
+```java
+// 用于 Kafka 字节消息与 Flink 对象之间转换的序列化器
+protected final KafkaDeserializationSchema<T> deserializer;
 
-RichParallelSourceFunction 的 Open 方法主要用来初始化如下几个工作：
-- 确定 Offset 的提交模式 offsetCommitMode
-- 创建 Partition 分区发现器 partitionDiscoverer
-- 确定要读取的每个 Partition 的 Offset，存储在 subscribedPartitionsToStartOffsets 数据结构中。Offset 分配策略具体取决于是否是从状态中恢复，下面会具体分析
-- 初始化序列化器 deserializer
+public TypeInformation<T> getProducedType() {
+    return deserializer.getProducedType();
+}
+```
+> deserializer 是 Kafka 的序列化器，再构造函数中传入。
+
+
+### 2.3 RichParallelSourceFunction
+
+生命周期管理与数据拉取。
+
+#### 2.3.1 Open
+
+`RichParallelSourceFunction` 的 `Open` 方法主要用来初始化如下几个工作：
+- 确定 Offset 的提交模式 `offsetCommitMode`
+- 创建 Partition 分区发现器 `partitionDiscoverer`
+- 根据启动模式以及是否是状态恢复来确定消费位点 Offset
+
 ```java
 public void open(Configuration configuration) throws Exception {
     // 1. 确定 Offset 提交模式
@@ -62,84 +150,53 @@ public void open(Configuration configuration) throws Exception {
     );
 }
 ```
-如果是从状态恢复中，那如何确定每个分区要读取的 Offset：
+
+#### 2.3.2 close
+
 ```java
-// 如果是新分区则采用 EARLIEST_OFFSET 策略
-for (KafkaTopicPartition partition : allPartitions) {
-    if (!restoredState.containsKey(partition)) {
-        restoredState.put(partition, KafkaTopicPartitionStateSentinel.EARLIEST_OFFSET);
+// 1. 取消数据拉取
+cancel();
+
+// 2.
+joinDiscoveryLoopThread();
+
+// 3. 关闭分区发现器
+if (partitionDiscoverer != null) {
+    try {
+        partitionDiscoverer.close();
+    } catch (Exception e) {
+        exception = e;
     }
 }
-// 分区 Partition 分配策略 判断哪些 Partition 分配给该 Task
-for (Map.Entry<KafkaTopicPartition, Long> restoredStateEntry : restoredState.entrySet()) {
-    //
-    int subTaskIndex = KafkaTopicPartitionAssigner.assign(
-        restoredStateEntry.getKey(),
-        getRuntimeContext().getNumberOfParallelSubtasks()
-    );
-    if (subTaskIndex == getRuntimeContext().getIndexOfThisSubtask()) {
-        subscribedPartitionsToStartOffsets.put(restoredStateEntry.getKey(), restoredStateEntry.getValue());
-    }
-}
-// 默认为 true
-if (filterRestoredPartitionsWithCurrentTopicsDescriptor) {
-    subscribedPartitionsToStartOffsets.entrySet().removeIf(
-        entry -> {
-            if (!topicsDescriptor.isMatchingTopic(entry.getKey().getTopic())) {
-                return true;
-            }
-            return false;
-        }
-    );
-}
 ```
-首次运行：
+
+#### 2.3.3 cancel
+
 ```java
-switch (startupMode) {
-    case SPECIFIC_OFFSETS:
-        if (specificStartupOffsets == null) {
-            // 抛出 no specific offsets were specified 异常
-        }
-        for (KafkaTopicPartition seedPartition : allPartitions) {
-            Long specificOffset = specificStartupOffsets.get(seedPartition);
-            if (specificOffset != null) {
-                // 由于指定的偏移量代表下一条要读取的记录，我们将其减一，以便消费者的初始状态是正确的
-                subscribedPartitionsToStartOffsets.put(seedPartition, specificOffset - 1);
-            } else {
-                // 如果用户提供的特定偏移不包含此分区的值，则默认为 GROUP_OFFSET
-                subscribedPartitionsToStartOffsets.put(seedPartition, KafkaTopicPartitionStateSentinel.GROUP_OFFSET);
-            }
-        }
-        break;
-    case TIMESTAMP:
-        if (startupOffsetsTimestamp == null) {
-            // 抛出 no startup timestamp was specified 异常
-        }
-        for (Map.Entry<KafkaTopicPartition, Long> partitionToOffset : fetchOffsetsWithTimestamp(allPartitions, startupOffsetsTimestamp).entrySet()) {
-            Long offset = partitionToOffset.getValue() == null ? KafkaTopicPartitionStateSentinel.LATEST_OFFSET : partitionToOffset.getValue() - 1;
-            subscribedPartitionsToStartOffsets.put(partitionToOffset.getKey(), offset);
-        }
+// 1. 取消数据拉取
+running = false;
 
-        break;
-    default:
-        for (KafkaTopicPartition seedPartition : allPartitions) {
-            subscribedPartitionsToStartOffsets.put(seedPartition, startupMode.getStateSentinel());
-        }
+// 2.
+if (discoveryLoopThread != null) {
+    if (partitionDiscoverer != null) {
+        partitionDiscoverer.wakeup();
+    }
+    discoveryLoopThread.interrupt();
 }
 
-if (!subscribedPartitionsToStartOffsets.isEmpty()) {
-    // 打印日志 输出不同 startupMode 下读取的分区 Partition
-} else {
-    // 打印日志 当前 Task 没有分区可以读取
+// 3. 取消消息拉取器
+if (kafkaFetcher != null) {
+    kafkaFetcher.cancel();
 }
 ```
-#### 1.1.2 run
+
+#### 2.3.4 run
 
 第一件事情就是初始化 Offset 提交 Metric 以及 Offset 回调方法：
 ```java
 // 提交成功 Metric
 this.successfulCommits = this.getRuntimeContext().getMetricGroup().counter(COMMITS_SUCCEEDED_METRICS_COUNTER);
-// 提交失败 Metric                
+// 提交失败 Metric               
 this.failedCommits = this.getRuntimeContext().getMetricGroup().counter(COMMITS_FAILED_METRICS_COUNTER);
 // Offset 提交回调
 this.offsetCommitCallback =
@@ -187,18 +244,7 @@ if (discoveryIntervalMillis == PARTITION_DISCOVERY_DISABLED) {
 ```
 
 
-
-### 1.2 ResultTypeQueryable
-
-ResultTypeQueryable 接口比较简单，只需要实现 getProducedType 方法返回序列化器的返回值数据类型信息即可：
-```java
-public TypeInformation<T> getProducedType() {
-    return deserializer.getProducedType();
-}
-```
-> deserializer 是 Kafka 的序列化器
-
-### 1.3 CheckpointedFunction
+### 2.4 CheckpointedFunction
 
 需要实现 CheckpointedFunction 接口如下的两个方法：
 ```java
@@ -208,7 +254,7 @@ public interface CheckpointedFunction {
 }
 ```
 
-#### 1.3.1 initializeState
+#### 2.4.1 initializeState
 
 使用 UnionListState 存储 Kafka 每个 Partition 的 Offset 信息。如果是从故障中恢复，则从 UnionListState 中获取故障前存储的所有 Offset 信息，并存储在 TreeMap 数据结构中。如果是首次运行，不需要从状态中恢复，只是打印一条日志说明没有状态恢复：
 ```java
@@ -248,7 +294,7 @@ static TupleSerializer<Tuple2<KafkaTopicPartition, Long>> createStateSerializer(
 }
 ```
 
-#### 1.3.2 snapshotState
+#### 2.4.2 snapshotState
 
 ```java
 public final void snapshotState(FunctionSnapshotContext context) throws Exception {
@@ -286,16 +332,65 @@ public final void snapshotState(FunctionSnapshotContext context) throws Exceptio
 ```
 
 
-### 1.4 CheckpointListener
+### 2.5 CheckpointListener
 
+#### 2.5.1
 
+```java
+public final void notifyCheckpointComplete(long checkpointId) throws Exception {
+if (!running) {
+LOG.debug("notifyCheckpointComplete() called on closed source");
+return;
+}
 
-## 2. FlinkKakfaConsumer
+final AbstractFetcher<?, ?> fetcher = this.kafkaFetcher;
+if (fetcher == null) {
+LOG.debug("notifyCheckpointComplete() called on uninitialized source");
+return;
+}
 
+if (offsetCommitMode == OffsetCommitMode.ON_CHECKPOINTS) {
+// only one commit operation must be in progress
+if (LOG.isDebugEnabled()) {
+LOG.debug(
+"Consumer subtask {} committing offsets to Kafka/ZooKeeper for checkpoint {}.",
+getRuntimeContext().getIndexOfThisSubtask(),
+checkpointId);
+}
 
+try {
+final int posInMap = pendingOffsetsToCommit.indexOf(checkpointId);
+if (posInMap == -1) {
+LOG.warn(
+"Consumer subtask {} received confirmation for unknown checkpoint id {}",
+getRuntimeContext().getIndexOfThisSubtask(),
+checkpointId);
+return;
+}
 
+@SuppressWarnings("unchecked")
+Map<KafkaTopicPartition, Long> offsets =
+(Map<KafkaTopicPartition, Long>) pendingOffsetsToCommit.remove(posInMap);
 
-https://mp.weixin.qq.com/s/Y7DxI5qZUlLOr6AR9C4tqQ
-https://mp.weixin.qq.com/s/oFpq5phikRIPb5dTbiOZpQ
-https://mp.weixin.qq.com/s/oi88IWQ7IKZ_Por6CcQ1LA
-https://mp.weixin.qq.com/s/q2uTHqB6em7pxiT_CqBfYA
+// remove older checkpoints in map
+for (int i = 0; i < posInMap; i++) {
+pendingOffsetsToCommit.remove(0);
+}
+
+if (offsets == null || offsets.size() == 0) {
+LOG.debug(
+"Consumer subtask {} has empty checkpoint state.",
+getRuntimeContext().getIndexOfThisSubtask());
+return;
+}
+
+fetcher.commitInternalOffsetsToKafka(offsets, offsetCommitCallback);
+} catch (Exception e) {
+if (running) {
+throw e;
+}
+// else ignore exception if we are no longer running
+}
+}
+}
+```

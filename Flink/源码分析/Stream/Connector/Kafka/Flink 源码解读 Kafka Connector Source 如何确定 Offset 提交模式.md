@@ -92,7 +92,7 @@ public static OffsetCommitMode fromConfiguration(boolean enableAutoCommit, boole
 | KAFKA_PERIODIC | Kafka 客户端周期性自动提交 | Kafka Consumer | At-Least-Once |
 | DISABLED | 不提交 Offset | 无 | 无保障 |
 
-### 3.1 Checkpoint 成功时提交
+### 3.1 Checkpoint 成功时提交模式
 
 `ON_CHECKPOINTS` 模式是在 `Checkpoint` 成功时提交 `Offset`，其前提条件是开启了 `Checkpoint` 并在 `Checkpoint` 完成时自动提交 `Offset`：
 - 开启 `Checkpoint`：`env.enableCheckpointing(5*1000);`
@@ -135,59 +135,105 @@ DataStreamSource<String> sourceStream = env.addSource(consumer);
 - 外部可见性延迟：Offset 提交间隔等于 Checkpoint 间隔（默认分钟级）。
 - 性能开销：频繁 Checkpoint 可能影响吞吐量。
 
-### 2.2 Kafka 周期性自动提交
+### 2.2 Kafka 周期性自动提交模式
 
-周期性自动提交 `KAFKA_PERIODIC` 模式的前提条件是未开启 `Checkpoint` 并在 `Kafka` 属性参数中配置了自动提交 `Offset` 的参数（`enable.auto.commit=true` 并且 `auto.commit.interval.ms > 0`）。
+> 生产环境不建议使用
 
+周期性自动提交 `KAFKA_PERIODIC` 模式的前提条件是未开启 `Checkpoint` 并在 `Kafka` 属性参数中配置了自动提交 `Offset` 的参数（`enable.auto.commit=true` 并且 `auto.commit.interval.ms > 0`）。配置如下所示：
 ```java
-props.setProperty("enable.auto.commit", "true");
-props.setProperty("auto.commit.interval.ms", "5000"); // 每 5 秒提交一次
-consumer.setCommitOffsetsOnCheckpoints(false); // 禁用 Checkpoint 提交
+Properties consumerProps = new Properties();
+consumerProps.setProperty("bootstrap.servers", "localhost:9092");
+consumerProps.setProperty("group.id", "word-count");
+consumerProps.setProperty("enable.auto.commit", "true");
+consumerProps.setProperty("auto.commit.interval.ms", "5000"); // 每 5 秒提交一次
 ```
 
 工作原理：
 - Kafka 客户端后台线程定期提交 `Offset`（与 Flink Checkpoint 无关）。
+- 依赖 Kafka 客户端自动提交（auto.commit.interval.ms 控制间隔）
 - 任务失败时，可能从最后一次自动提交的 `Offset` 恢复，导致数据重复或丢失。
-
 
 优点：
 - 实时可见性：`Offset` 高频更新，便于监控工具追踪。
 - 低延迟提交：适合对消费延迟敏感的监控场景。
 
 缺点：
-- `At-Least-Once` 语义：已提交 `Offset` 可能超前于实际处理进度，导致故障时重复消费。
-- 状态不一致风险：Flink 恢复的 `Offset` 可能比 `Kafka` 提交的旧。
+- 只能提供 `At-Least-Once` 语义：已提交 `Offset` 可能超前于实际处理进度，导致故障时重复消费。
+- 提交与处理进度脱节：Flink 恢复的 `Offset` 可能比 `Kafka` 提交的旧。
 
-### 2.3 禁用提交
+### 2.3 DISABLED 模式
 
-```java
-// 显式禁用所有 Offset 提交
-properties.setProperty("enable.auto.commit", "false");
-consumer.setCommitOffsetsOnCheckpoints(false);
-```
-
-通过上面的分析，由两种情况下会出现禁用提交模式，一种是在开启 Checkpoint 情况下，一种是在未开启 Checkpoint 情况下。
+通过上面的分析，有两种情况下会出现 DISABLED 模式：
+- 一种是在开启 `Checkpoint` 情况下显式关闭 `Checkpoint` 完成时自动提交
+- 一种是在未开启 `Checkpoint` 情况下关闭自动提交
 
 #### 2.3.1 开启 Checkpoint
 
-在开启 `Checkpoint` 情况下，如果未配置在 `Checkpoint` 完成时自动提交 `Offset`，那么 Flink 不会将 Offset 提交回 Kafka。这种情况是用户手动设置了 `setCommitOffsetsOnCheckpoints(false)` 显示关掉了在 `Checkpoint` 完成时自动提交 `Offset`。
+在开启 `Checkpoint` 情况下，如果未配置 `Checkpoint` 完成时自动提交 `Offset`，那么 Flink 不会将 `Offset` 提交回 `Kafka`。这种情况是由于户手动设置了 `setCommitOffsetsOnCheckpoints(false)` 显式关闭 `Checkpoint` 完成时自动提交。配置如下所示:
+```java
+final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+// 开启 Checkpoint
+env.enableCheckpointing(30*1000);
+
+// Kafka Consumer 配置
+Properties consumerProps = new Properties();
+consumerProps.setProperty("bootstrap.servers", "localhost:9092");
+consumerProps.setProperty("group.id", "word-count");
+
+// 创建 Kafka Consumer
+String consumerTopic = "word";
+FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<>(consumerTopic, new SimpleStringSchema(), consumerProps);
+// 显式关闭 `Checkpoint` 完成时自动提交
+consumer.setCommitOffsetsOnCheckpoints(false);
+```
 
 #### 2.3.2 未开启 Checkpoint
 
-在未开启 Checkpoint 情况下，如果在 `Kafka` 属性参数中没有配置自动提交 `Offset` 的参数（`enable.auto.commit=true` 并且 `auto.commit.interval.ms > 0`），那么 `Flink` 不会将 `Offset` 提交回 `Kafka`。
-
-kafka 官方文档中，提到当 `enable.auto.commit=false` 时候需要手动提交 `offset`，也就是需要调用 `consumer.commitSync();` 方法提交。但是在 flink 中，非 `checkpoint` 模式下，不会调用 `consumer.commitSync();`， 一旦关闭自动提交，意味着 kafka 不知道当前的 consumer group 每次消费到了哪。
-
-## 3. 最佳实践与调优指南
-
-### 3.1 Exactly-Once 场景配置
+在未开启 `Checkpoint` 情况下，如果 `Kafka` 属性参数中没有配置自动提交 `Offset` 的参数（`enable.auto.commit=true` 并且 `auto.commit.interval.ms > 0`），即关闭了自动提交，那么 `Flink` 不会将 `Offset` 提交回 `Kafka`。配置如下所示：
 ```java
-env.enableCheckpointing(5000); // 启用 Checkpoint
+final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+// Kafka Consumer 配置
+Properties consumerProps = new Properties();
+consumerProps.setProperty("bootstrap.servers", "localhost:9092");
+consumerProps.setProperty("group.id", "word-count");
+consumerProps.setProperty("enable.auto.commit", "false");
+
+// 创建 Kafka Consumer
+String consumerTopic = "word";
+FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<>(consumerTopic, new SimpleStringSchema(), consumerProps);
+```
+
+kafka 官方文档中，提到当 `enable.auto.commit=false` 时候需要手动提交 `offset`，也就是需要调用 `consumer.commitSync();` 方法提交。但是在 `flink` 中，非 `checkpoint` 模式下，不会调用 `consumer.commitSync();`， 这意味着一旦关闭自动提交，kafka 不知道当前的 consumer group 每次消费到了哪。
+
+## 3. 最佳实践
+
+在生产环境 Exactly-Once 场景推荐配置如下所示:
+```java
+final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+// 开启 Checkpoint 用于容错 每30s触发一次Checkpoint 实际不用设置的这么大
+env.enableCheckpointing(30*1000);
+// EXACTLY_ONCE 语义
 env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
 
-FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<>(...);
-consumer.setCommitOffsetsOnCheckpoints(true); // 关键配置！
+// 配置失败重启策略：失败后最多重启3次 每次重启间隔10s
+env.setRestartStrategy(RestartStrategies.fixedDelayRestart(3, 10000));
+
+// Kafka Consumer 配置
+Properties consumerProps = new Properties();
+consumerProps.put("bootstrap.servers", "localhost:9092");
+consumerProps.put("group.id", "word-count");
+// 关闭 Kafka 自动提交
+consumerProps.put("enable.auto.commit", "false");
+
+// 创建 Kafka Consumer
+String consumerTopic = "word";
+FlinkKafkaConsumer<String> consumer = new FlinkKafkaConsumer<>(consumerTopic, new SimpleStringSchema(), consumerProps);
+// 默认为 true 可以不设置
+consumer.setCommitOffsetsOnCheckpoints(true);
 ```
+
+
 
 ### 3.2 关键参数调优
 
@@ -196,13 +242,3 @@ consumer.setCommitOffsetsOnCheckpoints(true); // 关键配置！
 | checkpointing.interval | 1-5 分钟 | 根据吞吐量调整，避免过频影响性能 |
 | auto.commit.interval.ms | 禁用（false）| 确保不与 Checkpoint 提交冲突 |
 | transaction.timeout.ms | ≥ Checkpoint 间隔| 防止 Kafka 事务超时 |
-
-### 3.2 监控 Offset 提交
-
-- Kafka 监控工具：使用 kafka-consumer-groups.sh 查看提交的 Offset。
-```bash
-bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 \
-  --describe --group flink-consumer
-```
-
-- Flink Web UI：观察 Checkpoint 完成情况与最新提交的 Offset。

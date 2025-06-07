@@ -32,7 +32,7 @@ Java version: 1.8.0_161, vendor: Oracle Corporation, runtime: /Library/Java/Java
 Default locale: zh_CN, platform encoding: UTF-8
 OS name: "mac os x", version: "10.12.6", arch: "x86_64", family: "mac"
 ```
-在搭建好我们的依赖环境之后，最重要的是搭建我们的 Flink 集群，具体可以参考 [Flink1.4 安装与启动](http://smartsi.club/flink-how-to-install-and-run.html) 来完成安装。我们为了研究新特性，所以选择 Flink 最新版本 [2.11.2](https://www.apache.org/dyn/closer.lua/flink/flink-1.11.2/flink-1.11.2-bin-scala_2.12.tgz) 版本，如果是在生产环境使用，建议不要使用最新版本。如果已经安装 Flink 环境，运行如下命令会输出具体版本信息：
+在搭建好我们的依赖环境之后，最重要的是搭建我们的 Flink 集群，具体可以参考 [Flink 安装与启动](https://blog.csdn.net/SunnyYoona/article/details/78276595) 来完成安装。我们为了研究新特性，所以选择 Flink 最新版本 [2.11.2](https://www.apache.org/dyn/closer.lua/flink/flink-1.11.2/flink-1.11.2-bin-scala_2.12.tgz) 版本，如果是在生产环境使用，建议不要使用最新版本。如果已经安装 Flink 环境，运行如下命令会输出具体版本信息：
 ```
 wy:flink wy$ flink --version
 Version: 1.11.2, Commit ID: fe36135
@@ -61,11 +61,11 @@ mvn archetype:generate \
 ```
 或者使用 IDE 通过图形化创建：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/build-first-flink-application-1.jpg?raw=true)
+![](img-build-first-flink-application-1.jpg)
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/build-first-flink-application-2.jpg?raw=true)
+![](img-build-first-flink-application-2.jpg)
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/build-first-flink-application-3.jpg?raw=true)
+![](img-build-first-flink-application-3.jpg)
 
 通过上述构建之后 pom.xml 文件已经包含了所需的 Flink 依赖：
 ```xml
@@ -187,7 +187,7 @@ env.execute("Socket Window WordCount");
 ```
 所有算子操作只是构建了内部算子操作的图形，只有在 execute() 方法被调用时才会提交到集群或本地机器执行。
 
-> 程序剖析具体可以查阅[Flink1.4 Flink程序剖析](http://smartsi.club/flink-anatomy-of-a-flink-program.html)
+> 程序剖析具体可以查阅[Flink Flink程序剖析](https://smartsi.blog.csdn.net/article/details/126088002)
 
 下面是完整的代码：
 ```java
@@ -266,7 +266,7 @@ public class SocketWindowWordCount {
     }
 }
 ```
-> 完成项目请查阅[SocketWindowWordCount](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/app/SocketWindowWordCount.java)
+> 完成项目请查阅[SocketWindowWordCount](https://github.com/sjf0115/flink-example/blob/master/flink-example-1.13/src/main/java/com.flink.example.stream.app.wordcount/SocketWindowWordCount.java)
 
 ### 5. 运行程序
 
@@ -281,14 +281,10 @@ Job has been submitted with JobID f78bef5723e745bb6b24e38e52f63ca5
 ```
 执行完上述命令后，我们可以在 WebUI 中看到正在运行的程序：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/build-first-flink-application-4.jpg?raw=true)
+![](img-build-first-flink-application-4.jpg)
 
 只需要在 netcat 控制台输入单词，就能在 Flink 的日志中看到每个单词的词频统计：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/build-first-flink-application-5.jpg?raw=true)
+![](img-build-first-flink-application-5.jpg)
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/build-first-flink-application-6.jpg?raw=true)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)
+![](img-build-first-flink-application-6.jpg)

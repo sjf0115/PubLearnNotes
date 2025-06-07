@@ -266,7 +266,7 @@ public class SocketWindowWordCount {
     }
 }
 ```
-> 完成项目请查阅[SocketWindowWordCount](https://github.com/sjf0115/flink-example/blob/master/flink-example-1.13/src/main/java/com.flink.example.stream.app.wordcount/SocketWindowWordCount.java)
+> 完成项目请查阅[SocketWindowWordCount](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/app/wordcount/SocketWindowWordCount.java)
 
 ### 5. 运行程序
 

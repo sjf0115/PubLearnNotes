@@ -220,6 +220,10 @@ public static class RocksdbCompactFilterCleanupStrategy implements CleanupStrate
 
 > 在压缩期间调用 TTL 过滤器会降低压缩速度。TTL 过滤器必须解析上次访问的时间戳，并检查正在压缩 Key 的每个存储状态条目的到期时间。在集合状态类型（List或 Map）的情况下，还会为每个存储的元素调用检查。
 
+## 4. 示例
+
+
+
 ## 4. 注意事项
 
 当从状态中恢复时，之前设置的 TTL 过期时间不会丢失，还会继续生效。如下所示为登录用户设置5分钟的过期时间：

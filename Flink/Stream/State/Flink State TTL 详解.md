@@ -222,9 +222,102 @@ public static class RocksdbCompactFilterCleanupStrategy implements CleanupStrate
 
 ## 4. 示例
 
+如下示例记录每个用户有效期内(1分钟过期，每次登录都会重新设置过期时间)的首次登录时间：
+```java
+...
+DataStream<String> source = env.socketTextStream("localhost", 9100, "\n");
 
+DataStream<Tuple2<String, Long>> stream = source.map(new MapFunction<String, Tuple2<String, Long>>() {
+    @Override
+    public Tuple2<String, Long> map(String uid) throws Exception {
+        long loginTime = System.currentTimeMillis();
+        String date = DateUtil.timeStamp2Date(loginTime);
+        LOG.info("用户 {} 在时间 {} 进行登录", uid, date);
+        return new Tuple2<String, Long>(uid, loginTime);
+    }
+}).keyBy(new KeySelector<Tuple2<String, Long>, String>() {
+    @Override
+    public String getKey(Tuple2<String, Long> tuple2) throws Exception {
+        return tuple2.f0;
+    }
+}).map(new RichMapFunction<Tuple2<String, Long>, Tuple2<String, Long>>() {
+    // 记录有效期内的首次登录时间
+    private ValueState<Long> loginState;
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        // 状态描述符
+        ValueStateDescriptor<Long> stateDescriptor = new ValueStateDescriptor<>("loginState", Long.class);
+        // 设置状态 TTL
+        StateTtlConfig ttlConfig = StateTtlConfig
+                .newBuilder(Time.minutes(1)) // 过期时间 1分钟后过期
+                .setTtlTimeCharacteristic(StateTtlConfig.TtlTimeCharacteristic.ProcessingTime) // 只支持处理时间
+                .setUpdateType(StateTtlConfig.UpdateType.OnCreateAndWrite) // 在状态创建或者每次写入时都会更新过期时间戳
+                .setStateVisibility(StateTtlConfig.StateVisibility.NeverReturnExpired) // 状态可见性，在读取状态时是否返回过期值 不返回过期状态
+                .cleanupIncrementally(10, false) // 增量清理策略
+                .build();
+        stateDescriptor.enableTimeToLive(ttlConfig);
+        // 状态
+        loginState = getRuntimeContext().getState(stateDescriptor);
+    }
 
-## 4. 注意事项
+    @Override
+    public Tuple2<String, Long> map(Tuple2<String, Long> tuple2) throws Exception {
+        Long loginTime = tuple2.f1; // 登录时间
+        String uid = tuple2.f0; // 登录用户
+        Long firstLoginTime = loginState.value();
+        // 首次登录或者过期重新登录
+        if (Objects.equals(firstLoginTime, null)) {
+            firstLoginTime = loginTime;
+        }
+        // 有效期内的首次登录时间
+        if (loginTime < firstLoginTime) {
+            firstLoginTime = loginTime;
+        }
+        loginState.update(firstLoginTime);
+        String date = DateUtil.timeStamp2Date(firstLoginTime);
+        LOG.info("用户 {} 有效期内的首次登录时间为 {}", uid, date);
+        return new Tuple2<>(uid, firstLoginTime);
+    }
+});
+
+stream.print();
+env.execute("StateTTLExample");
+```
+运行上述程序，你会看到如下类似的输出：
+```
+11:52:00,273 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 a 在时间 2025-06-07 11:52:00 进行登录
+11:52:00,340 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 a 有效期内的首次登录时间为 2025-06-07 11:52:00
+
+11:52:10,286 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 b 在时间 2025-06-07 11:52:10 进行登录
+11:52:10,379 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 b 有效期内的首次登录时间为 2025-06-07 11:52:10
+
+11:52:20,601 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 b 在时间 2025-06-07 11:52:20 进行登录
+11:52:20,703 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 b 有效期内的首次登录时间为 2025-06-07 11:52:10
+
+11:53:01,339 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 a 在时间 2025-06-07 11:53:01 进行登录
+11:53:01,444 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 a 有效期内的首次登录时间为 2025-06-07 11:53:01
+
+11:53:11,179 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 b 在时间 2025-06-07 11:53:11 进行登录
+11:53:11,270 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 b 有效期内的首次登录时间为 2025-06-07 11:52:10
+
+11:54:12,211 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 b 在时间 2025-06-07 11:54:12 进行登录
+11:54:12,244 INFO  com.flink.example.stream.state.state.StateTTLExample         [] - 用户 b 有效期内的首次登录时间为 2025-06-07 11:54:12
+```
+
+详细讲解一下上述输出信息：
+
+| 用户ID  | 登录时间  | 首次登录时间 | 过期时间 | 备注 |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| a | 11:52:00 | 11:52:00 | 11:53:00 | 首次设置 a 过期时间 |
+| b | 11:52:10 | 11:52:10 | 11:53:10 | 首次设置 b 过期时间 |
+| b | 11:52:20 | 11:52:10 | 11:53:20 | 写入更新 b 过期时间 |
+| a | 11:53:01 | 11:53:01 | 11:54:01 | 重新设置 b 过期时间(状态过期) |
+| b | 11:53:11 | 11:52:10 | 11:54:11 | 写入更新 b 过期时间 |
+| b | 11:54:12 | 11:54:12 | 11:55:12 | 写入更新 b 过期时间(状态过期) |
+
+用户第一次登录的时候会设置状态过期时间，当下一次登录的时候会判断状态是否过期。如果过期则当前登录时间为新的首次登录时间；如果没有过期则首次登录时间不变，同时重新设置过期时间。
+
+## 5. 注意事项
 
 当从状态中恢复时，之前设置的 TTL 过期时间不会丢失，还会继续生效。如下所示为登录用户设置5分钟的过期时间：
 

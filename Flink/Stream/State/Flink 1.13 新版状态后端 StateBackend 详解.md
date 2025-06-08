@@ -25,7 +25,7 @@
 
 这种方式会把状态存放在内存里。具体实现上，HashMapStateBackend 在内部会直接把状态当作对象(Object)保存在 TaskManager 的 JVM 堆(heap)上。普通的状态，以及窗口中收集的数据和触发器(Triggers)，都会以键值对的形式存储起来，所以底层是一个哈希表(HashMap)，这种状态后端也因此得名。
 
-HashMapStateBackend 是将本地状态全部放入内存中，这样可以获得最快的读写速度，使计算性能达到最佳，代价则是内存的占用。HashMapStateBackend 适用于具有大状态、长窗口、大键值状态的作业，对高可用方案也是有效的。
+HashMapStateBackend 是将本地状态全部放入内存中，这样可以获得最快的读写速度，使计算性能达到最佳，代价则是内存的占用。HashMapStateBackend 最适合那些状态量不大（几百MB到几GB）但对处理速度（低延迟、高吞吐）有极致要求的应用场景。
 
 ### 1.2 EmbeddedRocksDBStateBackend
 
@@ -87,16 +87,16 @@ state.checkpoints.dir: hdfs://namenode:40010/flink/checkpoints
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 env.setStateBackend(new HashMapStateBackend());
 ```
-> 完整代码示例请查阅[HashMapStateBackendExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/state/statebackend/HashMapStateBackendExample.java)
+> 完整代码示例请查阅[HashMapStateBackendExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/state/statebackend/HashMapStateBackendExample.java)
 
 上面代码设置的是 HashMapStateBackend，如果想要设置 EmbeddedRocksDBStateBackend，可以用下面的配置方式:
 ```java
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 env.setStateBackend(new EmbeddedRocksDBStateBackend());
 ```
-> 完整代码示例请查阅[EmbeddedRocksDBStateBackendExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/state/statebackend/EmbeddedRocksDBStateBackendExample.java)
+> 完整代码示例请查阅[EmbeddedRocksDBStateBackendExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/state/statebackend/EmbeddedRocksDBStateBackendExample.java)
 
-需要注意，如果想在 IDE 中使用 EmbeddedRocksDBStateBackend，需要为 Flink 项目添加如下依赖:
+需要注意，如果想在本地使用 EmbeddedRocksDBStateBackend，需要为 Flink 项目添加如下依赖:
 ```xml
 <dependency>
    <groupId>org.apache.flink</groupId>

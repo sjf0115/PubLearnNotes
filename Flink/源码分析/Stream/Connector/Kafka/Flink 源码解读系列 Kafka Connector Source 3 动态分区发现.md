@@ -8,7 +8,7 @@ if (discoveryIntervalMillis == PARTITION_DISCOVERY_DISABLED) {
     runWithPartitionDiscovery();
 }
 ```
-在这里，我们主要看启用动态发现机制的情况。启用后最终会调用 createAndStartDiscoveryLoop() 方法，启动一个单独的线程，负责以 discoveryIntervalMillis 时间间隔周期的去发现是否有新的 Topic/Partition，并传递给 KafkaFetcher。
+在这里，我们主要看启用动态发现机制的情况。启用后最终会调用 `createAndStartDiscoveryLoop()` 方法，启动一个单独的线程，负责以 `discoveryIntervalMillis` 时间间隔周期的去发现是否有新的 Topic/Partition，并传递给 KafkaFetcher。
 ```java
 private void runWithPartitionDiscovery() throws Exception {
     final AtomicReference<Exception> discoveryLoopErrorRef = new AtomicReference<>();

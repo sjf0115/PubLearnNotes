@@ -54,7 +54,7 @@ rest.port: 8090
 
 ### 3. Example Code
 
-你可以在 GitHub 上找到 SocketWindowWordCount 例子的完整代码，这我们提供了一个[Java](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/app/SocketWindowWordCount.java)版本：
+你可以在 GitHub 上找到 SocketWindowWordCount 例子的完整代码，这我们提供了一个[Java](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/app/wordcount/SocketWindowWordCount.java)版本：
 ```java
 public class SocketWindowWordCount {
     public static void main(String[] args) throws Exception {

@@ -50,7 +50,7 @@ rest.port: 8090
 ```
 通过访问 http://localhost:8090 检查JobManager网页，确保所有组件都启动并已运行：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-how-to-install-and-run-1.jpg?raw=true)
+![](img-flink-how-to-install-and-run-1.jpg)
 
 ### 3. Example Code
 
@@ -120,11 +120,11 @@ nc -l 9100
 
 启动本地服务之后我们就可以通过如下命令提交 Flink 应用程序：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-how-to-install-and-run-2.jpg?raw=true)
+![](img-flink-how-to-install-and-run-2.jpg)
 
 提交 Flink 应用程序之后我们可以通过 Web 界面来查看我们提交的任务：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-how-to-install-and-run-3.jpg?raw=true)
+![](img-flink-how-to-install-and-run-3.jpg)
 
 单词的个数在5秒的时间窗口中进行累加（使用处理时间和滚动窗口），并打印在控制台。假设我们输入数据如下：
 ```
@@ -138,7 +138,3 @@ hello flink hello spark hello storm hello hadoop
 (spark,1)
 (flink,1)
 ```
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)

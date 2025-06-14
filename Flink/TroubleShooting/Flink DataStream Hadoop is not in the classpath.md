@@ -38,11 +38,14 @@ Process finished with exit code 1
 
 ## 2. 解决方案
 
-添加如下 Maven 依赖：
+核心原因：Flink 本身不直接支持 HDFS 文件系统，需通过 Hadoop 客户端库实现。当代码中使用 HDFS 路径（如 Checkpoint 存储位置）但未添加 Hadoop 依赖时，Flink 无法加载 HDFS 文件系统实现。
+
+解决方案是在 Maven 项目的 pom.xml 中添加 Hadoop 客户端依赖（版本需与集群一致）：
 ```xml
 <dependency>
-    <groupId>org.apache.hadoop</groupId>
-    <artifactId>hadoop-client</artifactId>
-    <version>${hadoop.version}</version>
+  <groupId>org.apache.hadoop</groupId>
+  <artifactId>hadoop-client</artifactId>
+  <version>2.10.1</version>
+  <scope>provided</scope>
 </dependency>
 ```

@@ -21,6 +21,7 @@ $FLINK_HOME/bin/start-local.sh
 或
 $FLINK_HOME/bin/start-cluster.sh
 ```
+
 ### 2. Example
 
 (1) 运行示例程序，不传参数：

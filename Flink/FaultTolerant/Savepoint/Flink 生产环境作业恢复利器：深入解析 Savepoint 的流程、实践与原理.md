@@ -14,7 +14,16 @@
     *   **成本与保证：** Savepoint 通常追求更高的可靠性（例如同步阶段），可能比 Checkpoint 稍慢；Checkpoint 更注重效率。
     *   **兼容性：** Savepoint 设计时考虑了**跨作业版本恢复**的可能性（需谨慎处理）。
 
-## 2. 作业逻辑变更后使用 Savepoint 的恢复流程
+## 2. Trigger Savepoint
+
+
+
+
+## 3. stop-with-savepoint
+
+
+
+作业逻辑变更后使用 Savepoint 的恢复流程
 
 1.  **创建“基线”Savepoint (旧作业版本):**
     ```bash
@@ -29,11 +38,11 @@
 
 2.  停止旧版本作业
 
-可以使用如下 cancel 命令在取消作业时并自动触发 `Savepoint`：
+可以使用如下 stop 命令在取消作业时并自动触发 `Savepoint`：
 ```
 bin/flink cancel -s [:targetDirectory] :jobId
 ```
-关键点: 在确认 Savepoint 创建成功后再停止作业。使用 `cancel with savepoint` 可以在取消时自动触发一次 Savepoint（适用于计划内停止）。
+关键点: 在确认 Savepoint 创建成功后再停止作业。使用 `stop with savepoint` 可以在取消时自动触发一次 Savepoint（适用于计划内停止）。
 
 3. 修改代码 & 构建新版本作业 Jar
     *   进行你的业务逻辑变更（添加/删除算子、修改 UDF 逻辑、调整窗口类型等）。
@@ -153,3 +162,13 @@ flink run \
 **总结：**
 
 Savepoint 是 Flink 在生产环境中进行有状态作业优雅升级和可靠恢复的生命线。遵循设置 `uid`、管理版本、测试恢复流程、理解状态兼容性、谨慎处理并行度和 `--allowNonRestoredState` 等最佳实践，是确保恢复成功和数据一致性的关键。深入理解 Savepoint 基于 Barrier 的一致性快照机制和状态重分配原理，有助于更好地设计容错性强的流处理应用和高效应对生产环境的挑战。将 Savepoint 纳入你的 CI/CD 和运维流程，是实现真正蓝绿部署和无缝版本切换的强大基础。
+
+
+
+
+
+
+
+是否输出窗口数据 drain
+
+例如，窗口还未到达触发时间，设置

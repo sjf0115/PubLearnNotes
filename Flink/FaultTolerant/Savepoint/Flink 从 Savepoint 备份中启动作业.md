@@ -26,11 +26,6 @@ bin/flink savepoint :jobId [:targetDirectory]
 bin/flink run -s :savepointPath [:runArgs]
 ```
 
-默认情况下，恢复操作会尝试将 `Savepoint` 下的所有状态映射回待恢复的新程序。如果我们在新程序中删除了某个算子，这时会出现任务不能恢复的情况，此时我们可以通过 `--allowNonRestoredState` （简写-n）参数跳过无法匹配的状态，让程序正常启动起来：
-```
-bin/flink run -s :savepointPath -n [:runArgs]
-```
-
 ## 3. 最佳实践
 
 如下示例从 Kafka 单词流中读取单词并计算每个单词的出现次数：
@@ -166,3 +161,19 @@ WordCount{word='b', frequency=2}
 WordCount{word='a', frequency=3}
 ```
 > 作业停止之后假设没有新数据。
+
+## 4. 注意事项
+
+### 4.1 稳定算子UID
+
+由于代码逻辑发生变化，在升级过程中有可能导致算子的状态无法通过 Savepoint 中的数据进行恢复。为了恢复算子的状态，保存点应用程序的算子必须与修改拓扑后的新应用程序的算子相匹配才可以。在这种情况下就需要通过唯一的ID来标记算子，在 Flink 中默认支持自动生成算子ID，但是这种方式不利于对代码层面的维护和升级，建议用户尽可能的使用手工的方式对算子进行唯一ID标记，可以通过 `uid()` 方法指定唯一ID。
+
+### 4.2 跳过无法匹配的状态
+
+如果新作业图中删除了某些有状态的算子（或其 `uid` 改变了），Fink 默认会拒绝启动，除非添加 `--allowNonRestoredState` 参数（）。
+
+默认情况下，恢复操作会尝试将 `Savepoint` 下的所有状态映射回待恢复的新程序。如果我们在新程序中删除了某个算子（或其 `uid` 改变了），这时会出现任务不能恢复的情况，此时我们可以通过 `--allowNonRestoredState` （简写-n）参数跳过无法匹配的状态，让程序正常启动起来：
+```
+bin/flink run -s :savepointPath -n [:runArgs]
+```
+> 慎用！这意味着丢失那部分算子的状态

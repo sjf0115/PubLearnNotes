@@ -7,7 +7,7 @@
 - A/B测试：基于相同状态启动不同逻辑版本
 - 资源调整：安全改变并行度（需状态重分布）
 
-Apache Flink 的保存点 Savepoint 功能可以支持上面的所有场景，这样也是 Flink 和其它分布式开源流处理器显著不同的一点。下面我们会讲述如何使用 Savepoint 来恢复作业。
+Apache Flink 的保存点 Savepoint 功能可以支持上面的所有场景，这样也是 Flink 和其它分布式开源流处理器显著不同的一点。下面我们会重点讲解如何使用 Savepoint 来恢复作业。
 
 ## 2. 恢复流程
 
@@ -78,6 +78,10 @@ result.print().uid("Print");
 env.execute("RestoreSavepointExample");
 ```
 
+使用上述示例来讲解从触发 Savepoint 到从 Savepoint 中恢复作业的整个流程：
+
+![](img-flink-stream-restore-savepoints-3.png)
+
 ### 3.1 启动作业并触发 Savepoint
 
 使用如下命令启动上述 `RestoreSavepointExample` 应用程序：
@@ -126,7 +130,7 @@ You can resume your program from this savepoint with the run command.
 
 ### 3.2 从 Savepoint 中恢复
 
-从 Savepoint 中恢复 `RestoreSavepointExample` 作业：
+使用如下命令从 Savepoint 中恢复 `RestoreSavepointExample` 作业：
 ```shell
 localhost:flink wy$ bin/flink run -d -s hdfs://localhost:9000/flink/savepoint/savepoint-2ebb93-0418070f5f92 -c com.flink.example.stream.state.checkpoint.RestoreSavepointExample  /Users/wy/study/code/flink-example/flink-example-1.13/target/flink-example-1.13-1.0.jar
 Job has been submitted with JobID 57bc93db4d82738f1a789e5c26778cf6
@@ -151,10 +155,6 @@ Job has been submitted with JobID 57bc93db4d82738f1a789e5c26778cf6
 2025-06-14 16:13:11,581 INFO  com.flink.example.stream.state.checkpoint.RestoreSavepointExample [] - word: a, frequency: 1
 ```
 
-### 3.3 总结
-
-![](img-flink-stream-restore-savepoints-3.png)
-
 当从 Savepoint 恢复作业时，Flink 首先加载 Savepoint 的静态快照，从 Savepoint 记录的 Offset 重新消费数据，处理 Savepoint 之后的所有新数据，重建完整的最新状态。最终的输出结果如下所示，与恢复之前的作业结果一致：
 ```
 WordCount{word='b', frequency=2}
@@ -170,7 +170,7 @@ WordCount{word='a', frequency=3}
 
 ### 4.2 跳过无法匹配的状态
 
-如果新作业图中删除了某些有状态的算子（或其 `uid` 改变了），Fink 默认会拒绝启动，除非添加 `--allowNonRestoredState` 参数（）。
+如果新作业图中删除了某些有状态的算子（或其 `uid` 改变了），Fink 默认会拒绝启动，除非添加 `--allowNonRestoredState` 参数。
 
 默认情况下，恢复操作会尝试将 `Savepoint` 下的所有状态映射回待恢复的新程序。如果我们在新程序中删除了某个算子（或其 `uid` 改变了），这时会出现任务不能恢复的情况，此时我们可以通过 `--allowNonRestoredState` （简写-n）参数跳过无法匹配的状态，让程序正常启动起来：
 ```

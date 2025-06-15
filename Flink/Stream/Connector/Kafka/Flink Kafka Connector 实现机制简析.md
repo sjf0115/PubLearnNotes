@@ -20,11 +20,11 @@ Flink 主要由 FlinkKafkaConsumer、FlinkKafkaProducer 两部分组成，它为
 
 FlinkKafkaConsumer 是一个不断从 Kafka 获取的一个流式数据的数据源，它可以同时的在不同的并行实例中运行，从一个或者多个 Kafka partition 中拉取数据
 
-![](../../../Image/Flink/flink-kafka-connector-implementation-analysis-1.png)
+![](img-flink-kafka-connector-implementation-analysis-1.png)
 
 我们可以先简单的从类图的关系了解下 FlinkKafkaConsumer 的实现，上面是 FlinkKafkaConsumer 的之间的关系，不同 Kafka 版本实现的 FlinkKafkaConsumer 都基于 FlinkKafkaConsumerBase 这个抽象类。在 FlinkKafkaConsumerBase 中，它的主要负责初始化一些列对象来构建KafkaFetcher，用于获取 Kafka 上面的数据，如果开启了 Partition Discoverer 功能，则启动 DiscoveryLoopThread 定期获取 KafkaTopicPartition 信息。并将这些信息更新到 KafkaFetcher 中，从而获取新的 Topic 或 Partition 数据
 
-![](../../../Image/Flink/flink-kafka-connector-implementation-analysis-2.png)
+![](img-flink-kafka-connector-implementation-analysis-2.png)
 
 在 KafkaFetcher 里，它并没有直接使用 KafkaClient 进行直接的数据读取，它通过创建了一条 KafkaConsumerThread 线程定时 ( flink.poll-timeout, default 100ms) 的从 Kafka 拉取数据, 并调用 Handover.produce 将获取到的 Records 放到 Handover中，对于 Handover 来说，它相当于一个阻塞对列，KafkaFetcher 线程和 KafkaConsumerThread 线程通过 Handover 进行通信，KafkaFetcher 线程的 run 方法中轮询 handover.pollNext 获取来自KafkaConsumerThread 的数据，否则则阻塞，如果获取到数据，则通过 SourceContext 将数据 emit 到下游
 
@@ -38,11 +38,11 @@ FlinkKafkaConsumer 是一个不断从 Kafka 获取的一个流式数据的数据
 
 FlinkKafkaProducer实现了Flink Sink的接口，能够将上游的数据写入到Kafka对应的Topic中，在默认情况下，使用AT_LEAST_ONCE语义
 
-![](../../../Image/Flink/flink-kafka-connector-implementation-analysis-3.png)
+![](img-flink-kafka-connector-implementation-analysis-3.png)
 
 通过类图的关系看出，FlinkKafkaProducer 是 TwoPhaseCommitSinkFunction 的一个实现类，在 Flink 中，TwoPhaseCommitSinkFunction 被推荐为Sink实现 EXACTLY_ONCE 语义的基类，它也需要配合 CheckpointedFunction，CheckpointListener 使用
 
-![](../../../Image/Flink/flink-kafka-connector-implementation-analysis-4.png)
+![](img-flink-kafka-connector-implementation-analysis-4.png)
 
 这里简单的说说什么是2PC-二阶段提交协议？
 

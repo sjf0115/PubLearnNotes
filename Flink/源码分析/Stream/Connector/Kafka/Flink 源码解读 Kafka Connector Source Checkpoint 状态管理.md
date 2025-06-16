@@ -1,6 +1,6 @@
 
 
-
+和大多数有状态的算子一样，为了容错和更容易的进行水平扩展，它也实现了 CheckpointedFunction，CheckpointListener 接口，当 checkpoint 开启时，snapshotState 方法会被周期性的调用，就会将当前 fetcher 提交的 KafkaTopicPartition 信息和 Offset 定期的存储到状态存储 ListState 上，并在所有任务都成功 checkpoint 时，notifyCheckpointComplete 方法将会被调用，并将等待提交的 offset，从 pendingOffsetsToCommit 取出，并提交到 Kafka 上。
 
 
 需要实现 CheckpointedFunction 接口如下的两个方法：

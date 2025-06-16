@@ -1,5 +1,9 @@
 ## 1. 架构
 
+不同 Kafka 版本实现的 FlinkKafkaConsumer 都基于 FlinkKafkaConsumerBase 这个抽象类。在 FlinkKafkaConsumerBase 中，它的主要负责初始化一些列对象来构建KafkaFetcher，用于获取 Kafka 上面的数据，如果开启了 Partition Discoverer 功能，则启动 DiscoveryLoopThread 定期获取 KafkaTopicPartition 信息。并将这些信息更新到 KafkaFetcher 中，从而获取新的 Topic 或 Partition 数据。
+
+在 KafkaFetcher 里，它并没有直接使用 KafkaClient 进行直接的数据读取，它通过创建了一条 KafkaConsumerThread 线程定时 ( flink.poll-timeout, default 100ms) 的从 Kafka 拉取数据, 并调用 Handover.produce 将获取到的 Records 放到 Handover中，对于 Handover 来说，它相当于一个阻塞对列，KafkaFetcher 线程和 KafkaConsumerThread 线程通过 Handover 进行通信，KafkaFetcher 线程的 run 方法中轮询 handover.pollNext 获取来自KafkaConsumerThread 的数据，否则则阻塞，如果获取到数据，则通过 SourceContext 将数据 emit 到下游
+
 ### 1.1 FlinkKafkaConsumer
 
 ```java

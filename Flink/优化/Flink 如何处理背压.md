@@ -20,21 +20,21 @@ permalink: how-flink-handles-backpressure
 
 让我们看一个简单的例子。假设一个数据流管道包含一个数据源，一个流作业和一个 Sink，以每秒 500 万个元素的稳定速度处理数据，如下所示(一个黑条代表 100 万个元素，下图是系统某一秒的快照)：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-flink-handles-backpressure-1.png?raw=true)
+![](img-how-flink-handles-backpressure-1.png)
 
 在某些时候，流处理作业或 Sink 有1秒的卡顿，导致 500 多万个元素的堆积。或者，数据源可能出现了一个峰值，在一秒内以双倍的速度产生数据：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-flink-handles-backpressure-2.png?raw=true)
+![](img-how-flink-handles-backpressure-2.png)
 
 我们如何处理这样的情况(如上数据源出现一个峰值，一秒内以双倍的速度产生数据)呢？当然，可以放弃这些元素(一秒内只能处理一半的数据)。但是，对于许多按 Exactly-Once 处理语义的流式应用程序来说，数据丢失是不可接受的。额外的数据可以缓存在某个地方。缓存也应该是可持久化的，因为在失败的情况下，这些数据需要被重新读取以防止数据丢失。理想情况下，这些数据应该被缓存在一个持久化的通道中(例如，如果数据源自己能保证持久性， Apache Kafka 就是这样的一种数据源)。理想状态下应对背压的措施是将整个管道从 Sink 回压到数据源，并对源头进行限流，以将管道速度调整为最慢，从而达到稳定状态:
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-flink-handles-backpressure-3.png?raw=true)
+![](img-how-flink-handles-backpressure-3.png)
 
 ### 2. Flink 中的背压
 
 Flink 运行时的构建组件是算子和流。每个算子消费中间数据流，并对其进行转换，并产生新的数据流。描述这种机制的最好比喻是 Flink 充分使用有界容量的分布式阻塞队列。与 Java 连接线程的常规阻塞队列一样，一旦队列的有效缓冲耗尽(有界容量)，较慢的接收者就会使发送者放慢发送速度。以两个任务之间的简单流程为例，说明 Flink 如何实现背压：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-flink-handles-backpressure-4.jpg?raw=true)
+![](img-how-flink-handles-backpressure-4.jpg)
 
 - 记录 A 进入 Flink 并由任务1处理。
 - 记录被序列化在缓冲区，
@@ -54,16 +54,12 @@ Flink 运行时的构建组件是算子和流。每个算子消费中间数据�
 
 图中显示了生产者任务(黄色)和消费者任务(绿色)随着时间变化所达到的最大吞吐量(单个JVM中每秒达到800万个元素)的平均吞吐量占比。为了衡量平均吞吐量，我们每5秒测量一次任务处理的记录数量。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-flink-handles-backpressure-5.png?raw=true)
+![](img-how-flink-handles-backpressure-5.png)
 
 首先，我们以60％的速度运行生产任务(我们通过调用Thread.sleep()来模拟减速)。消费者以相同的速度处理数据，不会产生延迟。然后我们把消费者任务放慢到全速的30％。在这里，背压效果产生作用，因为我们看到生产者也自然放缓到全速的30％。然后，我们取消消费者任务的人为减速，并且这两项任务都达到最大吞吐量。我们再次把消费者任务放慢到全速的30％，管道立即响应，生产者任务也全速下降到30％。最后，我们再次停止减速，两项任务都以100％的速度持续下去。总而言之，我们看到生产者和消费者在管道上相互跟随彼此的吞吐量，这是我们在流水线中期望的行为。
 
 ### 3. 结论
 
 Flink 与像 Kafka 这样的可持久化数据源配合使用，可以立即响应处理背压而不会丢失数据。Flink 不需要专门的机制来处理背压，因为 Flink 中的数据传输可以兼做背压机制。因此，Flink 实现了管道最慢部分允许的最大吞吐量。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文: [How Apache Flink™ handles backpressure](https://data-artisans.com/blog/how-flink-handles-backpressure)

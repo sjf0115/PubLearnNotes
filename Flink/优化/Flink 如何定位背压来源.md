@@ -12,7 +12,7 @@ permalink: how-to-identify-the-source-of-backpressure
 
 > Flink 版本：1.13.0
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-to-identify-the-source-of-backpressure-1.png?raw=true)
+![](img-how-to-identify-the-source-of-backpressure-1.png)
 
 在过去的几年里，背压的问题从不同的角度得到了解决。然而，在判断和分析背压来源时，最近的 Flink 版本发生了很大的变化（尤其是在 Flink 1.13 中新增了监控指标和 Web UI）。这篇文章将一起看一下其中的一些变化，并详细介绍如何追踪背压的来源，但首先……
 
@@ -38,13 +38,13 @@ permalink: how-to-identify-the-source-of-backpressure
 
 检测背压的一种方法是使用[监控指标](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/ops/metrics/#system-metrics)，但在 Flink 1.13 中我们不需再深入去了解。在大多数情况下，只需查看 Web UI 中的作业图就足够了。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-to-identify-the-source-of-backpressure-2.png?raw=true)
+![](img-how-to-identify-the-source-of-backpressure-2.png)
 
 在上面的例子中首先要注意的是，不同的任务有不同的颜色。这些颜色代表了两个因素的组合：任务的背压程度以及忙碌程度。空闲任务用蓝色表示，全负荷忙碌任务用红色表示，而全负荷背压任务用黑色表示。介于两者之间的都会用这三种颜色的组合/阴影表示。通过这些，我们可以很容易地发现哪些任务处于背压状态（黑色）。背压任务下游最忙碌（红色）的任务很可能是背压的来源（瓶颈）。
 
 单击一个特定任务并进入 'BackPressure' Tab，我们可以进一步剖析问题并检查每个子任务的忙碌/背压/空闲状态。例如，如果存在数据倾斜且并非所有子任务都得到同等利用，这会特别方便。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-to-identify-the-source-of-backpressure-3.png?raw=true)
+![](img-how-to-identify-the-source-of-backpressure-3.png)
 
 在上面的例子中，我们可以清楚地看到哪些子任务处于空闲状态，哪些任务处于背压状态。坦率地说，这些足以让我们快速了解作业发生了什么，但是，还有一些细节值得解释。
 
@@ -63,7 +63,7 @@ permalink: how-to-identify-the-source-of-backpressure
 - 在算子中手动生成自定义线程（不鼓励的做法）。
 - 实现已经废弃的 SourceFunction 接口的 Source 代码。在此类 Source 下 busyTimeMsPerSecond 的值为 NaN/N/A。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-to-identify-the-source-of-backpressure-4.png?raw=true)
+![](img-how-to-identify-the-source-of-backpressure-4.png)
 
 为了在 Web UI 中显示这些原始数字，需要聚合所有子任务的这些指标（在作业图上，我们仅显示任务）。这就是为什么 Web UI 会显示给定任务所有子任务的最大值，以及为什么忙碌状态和背压状态的聚合最大值可能不会达到 100%。一个子任务可以在 60% 时处于背压状态，而另一个任务在 60% 时可能处于忙碌状态。导致任务在 60% 时既背压状态又处于忙碌状态。
 
@@ -71,9 +71,9 @@ permalink: how-to-identify-the-source-of-backpressure
 
 还有一件事。你还记得这些指标是在几秒钟内测量的平均值吗？请记住这一点，在分析具有动态负载的作业或任务时，例如，包含定期性触发的 WindowOperator 的（子）任务：恒定负载 50% 的子任务以及每秒在完全忙碌和完全空闲之间交替的子任务的 busyTimeMsPerSecond 值均为 500ms/s。此外，动态负载，尤其是触发窗口可以将瓶颈转移到作业图中的不同位置：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-to-identify-the-source-of-backpressure-5.png?raw=true)
+![](img-how-to-identify-the-source-of-backpressure-5.png)
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-to-identify-the-source-of-backpressure-6.png?raw=true)
+![](img-how-to-identify-the-source-of-backpressure-6.png)
 
 在此特定示例中，只要 SlidingWindowOperator 在累积消息，它就是瓶颈。但是，一旦开始触发其窗口（每 10 秒一次），下游任务 SlidingWindowCheckMapper -> Sink: SlidingWindowCheckPrintSink 就成为瓶颈，并且 SlidingWindowOperator 会受到背压。由于那些忙碌/背压/空闲指标是几秒钟内的平均时间，因此这种微妙变化不会立即可见。最重要的是，Web UI 每 10 秒才更新一次状态，使得发现这种频繁的变化变得更加困难。
 
@@ -92,6 +92,6 @@ permalink: how-to-identify-the-source-of-backpressure
 
 欢迎关注我的公众号和博客：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg)
 
 原文:[How to identify the source of backpressure?](https://flink.apache.org/2021/07/07/backpressure.html)

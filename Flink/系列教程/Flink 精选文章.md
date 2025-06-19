@@ -206,7 +206,7 @@
 - [x] [How to identify the source of backpressure?](https://flink.apache.org/2021/07/07/backpressure.html)
 - [ ] [Ten Flink Gotchas we wish we had known](https://engineering.contentsquare.com/2021/ten-flink-gotchas/)
 - [ ] [使用 Flink 前需要知道的 10 个『陷阱』](https://mp.weixin.qq.com/s/iQdYaChIftZckyXRy3tZ0g)
-- [ ] [咱们从头到尾讲一次 Flink 网络流控和反压剖析](https://mp.weixin.qq.com/s/6kqUEkJdsZgMIknqSPlzbQ)
+- [x] [咱们从头到尾讲一次 Flink 网络流控和反压剖析](https://mp.weixin.qq.com/s/6kqUEkJdsZgMIknqSPlzbQ)
 - [ ] [如何生成 Flink 作业的交互式火焰图？](https://mp.weixin.qq.com/s/k-rsPefwJV4-A89l09_vDQ)
 - [ ] [Flink Serialization Tuning Vol. 1: Choosing your Serializer — if you can](https://flink.apache.org/news/2020/04/15/flink-serialization-tuning-vol-1.html)
 - [ ] [如何提高 CPU 利用率？Flink 该如何设定并行度？调大并行度一定会提高 Flink 吞吐吗？](https://mp.weixin.qq.com/s/eUCMc48rX0hyBgV3zhU7mQ)

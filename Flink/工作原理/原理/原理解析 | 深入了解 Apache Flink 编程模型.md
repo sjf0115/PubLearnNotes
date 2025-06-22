@@ -1,7 +1,7 @@
 ---
 layout: post
 author: sjf0115
-title: Flink 内部原理之编程模型
+title: 原理解析 | 深入了解 Apache Flink 编程模型
 date: 2017-12-29 12:54:01
 tags:
   - Flink
@@ -10,13 +10,11 @@ categories: Flink
 permalink: flink-programming-model
 ---
 
-> Flink 1.8.0
-
 ### 1. 抽象层次
 
 Flink 提供了不同级别的抽象层次来开发流处理和批处理应用程序：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-1.png?raw=true)
+![](img-flink-programming-model-1.png)
 
 最低级别的抽象只是提供有状态的数据流。通过 Process Function 集成到 DataStream API 中。它允许用户不受限制的处理来自一个或多个数据流的事件，并可以使用一致的容错状态。另外，用户可以注册事件时间和处理时间的回调函数，允许程序实现复杂的计算。
 
@@ -34,7 +32,7 @@ Flink 提供的最高级抽象是 SQL。这种抽象在语法和表现力方面�
 
 Flink 程序的基本构建块是流和转换操作。从概念上讲，流是数据记录(可能是永无止境的)流，而转换是将一个或多个流作为输入产生一个或多个输出流。执行时，Flink 程序被映射到由流和转换算子组成的流式数据流。每个数据流从一个或多个 Source 开始，并在一个或多个 Sink 中结束。数据流类似于有向无环图(DAG)。尽管通过迭代构造允许特殊形式的环，但是为了简单起见，大部分都会如下描述：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-2.png?raw=true)
+![](img-flink-programming-model-2.png)
 
 程序中的转换与数据流中的算子通常是一一对应的。然而，有时候，一个转换可能由多个转换算子组成。
 
@@ -42,7 +40,7 @@ Flink 程序的基本构建块是流和转换操作。从概念上讲，流是�
 
 Flink 中的程序本质上是分布式并发执行的。在执行过程中，一个流可能会有一个或多个分区，相应的每个算子也会有一个或多个子任务。算子子任务之间相互独立，并且在不同的线程中执行，甚至有可能在不同的机器或容器上执行。算子子任务的数量等于算子的并发数。流的并发数总是等于产生算子的并发数。同一程序的不同算子可能具有不同的并发级别。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-3.png?raw=true)
+![](img-flink-programming-model-3.png)
 
 在两个算子之间的流可以以一对一模式或重新分发模式传输数据:
 - 一对一流(例如上图中的 Source 和 map 算子之间的流)保留了元素的分区和排序。这意味着将会在 map 算子的子任务[1]中看到在 Source 算子的子任务[1]中产生的相同元素，并且具有相同的顺序。
@@ -52,7 +50,7 @@ Flink 中的程序本质上是分布式并发执行的。在执行过程中，�
 
 聚合事件(比如计数、求和)在流上的工作方式与批处理不同。比如，不可能对流中的所有元素进行计数，因为通常流是无限的(无界的)。相反，流上的聚合(计数，求和等)需要由 窗口来划定范围，比如在最近5分钟内计算，或者对最近100个元素求和。窗口可以是时间驱动的 (比如：每30秒）或者数据驱动的(比如：每100个元素)。窗口有不同的类型，比如滚动窗口(没有重叠)，滑动窗口(有重叠)，以及会话窗口(由不活动的间隙所打断)：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-4.png?raw=true)
+![](img-flink-programming-model-4.png)
 
 更多的窗口示例可以在这篇[博客](https://smartsi.blog.csdn.net/article/details/126554021)中找到。
 
@@ -63,7 +61,7 @@ Flink 中的程序本质上是分布式并发执行的。在执行过程中，�
 - 摄入时间是事件进入 Flink 数据流源(source)算子的时间。
 - 处理事件是每一个执行基于时间操作算子的本地时间。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-5.png?raw=true)
+![](img-flink-programming-model-5.png)
 
 更多关于如何处理时间的详细信息可以查看[事件时间](https://smartsi.blog.csdn.net/article/details/126554454)文档.
 
@@ -73,7 +71,7 @@ Flink 中的程序本质上是分布式并发执行的。在执行过程中，�
 
 有状态操作的状态保存在一个可被视为嵌入式键值对存储中。状态与由有状态算子读取的流一起被严格地分区与分布(distributed)。因此，只有在应用 keyBy() 函数之后，才能访问 KeyedStreams 上的键/值对状态，并且仅限于与当前事件 key 相关联的值。对齐流和状态的 key确保了所有状态更新都是本地操作，保证一致性，而没有事务开销。这种对齐还使得 Flink 可以透明地重新分配状态与调整流的分区。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-programming-model-6.png?raw=true)
+![](img-flink-programming-model-6.png)
 
 ### 7. 容错性检查点
 

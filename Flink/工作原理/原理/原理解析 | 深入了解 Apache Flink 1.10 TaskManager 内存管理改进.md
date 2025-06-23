@@ -1,7 +1,7 @@
 ---
 layout: post
 author: wy
-title: Flink 1.10 TaskManager 内存管理优化
+title: 原理解析 | 深入了解 Apache Flink 1.10 TaskManager 内存管理改进
 date: 2021-07-17 21:26:01
 tags:
   - Flink
@@ -18,7 +18,7 @@ Apache Flink 1.10 对 Task Managers 的内存模型和配置选项进行了重�
 
 清楚的了解 Apache Flink 的内存模型可以让我们更有效地管理各种工作负载。下图描述了 Flink 的主要内存组件：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/memory-management-improvements-flink-1.10-1.jpg?raw=true)
+![](img-memory-management-improvements-flink-1.10-1.jpg)
 
 Task Manager 进程是一个 JVM 进程。从高层次上理解，它的内存由 JVM Heap 和 Off-Heap 内存组成。这些类型的内存由 Flink 直接使用或用于 JVM 特殊目的（例如，metaspace 等）。Flink 中有两个主要的内存消费方：作业算子任务的用户代码以及框架本身（内部数据结构、网络缓冲区等）。
 
@@ -52,7 +52,7 @@ Task Manager 进程是一个 JVM 进程。从高层次上理解，它的内存�
 
 此方法可以按比例细分 Total Flink Memory：Managed Memory（如果未明确设置）和 Network Buffers 可以按比例进行设置，JVM Heap 和 Off-Heap 可以设置固定内存大小，最后将剩余内存分配给 Task Heap（如果未明确设置）。下图显示了此类设置的示例：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/memory-management-improvements-flink-1.10-2.jpg?raw=true)
+![](img-memory-management-improvements-flink-1.10-2.jpg)
 
 Flink 会校验分配的 Network Memory 大小是否在最小值和最大值之间，否则 Flink 会启动会失败。最大值和最小值都有默认值，可以用相应的配置来覆盖。在某些情况下，真正分配的大小可能与比例不完全匹配。例如，如果 Total Flink Memory 和 Task Heap 配置为固定大小内存，Managed Memory 配置一定比例内存，那么 Network Memory 将获得与其比例不完全匹配的剩余内存。
 
@@ -67,9 +67,5 @@ Heap 和 Direct 内存使用由 JVM 管理。在 Apache Flink 或其用户应用
 ### 4. 结论
 
 最新版本的 Flink（Flink 1.10）对内存配置进行了一些重大调整，使您可以比以前更好地管理应用程序内存和调试 Flink。该领域的未来发展还包括为 Job Mamanger 进程采用类似的内存模型，具体参阅 [FLIP-116](https://cwiki.apache.org/confluence/display/FLINK/FLIP+116%3A+Unified+Memory+Configuration+for+Job+Managers)。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文：[Memory Management Improvements with Apache Flink 1.10](https://flink.apache.org/news/2020/04/21/memory-management-improvements-flink-1.10.html)

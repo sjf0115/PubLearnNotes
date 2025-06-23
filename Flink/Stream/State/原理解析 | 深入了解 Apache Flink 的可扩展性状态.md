@@ -1,7 +1,7 @@
 ---
 layout: post
 author: smartsi
-title: 深入了解 Flink 的可扩展性状态
+title: 原理解析 | 深入了解 Apache Flink 的可扩展性状态
 date: 2021-10-27 11:44:01
 tags:
   - Flink
@@ -30,11 +30,11 @@ Apache Flink 是一个大规模并行分布式处理系统，可以进行大规�
 
 在无状态数据流中更改并行度（即修改算子的并行子任务的数量）非常容易。只需要启动或停止无状态算子的并行实例，并与上游和下游算子断开或者连接即可，如下图所示。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/a-deep-dive-into-rescalable-state-in-apache-flink-1.png?raw=true)
+![](img-a-deep-dive-into-rescalable-state-in-apache-flink-1.png)
 
 相反，改变有状态算子的并行度涉及比较多，因为我们必须以一致，正确的方式重新分配先前的算子状态。在 Flink Shared-Nothing 架构中，所有状态对于运行并行算子实例的任务来说都是本地的，并且在作业运行时并行算子实例之间不会进行网络通信。但是，在 Flink 中存在一种机制可以允许在任务之间以一致、Exactly-Once 语义保证的方式交换算子状态，这就是 Flink 的 Checkpoint 机制。简而言之，当 Checkpoint 协调器将特殊事件（所谓的 Checkpoint Barrier）注入流中时，就会触发 Checkpoint。Checkpoint Barrier 跟随事件流从 Source 向下游 Sink 流动，并且每当算子实例收到 Barrier 时，算子实例都会立即将其当前状态快照到分布式存储系统（例如，HDFS）。在作业恢复时，作业的新任务（现在可能在不同的机器上运行）可以再次从分布式存储系统中获取状态数据。我们可以借助 Checkpoint 实现状态作业的扩缩容，如下图所示。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/a-deep-dive-into-rescalable-state-in-apache-flink-2.png?raw=true)
+![](img-a-deep-dive-into-rescalable-state-in-apache-flink-2.png)
 
 首先，触发 Checkpoint 并发送到分布式存储系统上。接下来，更改并行度重新启动作业，并从分布式存储上访问先前状态的一致性快照。虽然这解决了在机器之间重新分配一致性状态的问题，但仍然存在一个问题：如果先前状态与新的并行算子实例之间不是 1：1 关系，我们如何正确的分配状态？我们可以将先前 map_1 和 map_2 的状态再次分配给新的 map_1 和 map_2，但这样 map_3 就没有了状态。这种幼稚的方法可能造成低效或者错误的结果，具体取决于作业状态类型和具体的语义。
 
@@ -46,11 +46,11 @@ Apache Flink 是一个大规模并行分布式处理系统，可以进行大规�
 
 作为使用者，我们知道 Kafka 分区偏移量的含义，并且可以作为独立的可再分配的状态单元。下图展示了 Flink 中对 Operator State 进行 Checkpoint 的旧接口。在生成快照时，每个 Operator 实例都会返回一个代表其完整状态的 Object。对于 Kafka Source 来说，此 Object 是分区偏移量的 List。然后将此快照 Object 写入分布式存储。恢复时，再从分布式存储中读取该 Object，并将其作为参数传递给 Operator 实例。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/a-deep-dive-into-rescalable-state-in-apache-flink-3.png?raw=true)
+![](img-a-deep-dive-into-rescalable-state-in-apache-flink-3.png)
 
 这种方法在扩所容时存在问题：Flink 如何正确的将 Operator State 拆分为可重新分配的分区呢？尽管 Kafka Source 上的状态确实时是分区偏移量的 List，但旧接口返回的状态 Object 对 Flink 来说是一个黑匣子，无法感知对象内的数据结构，所以也无法重新分配。为了解决这个黑盒问题，我们对 Checkpointing 接口进行了一些修改，称为 ListCheckpointed。下图展示了新的 Checkpoint 接口，该接口返回并接收状态分区 List。使用 List 来代替单个 Object 对象可以对状态进行正确的分区：虽然 List 中的每个子项对 Flink 来说仍然是一个黑匣子，但可以认为是 Operator State 独立可重分配的原子单元。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/a-deep-dive-into-rescalable-state-in-apache-flink-4.png?raw=true)
+![](img-a-deep-dive-into-rescalable-state-in-apache-flink-4.png)
 
 借助我们新的 Checkpoint 接口，Kafka Source 可以使各个分区偏移量更加一目了然，并且状态重新分配变得与拆分和合并 List 一样容易：
 ```java
@@ -90,7 +90,7 @@ Flink 中的第二种状态是 Keyed State。与 Operator State 相反，Keyed S
 
 当我们没有扩缩容时，每个子任务都可以简单地一次性顺序读取前一个实例写入 Checkpoint 的整个完整状态。但是，当扩缩容时不能再这样。每个子任务的状态现在可能分散在其他所有子任务写入的文件中。如下图所示，我们展示了如何使用 identity 作为哈希函数将并行度从 3 扩容到 4，Key 范围从 0 到 20。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/a-deep-dive-into-rescalable-state-in-apache-flink-5.png?raw=true)
+![](img-a-deep-dive-into-rescalable-state-in-apache-flink-5.png)
 
 一个很自然的想法是从所有子任务的 Checkpoint 中读取先前实例的子任务状态，并过滤出每个子任务相匹配的 Key。尽管此方法实现了顺序读取，但是每个子任务可能读取大量不相关的状态数据，并且分布式文件系统接收了大量并行读取请求。另一种方法是建立一个索引，来跟踪 Checkpoint 中每个 Key 的状态位置。通过这种方法，所有子任务都可以非常准确地定位并读取匹配的 Key。这种方法可以避免读取无关的状态数据，但是有两个缺点：所有 Key 的物化索引（即 key 到读取偏移的映射）可能会非常大；此外，这种方法还会引入大量的随机 I/O（当为单个 Key 寻找数据时，请参见上图），这会给分布式文件系统中带来非常差的性能。
 
@@ -100,10 +100,6 @@ Flink 的方法介于这两者之间，通过引入 KeyGroup 作为状态分配�
 
 如下图所示，展示了并行度从 3 到 4 的过程（10 个 KeyGroup）。我们可以看到，通过引入 KeyGroup 以及范围重分配的方式极大的提升了访问效率。下图中的计算公式 2 和计算公式 3 还详细的说明了 KeyGroup 的计算和分配过程。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/a-deep-dive-into-rescalable-state-in-apache-flink-6.png?raw=true)
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+![](img-a-deep-dive-into-rescalable-state-in-apache-flink-6.png)
 
 原文:[A Deep Dive into Rescalable State in Apache Flink](https://flink.apache.org/features/2017/07/04/flink-rescalable-state.html)

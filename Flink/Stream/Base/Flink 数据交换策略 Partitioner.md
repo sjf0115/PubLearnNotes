@@ -20,7 +20,7 @@ permalink: physical-partitioning-in-apache-flink
 - KeyGroupStreamPartitioner
 - CustomPartitionerWrapper
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-18.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-18.png)
 
 我们可以看到所有的 Partitioner 都继承了 StreamPartitioner 类。StreamPartitioner 继承自 ChannelSelector 接口。这里的 Channel 概念与 Netty 不同，只是 Flink 对于数据写入实例的简单抽象，我们可以直接认为它就是下游算子的并发实例（即物理分区）。所有 StreamPartitioner 的子类都要实现 selectChannel() 方法，用来选择发送到哪个实例。下面我们分别看看 Flink 提供的 8 种 Partitioner。
 
@@ -30,7 +30,7 @@ permalink: physical-partitioning-in-apache-flink
 
 GlobalPartitioner 分区器会将上游所有元素都发送到下游的第一个算子实例上(SubTask Id = 0)：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-1.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-1.png)
 
 #### 1.2 源码
 
@@ -75,13 +75,13 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 GLOBAL 标示，表示我们使用的 GlobalPartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-2.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-2.png)
 
 如下所示，LowerCaseMap 算子两个子任务分别接受到3个元素，经过处理之后均发送到 UpperCaseMap 算子的第一个子任务上：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-3.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-3.png)
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-4.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-4.png)
 
 ### 2. ForwardPartitioner
 
@@ -89,7 +89,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 仅将元素转发到本地运行的下游算子第一个实例：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-5.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-5.png)
 
 与 GlobalPartitioner 实现相同，但它只会将数据输出到本地运行的下游算子的第一个实例，而非全局。
 
@@ -135,7 +135,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 FORWARD 标示，表示我们使用的 ForwardPartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-6.jpg?raw=true)
+![](img-physical-partitioning-in-apache-flink-6.jpg)
 
 > 在代码中特意使用了 disableChaining() 方法，目的是不让 LowerCaseMap 和 UpperCaseMap 算子 Chain 一起，更好的观察两个算子之间的分区方式。
 
@@ -175,7 +175,7 @@ if (partitioner instanceof ForwardPartitioner) {
 
 上游算子实例广播发送到下游所有的算子实例上：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-7.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-7.png)
 
 #### 3.2 源码
 
@@ -234,7 +234,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 BROADCAST 标示，表示我们使用的 BroadcastPartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-8.jpg?raw=true)
+![](img-physical-partitioning-in-apache-flink-8.jpg)
 
 ### 4. ShufflePartitioner
 
@@ -242,7 +242,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 上游算子实例每次都随机选择一个下游算子实例进行发送：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-9.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-9.png)
 
 #### 4.2 源码
 
@@ -289,7 +289,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 SHUFFLE 标示，表示我们使用的 ShufflePartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-10.jpg?raw=true)
+![](img-physical-partitioning-in-apache-flink-10.jpg)
 
 ### 5. RebalancePartitioner
 
@@ -297,7 +297,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 RebalancePartitioner 会先利用 ThreadLocalRandom.current().nextInt 随机数函数生成一个随机数，以选择第一个要发送的下游算子实例。然后以轮询（round-robin）的方式从该实例开始循环输出。该方式能保证下游的负载均衡，所以常用来处理有倾斜的数据流：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-11.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-11.png)
 
 #### 5.2 源码
 
@@ -350,7 +350,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 REBALANCE 标示，表示我们使用的 RebalancePartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-12.jpg?raw=true)
+![](img-physical-partitioning-in-apache-flink-12.jpg)
 
 ### 6. RescalePartitioner
 
@@ -360,7 +360,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 上游算子实例具体发送到哪几个下游算子实例，取决于上游算子和下游算子两者的并行度。例如，如果上游算子并行度为 2，而下游算子并行度为 4，那么其中一个上游算子实例将元素发送到其中两个下游算子实例，而另一个上游算子实例则发送到另外两个下游算子实例。相反，如果下游算子并行度为 2，而上游算子并行度为 4，那么两个上游算子实例将发送到其中一个下游算子实例，而其他两个上游算子则发送到另一个下游算子实例：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-13.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-13.png)
 
 RebalancePartitioner 和 RescalePartitioner 有什么不同呢？我们还是以上游算子并行度为 2，而下游算子并行度为 4 为例，当使用 RebalancePartitioner时，上游每个实例会轮询发给下游的 4 个实例。但是当使用 RescalePartitioner 时，上游每个实例只需轮询发给下游 2 个实例。因为 Channel 个数变少了，Subpartition 的 Buffer 填充速度能变快，能提高网络效率。当上游的数据比较均匀时，且上下游的并发数成比例时，可以使用 RescalePartitioner 替换 RebalancePartitioner。
 
@@ -411,7 +411,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 RESCALE 标示，表示我们使用的 RescalePartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-14.jpg?raw=true)
+![](img-physical-partitioning-in-apache-flink-14.jpg)
 
 ### 7. KeyGroupStreamPartitioner
 
@@ -419,7 +419,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 使用 keyBy 函数指定分组 key，将具有相同 key 的元素发送到相同的下游算子实例上：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-15.png?raw=true)
+![](img-physical-partitioning-in-apache-flink-15.png)
 
 #### 7.2 源码
 
@@ -535,7 +535,7 @@ DataStream<String> result = env.socketTextStream("localhost", 9100, "\n")
 
 我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 HASH 标示，表示我们使用的 KeyGroupStreamPartitioner：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-16.jpg?raw=true)
+![](img-physical-partitioning-in-apache-flink-16.jpg)
 
 ### 8. CustomPartitionerWrapper
 
@@ -620,11 +620,11 @@ private static class MyCustomPartitioner implements Partitioner<String> {
 
 通过 Partitioner 接口的 partition 方法，可以实现自定义的将数据输出到下游指定实例中。我们可以看到 LowerCaseMap 和 UpperCaseMap 算子之间的 CUSTOM 标示，表示我们使用的 CustomPartitionerWrapper：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/physical-partitioning-in-apache-flink-17.jpg?raw=true)
+![](img-physical-partitioning-in-apache-flink-17.jpg)
 
 欢迎关注我的公众号和博客：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg)
 
 推荐订阅：
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jk.jpeg?raw=true)
+![](img-flink-jk.jpeg)

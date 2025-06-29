@@ -1,7 +1,7 @@
 ---
 layout: post
 author: Jark
-title: Flink1.4 数据流类型与转换关系
+title: Flink 数据流类型与转换关系
 date: 2018-01-04 15:47:01
 tags:
   - Flink
@@ -13,7 +13,7 @@ permalink: flink-stream-dataflow-type-and-transformation
 
 Flink 为流处理和批处理分别提供了 DataStream API 和 DataSet API。正是这种高层的抽象和 flunent API 极大地便利了用户编写大数据应用。不过很多初学者在看到官方文档中那一大坨的转换时，常常会蒙了圈，文档中那些只言片语也很难讲清它们之间的关系。所以本文将介绍几种关键的数据流类型，它们之间是如何通过转换关联起来的。下图展示了 Flink 中目前支持的主要几种流的类型，以及它们之间的转换关系。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E6%95%B0%E6%8D%AE%E6%B5%81%E7%B1%BB%E5%9E%8B%E4%B8%8E%E8%BD%AC%E6%8D%A2%E5%85%B3%E7%B3%BB-1.png?raw=true)
+![](img-flink-stream-dataflow-type-and-transformation-1.png)
 
 ### 1. DataStream
 
@@ -29,7 +29,7 @@ val str3: DataStream[AnotherType] = stream.map { ... }
 ```
 上述 DataStream 上的转换在运行时会转换成如下的执行图：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E6%95%B0%E6%8D%AE%E6%B5%81%E7%B1%BB%E5%9E%8B%E4%B8%8E%E8%BD%AC%E6%8D%A2%E5%85%B3%E7%B3%BB-2.png?raw=true)
+![](img-flink-stream-dataflow-type-and-transformation-2.png)
 
 如上图的执行图所示，`DataStream` 各个算子会并行运行，算子之间是数据流分区。如 `Source` 的第一个并行实例（S1）和 `flatMap()` 的第一个并行实例（m1）之间就是一个数据流分区。而在 `flatMap()` 和 `map()` 之间由于加了 `rebalance()`，它们之间的数据流分区就有3个子分区（m1的数据流向3个map()实例）。这与 `Apache Kafka` 是很类似的，把流想象成 `Kafka Topic`，而一个流分区就表示一个 `Topic Partition`，流的目标并行算子实例就是 `Kafka Consumers`。
 
@@ -51,7 +51,7 @@ val result: DataStream[ResultType] = windowed.reduce(myReducer)
 
 上述 `WindowedStream` 的样例代码在运行时会转换成如下的执行图：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E6%95%B0%E6%8D%AE%E6%B5%81%E7%B1%BB%E5%9E%8B%E4%B8%8E%E8%BD%AC%E6%8D%A2%E5%85%B3%E7%B3%BB-3.png?raw=true)
+![](img-flink-stream-dataflow-type-and-transformation-3.png)
 
 `Flink` 的窗口实现中会将到达的数据缓存在对应的窗口`buffer`中（一个数据可能会对应多个窗口）。当到达窗口发送的条件时（由`Trigger`控制），`Flink` 会对整个窗口中的数据进行处理。`Flink` 在聚合类窗口有一定的优化，即不会保存窗口中的所有值，而是每到一个元素执行一次聚合函数，最终只保存一份数据即可。
 
@@ -76,7 +76,7 @@ val result: DataStream[(MyType, AnotherType)] = firstInput.join(secondInput)
 ```
 上述 `JoinedStreams` 的样例代码在运行时会转换成如下的执行图：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E6%95%B0%E6%8D%AE%E6%B5%81%E7%B1%BB%E5%9E%8B%E4%B8%8E%E8%BD%AC%E6%8D%A2%E5%85%B3%E7%B3%BB-4.png?raw=true)
+![](img-flink-stream-dataflow-type-and-transformation-4.png)
 
 双流上的数据在同一个 `key` 的会被分别分配到同一个 `window` 窗口的左右两个篮子里，当 `window` 结束的时候，会对左右篮子进行笛卡尔积从而得到每一对 `pair`，对每一对 `pair` 应用 `JoinFunction`。不过目前（Flink 1.1.x） `JoinedStreams` 只是简单地实现了流上的 `join` 操作而已，距离真正的生产使用还是有些距离。因为目前 `join` 窗口的双流数据都是被缓存在内存中的，也就是说如果某个 `key` 上的窗口数据太多就会导致 `JVM OOM`（然而数据倾斜是常态）。双流 `join` 的难点也正是在这里，这也是社区后面对 `join` 操作的优化方向，例如可以借鉴 `Flink` 在批处理 `join` 中的优化方案，也可以用 `ManagedMemory` 来管理窗口中的数据，并当数据超过阈值时能spill到硬盘。
 
@@ -104,11 +104,10 @@ val result: DataStream[ResultType] =
 
 当并行度为2时，其执行图如下所示：
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/%E6%95%B0%E6%8D%AE%E6%B5%81%E7%B1%BB%E5%9E%8B%E4%B8%8E%E8%BD%AC%E6%8D%A2%E5%85%B3%E7%B3%BB-5.png?raw=true)
+![](img-flink-stream-dataflow-type-and-transformation-5.png)
 
 ### 6. 总结
 
-本文介绍通过不同数据流类型的转换图来解释每一种数据流的含义、转换关系。后面的文章会深入讲解 Window 机制的实现，双流 Join 的实现等。
-
+本文介绍通过不同数据流类型的转换图来解释每一种数据流的含义、转换关系。
 
 原文:http://wuchong.me/blog/2016/05/20/flink-internals-streams-and-operations-on-streams/

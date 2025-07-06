@@ -8,11 +8,11 @@ SELECT a, count(b) FROM dual GROUP BY a
 ```
 标准实现的计算方式如下所示：
 
-![](flink-sql-minibatch-hotspot-1.webp)
+![](img-flink-sql-minibatch-hotspot-1.webp)
 
 MiniBatch 实现的计算方式如下所示：
 
-![](flink-sql-minibatch-hotspot-2.webp)
+![](img-flink-sql-minibatch-hotspot-2.webp)
 
 ## 2. StateBackend 的 Batch 操作
 
@@ -26,7 +26,7 @@ MiniBatch 实现的计算方式如下所示：
 
 由于最终的 SQL 任务是一个 DAG，需要在 GroupBy 节点上分配时间使得整个任务的在攒数据上的延迟不超过该值，目前时间分配的策略是简单地做均分，一个可能的例子如下
 
-![](flink-sql-minibatch-hotspot-3.webp)
+![](img-flink-sql-minibatch-hotspot-3.webp)
 
 ## 4. 适用场景
 
@@ -35,6 +35,6 @@ MiniBatch 实现的计算方式如下所示：
 ## 5. 优化模型及后续
 
 - 从上可以看出现有的时间分配策略只是给了可行但不是最优的方案，Key 的分布更密集的节点不一定分配到了更多的时间。
-- 完整 MiniBatch 的优化需要通过 Key 的分布，source 节点输入速率， 节点处理能力等信息来计算每个节点的时间分配，在后续的版本中会结合 HotUpdate 功能做到动态调整，最大化发挥出 MiniBatch 的威力。
+- 完整 MiniBatch 的优化需要通过 Key 的分布，source 节点输入速率，节点处理能力等信息来计算每个节点的时间分配，在后续的版本中会结合 HotUpdate 功能做到动态调整，最大化发挥出 MiniBatch 的威力。
 
 原文：[Flink SQL 功能解密系列 —— 解决热点问题的大杀器MiniBatch](https://developer.aliyun.com/article/448853)

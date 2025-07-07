@@ -1,7 +1,7 @@
 ---
 layout: post
 author: wy
-title: Flink SQL 动态表的持续查询
+title: 原理解析 | 深入理解 Apache Flink SQL 动态表的持续查询
 date: 2021-08-16 22:34:01
 tags:
   - Flink
@@ -15,7 +15,7 @@ permalink: flink-sql-persistent-query-of-dynamic-table
 
 越来越多的公司采用流处理，并将现有的批处理应用程序迁移到流处理，或者采用流处理实现的解决方案。其中许多应用程序专注于流数据分析，分析的数据流来自各种数据源，例如，数据库事务、点击、传感器测量或 IoT 设备等。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-persistent-query-of-dynamic-table-1.png?raw=true)
+![](img-flink-sql-persistent-query-of-dynamic-table-1.png)
 
 Apache Flink 非常适合流分析应用程序，因为它支持事件时间语义、有状态的 Exactly-Once 处理语义，并同时实现了高吞吐量和低延迟。由于这些特性，Flink 能够近乎实时地从大量输入流中计算出准确以及确定性的结果，并能在出现故障时提供 Exactly-Once 处理语义。
 
@@ -74,11 +74,11 @@ val sqlResult: Table = tEnv.sql("""
 
 对于将数据发送到存储系统（例如 Kafka Topic、消息队列以及仅支持追加操作且不支持更新或删除的文件）的应用程序，当前版本的限制是可以接受的。遵循这种模式的常见用例，比如，连续 ETL 和流归档应用程序，它们将流进行持久化存档或为进一步的在线（流）分析或以后的离线分析准备数据。由于无法更新之前输出的结果，因此这些类型的应用程序必须确保输出的结果是正确的，并且将来不需要修改。下图说明了此类型的应用程序：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-persistent-query-of-dynamic-table-2.png?raw=true)
+![](img-flink-sql-persistent-query-of-dynamic-table-2.png)
 
 虽然仅支持追加的查询对某些类型的应用程序和存储系统很有用，但仍有许多流分析用例需要更新结果。包括不能丢弃迟到记录、需要（长时间运行的）窗口聚合的早期结果或需要非窗口聚合的流应用程序。在这每种情况下，之前输出的结果记录都需要更新。结果更新查询通常将其结果物化存储到外部数据库或键值存储上，以便外部应用程序可以访问和查询。实现此模式的应用程序，比如，仪表板、报告应用程序等，需要能及时访问持续更新的结果。下图说明了此类型的应用程序：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-persistent-query-of-dynamic-table-3.png?raw=true)
+![](img-flink-sql-persistent-query-of-dynamic-table-3.png)
 
 ### 3. 动态表的持续查询
 
@@ -86,7 +86,7 @@ val sqlResult: Table = tEnv.sql("""
 
 假设我们可以在动态表上运行查询并产生一个新的动态表，那么带来的下一个问题是，流和动态表如何相互关联？答案是流可以转换成动态表，动态表可以转换成流。下图展示了在流上处理关系查询的概念模型：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-persistent-query-of-dynamic-table-4.png?raw=true)
+![](img-flink-sql-persistent-query-of-dynamic-table-4.png)
 
 首先，将流转换为动态表。使用连续查询来查询动态表，这会产生一个新的动态表。最后，结果表被转换回流。需要注意的是，这只是逻辑模型，并不是查询的实际执行方式。事实上，一个连续查询在内部会被转换为一个常规的 DataStream 程序。
 
@@ -101,11 +101,11 @@ val sqlResult: Table = tEnv.sql("""
 
 在 Append 模式下，每个流记录都是对动态表的插入修改。因此，流的所有记录都追加到动态表中，使其不断增长并且大小无限制。下图说明了 Append 模式：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-persistent-query-of-dynamic-table-5.png?raw=true)
+![](img-flink-sql-persistent-query-of-dynamic-table-5.png)
 
 在 Update 模式下，流中的记录可以转换为对动态表的插入、更新或者删除修改（Append 模式实际上是一种特殊的 Update 模式）。当在流中通过 Update 模式定义一个动态表时，我们可以在表中指定一个唯一 Key 属性。在这种情况下，更新和删除操作都会与 Key 属性一起执行。Update 模式如下图所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-persistent-query-of-dynamic-table-6.png?raw=true)
+![](img-flink-sql-persistent-query-of-dynamic-table-6.png)
 
 #### 3.2 查询动态表
 
@@ -115,13 +115,13 @@ val sqlResult: Table = tEnv.sql("""
 
 在下图中，我们看到左侧的动态输入表 A（Append 模式）。在时间点 t=8，A 由 6 行数据（标记为蓝色）组成。在时间点 t=9 和 t=12，分别有一行数据追加到 A（分别用绿色和橙色标记）。我们在表 A 上运行一个简单查询，如图中间所示。这个查询根据属性 k 分组，并统计每组的记录数。在右侧，我们可以看到在时间点 t=8（蓝色）、t=9（绿色）以及 t=12（橙色）时查询 q 的结果。在每个时间点 t，结果表相当于在时间 t 对动态表 A 的一个批量查询：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-persistent-query-of-dynamic-table-7.png?raw=true)
+![](img-flink-sql-persistent-query-of-dynamic-table-7.png)
 
 此示例中的查询是一个简单的分组（不是窗口）聚合查询。因此，结果表的大小取决于输入表的不同分组 Key 的个数。此外，值得注意的是，查询会不断更新之前已经输出的结果行，而不仅仅是添加新行。
 
 第二个示例展示了一个类似的查询，但是有一个很重要的差异。除了对 Key 属性 k 进行分组之外，该查询还将记录分组到每 5 秒的滚动窗口中，这意味着每 5 秒钟为每个 k 计算一次总数。再一次，我们使用 Calcite 的[分组窗口函数](https://calcite.apache.org/docs/reference.html#grouped-window-functions)来指定这个查询。在图的左侧，我们看到输入表 A，以及在 Append 模式下随着时间而改变。在右侧，我们看到结果表，以及随着时间而发生的改变：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-persistent-query-of-dynamic-table-8.png?raw=true)
+![](img-flink-sql-persistent-query-of-dynamic-table-8.png)
 
 与第一个示例的结果不同的是，结果表随着时间而增长，即每五秒计算新的结果行（假设输入表在过去 5 秒内收到更多记录）。非窗口查询（大部分）更新结果表的行，而窗口聚合查询仅将新行追加到结果表。
 
@@ -135,13 +135,13 @@ val sqlResult: Table = tEnv.sql("""
 
 通过将表上的修改转换为流消息，可以将动态表转换为 REDO+UNDO 流。插入修改生成一个带有新行的插入消息输出，删除修改生成一个带有旧行的删除消息输出，更新修改生成一个带有旧行的删除消息以及一个带有新行的插入消息发输出，如下图所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-persistent-query-of-dynamic-table-9.png?raw=true)
+![](img-flink-sql-persistent-query-of-dynamic-table-9.png)
 
 左边展示了一个动态表，并以 Append 模式维护，并作为中间查询的输入表。查询结果转换为 REDO+UNDO 流，如底部所示。输入表的第一条记录 (1, A) 导致结果表中出现一条新记录，因此插入消息 +(A, 1) 到流中。k = 'A' 的第二条输入记录 (4, A) 导致结果表中的 (A, 1) 记录发生更新，因此产生一条删除消息 -(A, 1) 以及一条插入消息 +(A , 2)。所有下游算子或 Sink 都需要能够正确处理这两种类型的消息。
 
 在两种情况下，动态表会转换成 REDO 流：要么是仅追加表（即只有插入修改），要么具有唯一 Key 属性。动态表上的每次插入修改都会产生一条新行的插入消息到 REDO 流。由于 REDO 流的限制，只有具有唯一 Key 的表才能进行更新和删除修改。如果一个 Key 从 Keyed 动态表中删除，要么是因为行被删除，要么是因为行的 Key 属性被修改，带有删除 Key 的删除消息发送到 REDO 流。更新修改产生一个带有更新(即新行)的更新消息。由于删除和更新修改是针对唯一 Key 定义的，因此下游算子需要能够通过 Key 访问先前的值。下图展示了如何将上述相同查询的结果表转换为 REDO 流：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-persistent-query-of-dynamic-table-10.png?raw=true)
+![](img-flink-sql-persistent-query-of-dynamic-table-10.png)
 
 (1, A) 行插入到动态表中从而导致产生一条 +(A, 1) 的插入消息。(4, A) 行产生更新操作从而导致产生一条 *(A, 2) 的更新消息。
 
@@ -158,9 +158,5 @@ REDO 流的常见用例是将查询结果写入仅追加的存储系统中，例
 近几个月来，Flink 社区的许多成员一直在讨论和贡献关系API。 到目前为止，我们取得了很大的进步。 虽然大多数工作都专注于以附加模式处理流，但是日程上的下一步是处理动态表以支持更新其结果的查询。 如果您对使用SQL处理流程的想法感到兴奋，并希望为此做出贡献，请提供反馈，加入邮件列表中的讨论或获取JIRA 问题。
 
 Flink 关系 API 非常适合即时流分析应用程序，并在多种生产环境中使用。在这篇博文中，我们讨论了 Table API 和 SQL 的未来。这项工作会使更多的人来使用 Flink 和流处理。此外，查询历史和实时数据的统一语义以及查询和维护动态表的概念将支持并显着简化许多用例以及应用程序的实现。由于这篇文章关注的是流和动态表上关系查询语义，我们没有讨论查询如何执行的细节，包括撤回的内部实现、延迟事件的处理、对早期结果的支持以及边界空间要求。我们计划后面会发布有关此主题的博客文章。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文: http://flink.apache.org/news/2017/04/04/dynamic-tables.html

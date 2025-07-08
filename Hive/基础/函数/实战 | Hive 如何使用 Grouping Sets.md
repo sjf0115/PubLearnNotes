@@ -113,7 +113,7 @@ GROUPING SETS　会对 GROUP BY 子句中的列进行多维组合，结果整体
 
 具体看一个例子，假设 a 表中的数据如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-base-grouping-sets-1.png?raw=true)
+![](img-hive-base-grouping-sets-1.png)
 
 使用如下语句计算日期(dt)和操作系统(os)两个字段的不同组合的结果：
 ```sql
@@ -127,11 +127,11 @@ GROUPING SETS (
 ```
 如果 Hive 版本小于 2.3.0，输出结果如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-base-grouping-sets-2.png?raw=true)
+![](img-hive-base-grouping-sets-2.png)
 
 如果 Hive 版本大于 2.3.0，输出结果如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-base-grouping-sets-3.png?raw=true)
+![](img-hive-base-grouping-sets-3.png)
 
 从上面的输出结果中可以看出虽然都是 NULL，有可能表示的是本身值是 NULL，或者可能表示没有参数 GROUP BY 计算而置为 NULL。虽然从字面上没有办法看出其表示的含义，但是我们可以通过 GROUPING__ID 进行判断。以 Hive 大于 2.3.0 输出为例，蓝色的第一行中 dt 和 os 都是 NULL，但是通过 GROUPING__ID 等于 2（二进制位为 10）判断出 os 参与了 GROUP BY 计算，即 os 的 NULL 是本身值为 NULL，而 dt 的 NULL 是没有参与计算而置为 NULL。
 
@@ -175,7 +175,7 @@ GROUPING SETS (
 ```
 Hive 版本 >= 2.3.0 输出效果如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-base-grouping-sets-4.png?raw=true)
+![](img-hive-base-grouping-sets-4.png)
 
 ### 3. Grouping
 
@@ -195,7 +195,7 @@ GROUPING SETS (
 
 输出结果如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-base-grouping-sets-5.png?raw=true)
+![](img-hive-base-grouping-sets-5.png)
 
 > 2.3.4 版本
 
@@ -216,7 +216,7 @@ GROUPING SETS (
 
 效果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-base-grouping-sets-6.png?raw=true)
+![](img-hive-base-grouping-sets-6.png)
 
 > 2.3.4 版本
 

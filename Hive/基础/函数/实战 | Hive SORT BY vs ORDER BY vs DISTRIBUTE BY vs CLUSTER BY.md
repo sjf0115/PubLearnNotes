@@ -54,7 +54,7 @@ ORDER BY step DESC;
 ```
 运行结果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-by-order-distribute-cluster-1.png?raw=true)
+![](img-hive-sort-by-order-distribute-cluster-1.png)
 
 ORDER BY 子句有一些限制：
 在严格模式下，即 hive.mapred.mode = strict，ORDER BY 子句后面必须跟一个 LIMIT 子句。如果将 hive.mapred.mode 设置为 nonstrict，可以不用 LIMIT 子句。原因是为了实现所有数据的全局有序，只能使用一个 reducer 来对最终输出进行排序。如果输出中的行数太大，单个 Reducer 可能需要很长时间才能完成。如果在严格模式不指定 LIMIT 子句，会报如下错误：
@@ -89,7 +89,7 @@ SORT BY step;
 
 如上所示，我们设置了三个 Reducer，根据运动步数 step 进行 SORT BY（如果只有 1 个 Reducer，作用与 ORDER BY 一样实现全局排序）。运行结果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-by-order-distribute-cluster-2.png?raw=true)
+![](img-hive-sort-by-order-distribute-cluster-2.png)
 
 从上面输出中可以看到整体输出是无序的，无法判断单个 Reducer 内是否有序，为此我们将数据输出到文件中：
 ```sql
@@ -102,7 +102,7 @@ SORT BY step;
 ```
 因为我们设置了三个 Reducer，因此会有三个文件输出：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-by-order-distribute-cluster-3.png?raw=true)
+![](img-hive-sort-by-order-distribute-cluster-3.png)
 
 从上面可以看到每个 Reducer 的输出是有序的，但是全局并没有序。
 
@@ -117,7 +117,7 @@ DISTRIBUTE BY dt;
 ```
 运行结果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-by-order-distribute-cluster-4.png?raw=true)
+![](img-hive-sort-by-order-distribute-cluster-4.png)
 
 从上面输出中我们无法判断相同日期的数据是否分发到同一个 Reducer 内，为此我们将数据输出到文件中：
 ```sql
@@ -129,7 +129,7 @@ FROM tmp_sport_user_step_1d
 DISTRIBUTE BY dt;
 ```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-by-order-distribute-cluster-5.png?raw=true)
+![](img-hive-sort-by-order-distribute-cluster-5.png)
 
 从上面可以看到相同日期的数据分发到同一个 Reducer 内。那我们如何实现相同日期内的数据按照运动步数 step 降序排序呢？如下所示根据日期 dt 进行 DISTRIBUTE BY，运动步数 step 进行 SORT BY：
 ```sql
@@ -140,7 +140,7 @@ DISTRIBUTE BY dt SORT BY step DESC;
 ```
 运行结果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-by-order-distribute-cluster-6.png?raw=true)
+![](img-hive-sort-by-order-distribute-cluster-6.png)
 
 我们还是将数据输出到文件中，来查看数据是如何分布的：
 ```sql
@@ -152,7 +152,7 @@ FROM tmp_sport_user_step_1d
 DISTRIBUTE BY dt SORT BY step DESC;
 ```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-by-order-distribute-cluster-7.png?raw=true)
+![](img-hive-sort-by-order-distribute-cluster-7.png)
 
 从上面可以看到相同日期的数据分发到同一个 Reducer 内，并按照运动步数 step 降序排序。
 
@@ -167,7 +167,7 @@ CLUSTER BY step;
 ```
 运行结果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-by-order-distribute-cluster-8.png?raw=true)
+![](img-hive-sort-by-order-distribute-cluster-8.png)
 
 我们还是将数据输出到文件中，来查看数据是如何分布的：
 ```sql
@@ -179,13 +179,9 @@ FROM tmp_sport_user_step_1d
 CLUSTER BY step;
 ```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-sort-by-order-distribute-cluster-9.png?raw=true)
+![](img-hive-sort-by-order-distribute-cluster-9.png)
 
 从上面可以看到相同运动步数 step 的数据分发到同一个 Reducer 内，并按照其升序排序。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 参考：
 - https://cwiki.apache.org/confluence/display/Hive/LanguageManual+SortBy#LanguageManualSortBy-SyntaxofOrderBy

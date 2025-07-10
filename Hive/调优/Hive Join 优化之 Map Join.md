@@ -14,7 +14,7 @@ permalink: hive-optimization-how-to-use-map-join
 
 首先，让我们讨论一下 Join 如何在 Hive 中运行。Common Join 操作如下图所示被编译为 MapReduce 任务。Common Join 任务涉及 Map 阶段和 Reduce 阶段。Mapper 从 Join 表中读取数据并将 Join 的 key 和 value 以键值对形式输出到中间文件中。Hadoop 在 Shuffle 阶段对这些键值对进行排序和合并。Reducer 将排序结果作为输入，并进行 Join。因为在 Shuffle 阶段需要排序和合并，因此代价非常昂贵。减少 Shuffle 和 Reduce 阶段的代价可以提高任务性能。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-optimization-how-to-use-map-join-1.jpg?raw=true)
+![](img-hive-optimization-how-to-use-map-join-1.jpg)
 
 Map Join 的目的是减少 Shuffle 和 Reducer 阶段的代价，并仅在 Map 阶段进行 Join。当其中一个 Join 表足够小可以装进内存时，所有 Mapper 都可以将数据保存在内存中并完成 Join。因此，所有 Join 操作都可以在 Mapper 阶段完成。但是，这种类型的 Map Join 存在一些扩展问题。当成千上万个 Mapper 同时从 HDFS 将小的 Join 表读入内存时，Join 表很容易成为性能瓶颈，导致 Mapper 在读取操作期间超时。
 
@@ -22,7 +22,7 @@ Map Join 的目的是减少 Shuffle 和 Reducer 阶段的代价，并仅在 Map 
 
 [Hive-1641](https://issues.apache.org/jira/browse/HIVE-1641) 解决了这个扩展问题。优化的基本思想是在原始 Join 的 MapReduce 任务之前创建一个新的 MapReduce 本地任务。这个新任务是将小表数据从 HDFS 上读取到内存中的哈希表中。读完后，将内存中的哈希表序列化为哈希表文件。在下一阶段，当 MapReduce 任务启动时，会将这个哈希表文件上传到 Hadoop 分布式缓存中，该缓存会将这些文件发送到每个 Mapper 的本地磁盘上。因此，所有 Mapper 都可以将此持久化的哈希表文件加载回内存，并像之前一样进行 Join。优化的 Map Join 的执行流程如下图所示。优化后，小表只需要读取一次。此外，如果多个 Mapper 在同一台机器上运行，则分布式缓存只需将哈希表文件的一个副本发送到这台机器上。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-optimization-how-to-use-map-join-2.jpg?raw=true)
+![](img-hive-optimization-how-to-use-map-join-2.jpg)
 
 
 由于 Map Join 比 Common Join 更快，因此最好尽可能运行 Map Join。以前，Hive用户需要在查询中给出提示来指定哪一个是小表。例如：
@@ -38,7 +38,7 @@ ON x.key = y.key;。
 
 [Hive-1642](https://issues.apache.org/jira/browse/HIVE-1642) 通过自动将 Common Join 转换为 Map Join 来解决此问题。对于 Map Join，查询处理器知道哪个输入表是大表，哪些是小表，并将这些小表保存在内存中。然而，查询处理器在编译时不知道输入文件大小，因为一些表可能是从子查询生成的中间表。因此查询处理器只能在执行期间计算出输入文件的大小。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-optimization-how-to-use-map-join-3.jpg?raw=true)
+![](img-hive-optimization-how-to-use-map-join-3.jpg)
 
 如上图所示，左侧流程展示了之前 Common Join 的执行流程，这非常简单。右侧流程是新的 Common Join 执行流程。在编译期间，查询处理器生成一个包含任务列表的 Conditional Task。在执行期间运行其中一个任务。首先，应将原始的 Common Join 任务放入任务列表中。然后，查询处理器通过假设每个输入表可能是大表来生成一系列的 Map Join 任务。例如，`select * from src1 x join src2 y on x.key=y.key`。因为表 src2 和 src1 都可以是大表，所以处理器生成两个 Map Join 任务，其中一个假设 src1 是大表，另一个假设 src2 是大表。
 
@@ -83,6 +83,6 @@ Hadoop job information for Stage-3: number of mappers: 789; number of reducers: 
 
 欢迎关注我的公众号和博客：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg)
 
 原文：https://www.facebook.com/note.php?note_id=470667928919

@@ -52,7 +52,7 @@
 - [x] [Apache Flink 进阶教程（三）：Checkpoint 的应用实践](https://flink-learning.org.cn/article/detail/3f84e0426f07485a813e5fd9730fc82e)
 - [x] [Flink Checkpoint 问题排查实用指南](https://flink-learning.org.cn/article/detail/be37daf81aef8b3ea3b87f56568c6b6b)
 - [x] [Flink Checkpoint 原理流程以及常见失败原因分析](https://mp.weixin.qq.com/s/fBm4hdEpVWhmLbw6whZ35g)
-- [ ] [Flink 1.11 Unaligned Checkpoint 解析](https://mp.weixin.qq.com/s/AThpnvtJsAmI8Fhs8wVuLg)
+- [x] [Flink 1.11 Unaligned Checkpoint 解析](https://mp.weixin.qq.com/s/AThpnvtJsAmI8Fhs8wVuLg)
 - [ ] [FLIP-147: Support Checkpoints After Tasks Finished - Part One](https://flink.apache.org/2022/07/11/final-checkpoint-part1.html)
 - [ ] [FLIP-147: Support Checkpoints After Tasks Finished - Part Two](https://flink.apache.org/2022/07/11/final-checkpoint-part2.html)
 - [ ] [Improving speed and stability of checkpointing with generic log-based incremental checkpoints](https://flink.apache.org/2022/05/30/changelog-state-backend.html)

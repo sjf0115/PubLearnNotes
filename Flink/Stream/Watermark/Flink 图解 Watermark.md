@@ -38,11 +38,11 @@ senv.execute("ProcessingTime processing example")
 
 假设数据源分别在第13秒产生两个类型a的消息以及在第16秒产生一个。(小时和分钟不重要，因为窗口大小只有10秒)。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-graphic-watermark-0.png?raw=true)
+![](img-flink-stream-graphic-watermark-0.png)
 
 这些消息将落入如下所示窗口中。前两个在第13秒产生的消息将落入窗口1`[5s-15s]`和窗口2`[10s-20s]`中，第三个在第16秒产生的消息将落入窗口2`[10s-20s]`和窗口3`[15s-25s]`中。最终每个窗口得到的计数分别为(a，2)，(a，3)和(a，1)。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-graphic-watermark-2.png?raw=true)
+![](img-flink-stream-graphic-watermark-2.png)
 
 上面的输出跟预期是一样的。现在我们看看当一个消息延迟到达系统时会发生什么。
 
@@ -50,7 +50,7 @@ senv.execute("ProcessingTime processing example")
 
 现在假设其中一条消息(在第13秒产生)可能由于网络问题延迟6秒(第19秒到达)。你能猜测出这个消息会落入哪个窗口？
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-graphic-watermark-3.png?raw=true)
+![](img-flink-stream-graphic-watermark-3.png)
 
 延迟的消息落入窗口2和窗口3中，因为 19 在 10-20 和 15-25 之间。窗口2的计算没有任何问题(因为消息本应该落入这个窗口)，但是它影响了窗口1和窗口3的计算结果。现在我们将尝试使用基于事件时间处理来解决这个问题。
 
@@ -84,7 +84,7 @@ senv.execute("EventTime processing example")
 ```
 运行上述代码的结果如下图所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-graphic-watermark-4.png?raw=true)
+![](img-flink-stream-graphic-watermark-4.png)
 
 结果看起来更好一些，窗口2和3现在是正确的结果，但是窗口1仍然是有问题的。Flink没有将延迟的消息分配给窗口3，是因为在当前检查消息的事件时间，知道它不应该出现在窗口3中。但是为什么没有将消息分配给窗口1？原因是当延迟的信息到达系统时(第19秒)，窗口1的计算已经完成了(第15秒)。现在让我们尝试通过使用`Watermark`来解决这个问题。
 
@@ -103,7 +103,7 @@ override def getCurrentWatermark(): Watermark = {
 
 进行上述更改后运行代码的结果是：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-graphic-watermark-5.png?raw=true)
+![](img-flink-stream-graphic-watermark-5.png)
 
 最后我们得到了正确的结果，所有窗口都按照预期输出计数，(a，2)，(a，3)和(a，1)。
 

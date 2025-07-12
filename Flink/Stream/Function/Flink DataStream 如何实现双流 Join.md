@@ -39,7 +39,7 @@ stream.join(otherStream)
 
 当在滚动窗口上进行 Join 时，所有有相同 Key 并且位于同一滚动窗口中的两条流的元素两两组合进行关联，并最终传递到 JoinFunction 或 FlatJoinFunction 进行处理。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-1.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-1.png)
 
 如上图所示，我们定义了一个大小为 2 秒的滚动窗口，最终产生 [0,1]，[2,3]，... 这种形式的数据。上图显示了每个窗口中橘色流和绿色流的所有元素成对组合。需要注意的是，在滚动窗口 [6,7] 中，由于绿色流中不存在要与橘色流中元素 6、7 相关联的元素，因此该窗口不会输出任何内容。
 
@@ -139,13 +139,13 @@ key,9,2021-03-26 12:09:09
 ```
 Join 效果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-2.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-2.png)
 
 #### 1.2 滑动窗口Join
 
 当在滑动窗口上进行 Join 时，所有有相同 Key 并且位于同一滑动窗口中的两条流的元素两两组合进行关联，并最终传递到 JoinFunction 或 FlatJoinFunction 进行处理。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-3.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-3.png)
 
 如上图所示，我们定义了一个窗口大小为 2 秒、滑动步长为 1 秒的滑动窗口。需要注意的是，一个元素可能会落在不同的窗口中，因此会在不同窗口中发生关联，例如，绿色流中的0元素。当滑动窗口中一个流的元素在另一个流中没有相对应的元素，则不会输出该元素。
 
@@ -185,13 +185,13 @@ key,9,2021-03-26 12:09:09
 ```
 Join 效果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-4.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-4.png)
 
 #### 1.3 会话窗口Join
 
 当在会话窗口上进行 Join 时，所有有相同 Key 并且位于同一会话窗口中的两条流的元素两两组合进行关联，并最终传递到 JoinFunction 或 FlatJoinFunction 进行处理。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-5.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-5.png)
 
 如上图所示，我们定义了一个会话窗口，其中每个会话之间的间隔至少为1秒。上图中一共有三个会话，在前两个会话中，两个流中的元素两两组合传递给 JoinFunction。在第三个会话中，绿色流中没有元素，因此元素 8 和 9 不会发生Join。
 
@@ -232,7 +232,7 @@ key,11,2021-03-26 12:09:11
 ```
 Join 效果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-6.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-6.png)
 
 ### 2. CoGroup
 
@@ -255,7 +255,7 @@ stream.coGroup(otherStream)
 
 下面我们看一下如何使用 CoGroup 实现内连接：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-7.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-7.png)
 
 如上图所示，我们定义了一个大小为 2 秒的滚动窗口。InnerJoin 只有在两个流对应窗口中都存在元素时，才会输出。
 
@@ -325,13 +325,13 @@ key,11,2021-03-26 12:09:11
 ```
 Join 效果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-8.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-8.png)
 
 #### 2.2 LeftJoin
 
 下面我们看一下如何使用 CoGroup 实现左连接：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-9.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-9.png)
 
 如上图所示，我们定义了一个大小为 2 秒的滚动窗口。LeftJoin 只要绿色流窗口中有元素时，就会输出。即使在橘色流对应窗口中没有相对应的元素。
 
@@ -386,13 +386,13 @@ private static class LeftJoinFunction implements CoGroupFunction<Tuple3<String, 
 
 如上代码所示，我们实现了 CoGroupFunction 接口，重写 coGroup 方法。一个流中有相同 Key 并且位于同一窗口的元素都会保存在同一个迭代器(Iterable)，本示例中绿色流为 greenIterable，橘色流为 orangeIterable，如果要实现 LeftJoin ，需要保证 orangeIterable 中没有元素，greenIterable 中的元素也能输出。因此我们定义了一个 noElements 变量来判断 orangeIterable 是否有元素，如果 orangeIterable 中没有元素，单独输出 greenIterable 中的元素即可。Join 效果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-10.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-10.png)
 
 #### 2.3 RightJoin
 
 下面我们看一下如何使用 CoGroup 实现右连接：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-11.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-11.png)
 
 如上图所示，我们定义了一个大小为 2 秒的滚动窗口。LeftJoin 只要橘色流窗口中有元素时，就会输出。即使在绿色流对应窗口中没有相对应的元素。
 
@@ -447,7 +447,7 @@ private static class RightJoinFunction implements CoGroupFunction<Tuple3<String,
 
 如上代码所示，我们实现了 CoGroupFunction 接口，重写 coGroup 方法。一个流中有相同 Key 并且位于同一窗口的元素都会保存在同一个迭代器(Iterable)，本示例中绿色流为 greenIterable，橘色流为 orangeIterable，如果要实现 RightJoin，实现原理跟 LeftJoin 一样，需要保证 greenIterable 中没有元素，orangeIterable 中的元素也能输出。因此我们定义了一个 noElements 变量来判断 greenIterable 是否有元素，如果 greenIterable 中没有元素，单独输出 orangeIterable 中的元素即可。Join 效果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-12.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-12.png)
 
 ### 3. Interval Join
 
@@ -459,7 +459,7 @@ b.timestamp ∈ [a.timestamp + lowerBound, a.timestamp + upperBound]
 ```
 a.timestamp + lowerBound <= b.timestamp <= a.timestamp + upperBound
 ```
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-13.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-13.png)
 
 > 其中a和b分别是上图中绿色流和橘色流中的元素，并且有相同的 key。只需要保证 lowerBound 永远小于等于 upperBound 即可，均可以为正数或者负数。
 
@@ -577,10 +577,10 @@ c,7,2021-03-23 12:09:07
 ```
 Join 效果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/two-stream-join-with-datastream-in-flink-14.png?raw=true)
+![](img-two-stream-join-with-datastream-in-flink-14.png)
 
 推荐订阅：
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-jk.jpeg?raw=true)
+![](img-flink-jk.jpeg)
 
 参考:
 - [Joining](https://ci.apache.org/projects/flink/flink-docs-release-1.12/dev/stream/operators/joining.html)

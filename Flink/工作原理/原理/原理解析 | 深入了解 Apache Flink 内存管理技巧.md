@@ -25,7 +25,7 @@ permalink: flink-batch-internals-memory-management-juggling
 
 Apache Flink 源于一个研究项目，旨在整合基于 MapReduce 的系统和并行数据库系统最优技术。从这个背景来看，Flink 一直有自己处理内存数据的方式。Flink 没有将大量对象存放在堆上，而是将对象序列化到固定数量预分配的内存段上。其 DBMS 风格的排序和 Join 算法尽可能的在二进制数据上进行，以实现序列化/反序列化的最低开销。如果有更多的数据需要处理不能保存在内存中，Flink 算子会将部分数据溢写到磁盘上。事实上，很多 Flink 的内部实现看起来更像 C/C++ 而不像 Java。下图给出了 Flink 如何将序列化的数据存储在内存段中并在必要时将数据溢出到磁盘上：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-batch-internals-memory-management-juggling-1.png?raw=true)
+![](img-flink-batch-internals-memory-management-juggling-1.png)
 
 Flink 主动内存管理以及直接二进制数据操作的风格有以下几个好处：
 - 内存安全执行与高效的非核心算法。由于分配固定数量的内存段，监控剩余的内存资源是非常简单的。在内存不足的情况下，处理算子可以高效地将大批量的内存段写入磁盘，之后再读回来。因此，可以有效地防止 OutOfMemoryErrors。
@@ -45,7 +45,7 @@ MemoryManager 负责内存分配、汇总以及分配 MemorySegments 给数据�
 
 MemorySegments 在 TaskManager 启动时分配一次，并在 TaskManager 关闭时销毁。因此，在 TaskManager 的整个生命周期内可以被复用而不被垃圾回收。在 TaskManager 所有内部数据结构完成初始化并且所有核心服务启动后，MemoryManager 才开始创建 MemorySegments。默认情况下，服务初始化后可用 JVM 堆的 70％ 由 MemoryManager 分配。也可以配置具体数量的管理内存（例如，多少MB）。剩余的 JVM 堆用于在任务处理期间实例化的对象，包括由用户自定义函数创建的对象。下图显示了启动 TaskManager 后 JVM 中的内存分配情况：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-batch-internals-memory-management-juggling-2.png?raw=true)
+![](img-flink-batch-internals-memory-management-juggling-2.png)
 
 ### 4. Flink 如何序列化对象？
 
@@ -63,13 +63,14 @@ Flink 程序可以处理任意 Java 或 Scala 对象表示的数据。在优化�
 每个 TypeInformation 都会为它表示的数据类型提供一个序列化器。例如，BasicTypeInfo 返回一个写对应基本类型的序列化器，WritableTypeInfo 的序列化器将序列化/反序列化委派给实现 Hadoop Writable 接口对象的 write()和 readFields()方法，GenericTypeInfo 返回一个将序列化委托给 Kryo 的序列化器。对象序列化到 DataOutput (由 Flink MemorySegments 支持) 通过 Java 高效的 unsafe 操作自动进行。对于可用作 Key 的数据类型，即可以进行比较和 Hash 的，TypeInformation 提供了 TypeComparator。TypeComparator 进行比较和 Hash 对象，并且根据具体的数据类型还可以有效的比较二进制数据并提取定长的二进制键前缀。
 
 元组，Pojo 和 CaseClass 类型是复合类型，即含有一个或多个可能嵌套数据类型的容器。因此，它们的序列化器和比较器也是复合的，并将其成员数据类型的序列化和比较委托给相应的序列化器和比较器。下图说明了一个（嵌套的）Tuple3 <Integer，Double，Person> 对象的序列化，其中 Person 是 POJO，定义如下：
-java
+```java
 public class Person {
     public int id;
     public String name;
 }
+```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-batch-internals-memory-management-juggling-3.png?raw=true)
+![](img-flink-batch-internals-memory-management-juggling-3.png)
 
 Flink的类型系统可以通过提供自定义的 TypeInformations， Serializer 和 Comparators 来扩展，以提高序列化和比较自定义数据类型的性能。
 
@@ -79,15 +80,15 @@ Flink的类型系统可以通过提供自定义的 TypeInformations， Serialize
 
 Flink为其数据处理算子分配内存预算。初始化后，排序算法从 MemoryManager 请求其内存预算并接收相应的一组 MemorySegments。MemorySegments 集合成为所谓排序缓冲区的内存池，用于收集要排序的数据。下图说明了如何将数据对象序列化到排序缓冲区中。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-batch-internals-memory-management-juggling-4.png?raw=true)
+![](img-flink-batch-internals-memory-management-juggling-4.png)
 
 排序缓冲区内部由两个内存区域组成。第一个区域保存所有对象的完整二进制数据。第二个区域包含指向完整二进制对象数据的指针和定长的排序键(取决于键的数据类型)。当一个对象被添加到排序缓冲区时，它的二进制数据被追加到第一个区域，并且生成一个指针（可能还有一个键）追加到第二个区域。将实际数据与指针加定长键分离主要为了两个目的。它可以有效地交换定长条目（键+指针），并且还减少了排序时需要移动的数据。如果排序键是可变长度的数据类型（例如 String），那么定长排序键必须是键的前缀，例如字符串的前n个字符。请注意，并非所有数据类型都提供定长（前缀）排序键。将对象序列化到排序缓冲区时，两个内存区域都会使用内存池中的 MemorySegments 进行扩展。一旦内存池为空，并且不能添加更多对象，那么排序缓冲区将被完全填满并可以排序。Flink的排序缓冲区提供了比较和交换元素的方法。这使得在实际上排序算法可插拔。默认情况下，Flink使用Quicksort的实现。下图显示了两个对象的比较。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-batch-internals-memory-management-juggling-5.png?raw=true)
+![](img-flink-batch-internals-memory-management-juggling-5.png)
 
 排序缓冲区通过比较它们的二进制定长排序键来比较两个元素。如果在完整键（而不是前缀键）上进行比较，或者二进制前缀键不相等，则比较成功。如果前缀键是相同的（或者排序键数据类型不提供二进制前缀键），排序缓冲区将遵循指向实际对象数据的指针，对两个对象进行反序列化并比较对象。根据比较结果，排序算法决定是否交换比较的元素。排序缓冲区通过移动它们的定长键和指针来交换两个元素。实际的数据不会被移动。一旦排序算法完成，排序缓冲区中的指针就会正确排序。下图显示了如何从排序缓冲区中返回排序后的数据。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-batch-internals-memory-management-juggling-6.png?raw=true)
+![](img-flink-batch-internals-memory-management-juggling-6.png)
 
 排序后的数据通过顺序读取排序缓冲区的指针区域，跳过排序键并按照排序后的指针找到实际数据来返回。这些数据被反序列化并作为对象返回，或者在外部合并排序的情况下将二进制表示复制并写入磁盘（有关Flink中的联接，请参阅此[博客文章](http://flink.apache.org/news/2015/03/13/peeking-into-Apache-Flinks-Engine-Room.html)）。
 

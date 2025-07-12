@@ -18,7 +18,7 @@ permalink: how-apache-flink-enables-new-streaming-applications-part-2
 
 流处理可以分为无状态处理和有状态处理。无状态流处理应用仅是接收事件，然后基于接收的单个事件的信息产生某种响应(例如，报警或事件转换)。因此，没有"记忆"或聚合能力。但是在许多场景下还是有用的(例如，过滤，简单的转换)，许多有趣的流处理应用，例如基于时间窗口的聚合，复杂事件处理，多事件的模式匹配，以及事务处理都是有状态的。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-apache-flink-enables-new-streaming-applications-part-2-1.png?raw=true)
+![](img-how-apache-flink-enables-new-streaming-applications-part-2-1.png)
 
 早期的流处理系统，如 Apache Storm(使用 core API)不支持状态(Storm Trident，Storm 通过附带的库来支持状态)。Storm 程序可以在 Bolts 上定义 Java 对象来保存状态，与外部数据库和键/值存储系统进行交互，但是出现故障的时候，系统并不能提供状态的正确性保证，可能退回到 At-Least-Once 语义(数据重复)，或 At-Most-Once 语义(数据丢失)。这种缺乏准确性保证，再加上无法处理大数据流(高吞吐量)，使得必须使用像 Lambda 这样的混合解决方案。Flink 代表了新一代的流处理系统，并保证了状态的正确性，使得有状态的应用变得更加容易实现。在 Flink 程序中，你可以使用如下方式定义状态：
 - 使用 Flink 的窗口转换操作，你可以定义基于事件时间或处理时间的时间窗口，计数窗口以及自定义窗口。请参阅[这里](http://flink.apache.org/news/2015/12/04/Introducing-windows.html)了解 Flink 窗口的简短介绍。
@@ -43,11 +43,11 @@ flink run -s pathToSavePoint jobJar
 ```
 使用保存点，不必从头开始重新读取事件流以重新填充 Flink 作业的状态，因为你可以随时获取一致性快照并从该检查点恢复。另外，当日志保留期限有限时，定期保存状态是非常有用的，因为日志不能从头开始读取。另一种理解保存点的方式是在定义好的时间点保存应用程序状态的版本，类似于使用 git 等版本控制系统来保存应用程序的版本。最简单的例子是在修改应用程序代码的同时以一定时间间隔获取快照：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-apache-flink-enables-new-streaming-applications-part-2-2.png?raw=true)
+![](img-how-apache-flink-enables-new-streaming-applications-part-2-2.png)
 
 更重要的是，你可以从多个保存点分支出来，创建一个应用程序版本树：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-apache-flink-enables-new-streaming-applications-part-2-3.png?raw=true)
+![](img-how-apache-flink-enables-new-streaming-applications-part-2-3.png)
 
 这里，时间 t1 和 t2 分别在正在运行的作业 v0 上生成两个保存点，创建版本 v0t1 和 v0t2。他们都可以用来恢复作业。举个例子，利用 t1 时间点的保存点，我们使用修改了的应用程序代码来恢复作业，创建 v1 作业。在时间 t3 和 t4，分别从版本 v0 和 v1 获取更多的保存点。保存点可用于解决流式作业线上各种问题：
 - 应用程序代码升级：假设你在已经运行的应用程序中发现了一个 bug，希望未来的事件能够使用修改错误后的代码来处理。通过获取作业的保存点，使用新的代码从该保存点重新启动，下游应用程序看不到任何差异。

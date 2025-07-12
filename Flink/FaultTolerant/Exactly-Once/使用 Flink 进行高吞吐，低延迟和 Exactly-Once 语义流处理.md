@@ -10,7 +10,7 @@ tags:
 categories: Flink
 permalink: high-throughput-low-latency-and-exactly-once-stream-processing-with-apache-flink
 ---
-
+  
 
 在本文中，我们将深入探讨Flink新颖的检查点机制是如何工作的，以及它是如何取代旧架构以实现流容错和恢复。我们在各种类型的流处理应用程序上对Flink性能进行测试，并通过在Apache Storm（一种广泛使用的低延迟流处理器）上运行相同的实验来进行对比。
 

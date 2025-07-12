@@ -32,11 +32,11 @@ permalink: how-apache-flink-enables-new-streaming-applications-part-1
 
 这样产生的影响是事件在队列中相对于事件时间通常是无序的。此外，事件产生的时间戳与其到达队列或流处理器时间的差异随着时间而发生变化。这通常被称为事件时间偏差，并被定义为 '处理时间 - 事件时间'。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-apache-flink-enables-new-streaming-applications-part-1-3.png?raw=true)
+![](img-how-apache-flink-enables-new-streaming-applications-part-1-3.png)
 
 Flink 允许用户定义基于事件时间的窗口，而不是处理时间。这样的窗口不会轻易被乱序事件和不同事件时间偏差而影响。Flink 使用事件时间时钟来追踪事件时间，并通过 Watermark 来实现。Watermark 是 Flink 数据源生成的一种特殊事件，可以粗略地评估事件时间。时间为 T 的 Watermark 表示事件时间在该流(或分区)上已经处理到时间 T，这意味着不会再有时间戳小于 T 的事件到达了。Flink 算子可以根据这个时钟跟踪事件时间。下图展示了 Flink 如何基于事件时间来计算窗口。观察到的会有多个窗口在同时运行（当出现乱序时），并根据事件时间戳把事件分配给对应的窗口。在 Watermark 到达时会触发窗口计算并更新事件时钟。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-apache-flink-enables-new-streaming-applications-part-1-2.png?raw=true)
+![](img-how-apache-flink-enables-new-streaming-applications-part-1-2.png)
 
 基于事件时间的管道会尽可能快的产生精确的结果(一旦事件时间到达指定时间)，但必要的时候尽可能的延迟一些时间，把相关事件尽可能的都包含进来。与使用批处理器周期性计算聚合相比，流式事件时间管道可以提前产生更精确的结果(因为批处理管道不能正确处理跨批次的乱序事件)。最后，流式作业简单而明确地描述了如何根据时间(窗口)对元素进行分组，如何及时评估必要的进度（Watermark），而不是像批处理其通过滚动接收文件、批量作业以及定期作业调度程序实现。
 
@@ -47,7 +47,7 @@ Flink 允许用户定义基于事件时间的窗口，而不是处理时间。�
 - 基于处理时间窗口的实时仪表板，每隔几秒就对事件进行聚合和计数。
 - 根据事件时间准确统计。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-apache-flink-enables-new-streaming-applications-part-1-4.png?raw=true)
+![](img-how-apache-flink-enables-new-streaming-applications-part-1-4.png)
 
 整合事件时间和处理时间的另一种方式是定义具有提前输出结果以及最大延迟的事件时间窗口：
 - 事件时间窗口可以自定义一个滞后于处理时间的最大延迟。例如，一个事件时间窗口将在事件时间 10：15h 关闭，可以自定义在处理时间内不晚于 10：20h 关闭。
@@ -57,7 +57,7 @@ Flink 允许用户定义基于事件时间的窗口，而不是处理时间。�
 
 现在，我们深入了解 Flink 时间处理的机制，以及这些机制与旧式流式处理系统有什么不同之处。一般来说，时间使用时钟度量的。流式作业集群机器的内部时钟是最简单的时钟(称为挂钟)，时钟可以记录处理时间。为了追踪事件时间，我们需要一个时钟来度量不同机器上的同一时间。这可以通过 Flink 的 Watermark 机制来完成。Watermark 是一种特殊事件，表示指事件流中的时间(即事件流中的真实世界时间戳)到达了一个特定时间点(例如，10am)，并且从现在起不会有早于上午 10 点时间戳的事件到达。这些 Watermark 作为数据流的一部分与常规事件一起流转，Flink 算子一旦从所有上游算子/数据源接收到 10am 的 Watermark，就将其事件时间提至上午10点。需要注意的是，基于事件时钟追踪时间比挂钟粒度更粗，但更为正确，因为它在机器间保持一致。第三种类型的时钟(我们称之为系统时钟)被流处理系统用于内部记账，最重要的是能保证一致的语义("精确一次处理")。Flink 通过向数据流注入栅栏 Barriers 并生成一致性快照来跟踪作业的进度。Barriers 类似于 Watermark，都是流经数据流的事件。不同之处在于 Barriers 不是由真实世界的数据源产生的，而是根据 Flink Master 的挂钟度量的。类似地，Spark Streaming 基于 Spark 的接收器的挂钟调度微批次。Flink 的快照机制和 Spark 的微批处理机制都是系统时钟的例子，这是一种追踪计算时间(以及进度)的方法。如下展示了假设我们"冻结"计算下不同时钟度量的不同的时间:
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-apache-flink-enables-new-streaming-applications-part-1-1.png?raw=true)
+![](img-how-apache-flink-enables-new-streaming-applications-part-1-1.png)
 
 从上面可以看出，作业由一个数据源和一个窗口算子组成，在两台机器上(worker 1 和 worker 2)上并行执行。事件中的数字表示时间戳，框的颜色表示进入不同的窗口中(灰色事件进入窗口1，紫色事件进入窗口2)。数据源从消息队列中读取事件，根据 key 进行分区，并将它们分发到正确的窗口算子实例中。这里的窗口是基于事件时间的时间窗口。我们看到，由于机器间时间不同步，不同机器(worker 1，worker 2 和 master)上在同一时刻的挂钟度量成了不同的时间(分别为 10、8 以及 7，假设时间从 0 开始)。
 

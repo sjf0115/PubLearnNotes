@@ -35,21 +35,21 @@ Flink 1.9 中保留了 5 个 TableEnvironment，在实现上是 5 个面向用�
 
 结合文件的路径，梳理这 5 个接口，我们会发现 TableEnvironment 是顶级接口，是所有 TableEnvironment 的基类 ，BatchTableEnvironment 和 StreamTableEnvironment 都提供了 Java 实现和 Scala 实现 ，分别有两个接口。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-to-choose-table-environment-of-flink-sql-1.jpeg?raw=true)
+![](img-how-to-choose-table-environment-of-flink-sql-1.jpeg)
 
 其中，TableEnvironment 作为统一的接口，其统一性体现在两个方面，一是对于所有基于 JVM 的语言(即 Scala API 和 Java API 之间没有区别)是统一的；二是对于 unbounded data （无界数据，即流数据） 和 bounded data （有界数据，即批数据）的处理是统一的。TableEnvironment 提供的是一个纯 Table 生态的上下文环境，适用于整个作业都使用 Table API & SQL 编写程序的场景。TableEnvironment 目前还不支持注册 UDTF 和 UDAF，用户有注册 UDTF 和 UDAF 的需求时，可以选择使用其他 TableEnvironment。
 
-两个 StreamTableEnvironment 分别用于 Java 的流计算和 Scala 的流计算场景，流计算的对象分别是 Java 的 DataStream  和 Scala 的 DataStream。相比 TableEnvironment，StreamTableEnvironment 提供了 DataStream 和 Table 之间相互转换的接口，如果用户的程序除了使用 Table API & SQL 编写外，还需要使用到 DataStream API，则需要使用 StreamTableEnvironment。    
+两个 StreamTableEnvironment 分别用于 Java 的流计算和 Scala 的流计算场景，流计算的对象分别是 Java 的 DataStream 和 Scala 的 DataStream。相比 TableEnvironment，StreamTableEnvironment 提供了 DataStream 和 Table 之间相互转换的接口，如果用户的程序除了使用 Table API & SQL 编写外，还需要使用到 DataStream API，则需要使用 StreamTableEnvironment。    
 
 两个 BatchTableEnvironment 分别用于 Java 的批处理场景和 Scala 的批处理场景，批处理的对象分别是 Java 的 DataSet 和 Scala 的 DataSet。相比 TableEnvironment，BatchTableEnvironment 提供了 DataSet 和 Table 之间相互转换的接口，如果用户的程序除了使用 Table API & SQL 编写外，还需要使用到 DataSet API，则需要使用 BatchTableEnvironment。    
 
 从这五个 TableEnvironment 支持的作业类型 ( Stream 作业和 Batch 作业)，支持的 API 类型（DataStream API 和 DataSet API)，以及对 UDTF/UDAF 的支持这 5 个方面进行对比，各个TableEnvironment 支持的功能可以归纳如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-to-choose-table-environment-of-flink-sql-2.jpeg?raw=true)
+![](img-how-to-choose-table-environment-of-flink-sql-2.jpeg)
 
-可能大家会疑惑为什么在 API 需要区分 Java 和 Scala 的两个 StreamTableEnvironment（或BatchTableEnvironment ），使用的 DataStream也分为 Java DataStream 和 Scala DataStream。原因主要是 TableEnvironment 的 registerTableFunction 方法（用于注册UDTF） 和 registerAggregateFunction 方法（用户注册UDAF） 需要抽取泛型，而现有的 Java 泛型抽取和 Scala 的泛型抽取机制是不一样的，Java 的抽取是通过反射机制 实现，而 Scala 是通过 Scala macro 实现。此外，由于抽取泛型机制的不一致，作为统一入口的 TableEnvironment 现阶段也不支持注册 UDTF 和 UDAF。针对这个问题，社区已经在计划引入一套新的类型抽取机制来统一 Java 和 Scala 的类型抽取，实现 Java API 和 Scala API 的统一。
+可能大家会疑惑为什么在 API 需要区分 Java 和 Scala 的两个 StreamTableEnvironment（或BatchTableEnvironment ），使用的 DataStream 也分为 Java DataStream 和 Scala DataStream。原因主要是 TableEnvironment 的 registerTableFunction 方法（用于注册UDTF）和 registerAggregateFunction 方法（用户注册UDAF）需要抽取泛型，而现有的 Java 泛型抽取和 Scala 的泛型抽取机制是不一样的，Java 的抽取是通过反射机制 实现，而 Scala 是通过 Scala macro 实现。此外，由于抽取泛型机制的不一致，作为统一入口的 TableEnvironment 现阶段也不支持注册 UDTF 和 UDAF。针对这个问题，社区已经在计划引入一套新的类型抽取机制来统一 Java 和 Scala 的类型抽取，实现 Java API 和 Scala API 的统一。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/how-to-choose-table-environment-of-flink-sql-3.jpeg?raw=true)
+![](img-how-to-choose-table-environment-of-flink-sql-3.jpeg)
 
 结合 Flink planner 和 Blink planner， 进一步梳理 TableEnvironment 的组织关系，我们可以注意到一些有趣的细节：
 - 实现流批统一的 Blink planner 中由于没有了 DataSet 的概念，已经不再使用 BatchTableEnvironment，只会使用 TableEnvironment 和 StreamTableEnvironment，而 Flink planner（即 Old planner） 则支持 5 个 TableEnvironment。
@@ -87,7 +87,7 @@ val fsTableEnv = StreamTableEnvironment.create(fsEnv, fsSettings)
 
 #### 3.2 场景二：
 
-用户使用 Old planner，进行批处理的 Table 程序的开发。这种场景下，用户只能使用 BatchTableEnvironment ，因为在使用 Old planner 时，批处理程序操作的数据是 DataSet，只有 BatchTableEnvironment 提供了面向DataSet 的接口实现。示例代码如下：
+用户使用 Old planner，进行批处理的 Table 程序的开发。这种场景下，用户只能使用 BatchTableEnvironment，因为在使用 Old planner 时，批处理程序操作的数据是 DataSet，只有 BatchTableEnvironment 提供了面向 DataSet 的接口实现。示例代码如下：
 ```java
 // FLINK BATCH QUERY USING JAVA
 import org.apache.flink.api.java.ExecutionEnvironment;
@@ -152,9 +152,5 @@ val bbTableEnv = TableEnvironment.create(bbSettings)
 ### 4. 社区未来规划
 
 目前，社区正在推进 DataStream 的批处理能力，以实现流批技术栈的统一，届时 DataSet API 会退出历史的舞台，两个 BatchTableEnvironment 也将退出历史的舞台。同时社区也在努力推动 Java 和 Scala TableEnvironment 的统一。可以预见的是，Flink TableEnvironment 的未来架构会更加简洁。TableEnvironment 会是 Flink 推荐使用的入口类，同时能支持 Java API 和 Scala API，还能同时支持流计算作业和批处理作业。只有当需要与 DataStream 做转换时，才需要用到 StreamTableEnvironment。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文：[Flink SQL 系列 | 5 个 TableEnvironment 我该用哪个？](https://mp.weixin.qq.com/s/UeoOYX1n6pnedHh8VcY8OQ)

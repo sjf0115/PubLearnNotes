@@ -46,6 +46,7 @@ Planner 负责将关系运算符转换为可执行的、优化的 Flink 作业�
   <version>1.9.3</version>
   <scope>provided</scope>
 </dependency>
+
 <!-- 不建议使用新的 Blink Planner -->
 <dependency>
   <groupId>org.apache.flink</groupId>

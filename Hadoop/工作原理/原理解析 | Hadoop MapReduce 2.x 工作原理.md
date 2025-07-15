@@ -34,7 +34,7 @@ YARN 上的 MapReduce 比经典的 MapReduce 包括更多的实体：
 
 作业运行过程如下图所示:
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-mapReduce2.x-working-principle-1.png?raw=true)
+![](img-hadoop-mapReduce2.x-working-principle-1.png)
 
 ### 2. 作业提交
 

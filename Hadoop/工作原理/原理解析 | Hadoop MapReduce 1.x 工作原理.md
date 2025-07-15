@@ -17,7 +17,7 @@ permalink: hadoop-mapReduce1.x-working-principle
 - TaskTracker：运行作业划分后的任务。TaskTracker 是一个 Java 应用程序，它的主类是 TaskTracker。
 - 分布式文件系统(一般为HDFS)：用来在其他实体间共享作业文件。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-mapReduce1.x-working-principle-1.png?raw=true)
+![](img-hadoop-mapReduce1.x-working-principle-1.png)
 
 ### 1. 作业提交
 

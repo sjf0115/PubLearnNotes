@@ -60,7 +60,7 @@ Apache Flink 提供了两个关系型 API：Table API 和 SQL，用于统一的�
 
 ### 2.1 Table API 版 WordCount
 
-第一步创建流处理的执行环境，Flink 1.4 版本 Blink Planner 成为唯一 Planner，也是默认的 Planner：
+第一步创建流处理的执行环境，Flink 1.13 版本 Old Planner 标记为 Deprecated。Blink Planner 已成为的默认 Planner：
 ```java
 EnvironmentSettings settings = EnvironmentSettings
         .newInstance()
@@ -235,4 +235,4 @@ String querySql = "INSERT INTO sink_table\n" +
 tEnv.executeSql(querySql);
 ```
 
-> [github](https://github.com/sjf0115/data-example/blob/master/flink-example-1.14/src/main/java/com/flink/example/table/base/StreamSQLWordCount.java)
+> 源码：[PureSQLWordCount](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/sql/base/PureSQLWordCount.java)

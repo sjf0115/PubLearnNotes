@@ -19,7 +19,7 @@ permalink: hadoop-mapReduce1.x-secondary-nameNode
 
 `NameNode`保存HDFS的元数据，如名称空间信息，块信息等。使用时，所有这些信息都存储在主存储器中。 但是这些信息也存储在磁盘中用于持久性存储。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/Hadoop%20Secondary%20NameNode%E7%9A%84%E4%BD%9C%E7%94%A8-1.png?raw=true)
+![](img-hadoop-secondary-namenode-1.png)
 
 上图显示了`NameNode`如何将信息存储在磁盘中。上图中两个不同的文件是：
 - `fsimage` - 它是`NameNode`启动时文件系统元数据的快照
@@ -38,7 +38,7 @@ permalink: hadoop-mapReduce1.x-secondary-nameNode
 
 通过`Secondary NameNode`实现编辑日志与`fsimage`的合来解决上述问题。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/Hadoop%20Secondary%20NameNode%E7%9A%84%E4%BD%9C%E7%94%A8-2.png?raw=true)
+![](img-hadoop-secondary-namenode-2.png)
 
 上图显示了`Secondary NameNode`的工作原理：
 

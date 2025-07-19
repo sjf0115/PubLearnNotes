@@ -30,7 +30,7 @@ Print Connector 只能作为 Sink 输出表，不能作为 Source 输入表。Pr
 
 如下图所示，print-identifier 参数选项设置为 'behavior'，并且 parallelism = 1：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-print-connector-1.png?raw=true)
+![](img-flink-sql-print-connector-1.png)
 
 ### 2. 创建 Print 表
 

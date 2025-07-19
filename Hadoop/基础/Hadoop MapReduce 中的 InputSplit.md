@@ -25,11 +25,11 @@ Hadoop 初学者经常会有这样两个问题：
 
 ### 2. InputSplit
 
-但是如果每个 `Map` 任务都处理特定数据块中的所有记录，那怎么处理这种跨越 `Block` 边界的记录呢？如果分配一个 `Mapper` 给 `Block` 1，在这种情况下，`Mapper` 不能处理第二条记录，因为 `Block` 1中没有完整的第二条记录。因为 `HDFS` 对文件 `Block` 内部并不清楚，它不知道一个记录会是不是溢出到另一个块。`InputSplit` 就是解决这种跨越 `Block` 边界记录问题的，Hadoop 使用逻辑表示存储在文件 `Block` 中的数据，称为输入拆分 `InputSplit`。`InputSplit` 是一个逻辑概念，并没有对实际文件进行切分，它只包含一些元数据信息，比如数据的起始位置，数据长度，数据所在的节点等。它的划分方法完全取决于用户自己。但是需要注意的是 `InputSplit` 的多少决定了 `MapTask` 的数目，因为每个 `InputSplit` 会交由一个 `MapTask` 处理。
+但是如果每个 `Map` 任务都处理特定数据块中的所有记录，那怎么处理这种跨越 `Block` 边界的记录呢？如果分配一个 `Mapper` 给 `Block` 1，在这种情况下，`Mapper` 不能处理第二条记录，因为 `Block` 1中没有完整的第二条记录。因为 `HDFS` 对文件 `Block` 内部并不清楚，它不知道一个记录是不是溢出到另一个块。`InputSplit` 就是解决这种跨越 `Block` 边界记录问题的，Hadoop 使用逻辑表示存储在文件 `Block` 中的数据，称为输入拆分 `InputSplit`。`InputSplit` 是一个逻辑概念，并没有对实际文件进行切分，它只包含一些元数据信息，比如数据的起始位置，数据长度，数据所在的节点等。它的划分方法完全取决于用户自己。但是需要注意的是 `InputSplit` 的多少决定了 `MapTask` 的数目，因为每个 `InputSplit` 会交由一个 `MapTask` 处理。
 
 当 `MapReduce` 作业客户端计算 `InputSplit` 时，它会计算出 `Block` 中第一个记录的开始位置和最后一个记录的结束位置。在最后一个记录不完整的情况下，`InputSplit` 包括下一个 `Block` 的位置信息以及该记录所需的字节偏移量。下图显示了 `Block` 和 `InputSplit` 之间的关系：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-mapreduce-inputsplit-1.jpg?raw=true)
+![](img-hadoop-mapreduce-inputsplit-1.jpg)
 
 `Block` 是磁盘中的数据存储的物理块；`InputSplit` 不是物理数据块，只是一个逻辑概念，并没有对实际文件进行切分，指向块中的开始和结束位置。因此，当 `Mapper` 尝试读取数据时，它清楚地知道从何处开始读取以及在哪里停止读取。`InputSplit` 可以在一个块中开始，在另一个块中结束。`InputSplit` 代表了逻辑记录边界，在 `MapReduce` 执行期间，`Hadoop` 扫描块并创建 `InputSplits`，并且每个 `InputSplit` 将被分配给一个 `Mapper` 进行处理。
 

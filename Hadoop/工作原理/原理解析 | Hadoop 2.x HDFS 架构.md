@@ -1,19 +1,6 @@
----
-layout: post
-author: sjf0115
-title: Hadoop 2.x HDFS架构
-date: 2017-12-20 20:29:01
-tags:
-  - Hadoop
-  - Hadoop 内部原理
-
-categories: Hadoop
-permalink: hadoop-2.x-hdfs-architecture
----
-
 ### 1. 概述
 
-Hadoop分布式文件系统(`HDFS`)是一个分布式文件系统，设计初衷是可以在商用硬件上运行。它与现有的分布式文件系统有许多相似之处。但是，与其他分布式文件系统的也有显著的差异。`HDFS`具有高容错能力，可以部署在低成本的硬件上。`HDFS`提供对应用程序数据的高吞吐量访问，适用于具有大数据集的应用程序。`HDFS`放宽了一些POSIX要求，以便对文件系统数据进行流式访问。`HDFS`最初是作为`Apache Nutch`网络搜索引擎项目的基础架构构建的。`HDFS`是`Apache Hadoop Core`项目的一部分。项目URL为: http://hadoop.apache.org/
+Hadoop分布式文件系统(`HDFS`)是一个分布式文件系统，设计初衷是可以在商用硬件上运行。它与现有的分布式文件系统有许多相似之处。但是，与其他分布式文件系统也有显著的差异。`HDFS`具有高容错能力，可以部署在低成本的硬件上。`HDFS`提供对应用程序数据的高吞吐量访问，适用于具有大数据集的应用程序。`HDFS`放宽了一些POSIX要求，以便对文件系统数据进行流式访问。`HDFS`最初是作为`Apache Nutch`网络搜索引擎项目的基础架构构建的。`HDFS`是`Apache Hadoop Core`项目的一部分。项目URL为: http://hadoop.apache.org/
 
 ### 2. 设想与目标
 
@@ -45,7 +32,7 @@ Hadoop分布式文件系统(`HDFS`)是一个分布式文件系统，设计初衷
 
 `HDFS`是一个主/从结构。一个`HDFS`集群包含一个`NameNode`，管理文件系统命名空间以及管理客户端对文件访问的主服务。除此之外，还有一些`DataNode`，通常集群中的每个节点都有一个`DataNode`，用于管理它们所运行节点相关的存储。`HDFS`公开文件系统命名空间，并允许用户数据存储在文件中。在内部，一个文件被分成一个或多个数据块，这些数据块被存储在一组`DataNode`中。`NameNode`执行文件系统命名空间操作，例如打开，关闭和重命名文件和目录等。它也决定数据块到`DataNode`的映射。`DataNode`负责为文件系统客户端的读写请求提供服务。`DataNode`还根据来自`NameNode`的指令执行数据块的创建，删除和复制。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/Hadoop2.x%20HDFS%E6%9E%B6%E6%9E%84-1.png?raw=true)
+![](img-hadoop-2.x-hdfs-1.png)
 
 `NameNode`和`DataNode`是设计用于在商业机器上运行的软件。这些机器通常运行GNU/Linux操作系统(OS)。`HDFS`是使用`Java`语言构建的; 任何支持`Java`的机器都可以运行`NameNode`或`DataNode`。使用高可移植性的`Java`语言意味着`HDFS`可以部署在各种机器上。一个典型的部署是有一台专用机器来运行`NameNode`。集群中的其他机器运行`DataNode`实例。该体系结构并不排除在同一台计算机上运行多个`DataNode`，但在实际部署中很少出现这种情况。
 
@@ -67,7 +54,7 @@ Hadoop分布式文件系统(`HDFS`)是一个分布式文件系统，设计初衷
 
 `NameNode`做出关于块复制的所有决定。它周期性的从集群中的每个`DataNode`接收`Heartbeat`和`Blockreport`。收到`Heartbeat`意味着`DataNode`运行正常。`Blockreport`包含`DataNode`上所有块的列表。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/Hadoop2.x%20HDFS%E6%9E%B6%E6%9E%84-2.png?raw=true)
+![](img-hadoop-2.x-hdfs-2.png)
 
 #### 5.1 副本安置
 

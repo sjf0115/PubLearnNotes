@@ -1,16 +1,3 @@
----
-layout: post
-author: sjf0115
-title: Flink1.4 内部原理之内存管理简介
-date: 2018-02-02 11:40:01
-tags:
-  - Flink
-  - Flink 内部原理
-
-categories: Flink
-permalink: flink-batch-internals-memory-management-introduction
----
-
 ### 1. 概述
 
 Flink中的内存管理用于控制特定运行时操作使用的内存量。内存管理用于所有累积（可能很大）了一定数量记录的操作。
@@ -24,10 +11,7 @@ Flink中的内存管理用于控制特定运行时操作使用的内存量。内
 
 内存管理还允许在同一个 `JVM` 中为消耗内存的不同算子划分内存。这样，`Flink` 可以确保不同的算子在同一个 `JVM` 中相互临近运行，不会相互干扰。
 
-备注:
-```
-目前为止，内存管理仅在批处理算子中使用。流处理算子遵循不同的理念。
-```
+> 备注: 目前为止，内存管理仅在批处理算子中使用。流处理算子遵循不同的理念。
 
 ### 2. Flink的内存管理
 
@@ -36,7 +20,7 @@ Flink中的内存管理用于控制特定运行时操作使用的内存量。内
 - `Memory Manager pool` : 一个大的缓冲区 `buffer` （32 KB）集合（译者注：可理解为缓冲池），每当需要缓冲记录时，所有运行时算法（`Sorting`，`Hashing`，`Caching`）使用这些缓冲区缓冲记录。记录以序列形式存储在这些块中。内存管理器在启动时分配这些缓冲区。
 - `Remaining (Free) Heap` : 这部分堆留给用户代码和 `TaskManager` 的数据结构使用。由于这些数据结构比较小，所以这部分内存基本都是给用户代码使用的。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/flink-batch-internals-memory-management-1.png?raw=true)
+![](img-flink-batch-internals-memory-management-1.png)
 
 在分配 `Network buffers` 和 `MemoryManager buffers` 的同时，`JVM` 通常会执行一个或多个 `Full GC`。这会导致 `TaskManager` 的启动时多增加一些时间，但是在执行任务时会节省垃圾回收时间（saves in garbage collection time later）。`Network buffers` 和 `MemoryManager buffers` 在 `TaskManager` 的整个生命周期中存在。他们转移到 `JVM` 的内部存储区域的老年代，成为存活更长时间，不被回收的对象。
 
@@ -51,7 +35,7 @@ Flink中的内存管理用于控制特定运行时操作使用的内存量。内
 
 每当 `Flink` 在某个地方存储记录时，它实际上将其序列化到一个或多个内存段中。系统可以在另一个数据结构中存储一个指向该记录的 `指针`（通常也构建为内存段的集合）。这意味着 `Flink` 依靠高效的序列化来识别页面以及实现记录跨越不同页面。为了这个目的，`Flink` 带来了自己的类型信息系统和序列化堆栈。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/flink-batch-internals-memory-management-2.png?raw=true)
+![](img-flink-batch-internals-memory-management-2.png)
 
 序列化到 `Memory Segments` 的一组记录
 
@@ -76,7 +60,7 @@ Flink中的内存管理用于控制特定运行时操作使用的内存量。内
 
 当 `OldGen`（老年代）堆的大小与 `Network buffers` 和 `MemoryManager` 的聚合大小相匹配时，这种方式效果最好。这个比率由 `JVM` 选项 `-XX：NewRatio` 控制，它定义了 `OldGen` 老年代是 `NewGen` 新生代的多少倍。默认情况下，`Flink` 的目标是配置 `OldGen`是 `NewGen` 两倍（`-XX：NewRatio = 2`），`MemoryManager` 和 `NetworkBuffers` 使用70％的堆。剩余的堆空间留给用户函数和 `TaskManager` 的数据结构（通常比较小，所以绝大多数可用于用户函数）。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Flink/flink-batch-internals-memory-management-3.png?raw=true)
+![](img-flink-batch-internals-memory-management-3.png)
 
 ### 5. 配置
 

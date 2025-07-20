@@ -1,15 +1,3 @@
----
-layout: post
-author: smartsi
-title: 构建Flink第一个应用程序
-date: 2020-09-20 20:43:01
-tags:
-  - Flink
-
-categories: Flink
-permalink: build-first-flink-application
----
-
 在本文中，我们将从零开始构建Flink第一个应用程序：WordCount。
 
 ### 1. 环境搭建

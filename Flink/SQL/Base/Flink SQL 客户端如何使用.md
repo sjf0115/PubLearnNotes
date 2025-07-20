@@ -36,7 +36,7 @@ SQL 客户端脚本也位于 Flink 的 bin 目录中。将来，用户有两种�
 ```
 ./bin/sql-client.sh embedded
 ```
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-client-1.png?raw=true)
+![](img-Flink/flink-sql-client-1.png)
 
 #### 1.2 执行SQL查询
 
@@ -61,9 +61,9 @@ SET sql-client.execution.result-mode = table;
 SELECT name, COUNT(*) AS cnt FROM (VALUES ('Bob'), ('Alice'), ('Greg'), ('Bob')) AS NameTable(name) GROUP BY name;
 ```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-client-2.png?raw=true)
+![](img-Flink/flink-sql-client-2.png)
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-client-3.png?raw=true)
+![](img-Flink/flink-sql-client-3.png)
 
 ##### 1.2.2 变更日志模式
 
@@ -72,7 +72,7 @@ SELECT name, COUNT(*) AS cnt FROM (VALUES ('Bob'), ('Alice'), ('Greg'), ('Bob'))
 SET sql-client.execution.result-mode = changelog;
 ```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-client-4.png?raw=true)
+![](img-Flink/flink-sql-client-4.png)
 
 ##### 1.2.3 Tableau模式
 
@@ -80,7 +80,7 @@ Tableau模式（tableau mode）更接近传统的数据库，会将执行的结�
 ```
 SET sql-client.execution.result-mode = tableau;
 ```
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-client-5.png?raw=true)
+![](img-Flink/flink-sql-client-5.png)
 
 > 注意：当你在流式查询上使用这种模式时，Flink 会将结果持续的打印在当前的控制台上。如果流式查询的输入是有限数据集，那么 Flink 在处理完所有的输入数据之后，作业会自动停止，同时控制台上的打印也会自动停止。如果你想提前结束这个查询，那么可以直接使用 CTRL-C 按键，这个会停止作业同时停止在控制台上的打印。
 
@@ -195,7 +195,7 @@ SET sql-client.verbose = true;
 ```
 > 将 sql-client.verbose 设置为 true
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-client-6.png?raw=true)
+![](img-Flink/flink-sql-client-6.png)
 
 #### 3.2 执行SQL文件
 
@@ -380,10 +380,10 @@ table.planner=blink
 [DEPRECATED] execution.type=batch
 ```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-client-7.png?raw=true)
+![](img-Flink/flink-sql-client-7.png)
 
 欢迎关注我的公众号和博客：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+![](img-Other/smartsi.jpg)
 
 原文：[SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/dev/table/sqlclient/)

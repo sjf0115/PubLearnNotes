@@ -43,7 +43,7 @@ stateDescriptor.enableTimeToLive(ttlConfig);
 
 如下所示设置1分钟的过期时间：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/state-ttl-for-apache-flink-1.png?raw=true)
+![](img-state-ttl-for-apache-flink-1.png)
 
 ## 2. 参数说明
 
@@ -321,7 +321,7 @@ env.execute("StateTTLExample");
 
 当从状态中恢复时，之前设置的 TTL 过期时间不会丢失，还会继续生效。如下所示为登录用户设置5分钟的过期时间：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/state-ttl-for-apache-flink-2.png?raw=true)
+![](img-state-ttl-for-apache-flink-2.png)
 
 在状态过期之前取消作业并触发 Savepoint，如下所示：
 ```
@@ -333,7 +333,7 @@ flink run -s hdfs://localhost:9000/flink/savepoints/savepoint-c82ee3-e7ca58626e3
 ```
 如果用户在首次登录后5分钟内再次登录，用户的上一次登录时间保持不变，超过5分钟则重新记录首次登录时间：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/state-ttl-for-apache-flink-3.png?raw=true)
+![](img-state-ttl-for-apache-flink-3.png)
 
 当从 Checkpoint/Savepoint 恢复时，TTL 的状态（是否开启）必须和之前保持一致，否则会遇到如下兼容性问题：
 ```java

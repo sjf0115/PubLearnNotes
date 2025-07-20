@@ -36,7 +36,7 @@ permalink: hadoop-base-block-and-inputsplit
 
 如果文件里面有一行记录的偏移量为 134217710，长度为 100，HDFS 如何处理？答案是这行记录会被切割成两部分，一部分存放在 block 0 里面；剩下的部分存放在 block 1 里面。具体的，偏移量为 134217710，长度为 18 的数据存放到 block 0 里面；偏移量 134217729，长度为 82 的数据存放到 block 1 里面。可以将这部分的逻辑以下面的图概括：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-base-block-and-inputsplit-1.png?raw=true)
+![](img-hadoop-base-block-and-inputsplit-1.png)
 
 说明：
 - 图中的红色块代表一个文件
@@ -67,7 +67,7 @@ hdfs://iteblogcluster/tmp/iteblog.txt:402653184+52016779
 
 使用图形表示可以概括如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-base-block-and-inputsplit-2.png?raw=true)
+![](img-hadoop-base-block-and-inputsplit-2.png)
 
 说明：
 - 图中的红色虚线代表 HDFS 块边界(block boundary)；

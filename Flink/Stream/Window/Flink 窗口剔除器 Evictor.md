@@ -141,7 +141,7 @@ A,9,2021-08-30 12:09:30
 A,10,2021-08-30 12:09:35
 ```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-evictor-1.png?raw=true)
+![](img-flink-stream-windows-evictor-1.png)
 
 #### 2.2 DeltaEvictor
 
@@ -228,7 +228,7 @@ A,1,2021-08-30 12:08:56
 A,6,2021-08-30 12:09:30
 ```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-evictor-2.png?raw=true)
+![](img-flink-stream-windows-evictor-2.png)
 
 #### 2.3 TimeEvictor
 
@@ -331,7 +331,7 @@ A,8,2021-08-30 12:08:56
 A,9,2021-08-30 12:09:30
 ```
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-evictor-3.png?raw=true)
+![](img-flink-stream-windows-evictor-3.png)
 
 参考：
 - [Evictors](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/dev/datastream/operators/windows/#evictors)

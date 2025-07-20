@@ -50,7 +50,7 @@ stream
 
 滚动窗口分配器将每个元素分配给固定大小且不重叠的窗口。例如，如果指定大小为 10 分钟的滚动窗口，那么每 10 分钟都会启动一个新窗口，如下图所示:
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-overall-1.png?raw=true)
+![](img-flink-stream-windows-overall-1.png)
 
 DataStream 针对事件时间和处理时间的滚动窗口分别提供了对应的分配器 TumblingEventTimeWindows 和 TumblingProcessingTimeWindows。
 
@@ -89,7 +89,7 @@ input
 
 例如，窗口大小为10分钟，滑动大小为5分钟的窗口。这样，每5分钟会生成一个窗口，每个窗口包含最后10分钟内到达的事件，如下图所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-overall-2.png?raw=true)
+![](img-flink-stream-windows-overall-2.png)
 
 ```java
 DataStream<T> input = ...;
@@ -119,7 +119,7 @@ input
 
 会话窗口分配器通过活动会话对元素进行分组。与滚动窗口和滑动窗口相比，会话窗口不会重叠，也没有固定的开始和结束时间。当会话窗口在一段时间内没有接收到元素时会关闭。会话窗口分配器需要配置一个会话间隙，定义了所需的不活动时长。当此时间段到期时，当前会话关闭，后续元素被分配到新的会话窗口。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-overall-3.png?raw=true)
+![](img-flink-stream-windows-overall-3.png)
 
 ```java
 DataStream<T> input = ...;
@@ -143,7 +143,7 @@ input
 
 全局窗口分配器将具有相同 key 的所有元素分配给同一个全局窗口。仅当我们指定自定义触发器时，窗口才起作用。否则，不会执行任何计算，因为全局窗口没有我们可以处理聚合元素的自然结束的点（译者注：即本身自己不知道窗口的大小，计算多长时间的元素）。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-overall-4.png?raw=true)
+![](img-flink-stream-windows-overall-4.png)
 
 ```java
 DataStream<T> input = ...;

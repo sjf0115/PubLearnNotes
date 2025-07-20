@@ -28,7 +28,7 @@ Savepoint 是一项可让我们为整个流应用程序生成"某个时间"点�
 
 Savepoint 和 Checkpoint 是 Apache Flink 作为流处理框架所特有的两个功能。Savepoint 和 Checkpoint 的实现看起来也很相似，但是，这两种功能在以下 3 种方面有所不同，我们具体看一下。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/3-differences-between-checkpoints-savepoints-1.png?raw=true)
+![](img-3-differences-between-checkpoints-savepoints-1.png)
 
 #### 2.1 目标
 

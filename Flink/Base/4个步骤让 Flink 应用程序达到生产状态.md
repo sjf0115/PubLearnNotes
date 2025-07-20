@@ -17,7 +17,7 @@ permalink: 4-steps-flink-application-production-ready
 
 下面是我们收集的需要在 Flink 应用上线前检查的一些配置点：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/4-steps-flink-application-production-ready-1.png)
+![](img-4-steps-flink-application-production-ready-1.png)
 
 ### 1. 明确定义 Flink 算子的最大并发度
 

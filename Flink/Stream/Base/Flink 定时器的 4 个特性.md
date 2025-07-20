@@ -47,7 +47,7 @@ TimerService 会自动对定时器进行重复数据的删除，因此每个 key
 
 从 Flink 1.6 开始，就可以对定时器进行暂停以及删除。如果你使用的是比 Flink 1.5 更早的 Flink 版本，那么由于有许多定时器无法删除或停止，所以可能会遇到检查点性能不佳的问题。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/4-characteristics-of-timers-in-apache-flink-1.png?raw=true)
+![](img-4-characteristics-of-timers-in-apache-flink-1.png)
 
 你可以使用如下命令停止一个处理时间定时器：
 ```java

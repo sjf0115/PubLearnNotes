@@ -20,7 +20,7 @@ Flink DataStream 应用程序所处理的事件以数据对象的形式存在。
 
 Flink 支持 Java 和 Scala 所有常见的数据类型，也不需要像 Hadoop 一样去实现一个特定的接口（org.apache.hadoop.io.Writable），能够自动识别数据类型。使用最多的可以分为如下几类，如下图所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-datastream-typeinformation-1.png?raw=true)
+![](img-flink-datastream-typeinformation-1.png)
 
 从图中可以看到 Flink 类型可以分为基本类型、数组类型、复合类型、辅助类型以及泛型。
 
@@ -144,7 +144,7 @@ DataStream<ArrayList<Integer>> listElements = env.fromElements(
 
 那这么多的数据类型，在 Flink 内部又是如何表示的呢？在 Flink 中每一个具体的类型都对应了一个具体的 TypeInformation 实现类。例如，BasicTypeInformation 中的 IntegerTypeInformation 对应了 Integer 数据类型。数据类型的描述信息都是由 TypeInformation 定义，比较常用的 TypeInformation 有 BasicTypeInfo、TupleTypeInfo、CaseClassTypeInfo、PojoTypeInfo 类等，如下图所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-datastream-typeinformation-2.png?raw=true)
+![](img-flink-datastream-typeinformation-2.png)
 
 TypeInformation 为系统提供生成序列化器和比较器提供必要的信息。当应用程序提交执行时，Flink 的类型系统会尝试为处理的每种数据类型自动推断 TypeInformation。类型提取器会分析函数的泛型类型以及返回类型，来获取相应的 TypeInformation 对象。但是，有时类型提取器会失灵，或者你可能想定义自己的类型并告诉 Flink 如何有效地处理它们。在这种情况下，你需要为特定数据类型生成 TypeInformation。
 
@@ -215,11 +215,11 @@ TypeHint 的原理是在内部创建匿名子类，捕获泛型信息并会将�
 
 例如 BasicTypeInfo 类定义了一系列常用类型的快捷方式，对于 String、Boolean、Byte、Short、Integer、Long、Float、Double、Char 等基本类型的类型声明，可以直接使用：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-datastream-typeinformation-3.png?raw=true)
+![](img-flink-datastream-typeinformation-3.png)
 
 当然，如果觉得 BasicTypeInfo 还是太长，Flink 还提供了完全等价的 Types 类（org.apache.flink.api.common.typeinfo.Types）：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-datastream-typeinformation-4.png?raw=true)
+![](img-flink-datastream-typeinformation-4.png)
 
 Types 为常见数据类型提供 TypeInformation，使用起来非常方便，如下示例：
 ```java

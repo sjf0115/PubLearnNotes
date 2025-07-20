@@ -12,7 +12,7 @@ permalink: flink-source-function
 
 ## 1. SourceFunction
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-source-function-1.png?raw=true)
+![](img-flink-source-function-1.png)
 
 SourceFunction 是 Flink 中所有流数据 Source 的基本接口。SourceFunction 接口继承了 Function 接口，并在内部定义了数据读取使用的 run() 方法、取消运行的 cancel() 方法以及 SourceContext 内部接口：
 ```java
@@ -94,7 +94,7 @@ SourceContext 定义了数据接入过程用到的上下文信息，包含如下
 
 SourceContext 主要有两种类型的实现子类，分别为 NonTimestampContext 和 WatermarkContext：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-source-function-2.png?raw=true)
+![](img-flink-source-function-2.png)
 
 WatermarkContext 支持事件时间抽取和生成 Watermark，最终用于处理乱序事件。基于 WatermarkContext 抽象类扩展实现了 AutomaticWatermarkContext 和 ManualWatermarkContext，分别对应接入时间和事件时间。由此也可以看出，接入时间对应的 Timestamp 和 Watermark 都是通过 Source 算子自动生成的。事件时间的实现则相对复杂，需要用户自定义 SourceContext.emitWatermark() 方法来实现；NonTimestampContext 不支持基于事件时间的操作，仅实现了从外部数据源中读取数据并处理的逻辑，对应了处理时间。
 
@@ -140,7 +140,7 @@ switch (timeCharacteristic) {
 
 SourceFunction 接口的实现类主要通过 run() 方法完成与外部数据源的交互，以实现外部数据的读取，并将读取到的数据通过 SourceContext 提供的 collect() 方法发送给 DataStream 后续的算子进行处理。SourceFunction 常见实现类如下图所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-source-function-3.png?raw=true)
+![](img-flink-source-function-3.png)
 
 ### 3.1 SourceFunction 常见实现类
 

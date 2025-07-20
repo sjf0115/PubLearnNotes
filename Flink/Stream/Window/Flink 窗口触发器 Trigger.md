@@ -47,7 +47,7 @@ public abstract class Trigger<T, W extends Window> implements Serializable {
 
 #### 2.1 内置触发器
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-trigger-1.png?raw=true)
+![](img-flink-stream-windows-trigger-1.png)
 
 - EventTimeTrigger：通过对比 Watermark 和窗口结束时间戳确定是否触发窗口，如果 Watermark 的时间大于窗口结束时间戳则触发计算，反之不触发计算。
 - ProcesTimeTrigger：通过对比 ProcessTime 和窗口结束时间戳确定是否触发窗口，如果 ProcessTime 的时间大于窗口结束时间戳则触发计算，反之不触发计算。
@@ -64,7 +64,7 @@ public abstract class Trigger<T, W extends Window> implements Serializable {
 
 每种类型的 WindowAssigner 都有不同的默认 Trigger，如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-trigger-2.png?raw=true)
+![](img-flink-stream-windows-trigger-2.png)
 
 所有基于事件时间的 WindowAssigner 都有一个 EventTimeTrigger 作为默认 Trigger。一旦 Watermark 大于窗口的结束时间戳，这个 Trigger 就会触发。所有基于处理时间的 WindowAssigner 都有一个 ProcessingTimeTrigger 作为默认 Trigger。一旦当前处理时间大于窗口结束时间戳，这个 Trigger 就会触发。除此之外，GlobalWindow 的默认 Trigger 是从不触发的 NeverTrigger。因此，在使用 GlobalWindow 时，我们必须自定义 Trigger。
 
@@ -168,11 +168,11 @@ DataStream<String> result = stream
 
 实际效果如下所示：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-stream-windows-trigger-3.png?raw=true)
+![](img-flink-stream-windows-trigger-3.png)
 
 欢迎关注我的公众号和博客：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg)
 
 相关推荐：
 - [Flink 窗口之Window机制](http://smartsi.club/introducing-stream-windows-in-apache-flink.html)

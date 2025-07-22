@@ -49,7 +49,7 @@ Hadoop Archives（HAR files）是在 0.18.0 版本中引入到 HDFS 中的，它
 
 读取 HAR 文件不如读取 HDFS 文件更有效，并且实际上可能更慢，因为每个 HAR 文件访问需要读取两个索引文件以及还要读取数据文件本。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-small-files-problem-1.png?raw=true)
+![](img-hadoop-small-files-problem-1.png)
 
 尽管 HAR 文件可以用作 MapReduce 的输入，但是 Map 没有办法直接对共同驻留在 HDFS 块上的 HAR 所有文件操作。可以考虑通过创建一种 InputFormat，充分利用 HAR 文件的局部性优势，但是目前还没有这种 InputFormat。需要注意的是：MultiFileInputSplit，即使在 [HADOOP-4565](https://issues.apache.org/jira/browse/HADOOP-4565) 进行了改进，选择节点本地分割中的文件，但始终还是需要每个小文件的搜索。在目前看来，HAR 可能最好仅用于存储文档。
 
@@ -59,7 +59,7 @@ Hadoop Archives（HAR files）是在 0.18.0 版本中引入到 HDFS 中的，它
 
 通常解决"小文件问题"的回应是：使用 SequenceFile。这种方法的思路是，使用文件名作为 key，文件内容作为 value，如下图。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-small-files-problem-2.png?raw=true)
+![](img-hadoop-small-files-problem-2.png)
 
 在实践中这种方式非常有效。我们回到 10,000 个 100KB 大小的小文件问题上，你可以编写一个程序将合并为一个 SequenceFile，然后你可以以流式方式处理（直接处理或使用 MapReduce） SequenceFile。这样会带来两个优势：
 - SequenceFiles 是可拆分的，因此 MapReduce 可以将它们分成块，分别对每个块进行操作；
@@ -69,7 +69,7 @@ Hadoop Archives（HAR files）是在 0.18.0 版本中引入到 HDFS 中的，它
 
 与 HAR 文件不同，没有办法列出 SequenceFile 中的所有键，所以不能读取整个文件。Map File，类似于对键进行排序的 SequenceFile，维护部分索引，所以他们也不能列出所有的键，如下图。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hadoop/hadoop-small-files-problem-3.png?raw=true)
+![](img-hadoop-small-files-problem-3.png)
 
 ##### 4.2.3 HBase
 

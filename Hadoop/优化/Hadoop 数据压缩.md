@@ -31,7 +31,7 @@ permalink: hadoop-data-compress
 
 ### 2. 常见压缩格式
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/hadoop-data-compress-1.png?raw=true)
+![](img-hadoop-data-compress-1.png)
 
 #### 2.1 Gzip
 

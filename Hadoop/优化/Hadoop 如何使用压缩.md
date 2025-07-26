@@ -16,9 +16,10 @@ permalink: hadoop-how-to-use-compression
 下面我们列出了一些代码，为 Hadoop 中常用的压缩格式设置输出压缩。
 
 ### 1. 常用压缩格式
+
 #### 1.1 Gzip
 
-对于最终输出，我们可以使用FileOutputFormat上的静态方便方法来设置属性：
+对于最终输出，我们可以使用 FileOutputFormat 上的静态方便方法来设置属性：
 ```java
 FileOutputFormat.setCompressOutput(job, true);
 FileOutputFormat.setOutputCompressorClass(job, GzipCodec,class);
@@ -75,7 +76,7 @@ conf.set("mapreduce.map.output.compress.codec","org.apache.hadoop.io.compress.Sn
 
 文件系统计数器用于分析实验结果。以下是典型的内置文件系统计数器。
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/hadoop-how-to-use-compression-1.png?raw=true)
+![](img-hadoop-how-to-use-compression-1.png)
 
 `FILE_BYTES_READ` 是本地文件系统读取的字节数。假设所有的 map 输入数据都来自 HDFS，那么在 map 阶段，`FILE_BYTES_READ` 应该为零。另一方面，reducer 的输入文件是 reduce 端本地磁盘上的数据，它们是从 map 端磁盘拉取过来的。因此，reduce 端 `FILE_BYTES_READ` 表示 reducer 读取的总字节数。
 
@@ -91,29 +92,29 @@ conf.set("mapreduce.map.output.compress.codec","org.apache.hadoop.io.compress.Sn
 
 (1) 没有压缩
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/hadoop-how-to-use-compression-2.png?raw=true)
+![](img-hadoop-how-to-use-compression-2.png)
 
 (2) 只压缩输入
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/hadoop-how-to-use-compression-3.png?raw=true)
+![](img-hadoop-how-to-use-compression-3.png)
 
 我们可以看到 `HDFS_BYTES_READ` 明显减少。这表明 mappers 从 HDFS 上读取的总字节数显着减少。
 
 (3) 只压缩map中间输出
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/hadoop-how-to-use-compression-4.png?raw=true)
+![](img-hadoop-how-to-use-compression-4.png)
 
 我们可以看到 `FILE_BYTES_READ` 和 `FILE_BYTES_WRITTEN` 显着减少。这意味着本地文件系统节点之间的数据传输显着减少。
 
 (4) 只压缩最终输出
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/hadoop-how-to-use-compression-5.png?raw=true)
+![](img-hadoop-how-to-use-compression-5.png)
 
 我们可以看到 `HDFS_BYTES_WRITTEN` 显着减少。这表明 HDFS 的最终输出显着降低。
 
 #### 2.3 不同压缩格式的比较：gzip，lzo
 
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Hadoop/hadoop-how-to-use-compression-6.png?raw=true)
+![](img-hadoop-how-to-use-compression-6.png)
 
 正如我们所看到的，LZO 文件略大于对应的 gzip 文件，但都比原来未压缩文件小得多。另外，LZO 文件压缩速度快了近五倍，解压速度快了两倍。
 

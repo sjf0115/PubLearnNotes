@@ -14,11 +14,11 @@ permalink: hive-managed-table-external-table
 
 ### 1. 内部表
 
-托管表(`Managed TABLE`)也称为内部表(`Internal TABLE`)。这是Hive中的默认表。当我们在Hive中创建一个表，没有指定为外部表时，默认情况下我们创建的是一个内部表。如果我们创建一个内部表，那么表将在`HDFS`中的特定位置创建。默认情况下，表数据将在`HDFS`的`/usr/hive/warehouse`目录中创建。如果我们删除了一个内部表，那么这个表的表数据和元数据都将从`HDFS`中删除。
+托管表(`Managed TABLE`)也称为内部表(`Internal TABLE`)。这是Hive中的默认表。当我们在 Hive 中创建一个表，没有指定为外部表时，默认情况下我们创建的是一个内部表。如果我们创建一个内部表，那么表将在 `HDFS` 中的特定位置创建。默认情况下，表数据将在 `HDFS` 的 `/usr/hive/warehouse` 目录中创建。如果我们删除了一个内部表，那么这个表的表数据和元数据都将从 `HDFS` 中删除。
 
 #### 1.1 创建表
 
-我们可以用下面的语句在Hive里面创建一个内部表：
+我们可以用下面的语句在 Hive 里面创建一个内部表：
 ```sql
 CREATE  TABLE IF NOT EXISTS tb_station_coordinate(
   station string,
@@ -109,7 +109,7 @@ Moved: 'hdfs://localhost:9000/user/hive/warehouse/tb_station_coordinate' to tras
 OK
 Time taken: 1.327 seconds
 ```
-从上面的输出我们可以得知，原来属于`tb_station_coordinate`表的数据被移到`hdfs://localhost:9000/user/xiaosi/.Trash/Current`文件夹中(如果你的Hadoop没有采用回收站机制，那么删除操作将会把属于该表的所有数据全部删除)(回收站机制请参阅:[Hadoop Trash回收站使用指南](http://smartying.club/2017/12/07/Hadoop/Hadoop%20Trash%E5%9B%9E%E6%94%B6%E7%AB%99%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/))。
+从上面的输出我们可以得知，原来属于`tb_station_coordinate`表的数据被移到`hdfs://localhost:9000/user/xiaosi/.Trash/Current`文件夹中(如果你的Hadoop没有采用回收站机制，那么删除操作将会把属于该表的所有数据全部删除)(回收站机制请参阅:[Hadoop Trash回收站使用指南](https://smartsi.blog.csdn.net/article/details/78869778)）。
 
 如果我们在`HDFS`的目录`/user/hive/warehouse/tb_station_coordinate`查看：
 ```

@@ -20,7 +20,7 @@ permalink: exclude-columns-from-select-query-in-hive
 
 下面是我们的样本数据。此表中一共有100多列，如下图所示(只展示了8列):
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/exclude-columns-from-select-query-in-hive.png?raw=true)
+![](img-exclude-columns-from-select-query-in-hive.png)
 
 如果我们不想要 `event_ts` 这一列。我们会使用如下查询来排除这一列:
 ```sql
@@ -36,7 +36,3 @@ FROM <table>;
 SELECT `(event_ts|event_tm)?+.+` FROM <table>;
 ```
 如果我们要排除多列，使用 `|` 分割。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/PubLearnNotes/blob/master/image/Other/smartsi.jpg?raw=true)

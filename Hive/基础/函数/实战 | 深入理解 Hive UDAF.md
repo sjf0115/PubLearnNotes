@@ -18,7 +18,7 @@ permalink: insights-into-hive-udaf
 
 第一种方式是 Simple(简单) 方式，即继承 org.apache.hadoop.hive.ql.exec.UDAF 类，并在派生类中以静态内部类的方式实现 org.apache.hadoop.hive.ql.exec.UDAFEvaluator 接口：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/insights-into-hive-udaf-1.png?raw=true)
+![](img-insights-into-hive-udaf-1.png)
 
 这种方式简单直接，但是在使用过程中需要依赖 Java 反射机制，因此性能相对较低。在 Hive 源码包 org.apache.hadoop.hive.contrib.udaf.example 中包含几个示例，可以直接参阅。但是这种方式已经被标注为 Deprecated，建议不要使用这种方式开发新的 UDAF 函数。
 
@@ -26,7 +26,7 @@ permalink: insights-into-hive-udaf
 
 简单 UDAF 编写起来比较简单，但是由于使用了 Java 反射机制导致性能下降，并且不允许使用变长参数等特性。通用 UDAF 允许所有这些特性，但编写起来可能不如简单 UDAF 那么直观。通用(Generic) UDAF 是 Hive 社区推荐的新写法，推荐用新的抽象类 org.apache.hadoop.hive.ql.udf.generic.AbstractGenericUDAFResolver 替代老的 UDAF 接口，用新的抽象类 org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator 替代老的 UDAFEvaluator 接口。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/insights-into-hive-udaf-2.png?raw=true)
+![](img-insights-into-hive-udaf-2.png)
 
 ## 2. 结构
 
@@ -45,7 +45,7 @@ permalink: insights-into-hive-udaf
 
 现在新问题来了：上述三种方式，在开发 UDAF 的时候该用哪一种呢？
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/insights-into-hive-udaf-3.png?raw=true)
+![](img-insights-into-hive-udaf-3.png)
 
 #### 2.1.1 GenericUDAFResolver
 
@@ -117,7 +117,7 @@ AbstractGenericUDAFResolver 提供了一种简单的方法将以前实现 Generi
 
 所有 Evaluator 都必须继承基类 org.apache.hadoop.hive.ql.udf.generic.GenericUDAFEvaluator。该类提供了一些必须由扩展类实现的抽象方法。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/insights-into-hive-udaf-4.png?raw=true)
+![](img-insights-into-hive-udaf-4.png)
 
 这些方法建立了 UDAF 之后的处理语义。下面是 Evaluator 类的架构：
 ```java
@@ -170,9 +170,9 @@ public static class AverageUDAFEvaluator extends GenericUDAFEvaluator {
 
 > 每个阶段都会执行 Init() 初始化操作。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/insights-into-hive-udaf-5.png?raw=true)
+![](img-insights-into-hive-udaf-5.png)
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/insights-into-hive-udaf-6.png?raw=true)
+![](img-insights-into-hive-udaf-6.png)
 
 所以，完整的 UDAF 逻辑是一个 MapReduce 过程，如果有 Mapper 和 Reducer，就会经历 PARTIAL1(对应 Map 阶段)，FINAL(对应 Reduce 阶段)，如果还有 Combiner，那就会经历 PARTIAL1、PARTIAL2(对应 Combine 阶段) 以及 FINAL。此外还有一种情况下只有 Mapper，没有 Reducer，在这种情况下就只有 COMPLETE 阶段。
 
@@ -400,7 +400,7 @@ public Object terminate(AggregationBuffer agg) throws HiveException {
 
 欢迎关注我的公众号和博客：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
+![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg)
 
 参考资料：
 - https://blog.csdn.net/lidongmeng0213/article/details/110869457

@@ -96,7 +96,7 @@ Caused by: java.net.URISyntaxException: Relative path in absolute URI: ${system:
 
 使用如下命令将 MySQL 驱动包复制到 lib 目录下：
 ```
-cp mysql-connector-java-8.0.17.jar /opt/hive/lib/
+cp mysql-connector-java-8.0.16.jar /opt/workspace/hive/lib
 ```
 > 在这我们已经提前下载好驱动包
 
@@ -106,7 +106,7 @@ mysql> create database hive_meta;
 Query OK, 1 row affected (0.00 sec)
 ```
 
-创建好数据库之后在 scripts 目录下运行如下命令进行 Hive 元数据库的初始化：
+创建好数据库之后在 `bin` 目录下运行如下命令进行 Hive 元数据库的初始化：
 ```
 schematool -initSchema -dbType mysql --verbose
 ```

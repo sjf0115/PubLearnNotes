@@ -19,7 +19,7 @@ permalink: spark-how-to-install-and-run
 
 我们从官网 https://www.scala-lang.org/download/all.html 下载 2.12.15 版本：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-how-to-install-and-run-1.png?raw=true)
+![](img-spark-how-to-install-and-run-1.png)
 
 解压到 /opt 目录：
 ```
@@ -37,7 +37,7 @@ export PATH=${SCALA_HOME}/bin:$PATH
 ```
 可以与 scala 进行交互来验证安装是否成功：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-how-to-install-and-run-2.png?raw=true)
+![](img-spark-how-to-install-and-run-2.png)
 
 ## 2. Hadoop 安装
 
@@ -57,7 +57,7 @@ Spark 与 Hadoop 需要配合使用，所以 Spark 必须按照我们目前安�
 
 选择 Spark 版本和 Package 类型之后，自动会为你生成 spark-3.1.3-bin-hadoop2.7.tgz 包地址，直接点击下载即可。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-how-to-install-and-run-3.png?raw=true)
+![](img-spark-how-to-install-and-run-3.png)
 
 > Spark 3 通常是使用 Scala 2.12 预先构建，从 Spark 3.2+ 版本开始提供了基于 Scala 2.13 预先构建的发行版。
 
@@ -111,4 +111,4 @@ cd /opt/spark
 - local：使用一个线程在本地运行
 - local[N]：使用 N 个线程在本地运行
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Spark/spark-how-to-install-and-run-4.png?raw=true)
+![](img-spark-how-to-install-and-run-4.png)

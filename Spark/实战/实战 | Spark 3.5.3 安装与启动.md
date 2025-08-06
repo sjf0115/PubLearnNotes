@@ -50,24 +50,24 @@ Spark 与 Hadoop 需要配合使用，所以 Spark 必须按照我们目前安�
 
 > Spark 3 通常是使用 Scala 2.12 预先构建，从 Spark 3.2+ 版本开始提供了基于 Scala 2.13 预先构建的发行版。
 
-从官网上下载 spark-3.1.3-bin-hadoop2.7.tgz 后解压到 /opt 目录下：
+从官网上下载 `spark-3.5.3-bin-hadoop3.tgz` 后解压到 `/opt/workspace` 目录下：
 ```
-tar -zxvf spark-3.1.3-bin-hadoop2.7.tgz -C /opt
+tar -zxvf spark-3.5.3-bin-hadoop3.tgz -C /opt/workspace
 ```
 为了升级方便，创建软连接：
 ```
-ln -s spark-3.1.3-bin-hadoop2.7/ spark
+ln -s spark-3.5.3-bin-hadoop3/ spark
 ```
 设置环境变量，指向 Spark 目录，便于后续操作：
-```
-# spark
-export SPARK_HOME=/opt/spark
-export PATH=${SPARK_HOME}/bin:$PATH
+```bash
+# Spark
+export SPARK_HOME=/opt/workspace/spark
+export PATH=$SPARK_HOME/bin:$PATH
 ```
 
-需要在 spark-env.sh 中修改 Spark 的 Classpath，执行如下命令拷贝一个配置文件：
-```
-cd /opt/spark
+需要在 `conf/spark-env.sh` 中修改 Spark 的 Classpath，执行如下命令拷贝一个配置文件：
+```bash
+cd /opt/spark/conf
 cp spark-env.sh.template spark-env.sh
 ```
 编辑 spark-env.sh ，在最后面加上如下一行：
@@ -80,9 +80,9 @@ export SPARK_DIST_CLASSPATH=$(/opt/hadoop/bin/hadoop classpath)
 
 ## 4. 运行示例和 Shell
 
-在 examples/src/main 目录下有一些 Spark 的示例程序，有 Scala、Java、Python 以及 R 等语言的版本。如果要运行 Java 或 Scala 示例程序，可以使用 bin/run-example <class> [params] 命令。在内部会调用更通用的 spark-submit 脚本来启动应用程序。如下所示我们运行一个计算 π 的近似值的示例程序 SparkPi：
-```
-cd /opt/spark
+在 `examples/src/main` 目录下有一些 Spark 的示例程序，有 Scala、Java、Python 以及 R 等语言的版本。如果要运行 Java 或 Scala 示例程序，可以使用 `bin/run-example <class> [params]` 命令。在内部会调用更通用的 `spark-submit` 脚本来启动应用程序。如下所示我们运行一个计算 π 的近似值的示例程序 SparkPi：
+```bash
+cd /opt/workspace/spark
 bin/run-example SparkPi
 ```
 执行时会输出非常多的运行信息，输出结果不容易找到，可以通过 grep 命令进行过滤：
@@ -91,8 +91,8 @@ localhost:spark wy$ ./bin/run-example SparkPi 2>&1 | grep "Pi is roughly"
 Pi is roughly 3.135835679178396
 ```
 你还可以通过 Scala shell 以交互方式运行 Spark：
-```
-cd /opt/spark
+```bash
+cd /opt/workspace/spark
 ./bin/spark-shell --master local[2]
 ```
 --master 选项可以指定：

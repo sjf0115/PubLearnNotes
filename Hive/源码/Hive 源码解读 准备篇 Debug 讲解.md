@@ -24,11 +24,11 @@ mvn clean package -Pdist -DskipTests -Dmaven.javadoc.skip=true
 ```
 如果编译过程中出现 `Failed to read artifact descriptor for org.apache.directory.client.ldap:ldap-client-api:jar:0.1-SNAPSHOT` 错误，可以查阅博文 [Hive 3.1.3 编译出错 ldap-client-api:jar:0.1-SNAPSHOT 获取不到](https://smartsi.blog.csdn.net/article/details/128366027) 解决。如果编译结束之后出现如下信息，表示你的编译成功了：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-source-code-debug-1.png?raw=true)
+![](img-hive-source-code-debug-1.png)
 
 编译完之后，在 packaging 包中会生成一个二进制包，这个包可以在服务器上运行的：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-source-code-debug-2.png?raw=true)
+![](img-hive-source-code-debug-2.png)
 
 然后使用这个二进制包进行 Hive 环境的搭建，具体可以查阅 [Hive 安装与配置](https://smartsi.blog.csdn.net/article/details/126198200)。
 
@@ -36,15 +36,15 @@ mvn clean package -Pdist -DskipTests -Dmaven.javadoc.skip=true
 
 首先在 Hive CLI 模式下执行 `hive --debug`：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-source-code-debug-3.png?raw=true)
+![](img-hive-source-code-debug-3.png)
 
 接下来，把源码导入 Idea 中，等待 Idea 完成。然后再 Idea 中创建一个远程 Debug 的配置。输入上边 Hive 客户端 IP 和端口：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-source-code-debug-4.png?raw=true)
+![](img-hive-source-code-debug-4.png)
 
 配置好后点击 Debug 按钮进行调试，并在 CliDriver 类的 run 方法中随意打上断点：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-source-code-debug-5.png?raw=true)
+![](img-hive-source-code-debug-5.png)
 
 追踪到后面的源码，可以发现一直在等待用户的输入，每次输入之后，都会调用 processLine 方法处理：
 ```java
@@ -72,4 +72,4 @@ while ((line = reader.readLine(curPrompt + "> ")) != null) {
 ```
 例如在 Hive CLI 执行 `show databases`：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Hive/hive-source-code-debug-6.png?raw=true)
+![](img-hive-source-code-debug-6.png)

@@ -32,6 +32,7 @@ Apache Paimon 是一项流式数据湖存储技术，基于 Flink Table Store �
 > Lookup Join Request Per Second
 
 2. 由于上卷任务的 source 是 append 流，分钟粒度的指标会实时的变化，所以需要消费 source 后通过 MAX / LAST_VALUE 等聚合函数去构建 retract 流、处理乱序等问题，开发效率低且增加额外的状态成本。
+
 ```sql
 CREATE  VIEW view_01 AS
 SELECT  

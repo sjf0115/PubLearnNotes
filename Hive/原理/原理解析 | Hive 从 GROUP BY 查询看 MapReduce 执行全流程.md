@@ -1,7 +1,4 @@
-
-## 1. 数据准备
-
-假设我们有一个表 user_behavior 包含了 uid (用户ID)、pid (商品ID)、cid (商品类目ID)、behavior (行为类型)和 ts(时间戳) 5个字段：
+本文将通过一个简单的 GROUP BY 查询的执行计划，深入剖析 Hive 如何将 SQL 转化为 MapReduce 作业。假设我们有一个表 user_behavior 包含了 uid (用户ID)、pid (商品ID)、cid (商品类目ID)、behavior (行为类型)和 ts(时间戳) 5个字段：
 
 | 字段 | 中文名称 | 说明 |
 | :------------- | :------------- | :------------- |
@@ -11,15 +8,13 @@
 | behavior | 行为类型	| 字符串，枚举类型，包括('pv', 'buy', 'cart', 'fav') |
 | ts | 时间戳	| 行为发生的时间戳 |
 
-现在需要计算每种行为的日志量：
+我们分析的查询是计算每种行为的日志量：
 ```sql
 SELECT behavior, COUNT(*) AS num
 FROM user_behavior
 GROUP BY behavior;
 ```
-
-## 2. 计算过程
-
+执行过程如下所示：
 ```sql
 hive> SELECT behavior, COUNT(*) AS num
     > FROM user_behavior
@@ -61,41 +56,11 @@ buy	2015839
 cart	5530446
 Time taken: 44.382 seconds, Fetched: 4 row(s)
 ```
+这个看似简单的聚合查询背后，Hive 执行引擎做了大量复杂的工作。让我们逐层解析执行计划输出的每个部分。
 
+## 1. 执行计划获取
 
-执行流程详解
-Map阶段:
-
-读取user_behavior表数据
-
-提取behavior列
-
-在Map端进行部分聚合(combiner)，计算每个Map任务处理的data中各个behavior的出现次数
-
-按照behavior的值对输出进行分区，确保相同behavior的记录会发送到同一个Reducer
-
-Shuffle阶段:
-
-将Map端的输出按照behavior的值进行排序和分区
-
-将数据发送到对应的Reducer
-
-Reduce阶段:
-
-接收来自不同Map任务的相同behavior的数据
-
-合并部分聚合结果，计算最终的count值
-
-将结果写入SequenceFile
-
-Fetch阶段:
-
-从Reduce阶段输出的文件中读取结果
-
-返回给客户端
-
-## 3. 执行计划
-
+执行如下语句获取执行计划：
 ```sql
 EXPLAIN
 SELECT behavior, COUNT(*) AS num
@@ -160,7 +125,7 @@ Hive执行计划输出主要分为三大部分：
 - `STAGE PLANS`：详细的 `Stage` 执行计划
 - 执行统计信息（如果有实际执行）
 
-### 3.1 Stage 依赖关系
+## 2. Stage 依赖关系解析
 
 ```sql
 STAGE DEPENDENCIES:
@@ -172,17 +137,16 @@ STAGE DEPENDENCIES:
 - `Stage-1` 是根阶段（root stage），即最先执行的阶段
 - `Stage-0` 依赖于 `Stage-1`，表示 `Stage-0` 需要在 `Stage-1` 完成后才能执行
 
-### 3.2 Stage 执行计划
+## 3. Stage 执行计划解读
 
-在这 `Stage-1` 是 MapReduce 作业执行阶段（包含Map和Reduce），`Stage-0` 是 Fetch 阶段，负责将结果返回给客户端。由于 `Stage-0` 比较简单，在这着重解读一下 `Stage-1` MapReduce 作业执行阶段。这也是整个执行计划最复杂的部分，完整展示了 Hive 如何将 GROUP BY 转换为 MapReduce 作业。
+在这 `Stage-1` 是 MapReduce 作业执行阶段（包含 Map 和 Reduce），`Stage-0` 是 Fetch 阶段，负责将结果返回给客户端。由于 `Stage-0` 比较简单，在这着重解读一下 `Stage-1` MapReduce 作业执行阶段。这也是整个执行计划最复杂的部分，完整展示了 Hive 如何将 GROUP BY 转换为 MapReduce 作业。
 
 > Execution mode: vectorized
 这表示Hive启用了向量化执行模式，这是Hive 0.13引入的优化特性，可以一次处理一批记录而非单条记录，显著提高CPU利用率。
 
-#### 3.2.1 Map 阶段：Map Operator Tree
+### 3.1 Map 阶段：Map Operator Tree
 
 Map Operator Tree 描述了在 Map 阶段执行的操作序列：
-
 ```sql
 Map Operator Tree:
     TableScan
@@ -221,23 +185,14 @@ Map Operator Tree:
 - outputColumnNames: Map 段输出临时列名 `_col0` 和 `_col1`（behavior对应 `_col0`，count 对应`_col1`）
 - Statistics：统计信息（注意这里的 Num rows 为 1 是估计值，实际数据量 36.7GB）
 
-> 为了减少 Reducer 端处理的数据量，`hive.map.aggr`默认设置为`true`，所以先会在 Mapper 端进行一次 Group By，结果根据 key 聚合。Reducer 端 `Group By Operator` 的 mode 为 `mergepartial`。如果设置 `hive.map.aggr=false`，Reducer 端 `Group By Operator` 的 mode 为 `complete`。
-
-```
-set hive.map.aggr=true;
-```
-
-
 第四个是 Reduce Output Operator，用于准备发送到 Reduce 端的数据，关键属性：
 - key expressions: `_col0` 表示以 `_col0`（即behavior）作为 Reduce 的 key 进行 Shuffle
 - sort order: `+` 表示按 key 升序排序
 - value expressions: `_col1` 表示发送 `_col1`（即count值）到 Reduce
 
+### 3.2 Reduce 阶段：Reduce Operator Tree
 
-#### 3.2.2 Reduce 阶段：Reduce Operator Tree
-
-Reduce端操作树描述了Reduce阶段执行的操作：
-
+Reduce Operator Tree 描述了 Reduce 阶段执行的操作：
 ```sql
 Reduce Operator Tree:
   Group By Operator
@@ -257,6 +212,7 @@ Reduce Operator Tree:
 
 第一个是 Group By Operator，用于合并 Map 端的部分聚合结果，关键属性：
 - mode: `mergepartial` 表示合并部分聚合结果
+  - `hive.map.aggr=true`，默认会在 Map 阶段进行一次 Group By
 - aggregations: `count(VALUE._col0)` 表示合并 Map 端传递过来的 count 值
 - keys: `KEY._col0` 表示仍按 behavior 分组
 - outputColumnNames: Reduce 端输出临时列名 `_col0` 和 `_col1`（behavior对应 `_col0`，num 对应`_col1`）
@@ -267,4 +223,83 @@ Reduce Operator Tree:
 - output format: `org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat` 表示输出格式为 HiveSequenceFileOutputFormat
 - serde: `org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe` 表示使用 `LazySimpleSerDe` 序列化
 
-...
+### 3.3 Fetch 阶段
+
+Fetch 阶段将 Reduce 阶段计算的结果返回给客户端：
+```sql
+Stage: Stage-0
+  Fetch Operator
+    limit: -1
+    Processor Tree:
+      ListSink
+```
+关键属性：
+- `limit: -1` 表示没有限制返回行数
+- `ListSink` 表示结果将收集到列表中返回
+
+### 3.4 注意
+
+你可能有疑惑的是为什么在 Map 阶段多了一个 Group By Operator，为了减少 Reducer 端处理的数据量，默认会在 Map 阶段进行一次 Group By，结果根据 key 聚合。Reducer 端 `Group By Operator` 的 mode 为 `mergepartial`。这种行为是通过 `hive.map.aggr` 参数控制。如果设置 `hive.map.aggr=false`，再看一下执行计划的变化：
+```sql
+STAGE DEPENDENCIES:
+  Stage-1 is a root stage
+  Stage-0 depends on stages: Stage-1
+
+STAGE PLANS:
+  Stage: Stage-1
+    Map Reduce
+      Map Operator Tree:
+          TableScan
+            alias: user_behavior
+            Statistics: Num rows: 1 Data size: 36723474432 Basic stats: COMPLETE Column stats: NONE
+            Select Operator
+              expressions: behavior (type: string)
+              outputColumnNames: behavior
+              Statistics: Num rows: 1 Data size: 36723474432 Basic stats: COMPLETE Column stats: NONE
+              Reduce Output Operator
+                key expressions: behavior (type: string)
+                sort order: +
+                Map-reduce partition columns: behavior (type: string)
+                Statistics: Num rows: 1 Data size: 36723474432 Basic stats: COMPLETE Column stats: NONE
+      Execution mode: vectorized
+      Reduce Operator Tree:
+        Group By Operator
+          aggregations: count()
+          keys: KEY._col0 (type: string)
+          mode: complete
+          outputColumnNames: _col0, _col1
+          Statistics: Num rows: 1 Data size: 36723474432 Basic stats: COMPLETE Column stats: NONE
+          File Output Operator
+            compressed: false
+            Statistics: Num rows: 1 Data size: 36723474432 Basic stats: COMPLETE Column stats: NONE
+            table:
+                input format: org.apache.hadoop.mapred.SequenceFileInputFormat
+                output format: org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat
+                serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+
+  Stage: Stage-0
+    Fetch Operator
+      limit: -1
+      Processor Tree:
+        ListSink
+```
+可以看到 Map 阶段的 Group By Operator 没有了，Reduce 端 `Group By Operator` 的 mode 变为 `complete`。
+
+## 4. 执行流程详解
+
+通过执行计划，我们可以还原出完整的执行流程：
+- Map阶段:
+  - 读取 user_behavior 表数据
+  - 提取 behavior 列
+  - 在 Map 端进行部分聚合(combiner)，计算每个 Map 任务处理的数据中每个 behavior 的出现次数
+- Shuffle 阶段:
+  - 将 Map 端的输出按照 behavior 的值进行排序和分区
+  - 相同 behavior 的记录会被发送到同一个 Reducer
+    - 输出格式：<behavior, count>
+- Reduce 阶段:
+  - 接收来自不同 Map 任务的相同 behavior 的数据
+  - 合并部分聚合结果，计算最终的 count 值
+  - 将结果写入 SequenceFile
+- Fetch 阶段:
+  - 从 Reduce 阶段输出的文件中读取结果
+  - 返回给客户端

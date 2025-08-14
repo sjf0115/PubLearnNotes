@@ -488,4 +488,7 @@ default.target.p=1/q=2 -> SHARED_WRITE
 VECTORIZATION 从 Hive 2.3.0 版本开始提供支持，具体查阅[HIVE-11394](https://issues.apache.org/jira/browse/HIVE-11394)。
 
 
+https://mp.weixin.qq.com/s/VOuUpwtOJGZltGqba28y3A
+
+
 - [LanguageManual Explain](https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Explain)

@@ -189,3 +189,21 @@ bin/hive --hiveconf hive.fetch.task.conversion=more
   <value>more</value>
 </property>
 ```
+
+
+
+
+hive.fetch.task.conversion
+
+默认值为none。参数取值如下：
+
+none：关闭Fetch task优化。
+
+在执行语句时，执行MapReduce程序。
+
+minimal：只在SELECT、FILTER和LIMIT的语句上进行优化。
+
+more：在minimal的基础上更强大，SELECT不仅仅是查看，还可以单独选择列，FILTER也不再局限于分区字段，同时支持虚拟列（别名）。
+
+
+https://help.aliyun.com/zh/emr/emr-on-ecs/user-guide/optimize-hive-jobs#section-hu0-vq2-tdi

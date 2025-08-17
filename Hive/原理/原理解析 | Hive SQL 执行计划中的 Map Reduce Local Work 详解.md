@@ -1,22 +1,18 @@
-# Hive SQL 执行计划中的 Map Reduce Local Work 详解
+## 1. 什么是 Map Reduce Local Work
 
-作为Hive专家，我很高兴为您详细解释执行计划中的"Map Reduce Local Work"概念，这是理解Hive查询执行过程的关键部分。
+Map Reduce Local Work（简称Local Work）是 Hive 执行计划中的一个阶段，指的是在本地机器上执行的任务，而不需要启动完整的 MapReduce 作业。这种本地化执行可以显著提高小数据量查询的性能。
 
-## 什么是Map Reduce Local Work
+## 2. Local Work 类型
 
-Map Reduce Local Work（简称Local Work）是Hive执行计划中的一个阶段，指的是在本地机器上执行的任务，而不需要启动完整的MapReduce作业。这种本地化执行可以显著提高小数据量查询的性能。
+### 2.1 Fetch Task (直接抓取)
 
-## Local Work的主要类型
-
-### 1. Fetch Task (直接抓取)
-
-当查询满足以下条件时，Hive会使用Fetch Task直接从HDFS读取数据而不启动MapReduce：
+当查询满足以下条件时，Hive 会使用 Fetch Task 直接从 HDFS 读取数据而不启动 MapReduce：
 - 简单查询（如`SELECT * FROM table`）
 - 只涉及分区裁剪（如`SELECT * FROM table WHERE partition_column=value`）
 - 使用`LIMIT`子句的小结果集查询
 
 **执行计划示例**：
-```
+```sql
 Explain
 STAGE DEPENDENCIES:
   Stage-0 is a root stage
@@ -35,28 +31,28 @@ STAGE PLANS:
             ListSink
 ```
 
-### 2. Local Map (本地Map任务)
+### 2.2 Local Map (本地Map任务)
 
 对于某些简单转换操作，Hive会在本地执行：
 - 简单的列投影（`SELECT col1, col2 FROM table`）
 - 简单的过滤操作（`WHERE`条件）
 - 某些简单的聚合函数（如`COUNT(*)`）
 
-### 3. Local Reduce (本地Reduce任务)
+### 2.3 Local Reduce (本地Reduce任务)
 
 在某些情况下，Hive会在本地执行reduce操作：
 - 小表JOIN操作
 - 小数据量的GROUP BY操作
 - 某些子查询处理
 
-## Local Work的执行优势
+## 3. Local Work 的执行优势
 
 1. **避免启动开销**：省去了MapReduce作业的启动和调度开销
 2. **减少网络传输**：数据在本地处理，不需要跨节点传输
 3. **快速响应**：对于小查询，几乎可以立即返回结果
 4. **资源节省**：不占用YARN资源，不影响集群其他作业
 
-## 如何判断查询是否使用Local Work
+## 4. 如何判断查询是否使用Local Work
 
 1. 查看执行计划：
    ```sql
@@ -66,27 +62,26 @@ STAGE PLANS:
 
 2. 观察作业执行日志：本地任务不会显示Map/Reduce进度百分比
 
-## 控制Local Work的行为
+## 5. 控制 Local Work 的行为
 
-可以通过以下参数控制Local Work的使用：
-
+可以通过以下参数控制 Local Work 的使用：
 ```sql
 -- 启用Fetch Task（默认true）
 set hive.fetch.task.conversion=more;
 
--- 设置本地模式的最大输入大小（默认128MB）
-set hive.exec.mode.local.auto.inputbytes.max=134217728;
 
 -- 启用自动本地模式（默认false）
 set hive.exec.mode.local.auto=true;
-
+-- 设置本地模式的最大输入大小（默认128MB）
+set hive.exec.mode.local.auto.inputbytes.max=134217728;
 -- 本地模式的任务数阈值（默认4）
 set hive.exec.mode.local.auto.input.files.max=4;
 ```
 
-## 实际案例分析
+## 6. 实际案例分析
 
-### 案例1：简单查询
+### 6.1 案例1：简单查询
+
 ```sql
 SELECT name FROM employees WHERE id = 100;
 ```

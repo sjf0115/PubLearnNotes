@@ -58,10 +58,6 @@ KIP-500 引入了一个桥接版本(bridge release)的概念，可以与 KIP-500
 
 那么这是如何工作的呢？考虑一个处于部分升级状态的群集，有一些 Broker 处于桥接版本，有一些 Broker 处于 KIP-500 之后的版本中。但控制器始终是 KIP-500 后的 Broker。在这个集群中，Broker 不能依靠直接修改 ZooKeeper 来通知他们正在做的变更（例如，配置更改或 ACL 更改）。KIP-500 之后的 Broker 不会收到此类通知，因为他们没有在 ZooKeeper 上监听。只有控制器仍在与 ZooKeeper 交互，通过将其更改镜像到 ZooKeeper。因此，在桥接版本中，除了控制器之外的所有 Broker 都必须将 ZooKeeper 视为只读的（有一些非常有限的例外）。
 
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
-
 引用：
 - [1] https://cwiki.apache.org/confluence/display/KAFKA/KIP-500%3A+Replace+ZooKeeper+with+a+Self-Managed+Metadata+Quorum
 - [2] https://cwiki.apache.org/confluence/x/Li7cC

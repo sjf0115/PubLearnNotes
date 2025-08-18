@@ -14,7 +14,7 @@ permalink: kafka-setup-and-run
 
 [下载](https://dlcdn.apache.org/kafka/3.9.1/kafka_2.12-3.9.1.tgz) 3.9.1 版本并解压缩:
 ```
-tar -zxvf kafka_2.12-3.9.1.tgz -C /opt/workspace
+tar -zxvf kafka_2.12-3.9.1.tgz -C /opt/workspace/
 ```
 创建软连接便于升级:
 ```
@@ -27,17 +27,9 @@ export KAFKA_HOME=/opt/workspace/kafka
 export PATH=${KAFKA_HOME}/bin:$PATH
 ```
 
-### 2. 安装ZooKeeper
+### 2. 安装 ZooKeeper
 
-Kafka 依赖 [ZooKeeper](https://zookeeper.apache.org/)，如果你还没有 ZooKeeper 服务器，你需要先启动一个 ZooKeeper 服务器。可以先参考[ZooKeeper 安装与启动](https://smartsi.blog.csdn.net/article/details/124680579)来安装 ZooKeeper。ZooKeeper 配置如下:
-```
-tickTime=2000
-initLimit=10
-syncLimit=5
-dataDir=/opt/zookeeper/data
-clientPort=2181
-server.1=localhost:2888:3888
-```
+Kafka 依赖 [ZooKeeper](https://zookeeper.apache.org/)，如果你还没有 ZooKeeper 服务器，你需要先启动一个 ZooKeeper 服务器。可以先参考[实战 | ZooKeeper 3.8.4 伪分布式模式安装与启动](https://smartsi.blog.csdn.net/article/details/150474174)来安装 ZooKeeper。
 
 你也可以通过与 kafka 打包在一起的便捷脚本来快速简单地创建一个单节点 ZooKeeper 实例:
 ```
@@ -48,31 +40,35 @@ server.1=localhost:2888:3888
 
 ### 3. 配置 Kafka
 
-第一个 broker 配置 `server-9092.properties` 如下:
+根据提供的默认配置复制生成三个节点的配置文件：
+```bash
+192:config smartsi$ cp server.properties server-9092.properties
+192:config smartsi$ cp server.properties server-9093.properties
+192:config smartsi$ cp server.properties server-9094.properties
+```
+
+第一个 broker 配置 `server-9092.properties` 修改如下:
 ```
 broker.id=0
 listeners=PLAINTEXT://127.0.0.1:9092
-log.dirs=../logs/broker/9092
-zookeeper.connect=localhost:2181/kafka-2.3.0
-zookeeper.connection.timeout.ms=6000
+log.dirs=/tmp/logs/kafka/9092
+zookeeper.connect=localhost:2181/kafka-3.9.1
 ```
 > 运行起来至少要配置四项。上面的前四项。
 
-第二个 broker 配置 `server-9093.properties` 如下:
+第二个 broker 配置 `server-9093.properties` 修改如下:
 ```
 broker.id=1
 listeners=PLAINTEXT://127.0.0.1:9093
-log.dirs=../logs/broker/9093
-zookeeper.connect=localhost:2181/kafka-2.3.0
-zookeeper.connection.timeout.ms=6000
+log.dirs=./tmp/logs/kafka/9093
+zookeeper.connect=localhost:2181/kafka-3.9.1
 ```
-第三个 broker 配置 `server-9094.properties` 如下:
+第三个 broker 配置 `server-9094.properties` 修改如下:
 ```
 broker.id=2
 listeners=PLAINTEXT://127.0.0.1:9094
-log.dirs=../logs/broker/9094
-zookeeper.connect=localhost:2181/kafka-2.3.0
-zookeeper.connection.timeout.ms=6000
+log.dirs=/tmp/logs/kafka/9094
+zookeeper.connect=localhost:2181/kafka-3.9.1
 ```
 > 我们必须重写端口和日志目录，因为我们在同一台机器上运行这些，我们不希望所有都在同一个端口注册，或者覆盖彼此的数据。所以用端口号9092、9093、9094分别代表三个 broker。
 
@@ -92,32 +88,58 @@ Socket服务器监听的地址，如果没有设置，则监听 `java.net.InetAd
 
 (3) ZooKeeper相关:
 ```
-zookeeper.connect=localhost:2181/kafka-2.3.0
-zookeeper.connection.timeout.ms=6000
+zookeeper.connect=localhost:2181/kafka-3.9.1
 ```
-`zookeeper.connect` 是一个逗号分隔的 `host:port` 键值对，每个对应一个 zk 服务器。例如 `127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002`。你还可以将可选的客户端命名空间 Chroot 字符串追加到 URL 上以指定所有 kafka 的 Znode 的根目录。另外这个 `kafka-2.3.0` 这个节点需要你提前建立。让 Kafka 把他需要的数据结构都建立在这个节点下，否则会建立在根节点 `/` 节点下。
+`zookeeper.connect` 是一个逗号分隔的 `host:port` 键值对，每个对应一个 zk 服务器。例如 `127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002`。你还可以将可选的客户端命名空间 Chroot 字符串追加到 URL 上以指定所有 kafka 的 Znode 的根目录。另外这个 `kafka-3.9.1` 这个节点需要你提前建立。让 Kafka 把他需要的数据结构都建立在这个节点下，否则会建立在根节点 `/` 节点下。
 
 (3) 日志相关:
 ```
-log.dirs=../logs/broker/9092
+log.dirs=/tmp/logs/kafka/9092
 ```
-Kafka存储Log的目录。
+Kafka 存储 Log 的目录。
 
-### 4. 启动 Kafka 服务器
+
+### 4. 创建启动和停止脚本
 
 有两种方式可以启动 Kafka 服务器:
-```
+```bash
 # 第一种方式（推荐）
 bin/kafka-server-start.sh -daemon config/server.properties
 # 第二种方式
 nohup bin/kafka-server-start.sh config/server.properties &
 ```
 
-我们以第一种方式启动 Kafka 服务器:
+我们以第一种方式启动 Kafka 服务器。为了方便，在 bin 创建 `start-cluster.sh` 启动脚本：
+```bash
+#!/bin/bash
+
+KAFKA_HOME="/opt/workspace/kafka"
+
+echo "启动 Kafka 第一个实例"
+$KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/config/server-9092.properties
+sleep 2
+
+echo "启动 Kafka 第二个实例"
+$KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/config/server-9093.properties
+sleep 2
+
+echo "启动 Kafka 第三个实例"
+$KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/server-9094.properties
+sleep 2
+
+echo "Kafka 集群启动结束"
 ```
-bin/kafka-server-start.sh -daemon config/server-9092.properties
-bin/kafka-server-start.sh -daemon config/server-9093.properties
-bin/kafka-server-start.sh -daemon config/server-9094.properties
+在 bin 创建 `stop-cluster.sh` 启动脚本：
+```bash
+
+```
+
+
+### 4. 启动 Kafka 服务器
+
+
+```
+
 ```
 查看进程和端口:
 ```

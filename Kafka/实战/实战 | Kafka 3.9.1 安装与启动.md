@@ -124,14 +124,30 @@ $KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/config/server-9093.pro
 sleep 2
 
 echo "启动 Kafka 第三个实例"
-$KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/server-9094.properties
+$KAFKA_HOME/bin/kafka-server-start.sh -daemon $KAFKA_HOME/config/server-9094.properties
 sleep 2
 
 echo "Kafka 集群启动结束"
 ```
 在 bin 创建 `stop-cluster.sh` 启动脚本：
 ```bash
+#!/bin/bash
 
+KAFKA_HOME="/opt/workspace/kafka"
+
+echo "停止 Kafka 第一个实例"
+$KAFKA_HOME/bin/kafka-server-stop.sh -daemon $KAFKA_HOME/config/server-9092.properties
+sleep 2
+
+echo "停止 Kafka 第二个实例"
+$KAFKA_HOME/bin/kafka-server-stop.sh -daemon $KAFKA_HOME/config/server-9093.properties
+sleep 2
+
+echo "停止 Kafka 第三个实例"
+$KAFKA_HOME/bin/kafka-server-stop.sh -daemon $KAFKA_HOME/config/server-9094.properties
+sleep 2
+
+echo "Kafka 集群停止结束"
 ```
 
 
@@ -208,15 +224,20 @@ numChildren = 0
 
 ### 5. 测试Kafka
 
+
+kafka-topics.sh --list --bootstrap-server localhost:9092
+
 #### 5.1 创建Topic
 
 让我们创建一个名为 `test` 的 Topic，它有一个分区和一个副本：
 ```
-bin/kafka-topics.sh --create --zookeeper localhost:2181/kafka-2.3.0 --replication-factor 1 --partitions 1 --topic test
+bin/kafka-topics.sh --create --zookeeper localhost:2181/kafka-3.9.1 --replication-factor 1 --partitions 1 --topic test
+
+bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic test
 ```
 现在我们可以运行 `list` 命令来查看这个 Topic:
 ```
-smartsi:kafka smartsi$ bin/kafka-topics.sh --list --zookeeper localhost:2181/kafka-2.3.0
+smartsi:kafka smartsi$ bin/kafka-topics.sh --list --zookeeper localhost:2181/kafka-3.9.1
 test
 ```
 或者，你也可将代理配置为：在发布的topic不存在时，自动创建topic，而不是手动创建。

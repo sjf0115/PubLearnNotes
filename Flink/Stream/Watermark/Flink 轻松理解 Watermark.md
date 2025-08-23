@@ -15,7 +15,7 @@ permalink: watermarks-in-apache-flink-made-easy
 
 在下文中的例子中，我们有一个带有时间戳的事件流，这些事件并不是按顺序到达的。图中的数字表示事件发生的时间戳。第一个事件在时间 4 到达，后面跟着一个发生更早时间的事件（时间 2），以此类推：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/watermarks-in-apache-flink-made-easy-1.png)
+![](img-watermarks-in-apache-flink-made-easy-1.png)
 
 注意这是一个基于事件时间处理的例子，这意味着时间戳反映的是事件发生的时间，而不是事件处理的时间。基于事件时间处理的强大之处在于创建流处理程序无论是处理实时的数据还是重新处理历史的数据，都能保证结果的一致。
 

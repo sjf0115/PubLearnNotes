@@ -51,6 +51,7 @@ Kafka 依赖 [ZooKeeper](https://zookeeper.apache.org/)，如果你还没有 Zoo
 ```
 broker.id=0
 listeners=PLAINTEXT://127.0.0.1:9092
+# 持久化数据目录
 log.dirs=/tmp/logs/kafka/9092
 zookeeper.connect=localhost:2181/kafka-3.9.1
 ```

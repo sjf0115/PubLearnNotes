@@ -83,6 +83,81 @@ input
 
 > 滚动窗口分配器的内部实现细节，可以参阅[TumblingEventTimeWindows](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502) 和 [TumblingProcessingTimeWindows](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502)
 
+### 1.1 基于处理时间的滚动窗口
+
+如下是一个基于处理时间的滚动窗口，用来每10秒统计每个单词的词频：
+```java
+DataStream<WordCount> tumblingTimeWindowStream = words
+        // 根据单词分组
+        .keyBy(new KeySelector<WordCount, String>() {
+            @Override
+            public String getKey(WordCount wc) throws Exception {
+                return wc.getWord();
+            }
+        })
+        // 窗口大小为10秒的滚动窗口
+        .window(TumblingProcessingTimeWindows.of(Time.seconds(10)))
+        // 求和
+        .reduce(new ReduceFunction<WordCount>() {
+            @Override
+            public WordCount reduce(WordCount wc1, WordCount wc2) throws Exception {
+                return new WordCount(wc1.getWord(), wc1.getFrequency() + wc2.getFrequency());
+            }
+        });
+```
+运行程序输出如下信息，可以看到每10秒输出一次结果，结果是最近10秒内每个单词的词频：
+```java
+10:00:35,538 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 7
+10:00:36,538 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 10
+10:00:37,539 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 10
+10:00:38,540 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 9
+10:00:39,541 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 5
+TumblingTimeWindow> WordCount{word='flink', frequency=16}
+TumblingTimeWindow> WordCount{word='storm', frequency=10}
+TumblingTimeWindow> WordCount{word='spark', frequency=15}
+10:00:40,541 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 2
+10:00:41,542 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 4
+10:00:42,542 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 2
+10:00:43,542 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 6
+10:00:44,543 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 5
+10:00:45,544 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 10
+10:00:46,545 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 10
+10:00:47,546 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 10
+10:00:48,546 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 8
+10:00:49,547 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 8
+TumblingTimeWindow> WordCount{word='storm', frequency=26}
+TumblingTimeWindow> WordCount{word='spark', frequency=20}
+TumblingTimeWindow> WordCount{word='flink', frequency=19}
+10:00:50,548 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 5
+10:00:51,549 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 3
+10:00:52,549 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 2
+10:00:53,549 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 7
+10:00:54,549 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 10
+10:00:55,549 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 4
+10:00:56,550 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 9
+10:00:57,551 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 1
+10:00:58,552 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 4
+10:00:59,552 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 4
+TumblingTimeWindow> WordCount{word='flink', frequency=25}
+TumblingTimeWindow> WordCount{word='storm', frequency=10}
+TumblingTimeWindow> WordCount{word='spark', frequency=14}
+10:01:00,553 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 2
+10:01:01,553 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 5
+10:01:02,553 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 7
+10:01:03,554 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 4
+10:01:04,555 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 6
+10:01:05,556 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 1
+10:01:06,557 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 8
+10:01:07,558 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 9
+10:01:08,558 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 4
+10:01:09,558 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 9
+TumblingTimeWindow> WordCount{word='spark', frequency=23}
+TumblingTimeWindow> WordCount{word='flink', frequency=12}
+TumblingTimeWindow> WordCount{word='storm', frequency=20}
+```
+
+### 1.2 基于事件时间的滚动窗口
+
 ## 2. 滑动窗口
 
 滑动窗口分配器将每个元素分配给固定窗口大小的窗口。与滚动窗口分配器类似，窗口的大小由 `window size` 参数配置。还有一个`window slide`参数用来控制滑动窗口的滑动大小。因此，如果滑动大小小于窗口大小，则滑动窗口会重叠。在这种情况下，一个元素会被分配到多个窗口中。
@@ -114,6 +189,90 @@ input
 ```
 
 > 滑动窗口分配器的内部实现细节，可以参阅[SlidingEventTimeWindows](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502) 和 [SlidingProcessingTimeWindows](https://smartsi.blog.csdn.net/article/details/126594720?spm=1001.2014.3001.5502)
+
+### 2.1 基于处理时间的滑动窗口
+
+如下是一个基于处理时间的滑动窗口，用来每5秒统计最近10秒内的每个单词的词频：
+```java
+// 滑动窗口 每5s统计最近10秒内的每个单词个数
+DataStream<WordCount> slidingWindowStream = words
+        // 根据单词分组
+        .keyBy(new KeySelector<WordCount, String>() {
+            @Override
+            public String getKey(WordCount wc) throws Exception {
+                return wc.getWord();
+            }
+        })
+        // 窗口大小为10秒、滑动步长为5秒的滑动窗口
+        .window(SlidingProcessingTimeWindows.of(Time.seconds(10), Time.seconds(5)))
+        // 求和
+        .reduce(new ReduceFunction<WordCount>() {
+            @Override
+            public WordCount reduce(WordCount wc1, WordCount wc2) throws Exception {
+                return new WordCount(wc1.getWord(), wc1.getFrequency() + wc2.getFrequency());
+            }
+        });
+```
+> 源码：[ProcessingTimeWindowExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/window/assigner/ProcessingTimeWindowExample.java)
+
+运行程序输出如下信息，可以看到每5秒输出一次结果，结果是最近10秒内每个单词的词频：
+```java
+10:06:11,351 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 6
+10:06:12,352 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 3
+10:06:13,353 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 9
+10:06:14,354 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 9
+SlidingWindow> WordCount{word='flink', frequency=15}
+SlidingWindow> WordCount{word='spark', frequency=3}
+SlidingWindow> WordCount{word='storm', frequency=9}
+10:06:15,354 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 10
+10:06:16,355 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 9
+10:06:17,356 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 6
+10:06:18,356 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 5
+10:06:19,356 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 4
+SlidingWindow> WordCount{word='flink', frequency=21}
+SlidingWindow> WordCount{word='spark', frequency=18}
+SlidingWindow> WordCount{word='storm', frequency=22}
+10:06:20,357 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 9
+10:06:21,357 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 2
+10:06:22,358 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 10
+10:06:23,358 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 5
+10:06:24,359 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 7
+SlidingWindow> WordCount{word='spark', frequency=24}
+SlidingWindow> WordCount{word='flink', frequency=20}
+SlidingWindow> WordCount{word='storm', frequency=23}
+10:06:25,360 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 2
+10:06:26,360 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 6
+10:06:27,361 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 9
+10:06:28,362 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 10
+10:06:29,363 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 3
+SlidingWindow> WordCount{word='flink', frequency=23}
+SlidingWindow> WordCount{word='storm', frequency=22}
+SlidingWindow> WordCount{word='spark', frequency=18}
+10:06:30,364 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 2
+10:06:31,364 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 10
+10:06:32,365 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 8
+10:06:33,366 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 7
+10:06:34,367 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 2
+SlidingWindow> WordCount{word='storm', frequency=24}
+SlidingWindow> WordCount{word='spark', frequency=18}
+SlidingWindow> WordCount{word='flink', frequency=17}
+10:06:35,368 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 6
+10:06:36,369 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 8
+10:06:37,369 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 6
+10:06:38,370 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 1
+10:06:39,371 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 8
+SlidingWindow> WordCount{word='spark', frequency=25}
+SlidingWindow> WordCount{word='flink', frequency=15}
+SlidingWindow> WordCount{word='storm', frequency=18}
+10:06:40,372 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 6
+10:06:41,372 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 3
+10:06:42,373 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: spark, frequency: 9
+10:06:43,374 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: storm, frequency: 2
+10:06:44,374 INFO  com.flink.example.stream.source.custom.WordCountMockSource   [] - word: flink, frequency: 6
+SlidingWindow> WordCount{word='flink', frequency=16}
+SlidingWindow> WordCount{word='storm', frequency=14}
+SlidingWindow> WordCount{word='spark', frequency=25}
+```
 
 ## 3. 会话窗口
 

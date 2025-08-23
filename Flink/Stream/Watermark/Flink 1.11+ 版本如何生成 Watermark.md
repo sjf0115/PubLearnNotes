@@ -84,60 +84,45 @@ WatermarkStrategy.forBoundedOutOfOrderness();
 
 如下代码所示在乱序流下使用上述静态方法周期性生成 Watermark 的示例：
 ```java
-DataStreamSource<Tuple4<Integer, String, Integer, Long>> source = env.addSource(new OutOfOrderSource());
-DataStream<Tuple4<Integer, String, Integer, Long>> watermarkStream = source.assignTimestampsAndWatermarks(
-        // 允许最大5s的乱序
-        WatermarkStrategy.<Tuple4<Integer, String, Integer, Long>>forBoundedOutOfOrderness(Duration.ofSeconds(5))
-                .withTimestampAssigner(new SerializableTimestampAssigner<Tuple4<Integer, String, Integer, Long>>() {
+// 单词流
+DataStreamSource<WordCountTimestamp> source = env.addSource(new WordCountOutOfOrderSource());
+// 定义 Watermark 策略 - 乱序流
+DataStream<WordCountTimestamp> words = source.assignTimestampsAndWatermarks(
+        WatermarkStrategy
+                // 定义 Watermark 最大容忍5秒的延迟
+                .<WordCountTimestamp>forBoundedOutOfOrderness(Duration.ofSeconds(5))
+                // 提取时间戳
+                .withTimestampAssigner(new SerializableTimestampAssigner<WordCountTimestamp>() {
                     @Override
-                    public long extractTimestamp(Tuple4<Integer, String, Integer, Long> element, long recordTimestamp) {
-                        return element.f3;
+                    public long extractTimestamp(WordCountTimestamp wc, long recordTimestamp) {
+                        return wc.getTimestamp();
                     }
                 })
 );
 
 // 分组求和
-DataStream<Tuple2<String, Integer>> result = watermarkStream
+DataStream<WordCountTimestamp> result = words
         // 分组
-        .keyBy(new KeySelector<Tuple4<Integer,String,Integer,Long>, String>() {
+        .keyBy(new KeySelector<WordCountTimestamp, String>() {
             @Override
-            public String getKey(Tuple4<Integer, String, Integer, Long> tuple) throws Exception {
-                return tuple.f1;
+            public String getKey(WordCountTimestamp wc) throws Exception {
+                return wc.getWord();
             }
         })
         // 窗口大小为1分钟的滚动窗口
         .window(TumblingEventTimeWindows.of(Time.minutes(1)))
-        // 分组求和
-        .process(new ProcessWindowFunction<Tuple4<Integer, String, Integer, Long>, Tuple2<String, Integer>, String, TimeWindow>() {
-            @Override
-            public void process(String key, Context context, Iterable<Tuple4<Integer, String, Integer, Long>> elements, Collector<Tuple2<String, Integer>> out) throws Exception {
-                // 单词个数
-                int count = 0;
-                List<Integer> ids = Lists.newArrayList();
-                for (Tuple4<Integer, String, Integer, Long> element : elements) {
-                    ids.add(element.f0);
-                    count ++;
-                }
-                // 时间窗口元数据
-                TimeWindow window = context.window();
-                long start = window.getStart();
-                long end = window.getEnd();
-                String startTime = DateUtil.timeStamp2Date(start);
-                String endTime = DateUtil.timeStamp2Date(end);
-                // Watermark
-                long watermark = context.currentWatermark();
-                String watermarkTime = DateUtil.timeStamp2Date(watermark);
-                //  输出日志
-                LOG.info("word: {}, count: {}, ids: {}, window: {}, watermark: {}",
-                        key, count, ids,
-                        "[" + startTime + ", " + endTime + "]",
-                        watermark + "|" + watermarkTime
-                );
-                out.collect(Tuple2.of(key, count));
-            }
-        });
+        // 窗口计算：求和
+        .reduce(new ReduceFunction<WordCountTimestamp>() {
+                    @Override
+                    public WordCountTimestamp reduce(WordCountTimestamp wc1, WordCountTimestamp wc2) throws Exception {
+                        String ids = wc1.getId() + "," + wc2.getId();
+                        int frequency = wc1.getFrequency() + wc2.getFrequency();
+                        long timestamp = Math.max(wc1.getTimestamp(), wc2.getFrequency());
+                        return new WordCountTimestamp(ids, wc1.getWord(), frequency, timestamp);
+                    }
+                });
 ```
-> 完成代码请查阅:[BoundedWatermarkStrategyExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/watermark/BoundedWatermarkStrategyExample.java)
+> 完成代码请查阅:[BoundedWatermarkStrategyExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/watermark/BoundedWatermarkStrategyExample.java)
 
 上面代码中，我们同样提取了元组 f3 字段作为时间戳，并允许最大 5 秒的乱序时间创建了处理乱序流的 Watermark 生成器。通过 OutOfOrderSource Source 输入如下示例数据：
 ```
@@ -156,26 +141,23 @@ DataStream<Tuple2<String, Integer>> result = watermarkStream
 13, a, 2, 1662303846254L
 ```
 实际效果如下：
-```
-22:57:27,909 INFO  Source      [] - id: 1, word: a, count: 2, eventTime: 1662303772840|2022-09-04 23:02:52
-22:57:28,915 INFO  Source      [] - id: 2, word: a, count: 1, eventTime: 1662303770844|2022-09-04 23:02:50
-22:57:29,920 INFO  Source      [] - id: 3, word: a, count: 3, eventTime: 1662303773848|2022-09-04 23:02:53
-22:57:30,926 INFO  Source      [] - id: 4, word: a, count: 2, eventTime: 1662303774866|2022-09-04 23:02:54
-22:57:31,928 INFO  Source      [] - id: 5, word: a, count: 1, eventTime: 1662303777839|2022-09-04 23:02:57
-22:57:32,932 INFO  Source      [] - id: 6, word: a, count: 2, eventTime: 1662303784887|2022-09-04 23:03:04
-22:57:33,936 INFO  Source      [] - id: 7, word: a, count: 3, eventTime: 1662303776894|2022-09-04 23:02:56
-22:57:34,942 INFO  Source      [] - id: 8, word: a, count: 1, eventTime: 1662303786891|2022-09-04 23:03:06
-22:57:35,114 INFO  Process     [] - word: a, count: 12, ids: [1, 2, 3, 4, 5, 7], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
-(a,12)
-22:57:35,947 INFO  Source      [] - id: 9, word: a, count: 5, eventTime: 1662303778877|2022-09-04 23:02:58
-22:57:36,952 INFO  Source      [] - id: 10, word: a, count: 4, eventTime: 1662303791904|2022-09-04 23:03:11
-22:57:37,953 INFO  Source      [] - id: 11, word: a, count: 1, eventTime: 1662303795918|2022-09-04 23:03:15
-22:57:38,955 INFO  Source      [] - id: 12, word: a, count: 6, eventTime: 1662303779883|2022-09-04 23:02:59
-22:57:39,958 INFO  Source      [] - id: 13, word: a, count: 2, eventTime: 1662303846254|2022-09-04 23:04:06
-22:57:40,185 INFO  Process     [] - word: a, count: 8, ids: [6, 8, 10, 11], window: [2022-09-04 23:03:00, 2022-09-04 23:04:00], watermark: 1662303841253|2022-09-04 23:04:01
-(a,8)
-22:57:40,971 INFO  Process     [] - word: a, count: 2, ids: [13], window: [2022-09-04 23:04:00, 2022-09-04 23:05:00], watermark: 9223372036854775807|292278994-08-17 15:12:55
-(a,2)
+```java
+16:47:09,983 INFO  ...WordCountOutOfOrderSource [] - id: 1, word: a, frequency: 2, eventTime: 1662303772840|2022-09-04 23:02:52
+16:47:10,990 INFO  ...WordCountOutOfOrderSource [] - id: 2, word: a, frequency: 1, eventTime: 1662303770844|2022-09-04 23:02:50
+16:47:11,994 INFO  ...WordCountOutOfOrderSource [] - id: 3, word: a, frequency: 3, eventTime: 1662303773848|2022-09-04 23:02:53
+16:47:13,000 INFO  ...WordCountOutOfOrderSource [] - id: 4, word: a, frequency: 2, eventTime: 1662303774866|2022-09-04 23:02:54
+16:47:14,004 INFO  ...WordCountOutOfOrderSource [] - id: 5, word: a, frequency: 1, eventTime: 1662303777839|2022-09-04 23:02:57
+16:47:15,010 INFO  ...WordCountOutOfOrderSource [] - id: 6, word: a, frequency: 2, eventTime: 1662303784887|2022-09-04 23:03:04
+16:47:16,015 INFO  ...WordCountOutOfOrderSource [] - id: 7, word: a, frequency: 3, eventTime: 1662303776894|2022-09-04 23:02:56
+16:47:17,021 INFO  ...WordCountOutOfOrderSource [] - id: 8, word: a, frequency: 1, eventTime: 1662303786891|2022-09-04 23:03:06
+WordCountTimestamp{id='1,2,3,4,5,7', word='a', frequency=12, timestamp=1662303772840}
+16:47:18,025 INFO  ...WordCountOutOfOrderSource [] - id: 9, word: a, frequency: 5, eventTime: 1662303778877|2022-09-04 23:02:58
+16:47:19,031 INFO  ...WordCountOutOfOrderSource [] - id: 10, word: a, frequency: 4, eventTime: 1662303791904|2022-09-04 23:03:11
+16:47:20,037 INFO  ...WordCountOutOfOrderSource [] - id: 11, word: a, frequency: 1, eventTime: 1662303795918|2022-09-04 23:03:15
+16:47:21,044 INFO  ...WordCountOutOfOrderSource [] - id: 12, word: a, frequency: 6, eventTime: 1662303779883|2022-09-04 23:02:59
+16:47:22,045 INFO  ...WordCountOutOfOrderSource [] - id: 13, word: a, frequency: 2, eventTime: 1662303846254|2022-09-04 23:04:06
+WordCountTimestamp{id='6,8,10,11', word='a', frequency=8, timestamp=1662303784887}
+WordCountTimestamp{id='13', word='a', frequency=2, timestamp=1662303846254}
 ```
 当输入 id 为 8 的元素时 Watermark 大于了窗口结束时间，因此触发了 `[2022-09-04 23:02:00, 2022-09-04 23:03:00]` 窗口计算，该窗口包含了 1、2、3、4、5、7 这 5 个元素。窗口计算结果为单词 a 出现了 12 次。同理，id 为 13 的元素的出现触发了 `[2022-09-04 23:03:00, 2022-09-04 23:04:00]` 窗口的计算，该窗口包含了 6、8、10 以及 11 这 4 个元素。等 id 为 13 的元素输出之后，Source 运行结束触发了新窗口的计算。从上面运行结果中我们看到 id 为 9 和 12 的元素并没有得到输出，是因为这两个迟到元素到达时本分配给它们的窗口 `[2022-09-04 23:02:00, 2022-09-04 23:03:00]` 已经计算完毕并销毁，因此出现了丢失。
 

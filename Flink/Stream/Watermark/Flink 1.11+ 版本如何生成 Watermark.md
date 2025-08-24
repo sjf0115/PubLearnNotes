@@ -183,50 +183,58 @@ WatermarkGenerator 接口比较简单，主要有两个方法：
 - onPeriodicEmit：这个方法会周期性被调用，可能会产生新的 Watermark，也可能不会产生新的 Watermark。
 
 整体说来，Flink 有两种不同的生成 Watermark 的方式：一种是周期性的（Periodic），另一种是断点式的（Punctuated）。基于此我们可以实现两种不同的 Watermark 生成器：
-- 周期性 Watermark 生成器：通常通过 onEvent() 方法处理传入的事件获取事件时间戳，然后周期性调用 onPeriodicEmit() 来判断是否产生新的 Watermark。
-- 断点式 Watermark 生成器：将查看 onEvent() 中的事件数据，等待特殊标记的事件或者携带 Watermark 信息的断点。当获取到一个事件时，将会立即发出 Watermark。通常情况下，断点式 Watermark 生成器不会通过 onPeriodicEmit() 发出 Watermark。
+- 周期性 Watermark 生成器：通常通过 `onEvent()` 方法处理传入的事件获取事件时间戳，然后周期性调用 `onPeriodicEmit()` 来判断是否产生新的 Watermark。
+- 断点式 Watermark 生成器：将查看 `onEvent()` 中的事件数据，等待特殊标记的事件或者携带 Watermark 信息的断点。当获取到一个事件时，将会立即发出 Watermark。通常情况下，断点式 Watermark 生成器不会通过 `onPeriodicEmit()` 发出 Watermark。
 
 ### 3.1 周期性 Watermark 生成器
 
-周期性 Watermark 生成器一般是通过 onEvent 观察输入的每个事件并周期性地调用 onPeriodicEmit 发送 Watermark（可能取决于流元素，或者单纯的基于处理时间）。通过 ExecutionConfig.setAutoWatermarkInterval() 方法定义周期性地发送 Watermark 的时间间隔(单位：毫秒)。生成器的 onPeriodicEmit 方法会周期性调用，如果返回的 Watermark 非空并且大于前一个 Watermark，则会生成一个新的 Watermark。如下代码展示了如何自定义周期性生成 Watermark 的示例：
-```java
-// 使用自定义 WatermarkStrategy
-source.assignTimestampsAndWatermarks(new CustomWatermarkStrategy(Duration.ofSeconds(5)))
+周期性 Watermark 生成器一般是通过 `onEvent()` 观察输入的每个事件并周期性地调用 `onPeriodicEmit()` 发送 Watermark（可能取决于流元素，或者单纯的基于处理时间）。通过 `ExecutionConfig.setAutoWatermarkInterval()` 方法定义周期性地发送 Watermark 的时间间隔(单位：毫秒)。生成器的 `onPeriodicEmit()` 方法会周期性调用，如果返回的 Watermark 非空并且大于前一个 Watermark，则会生成一个新的 Watermark。
 
-// 自定义 WatermarkStrategy
-public static class CustomWatermarkStrategy implements WatermarkStrategy<Tuple4<Integer, String, Integer, Long>> {
-    private final Duration maxOutOfOrderMillis;
-    public CustomWatermarkStrategy(Duration maxOutOfOrderMillis) {
-        this.maxOutOfOrderMillis = maxOutOfOrderMillis;
-    }
-    // 创建 Watermark 生成器
-    @Override
-    public WatermarkGenerator<Tuple4<Integer, String, Integer, Long>> createWatermarkGenerator(WatermarkGeneratorSupplier.Context context) {
-        return new CustomPeriodicGenerator(maxOutOfOrderMillis);
-    }
-    // 创建时间戳分配器
-    @Override
-    public TimestampAssigner<Tuple4<Integer, String, Integer, Long>> createTimestampAssigner(TimestampAssignerSupplier.Context context) {
-        return new CustomTimestampAssigner();
-    }
-}
+有两种实现方式：
+- 一种是直接自定义实现 WatermarkStrategy 接口
+- 一种是调用 WatermarkStrategy.forGenerator 方法
+
+#### 3.1.1 自定义实现 WatermarkStrategy 接口
+
+第一种方法是直接自定义实现 WatermarkStrategy 接口，重写 createWatermarkGenerator 方法，也可以重写 createTimestampAssigner(也可以不重写)。如下代码展示了如何自定义周期性生成 Watermark 的示例：
+```java
+// 定义 Watermark 策略 - 自定义周期性 Watermark
+DataStream<WordCountTimestamp> words = source
+        // 使用自定义 WatermarkStrategy
+        .assignTimestampsAndWatermarks(new WatermarkStrategy<WordCountTimestamp>() {
+            // 创建 Watermark 生成器
+            @Override
+            public WatermarkGenerator<WordCountTimestamp> createWatermarkGenerator(WatermarkGeneratorSupplier.Context context) {
+                // 自定义周期性 Watermark 生成器
+                return new CustomPeriodicGenerator(Duration.ofSeconds(5));
+            }
+            // 创建时间戳分配器
+            @Override
+            public TimestampAssigner<WordCountTimestamp> createTimestampAssigner(TimestampAssignerSupplier.Context context) {
+                // 自定义时间戳分配器
+                return new CustomTimestampAssigner();
+            }
+        });
 
 // 自定义周期性 Watermark 生成器
-public static class CustomPeriodicGenerator implements WatermarkGenerator<Tuple4<Integer, String, Integer, Long>> {
+public static class CustomPeriodicGenerator implements WatermarkGenerator<WordCountTimestamp> {
     // 最大时间戳
     private long maxTimestamp;
     // 最大乱序时间
     private final long outOfOrderMillis;
+
     public CustomPeriodicGenerator(Duration maxOutOfOrderMillis) {
         this.outOfOrderMillis = maxOutOfOrderMillis.toMillis();
         // 起始最小 Watermark 为 Long.MIN_VALUE.
         this.maxTimestamp = Long.MIN_VALUE + outOfOrderMillis + 1;
     }
+
     // 最大时间戳
     @Override
-    public void onEvent(Tuple4<Integer, String, Integer, Long> event, long eventTimestamp, WatermarkOutput output) {
-        maxTimestamp = Math.max(maxTimestamp, event.f3);
+    public void onEvent(WordCountTimestamp wc, long eventTimestamp, WatermarkOutput output) {
+        maxTimestamp = Math.max(maxTimestamp, wc.getTimestamp());
     }
+
     // 周期性生成 Watermark
     @Override
     public void onPeriodicEmit(WatermarkOutput output) {
@@ -235,59 +243,75 @@ public static class CustomPeriodicGenerator implements WatermarkGenerator<Tuple4
 }
 
 // 自定义时间戳分配器
-public static class CustomTimestampAssigner implements TimestampAssigner<Tuple4<Integer, String, Integer, Long>> {
+public static class CustomTimestampAssigner implements TimestampAssigner<WordCountTimestamp> {
     @Override
-    public long extractTimestamp(Tuple4<Integer, String, Integer, Long> element, long recordTimestamp) {
-        return element.f3;
+    public long extractTimestamp(WordCountTimestamp wc, long recordTimestamp) {
+        return wc.getTimestamp();
     }
 }
 ```
-我们在 onPeriodicEmit()里调用 output.emitWatermark()，就可以发出 Watermark。这个方法由系统框架周期性地调用，默认 200ms 一次。所以 Watermark 的时间戳是依赖当前已有数据的最大时间戳的（这里的实现与内置生成器类似，也是减去延迟时间再减 1），但具体什么时候生成与数据无关。
+我们在 `onPeriodicEmit()` 里调用 `output.emitWatermark()`，就可以发出 Watermark。这个方法由系统框架周期性地调用，默认 200ms 一次。所以 Watermark 的时间戳是依赖当前已有数据的最大时间戳的（这里的实现与内置生成器类似，也是减去延迟时间再减 1），但具体什么时候生成与数据无关。
 
-> 业务逻辑跟前一个示例 2.2 中一样，完成代码可以查阅:[CustomPeriodicWatermarkStrategyExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/watermark/CustomPeriodicWatermarkStrategyExample.java)
+> 完成代码可以查阅:[CustomPeriodicWatermarkStrategyExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/watermark/CustomPeriodicWatermarkStrategyExample.java)
 
-或者也可以使用 WatermarkStrategy.forGenerator 复用已有的 WatermarkGeneratorSupplier 来指定 Watermark 生成策略：
+输出结果示例如下所示：
 ```java
-// 使用自定义 WatermarkGeneratorSupplier
-source.assignTimestampsAndWatermarks(
-        WatermarkStrategy.forGenerator(new CustomWatermarkGeneratorSupplier(Duration.ofSeconds(5)))
-        .withTimestampAssigner(new SerializableTimestampAssigner<Tuple4<Integer, String, Integer, Long>>() {
-            @Override
-            public long extractTimestamp(Tuple4<Integer, String, Integer, Long> element, long recordTimestamp) {
-                return element.f3;
-            }
-        })
-);
+17:38:24,856 INFO  WordCountOutOfOrderSource [] - id: 1, word: a, frequency: 2, eventTime: 1662303772840|2022-09-04 23:02:52
+17:38:25,863 INFO  WordCountOutOfOrderSource [] - id: 2, word: a, frequency: 1, eventTime: 1662303770844|2022-09-04 23:02:50
+17:38:26,870 INFO  WordCountOutOfOrderSource [] - id: 3, word: a, frequency: 3, eventTime: 1662303773848|2022-09-04 23:02:53
+17:38:27,874 INFO  WordCountOutOfOrderSource [] - id: 4, word: a, frequency: 2, eventTime: 1662303774866|2022-09-04 23:02:54
+17:38:28,879 INFO  WordCountOutOfOrderSource [] - id: 5, word: a, frequency: 1, eventTime: 1662303777839|2022-09-04 23:02:57
+17:38:29,884 INFO  WordCountOutOfOrderSource [] - id: 6, word: a, frequency: 2, eventTime: 1662303784887|2022-09-04 23:03:04
+17:38:30,891 INFO  WordCountOutOfOrderSource [] - id: 7, word: a, frequency: 3, eventTime: 1662303776894|2022-09-04 23:02:56
+17:38:31,894 INFO  WordCountOutOfOrderSource [] - id: 8, word: a, frequency: 1, eventTime: 1662303786891|2022-09-04 23:03:06
+WordCountTimestamp{id='1,2,3,4,5,7', word='a', frequency=12, timestamp=1662303772840}
+17:38:32,900 INFO  WordCountOutOfOrderSource [] - id: 9, word: a, frequency: 5, eventTime: 1662303778877|2022-09-04 23:02:58
+17:38:33,907 INFO  WordCountOutOfOrderSource [] - id: 10, word: a, frequency: 4, eventTime: 1662303791904|2022-09-04 23:03:11
+17:38:34,910 INFO  WordCountOutOfOrderSource [] - id: 11, word: a, frequency: 1, eventTime: 1662303795918|2022-09-04 23:03:15
+17:38:35,912 INFO  WordCountOutOfOrderSource [] - id: 12, word: a, frequency: 6, eventTime: 1662303779883|2022-09-04 23:02:59
+17:38:36,919 INFO  WordCountOutOfOrderSource [] - id: 13, word: a, frequency: 2, eventTime: 1662303846254|2022-09-04 23:04:06
+WordCountTimestamp{id='6,8,10,11', word='a', frequency=8, timestamp=1662303784887}
+WordCountTimestamp{id='13', word='a', frequency=2, timestamp=1662303846254}
+```
 
-// 自定义 WatermarkGeneratorSupplier
-public static class CustomWatermarkGeneratorSupplier implements WatermarkGeneratorSupplier<Tuple4<Integer, String, Integer, Long>> {
-    private final Duration maxOutOfOrderMillis;
-    public CustomWatermarkGeneratorSupplier(Duration maxOutOfOrderMillis) {
-        this.maxOutOfOrderMillis = maxOutOfOrderMillis;
-    }
-    // 创建 Watermark 生成器
-    @Override
-    public WatermarkGenerator<Tuple4<Integer, String, Integer, Long>> createWatermarkGenerator(WatermarkGeneratorSupplier.Context context) {
-        return new CustomPeriodicGenerator(maxOutOfOrderMillis);
-    }
-}
+#### 3.1.2 调用 WatermarkStrategy.forGenerator 方法
 
-// 自定义周期性 Watermark 生成器
-public static class CustomPeriodicGenerator implements WatermarkGenerator<Tuple4<Integer, String, Integer, Long>> {
+第二种方式是使用 `WatermarkStrategy.forGenerator` 复用已有的 WatermarkGeneratorSupplier 来指定自定义的 Watermark 生成器：
+```java
+DataStream<WordCountTimestamp> words = source
+        .assignTimestampsAndWatermarks(
+                WatermarkStrategy.forGenerator(new WatermarkGeneratorSupplier<WordCountTimestamp>() {
+                    @Override
+                    public WatermarkGenerator<WordCountTimestamp> createWatermarkGenerator(Context context) {
+                        return new CustomWatermarkGenerator(Duration.ofSeconds(5));
+                    }
+                }).withTimestampAssigner(new SerializableTimestampAssigner<WordCountTimestamp>() {
+                    @Override
+                    public long extractTimestamp(WordCountTimestamp wc, long l) {
+                        return wc.getTimestamp();
+                    }
+                })
+        );
+
+// 自定义 Periodic WatermarkGenerator
+private static class CustomWatermarkGenerator implements WatermarkGenerator<WordCountTimestamp> {
     // 最大时间戳
     private long maxTimestamp;
     // 最大乱序时间
     private final long outOfOrderMillis;
-    public CustomPeriodicGenerator(Duration maxOutOfOrderMillis) {
+
+    public CustomWatermarkGenerator(Duration maxOutOfOrderMillis) {
         this.outOfOrderMillis = maxOutOfOrderMillis.toMillis();
         // 起始最小 Watermark 为 Long.MIN_VALUE.
         this.maxTimestamp = Long.MIN_VALUE + outOfOrderMillis + 1;
     }
+
     // 最大时间戳
     @Override
-    public void onEvent(Tuple4<Integer, String, Integer, Long> event, long eventTimestamp, WatermarkOutput output) {
-        maxTimestamp = Math.max(maxTimestamp, event.f3);
+    public void onEvent(WordCountTimestamp wc, long eventTimestamp, WatermarkOutput output) {
+        maxTimestamp = Math.max(maxTimestamp, wc.getTimestamp());
     }
+
     // 周期性生成 Watermark
     @Override
     public void onPeriodicEmit(WatermarkOutput output) {
@@ -296,28 +320,45 @@ public static class CustomPeriodicGenerator implements WatermarkGenerator<Tuple4
 }
 ```
 
-> 业务逻辑跟前一个示例 2.2 中一样，完成代码可以查阅:[WatermarkStrategyGeneratorExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/watermark/WatermarkStrategyGeneratorExample.java)
+> 完成代码可以查阅:[CustomPeriodicWatermarkGeneratorExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/watermark/CustomPeriodicWatermarkGeneratorExample.java)
+
+输出结果示例如下所示：
+```java
+17:51:31,594 INFO  WordCountOutOfOrderSource [] - id: 1, word: a, frequency: 2, eventTime: 1662303772840|2022-09-04 23:02:52
+17:51:32,598 INFO  WordCountOutOfOrderSource [] - id: 2, word: a, frequency: 1, eventTime: 1662303770844|2022-09-04 23:02:50
+17:51:33,602 INFO  WordCountOutOfOrderSource [] - id: 3, word: a, frequency: 3, eventTime: 1662303773848|2022-09-04 23:02:53
+17:51:34,608 INFO  WordCountOutOfOrderSource [] - id: 4, word: a, frequency: 2, eventTime: 1662303774866|2022-09-04 23:02:54
+17:51:35,614 INFO  WordCountOutOfOrderSource [] - id: 5, word: a, frequency: 1, eventTime: 1662303777839|2022-09-04 23:02:57
+17:51:36,621 INFO  WordCountOutOfOrderSource [] - id: 6, word: a, frequency: 2, eventTime: 1662303784887|2022-09-04 23:03:04
+17:51:37,624 INFO  WordCountOutOfOrderSource [] - id: 7, word: a, frequency: 3, eventTime: 1662303776894|2022-09-04 23:02:56
+17:51:38,630 INFO  WordCountOutOfOrderSource [] - id: 8, word: a, frequency: 1, eventTime: 1662303786891|2022-09-04 23:03:06
+WordCountTimestamp{id='1,2,3,4,5,7', word='a', frequency=12, timestamp=1662303772840}
+17:51:39,635 INFO  WordCountOutOfOrderSource [] - id: 9, word: a, frequency: 5, eventTime: 1662303778877|2022-09-04 23:02:58
+17:51:40,641 INFO  WordCountOutOfOrderSource [] - id: 10, word: a, frequency: 4, eventTime: 1662303791904|2022-09-04 23:03:11
+17:51:41,647 INFO  WordCountOutOfOrderSource [] - id: 11, word: a, frequency: 1, eventTime: 1662303795918|2022-09-04 23:03:15
+17:51:42,653 INFO  WordCountOutOfOrderSource [] - id: 12, word: a, frequency: 6, eventTime: 1662303779883|2022-09-04 23:02:59
+17:51:43,658 INFO  WordCountOutOfOrderSource [] - id: 13, word: a, frequency: 2, eventTime: 1662303846254|2022-09-04 23:04:06
+WordCountTimestamp{id='6,8,10,11', word='a', frequency=8, timestamp=1662303784887}
+WordCountTimestamp{id='13', word='a', frequency=2, timestamp=1662303846254}
+```
 
 ### 3.2 断点式 Watermark 生成器
 
 断点式 Watermark 生成器不停的在观察 onEvent 中的事件流，只要发现带有 Watermark 信息的特殊元素时就会发出 Watermark。一般来说，断点式 Watermark 生成器不会通过 onPeriodicEmit 发出 Watermark。如下所示实现了一个断点式 Watermark 生成器，每当发现带有特殊标记的事件时会发出 Watermark：
 ```java
-// 提取时间戳、生成Watermark
-DataStream<MyEvent> watermarkStream = input.assignTimestampsAndWatermarks(new CustomWatermarkStrategy());
-
-// 自定义 WatermarkStrategy
-public static class CustomWatermarkStrategy implements WatermarkStrategy<MyEvent> {
-    // 创建 Watermark 生成器
-    @Override
-    public WatermarkGenerator<MyEvent> createWatermarkGenerator(WatermarkGeneratorSupplier.Context context) {
-        return new CustomPunctuatedGenerator();
-    }
-    // 创建时间戳分配器
-    @Override
-    public TimestampAssigner<MyEvent> createTimestampAssigner(TimestampAssignerSupplier.Context context) {
-        return new CustomTimestampAssigner();
-    }
-}
+DataStream<MyEvent> watermarkStream = source.assignTimestampsAndWatermarks(
+        new WatermarkStrategy<MyEvent>() {
+            @Override
+            public WatermarkGenerator<MyEvent> createWatermarkGenerator(WatermarkGeneratorSupplier.Context context) {
+                return new CustomPunctuatedGenerator();
+            }
+        }.withTimestampAssigner(new SerializableTimestampAssigner<MyEvent>() {
+            @Override
+            public long extractTimestamp(MyEvent myEvent, long l) {
+                return myEvent.getTimestamp();
+            }
+        })
+);
 
 // 自定义断点式 Watermark 生成器
 public static class CustomPunctuatedGenerator implements WatermarkGenerator<MyEvent> {
@@ -326,8 +367,9 @@ public static class CustomPunctuatedGenerator implements WatermarkGenerator<MyEv
         // 遇到特殊标记的元素就输出Watermark
         if (event.hasWatermarkMarker()) {
             Watermark watermark = new Watermark(eventTimestamp);
-            LOG.info("Key: {}, HasWatermarkMarker: {}, EventTimestamp: [{}|{}], Watermark: [{}|{}]",
-                    event.getKey(), event.hasWatermarkMarker(), event.getEventTime(), event.getTimestamp(),
+            LOG.info("key: {}, eventTime: {}|{}, watermark: {}|{}",
+                    event.getKey(), event.getTimestamp(),
+                    DateUtil.timeStamp2Date(event.getTimestamp()),
                     watermark.getFormattedTimestamp(), watermark.getTimestamp()
             );
             output.emitWatermark(watermark);
@@ -339,35 +381,27 @@ public static class CustomPunctuatedGenerator implements WatermarkGenerator<MyEv
         // 不需要
     }
 }
-
-// 自定义时间戳分配器
-public static class CustomTimestampAssigner implements TimestampAssigner<MyEvent> {
-    @Override
-    public long extractTimestamp(MyEvent element, long recordTimestamp) {
-        return element.getTimestamp();
-    }
-}
 ```
-> 完成代码请查阅:[CustomPunctuatedWatermarkStrategyExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/watermark/CustomPunctuatedWatermarkStrategyExample.java)
+> 完成代码请查阅:[CustomPunctuatedWatermarkStrategyExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/watermark/CustomPunctuatedWatermarkStrategyExample.java)
 
 通过如下输入示例数据，我们可以观察输出的 Watermark 信息：
 ```
-A,false,2021-02-19 12:07:01
-B,true,2021-02-19 12:08:01
-A,false,2021-02-19 12:14:01
-C,false,2021-02-19 12:09:01
-C,true,2021-02-19 12:15:01
-A,true,2021-02-19 12:08:01
+A,false,1756031251729
+B,true,1756031252846
+A,false,1756031253853
+C,false,1756031254858
+C,true,1756031255865
+A,true,1756031256867
 ```
 实际效果如下：
-```
-08:27:54,478 Map [] - Key: A, HashWatermark: false, Timestamp: [2021-02-19 12:07:01|1613707621000]
-08:27:58,813 Map [] - Key: B, HashWatermark: true, Timestamp: [2021-02-19 12:08:01|1613707681000]
-08:27:58,839 Map [] - Key: B, HasWatermarkMarker: true, EventTimestamp: [2021-02-19 12:08:01|1613707681000], Watermark: [2021-02-19 12:08:01.000|1613707681000]
-08:29:09,264 Map [] - Key: A, HashWatermark: false, Timestamp: [2021-02-19 12:14:01|1613708041000]
-08:29:13,800 Map [] - Key: C, HashWatermark: false, Timestamp: [2021-02-19 12:09:01|1613707741000]
-08:29:18,137 Map [] - Key: C, HashWatermark: true, Timestamp: [2021-02-19 12:15:01|1613708101000]
-08:29:18,138 Map [] - Key: C, HasWatermarkMarker: true, EventTimestamp: [2021-02-19 12:15:01|1613708101000], Watermark: [2021-02-19 12:15:01.000|1613708101000]
-08:29:21,970 Map [] - Key: A, HashWatermark: true, Timestamp: [2021-02-19 12:08:01|1613707681000]
-08:29:21,970 Map [] - Key: A, HasWatermarkMarker: true, EventTimestamp: [2021-02-19 12:08:01|1613707681000], Watermark: [2021-02-19 12:08:01.000|1613707681000]
+```java
+18:27:31,730 INFO  CustomPunctuatedWatermarkStrategyExample [] - key: A, hasWatermarkMarker: false, eventTime: 1756031251729|2025-08-24 18:27:31
+18:27:32,846 INFO  CustomPunctuatedWatermarkStrategyExample [] - key: B, hasWatermarkMarker: true, eventTime: 1756031252846|2025-08-24 18:27:32
+18:27:32,850 INFO  CustomPunctuatedWatermarkStrategyExample [] - key: B, eventTime: 1756031252846|2025-08-24 18:27:32, watermark: 2025-08-24 18:27:32.846|1756031252846
+18:27:33,854 INFO  CustomPunctuatedWatermarkStrategyExample [] - key: A, hasWatermarkMarker: false, eventTime: 1756031253853|2025-08-24 18:27:33
+18:27:34,859 INFO  CustomPunctuatedWatermarkStrategyExample [] - key: C, hasWatermarkMarker: false, eventTime: 1756031254858|2025-08-24 18:27:34
+18:27:35,865 INFO  CustomPunctuatedWatermarkStrategyExample [] - key: C, hasWatermarkMarker: true, eventTime: 1756031255865|2025-08-24 18:27:35
+18:27:35,866 INFO  CustomPunctuatedWatermarkStrategyExample [] - key: C, eventTime: 1756031255865|2025-08-24 18:27:35, watermark: 2025-08-24 18:27:35.865|1756031255865
+18:27:36,867 INFO  CustomPunctuatedWatermarkStrategyExample [] - key: A, hasWatermarkMarker: true, eventTime: 1756031256867|2025-08-24 18:27:36
+18:27:36,868 INFO  CustomPunctuatedWatermarkStrategyExample [] - key: A, eventTime: 1756031256867|2025-08-24 18:27:36, watermark: 2025-08-24 18:27:36.867|1756031256867
 ```

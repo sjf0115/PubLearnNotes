@@ -15,57 +15,60 @@
 
 处理迟到数据元素的最简单方式就是直接将其丢弃，这也是事件时间窗口的默认行为。在这种情况下，不需要我们做任何额外的处理。如下代码所示，计算事件时间一分钟窗口内每个单词的出现次数，并设置了 5s 的最大乱序时间：
 ```java
-SingleOutputStreamOperator<Tuple2<String, Integer>> stream = source
-      .assignTimestampsAndWatermarks(
-              // 5s的最大乱序
-              WatermarkStrategy.<Tuple4<Integer, String, Integer, Long>>forBoundedOutOfOrderness(Duration.ofSeconds(5))
-                      .withTimestampAssigner(new SerializableTimestampAssigner<Tuple4<Integer, String, Integer, Long>>() {
-                          @Override
-                          public long extractTimestamp(Tuple4<Integer, String, Integer, Long> element, long recordTimestamp) {
-                              return element.f3;
-                          }
-                      })
-      )
-      // 分组
-      .keyBy(new KeySelector<Tuple4<Integer, String, Integer, Long>, String>() {
-          @Override
-          public String getKey(Tuple4<Integer, String, Integer, Long> tuple) throws Exception {
-              return tuple.f1;
-          }
-      })
-      // 1分钟的滚动窗口
-      .window(TumblingEventTimeWindows.of(Time.minutes(1)))
-      // 窗口计算
-      .process(new ProcessWindowFunction<Tuple4<Integer, String, Integer, Long>, Tuple2<String, Integer>, String, TimeWindow>() {
-          @Override
-          public void process(String key, Context context, Iterable<Tuple4<Integer, String, Integer, Long>> elements, Collector<Tuple2<String, Integer>> out) throws Exception {
-              // 单词个数
-              int count = 0;
-              List<Integer> ids = Lists.newArrayList();
-              for (Tuple4<Integer, String, Integer, Long> element : elements) {
-                  ids.add(element.f0);
-                  count++;
-              }
-              // 时间窗口元数据
-              TimeWindow window = context.window();
-              long start = window.getStart();
-              long end = window.getEnd();
-              String startTime = DateUtil.timeStamp2Date(start);
-              String endTime = DateUtil.timeStamp2Date(end);
-              // Watermark
-              long watermark = context.currentWatermark();
-              String watermarkTime = DateUtil.timeStamp2Date(watermark);
-              //  输出日志
-              LOG.info("word: {}, count: {}, ids: {}, window: {}, watermark: {}",
-                      key, count, ids,
-                      "[" + startTime + ", " + endTime + "]",
-                      watermark + "|" + watermarkTime
-              );
-              out.collect(Tuple2.of(key, count));
-          }
-      });
+// 单词流
+DataStreamSource<WordCountTimestamp> source = env.addSource(new WordCountOutOfOrderSource());
+// 定义 Watermark 策略
+DataStream<WordCountTimestamp> words = source
+        .assignTimestampsAndWatermarks(
+                WatermarkStrategy.<WordCountTimestamp>forBoundedOutOfOrderness(Duration.ofSeconds(5))
+                        .withTimestampAssigner(new SerializableTimestampAssigner<WordCountTimestamp>() {
+                            @Override
+                            public long extractTimestamp(WordCountTimestamp wc, long recordTimestamp) {
+                                return wc.getTimestamp();
+                            }
+                        })
+        );
+
+// 分组
+DataStream<Tuple2<String, Integer>> result = words.keyBy(new KeySelector<WordCountTimestamp, String>() {
+            @Override
+            public String getKey(WordCountTimestamp wc) throws Exception {
+                return wc.getWord();
+            }
+        })
+        // 1分钟的滚动窗口
+        .window(TumblingEventTimeWindows.of(Time.minutes(1)))
+        // 窗口计算
+        .process(new ProcessWindowFunction<WordCountTimestamp, Tuple2<String, Integer>, String, TimeWindow>() {
+            @Override
+            public void process(String key, Context context, Iterable<WordCountTimestamp> elements, Collector<Tuple2<String, Integer>> out) throws Exception {
+                // 单词出现次数
+                int count = 0;
+                List<String> ids = Lists.newArrayList();
+                for (WordCountTimestamp wc : elements) {
+                    ids.add(wc.getId());
+                    count += wc.getFrequency();
+                }
+                // 时间窗口元数据
+                TimeWindow window = context.window();
+                long start = window.getStart();
+                long end = window.getEnd();
+                String startTime = DateUtil.timeStamp2Date(start);
+                String endTime = DateUtil.timeStamp2Date(end);
+                // Watermark
+                long watermark = context.currentWatermark();
+                String watermarkTime = DateUtil.timeStamp2Date(watermark);
+                //  输出日志
+                LOG.info("word: {}, count: {}, ids: {}, window: {}, watermark: {}",
+                        key, count, ids,
+                        "[" + startTime + ", " + endTime + "]",
+                        watermark + "|" + watermarkTime
+                );
+                out.collect(Tuple2.of(key, count));
+            }
+        });
 ```
-> 完整代码请查阅[LatenessDiscordExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/late/LatenessDiscordExample.java)
+> 完整代码请查阅[LatenessDiscordExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/window/late/LatenessDiscordExample.java)
 
 假设输入数据如下所示：
 ```
@@ -85,28 +88,28 @@ SingleOutputStreamOperator<Tuple2<String, Integer>> stream = source
 13, a, 2, 1662303846254 // 23:04:06
 ```
 实际效果如下所示：
-```
-22:23:44,553 Source      [] - id: 1, word: a, count: 2, eventTime: 1662303772840|2022-09-04 23:02:52
-22:23:45,563 Source      [] - id: 2, word: a, count: 1, eventTime: 1662303770844|2022-09-04 23:02:50
-22:23:46,567 Source      [] - id: 3, word: a, count: 3, eventTime: 1662303773848|2022-09-04 23:02:53
-22:23:47,572 Source      [] - id: 4, word: a, count: 2, eventTime: 1662303774866|2022-09-04 23:02:54
-22:23:48,574 Source      [] - id: 5, word: a, count: 1, eventTime: 1662303777839|2022-09-04 23:02:57
-22:23:49,579 Source      [] - id: 6, word: a, count: 2, eventTime: 1662303784887|2022-09-04 23:03:04
-22:23:50,585 Source      [] - id: 7, word: a, count: 3, eventTime: 1662303776894|2022-09-04 23:02:56
-22:23:51,588 Source      [] - id: 8, word: a, count: 1, eventTime: 1662303786891|2022-09-04 23:03:06
-22:23:51,784 Sum         [] - word: a, count: 12, ids: [1, 2, 3, 4, 5, 7], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
+```java
+23:35:29,521 INFO  WordCountOutOfOrderSource [] - id: 1, word: a, frequency: 2, eventTime: 1662303772840|2022-09-04 23:02:52
+23:35:30,528 INFO  WordCountOutOfOrderSource [] - id: 2, word: a, frequency: 1, eventTime: 1662303770844|2022-09-04 23:02:50
+23:35:31,534 INFO  WordCountOutOfOrderSource [] - id: 3, word: a, frequency: 3, eventTime: 1662303773848|2022-09-04 23:02:53
+23:35:32,540 INFO  WordCountOutOfOrderSource [] - id: 4, word: a, frequency: 2, eventTime: 1662303774866|2022-09-04 23:02:54
+23:35:33,547 INFO  WordCountOutOfOrderSource [] - id: 5, word: a, frequency: 1, eventTime: 1662303777839|2022-09-04 23:02:57
+23:35:34,551 INFO  WordCountOutOfOrderSource [] - id: 6, word: a, frequency: 2, eventTime: 1662303784887|2022-09-04 23:03:04
+23:35:35,557 INFO  WordCountOutOfOrderSource [] - id: 7, word: a, frequency: 3, eventTime: 1662303776894|2022-09-04 23:02:56
+23:35:36,563 INFO  WordCountOutOfOrderSource [] - id: 8, word: a, frequency: 1, eventTime: 1662303786891|2022-09-04 23:03:06
+23:35:36,722 INFO  LatenessDiscordExample  [] - word: a, count: 12, ids: [1, 2, 3, 4, 5, 7], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
 (a,12)
-22:23:52,589 Source      [] - id: 9, word: a, count: 5, eventTime: 1662303778877|2022-09-04 23:02:58
-22:23:53,594 Source      [] - id: 10, word: a, count: 4, eventTime: 1662303791904|2022-09-04 23:03:11
-22:23:54,598 Source      [] - id: 11, word: a, count: 1, eventTime: 1662303795918|2022-09-04 23:03:15
-22:23:55,600 Source      [] - id: 12, word: a, count: 6, eventTime: 1662303779883|2022-09-04 23:02:59
-22:23:56,605 Source      [] - id: 13, word: a, count: 2, eventTime: 1662303846254|2022-09-04 23:04:06
-22:23:56,649 Sum         [] - word: a, count: 8, ids: [6, 8, 10, 11], window: [2022-09-04 23:03:00, 2022-09-04 23:04:00], watermark: 1662303841253|2022-09-04 23:04:01
+23:35:37,568 INFO  WordCountOutOfOrderSource [] - id: 9, word: a, frequency: 5, eventTime: 1662303778877|2022-09-04 23:02:58
+23:35:38,570 INFO  WordCountOutOfOrderSource [] - id: 10, word: a, frequency: 4, eventTime: 1662303791904|2022-09-04 23:03:11
+23:35:39,571 INFO  WordCountOutOfOrderSource [] - id: 11, word: a, frequency: 1, eventTime: 1662303795918|2022-09-04 23:03:15
+23:35:40,578 INFO  WordCountOutOfOrderSource [] - id: 12, word: a, frequency: 6, eventTime: 1662303779883|2022-09-04 23:02:59
+23:35:41,584 INFO  WordCountOutOfOrderSource [] - id: 13, word: a, frequency: 2, eventTime: 1662303846254|2022-09-04 23:04:06
+23:35:41,696 INFO  LatenessDiscordExample  [] - word: a, count: 8, ids: [6, 8, 10, 11], window: [2022-09-04 23:03:00, 2022-09-04 23:04:00], watermark: 1662303841253|2022-09-04 23:04:01
 (a,8)
-22:23:57,619 Sum         [] - word: a, count: 2, ids: [13], window: [2022-09-04 23:04:00, 2022-09-04 23:05:00], watermark: 9223372036854775807|292278994-08-17 15:12:55
+23:35:42,597 INFO  LatenessDiscordExample  [] - word: a, count: 2, ids: [13], window: [2022-09-04 23:04:00, 2022-09-04 23:05:00], watermark: 9223372036854775807|292278994-08-17 15:12:55
 (a,2)
 ```
-id 为 1 到 7 的数据记录持续输入，直到 id = 8 的数据记录到达后，Watermark（1662303781890=1662303786891-5000-1）超过了窗口 `[2022-09-04 23:02:00, 2022-09-04 23:03:00]` 的结束时间，触发该窗口计算。`1, 2, 3, 4, 5, 7` 数据记录分配到该窗口参与计算，尽管 id = 7 的数据记录延迟到达，但依然不妨碍它参与计算，因为 id = 7 数据记录到达时分配的窗口还没触发计算。同理，`6, 8, 10, 11, 13` 数据记录也分配到窗口参与计算，但是发现 id = 9 的数据记录并没有输出。这是因为 id = 9 和 12 的数据记录延迟太长时间，当它到达时它本应该属于的窗口 `[2022-09-04 23:02:00, 2022-09-04 23:03:00]` 早已触发计算后并销毁，导致该数据记录被丢弃。
+id 为 1 到 7 的数据记录持续输入，直到 id = 8 的数据记录到达后，Watermark（1662303781890=1662303786891-5000-1）超过了窗口 `[2022-09-04 23:02:00, 2022-09-04 23:03:00]` 的结束时间，触发该窗口计算。`1, 2, 3, 4, 5, 7` 数据记录分配到该窗口参与计算，尽管 id = 7 的数据记录延迟到达，但依然不妨碍它参与计算，因为 id = 7 数据记录到达时分配的窗口还没触发计算。同理，`6, 8, 10, 11, 13` 数据记录也分配到窗口参与计算，但是发现 id = 9 和 12 的数据记录并没有输出。这是因为 id = 9 和 12 的数据记录延迟太长时间，当它到达时它本应该属于的窗口 `[2022-09-04 23:02:00, 2022-09-04 23:03:00]` 早已触发计算并销毁，导致该数据记录被丢弃。
 
 ### 2.2 基于迟到数据更新计算结果
 
@@ -116,7 +119,7 @@ id 为 1 到 7 的数据记录持续输入，直到 id = 8 的数据记录到达
 
 为了支持容忍一定的延迟，窗口算子 API 提供了一个方法，可以显示声明支持迟到的数据。在使用事件时间窗口时，你可以指定一个名为 AllowedLateness 的可允许最大延迟时间，即我们可以允许延迟一定时间。配置了该属性的窗口算子在 Watermark 超过窗口的结束时间之后不会立即销毁窗口（正常情况下会销毁），而是会继续保留窗口到 AllowedLateness 设定的可允许最大延迟时间。在这段额外时间内迟到的数据记录元素也会像按时到达的数据记录一样进入窗口中并触发计算。直到 Watermark 超过了窗口的结束时间加 AllowedLateness 设定的可允许最大延迟时间，窗口才会被最终销毁，此后的延迟数据记录都将直接丢弃。
 
-基于 WindowedStream 调用 allowedLateness() 方法，传入一个 Time 类型的延迟时间，就可以表示允许这段时间内的延迟数据：
+基于 WindowedStream 调用 `allowedLateness()` 方法，传入一个 Time 类型的延迟时间，就可以表示允许这段时间内的延迟数据：
 ```java
 stream.keyBy(...)
       .window(TumblingEventTimeWindows.of(Time.minutes(1)))
@@ -124,57 +127,67 @@ stream.keyBy(...)
 ```
 比如上面的代码中，我们定义了 1 分钟的滚动窗口，并设置了允许 10 秒的最大延迟时间。也就是说，在不考虑 Watermark 延迟的情况下，对于 02 分到 03 分的窗口，本来应该是 Watermark 到达 03 分整就会触发窗口计算并销毁。但是现在可以允许延迟 10 秒钟，那么 03 分整就只是触发一次计算并输出结果，并不会销毁窗口。后续到达的数据，只要属于 02 分到 03 分窗口，依然可以在之前统计的基础上继续叠加，并且再次输出一个更新后的结果。直到 Watermark 到达了 03 分 10 秒钟，这时就真正清空状态、销毁窗口，之后再来的迟到数据就会被丢弃了。
 
-如下代码所示，还是上面的例子计算事件时间一分钟窗口内每个单词的出现次数，唯一的变化是调用 allowedLateness() 方法设置最大延迟时间：
+如下代码所示，还是上面的例子计算事件时间一分钟窗口内每个单词的出现次数，唯一的变化是调用 `allowedLateness()` 方法设置最大延迟时间：
 ```java
-SingleOutputStreamOperator<Tuple2<String, Integer>> stream = source
+// 单词流
+DataStreamSource<WordCountTimestamp> source = env.addSource(new WordCountOutOfOrderSource());
+// 定义 Watermark 策略
+DataStream<WordCountTimestamp> words = source
         .assignTimestampsAndWatermarks(
-                // 5s的最大乱序
-                WatermarkStrategy.<Tuple4<Integer, String, Integer, Long>>forBoundedOutOfOrderness(Duration.ofSeconds(5))
-                        .withTimestampAssigner(new SerializableTimestampAssigner<Tuple4<Integer, String, Integer, Long>>() {
+                WatermarkStrategy.<WordCountTimestamp>forBoundedOutOfOrderness(Duration.ofSeconds(5))
+                        .withTimestampAssigner(new SerializableTimestampAssigner<WordCountTimestamp>() {
                             @Override
-                            public long extractTimestamp(Tuple4<Integer, String, Integer, Long> element, long recordTimestamp) {
-                                return element.f3;
+                            public long extractTimestamp(WordCountTimestamp wc, long recordTimestamp) {
+                                return wc.getTimestamp();
                             }
                         })
-        )
+        );
+
+// 窗口计算
+DataStream<Tuple2<String, Integer>> stream = words
         // 分组
-        .keyBy(new KeySelector<Tuple4<Integer, String, Integer, Long>, String>() {
+        .keyBy(new KeySelector<WordCountTimestamp, String>() {
             @Override
-            public String getKey(Tuple4<Integer, String, Integer, Long> tuple) throws Exception {
-                return tuple.f1;
+            public String getKey(WordCountTimestamp wc) throws Exception {
+                return wc.getWord();
             }
         })
         // 1分钟的滚动窗口
         .window(TumblingEventTimeWindows.of(Time.minutes(1)))
-        // 核心点：最大允许延迟10s
+        // 最大允许延迟10s
         .allowedLateness(Time.seconds(10))
         // 窗口计算
-        .process(xxx);
+        .process(new ProcessWindowFunction<WordCountTimestamp, Tuple2<String, Integer>, String, TimeWindow>() {
+            @Override
+            public void process(String key, Context context, Iterable<WordCountTimestamp> elements, Collector<Tuple2<String, Integer>> out) throws Exception {
+                ...
+            }
+        });
 ```
-> 完整代码请查阅[AllowedLatenessExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/late/AllowedLatenessExample.java)
+> 完整代码请查阅[AllowedLatenessExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/window/late/AllowedLatenessExample.java)
 
 实际效果如下所示：
-```
-23:05:42,889 Source      [] - id: 1, word: a, count: 2, eventTime: 1662303772840|2022-09-04 23:02:52
-23:05:43,900 Source      [] - id: 2, word: a, count: 1, eventTime: 1662303770844|2022-09-04 23:02:50
-23:05:44,902 Source      [] - id: 3, word: a, count: 3, eventTime: 1662303773848|2022-09-04 23:02:53
-23:05:45,905 Source      [] - id: 4, word: a, count: 2, eventTime: 1662303774866|2022-09-04 23:02:54
-23:05:46,910 Source      [] - id: 5, word: a, count: 1, eventTime: 1662303777839|2022-09-04 23:02:57
-23:05:47,914 Source      [] - id: 6, word: a, count: 2, eventTime: 1662303784887|2022-09-04 23:03:04
-23:05:48,917 Source      [] - id: 7, word: a, count: 3, eventTime: 1662303776894|2022-09-04 23:02:56
-23:05:49,922 Source      [] - id: 8, word: a, count: 1, eventTime: 1662303786891|2022-09-04 23:03:06
-23:05:50,054 Sum         [] - word: a, count: 12, ids: [1, 2, 3, 4, 5, 7], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
+```java
+23:37:53,108 INFO  WordCountOutOfOrderSource [] - id: 1, word: a, frequency: 2, eventTime: 1662303772840|2022-09-04 23:02:52
+23:37:54,116 INFO  WordCountOutOfOrderSource [] - id: 2, word: a, frequency: 1, eventTime: 1662303770844|2022-09-04 23:02:50
+23:37:55,119 INFO  WordCountOutOfOrderSource [] - id: 3, word: a, frequency: 3, eventTime: 1662303773848|2022-09-04 23:02:53
+23:37:56,125 INFO  WordCountOutOfOrderSource [] - id: 4, word: a, frequency: 2, eventTime: 1662303774866|2022-09-04 23:02:54
+23:37:57,131 INFO  WordCountOutOfOrderSource [] - id: 5, word: a, frequency: 1, eventTime: 1662303777839|2022-09-04 23:02:57
+23:37:58,137 INFO  WordCountOutOfOrderSource [] - id: 6, word: a, frequency: 2, eventTime: 1662303784887|2022-09-04 23:03:04
+23:37:59,142 INFO  WordCountOutOfOrderSource [] - id: 7, word: a, frequency: 3, eventTime: 1662303776894|2022-09-04 23:02:56
+23:38:00,148 INFO  WordCountOutOfOrderSource [] - id: 8, word: a, frequency: 1, eventTime: 1662303786891|2022-09-04 23:03:06
+23:38:00,304 INFO  AllowedLatenessExample  [] - word: a, count: 12, ids: [1, 2, 3, 4, 5, 7], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
 (a,12)
-23:05:50,927 Source      [] - id: 9, word: a, count: 5, eventTime: 1662303778877|2022-09-04 23:02:58
-23:05:50,984 Sum         [] - word: a, count: 17, ids: [1, 2, 3, 4, 5, 7, 9], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
+23:38:01,151 INFO  WordCountOutOfOrderSource [] - id: 9, word: a, frequency: 5, eventTime: 1662303778877|2022-09-04 23:02:58
+23:38:01,236 INFO  AllowedLatenessExample  [] - word: a, count: 17, ids: [1, 2, 3, 4, 5, 7, 9], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
 (a,17)
-23:05:51,931 Source      [] - id: 10, word: a, count: 4, eventTime: 1662303791904|2022-09-04 23:03:11
-23:05:52,933 Source      [] - id: 11, word: a, count: 1, eventTime: 1662303795918|2022-09-04 23:03:15
-23:05:53,935 Source      [] - id: 12, word: a, count: 6, eventTime: 1662303779883|2022-09-04 23:02:59
-23:05:54,939 Source      [] - id: 13, word: a, count: 2, eventTime: 1662303846254|2022-09-04 23:04:06
-23:05:55,231 Sum         [] - word: a, count: 8, ids: [6, 8, 10, 11], window: [2022-09-04 23:03:00, 2022-09-04 23:04:00], watermark: 1662303841253|2022-09-04 23:04:01
+23:38:02,158 INFO  WordCountOutOfOrderSource [] - id: 10, word: a, frequency: 4, eventTime: 1662303791904|2022-09-04 23:03:11
+23:38:03,164 INFO  WordCountOutOfOrderSource [] - id: 11, word: a, frequency: 1, eventTime: 1662303795918|2022-09-04 23:03:15
+23:38:04,169 INFO  WordCountOutOfOrderSource [] - id: 12, word: a, frequency: 6, eventTime: 1662303779883|2022-09-04 23:02:59
+23:38:05,175 INFO  WordCountOutOfOrderSource [] - id: 13, word: a, frequency: 2, eventTime: 1662303846254|2022-09-04 23:04:06
+23:38:05,282 INFO  AllowedLatenessExample  [] - word: a, count: 8, ids: [6, 8, 10, 11], window: [2022-09-04 23:03:00, 2022-09-04 23:04:00], watermark: 1662303841253|2022-09-04 23:04:01
 (a,8)
-23:05:55,951 Sum         [] - word: a, count: 2, ids: [13], window: [2022-09-04 23:04:00, 2022-09-04 23:05:00], watermark: 9223372036854775807|292278994-08-17 15:12:55
+23:38:06,185 INFO  AllowedLatenessExample  [] - word: a, count: 2, ids: [13], window: [2022-09-04 23:04:00, 2022-09-04 23:05:00], watermark: 9223372036854775807|292278994-08-17 15:12:55
 (a,2)
 ```
 相比第一次输出，在这当 id = 9 的数据记录到达时重新触发了窗口计算，依然可以在之前统计的基础上继续叠加，并且再次输出一个更新后的结果。id = 9 的数据记录依然可以参与窗口计算的原因是当前 Watermark(1662303781890)小于窗口结束时间戳(1662303780000)加 allowedLateness 可允许的最大延迟时间(10000)。而 id = 12 的数据记录到达时没有触发计算而是被丢弃，主要是延迟太久已经超出了可允许的最大延迟时间范围了。
@@ -183,67 +196,103 @@ SingleOutputStreamOperator<Tuple2<String, Integer>> stream = source
 
 即使可以设置窗口的延迟时间，终归还是有限的，后续的数据还是会被丢弃，例如上面例子中的 id = 12 的数据记录。如果不想丢弃任何一个数据，又该怎么做呢? Flink 还提供了另外一种方式处理迟到数据。我们可以将迟到没有被处理的数据记录输出到侧输出流(side output)中，后续就可以单独再进行处理。根据业务需求决定是否将迟到数据再回填集成到流式应用的结果中。
 
-基于 WindowedStream 调用 sideOutputLateData() 方法，就可以实现这个功能。如下代码所示，还是基于上面的例子计算事件时间一分钟窗口内每个单词的出现次数，除了调用 allowedLateness() 方法设置最大延迟时间之外，还调用 sideOutputLateData() 将延迟没有被处理的数据输出到侧输出流中：
+> [Flink DataStream 侧输出流 Side Output](https://smartsi.blog.csdn.net/article/details/126737944)
+
+基于 WindowedStream 调用 `sideOutputLateData()` 方法，就可以实现这个功能。如下代码所示，还是基于上面的例子计算事件时间一分钟窗口内每个单词的出现次数，除了调用 `allowedLateness()` 方法设置最大延迟时间之外，还调用 `sideOutputLateData()` 将延迟没有被处理的数据输出到侧输出流中：
 ```java
+// 单词流
+DataStreamSource<WordCountTimestamp> source = env.addSource(new WordCountOutOfOrderSource());
+// 定义 Watermark 策略
+DataStream<WordCountTimestamp> words = source
+        .assignTimestampsAndWatermarks(
+                WatermarkStrategy.<WordCountTimestamp>forBoundedOutOfOrderness(Duration.ofSeconds(5))
+                        .withTimestampAssigner(new SerializableTimestampAssigner<WordCountTimestamp>() {
+                            @Override
+                            public long extractTimestamp(WordCountTimestamp wc, long recordTimestamp) {
+                                return wc.getTimestamp();
+                            }
+                        })
+        );
+
+// 侧输出
+OutputTag<WordCountTimestamp> lateOutputTag = new OutputTag<WordCountTimestamp>("LATE"){};
+
 // 窗口计算
-SingleOutputStreamOperator<Tuple2<String, Integer>> stream = source
-    .assignTimestampsAndWatermarks(
-            // 5s的最大乱序
-            WatermarkStrategy.<Tuple4<Integer, String, Integer, Long>>forBoundedOutOfOrderness(Duration.ofSeconds(5))
-                    .withTimestampAssigner(new SerializableTimestampAssigner<Tuple4<Integer, String, Integer, Long>>() {
-                        @Override
-                        public long extractTimestamp(Tuple4<Integer, String, Integer, Long> element, long recordTimestamp) {
-                            return element.f3;
-                        }
-                    })
-    )
-    // 分组
-    .keyBy(new KeySelector<Tuple4<Integer, String, Integer, Long>, String>() {
-        @Override
-        public String getKey(Tuple4<Integer, String, Integer, Long> tuple) throws Exception {
-            return tuple.f1;
-        }
-    })
-    // 1分钟的滚动窗口
-    .window(TumblingEventTimeWindows.of(Time.minutes(1)))
-    // 最大允许延迟10s
-    .allowedLateness(Time.seconds(10))
-    // 迟到数据收集
-    .sideOutputLateData(lateOutputTag)
-    // 窗口计算
-    .process(xxx);
+SingleOutputStreamOperator<Tuple2<String, Integer>> stream = words
+        // 分组
+        .keyBy(new KeySelector<WordCountTimestamp, String>() {
+            @Override
+            public String getKey(WordCountTimestamp wc) throws Exception {
+                return wc.getWord();
+            }
+        })
+        // 1分钟的滚动窗口
+        .window(TumblingEventTimeWindows.of(Time.minutes(1)))
+        // 最大允许延迟10s
+        .allowedLateness(Time.seconds(10))
+        // 迟到数据收集
+        .sideOutputLateData(lateOutputTag)
+        // 窗口计算
+        .process(new ProcessWindowFunction<WordCountTimestamp, Tuple2<String, Integer>, String, TimeWindow>() {
+            @Override
+            public void process(String key, Context context, Iterable<WordCountTimestamp> elements, Collector<Tuple2<String, Integer>> out) throws Exception {
+                // 单词出现次数
+                int count = 0;
+                List<String> ids = Lists.newArrayList();
+                for (WordCountTimestamp wc : elements) {
+                    ids.add(wc.getId());
+                    count += wc.getFrequency();
+                }
+                // 时间窗口元数据
+                TimeWindow window = context.window();
+                long start = window.getStart();
+                long end = window.getEnd();
+                String startTime = DateUtil.timeStamp2Date(start);
+                String endTime = DateUtil.timeStamp2Date(end);
+                // Watermark
+                long watermark = context.currentWatermark();
+                String watermarkTime = DateUtil.timeStamp2Date(watermark);
+                //  输出日志
+                LOG.info("word: {}, count: {}, ids: {}, window: {}, watermark: {}",
+                        key, count, ids,
+                        "[" + startTime + ", " + endTime + "]",
+                        watermark + "|" + watermarkTime
+                );
+                out.collect(Tuple2.of(key, count));
+            }
+        });
 
 // 输出并打印日志
-stream.print();
+stream.print("主链路");
 // 侧输出
 stream.getSideOutput(lateOutputTag).print("延迟链路");
 ```
-> 完整代码请查阅[AllowedLatenessOutputExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/window/late/AllowedLatenessOutputExample.java)
+> 完整代码请查阅[AllowedLatenessOutputExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/window/late/AllowedLatenessOutputExample.java)
 
 实际效果如下所示：
-```
-23:33:12,848 Source      [] - id: 1, word: a, count: 2, eventTime: 1662303772840|2022-09-04 23:02:52
-23:33:13,862 Source      [] - id: 2, word: a, count: 1, eventTime: 1662303770844|2022-09-04 23:02:50
-23:33:14,868 Source      [] - id: 3, word: a, count: 3, eventTime: 1662303773848|2022-09-04 23:02:53
-23:33:15,874 Source      [] - id: 4, word: a, count: 2, eventTime: 1662303774866|2022-09-04 23:02:54
-23:33:16,878 Source      [] - id: 5, word: a, count: 1, eventTime: 1662303777839|2022-09-04 23:02:57
-23:33:17,883 Source      [] - id: 6, word: a, count: 2, eventTime: 1662303784887|2022-09-04 23:03:04
-23:33:18,886 Source      [] - id: 7, word: a, count: 3, eventTime: 1662303776894|2022-09-04 23:02:56
-23:33:19,891 Source      [] - id: 8, word: a, count: 1, eventTime: 1662303786891|2022-09-04 23:03:06
-23:33:19,987 Sum         [] - word: a, count: 12, ids: [1, 2, 3, 4, 5, 7], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
-(a,12)
-23:33:20,896 Source      [] - id: 9, word: a, count: 5, eventTime: 1662303778877|2022-09-04 23:02:58
-23:33:20,925 Sum         [] - word: a, count: 17, ids: [1, 2, 3, 4, 5, 7, 9], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
-(a,17)
-23:33:21,899 Source      [] - id: 10, word: a, count: 4, eventTime: 1662303791904|2022-09-04 23:03:11
-23:33:22,903 Source      [] - id: 11, word: a, count: 1, eventTime: 1662303795918|2022-09-04 23:03:15
-23:33:23,908 Source      [] - id: 12, word: a, count: 6, eventTime: 1662303779883|2022-09-04 23:02:59
-延迟链路> (12,a,6,1662303779883)
-23:33:24,913 Source      [] - id: 13, word: a, count: 2, eventTime: 1662303846254|2022-09-04 23:04:06
-23:33:25,198 Sum         [] - word: a, count: 8, ids: [6, 8, 10, 11], window: [2022-09-04 23:03:00, 2022-09-04 23:04:00], watermark: 1662303841253|2022-09-04 23:04:01
-(a,8)
-23:33:25,927 Sum         [] - word: a, count: 2, ids: [13], window: [2022-09-04 23:04:00, 2022-09-04 23:05:00], watermark: 9223372036854775807|292278994-08-17 15:12:55
-(a,2)
+```java
+23:43:37,315 INFO  WordCountOutOfOrderSource [] - id: 1, word: a, frequency: 2, eventTime: 1662303772840|2022-09-04 23:02:52
+23:43:38,323 INFO  WordCountOutOfOrderSource [] - id: 2, word: a, frequency: 1, eventTime: 1662303770844|2022-09-04 23:02:50
+23:43:39,328 INFO  WordCountOutOfOrderSource [] - id: 3, word: a, frequency: 3, eventTime: 1662303773848|2022-09-04 23:02:53
+23:43:40,334 INFO  WordCountOutOfOrderSource [] - id: 4, word: a, frequency: 2, eventTime: 1662303774866|2022-09-04 23:02:54
+23:43:41,340 INFO  WordCountOutOfOrderSource [] - id: 5, word: a, frequency: 1, eventTime: 1662303777839|2022-09-04 23:02:57
+23:43:42,343 INFO  WordCountOutOfOrderSource [] - id: 6, word: a, frequency: 2, eventTime: 1662303784887|2022-09-04 23:03:04
+23:43:43,347 INFO  WordCountOutOfOrderSource [] - id: 7, word: a, frequency: 3, eventTime: 1662303776894|2022-09-04 23:02:56
+23:43:44,351 INFO  WordCountOutOfOrderSource [] - id: 8, word: a, frequency: 1, eventTime: 1662303786891|2022-09-04 23:03:06
+23:43:44,517 INFO  AllowedLatenessOutputExample [] - word: a, count: 12, ids: [1, 2, 3, 4, 5, 7], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
+主链路> (a,12)
+23:43:45,358 INFO  WordCountOutOfOrderSource [] - id: 9, word: a, frequency: 5, eventTime: 1662303778877|2022-09-04 23:02:58
+23:43:45,450 INFO  AllowedLatenessOutputExample [] - word: a, count: 17, ids: [1, 2, 3, 4, 5, 7, 9], window: [2022-09-04 23:02:00, 2022-09-04 23:03:00], watermark: 1662303781890|2022-09-04 23:03:01
+主链路> (a,17)
+23:43:46,360 INFO  WordCountOutOfOrderSource [] - id: 10, word: a, frequency: 4, eventTime: 1662303791904|2022-09-04 23:03:11
+23:43:47,363 INFO  WordCountOutOfOrderSource [] - id: 11, word: a, frequency: 1, eventTime: 1662303795918|2022-09-04 23:03:15
+23:43:48,367 INFO  WordCountOutOfOrderSource [] - id: 12, word: a, frequency: 6, eventTime: 1662303779883|2022-09-04 23:02:59
+延迟链路> WordCountTimestamp{id='12', word='a', frequency=6, timestamp=1662303779883}
+23:43:49,374 INFO  WordCountOutOfOrderSource [] - id: 13, word: a, frequency: 2, eventTime: 1662303846254|2022-09-04 23:04:06
+23:43:49,479 INFO  AllowedLatenessOutputExample [] - word: a, count: 8, ids: [6, 8, 10, 11], window: [2022-09-04 23:03:00, 2022-09-04 23:04:00], watermark: 1662303841253|2022-09-04 23:04:01
+主链路> (a,8)
+23:43:50,387 INFO  AllowedLatenessOutputExample [] - word: a, count: 2, ids: [13], window: [2022-09-04 23:04:00, 2022-09-04 23:05:00], watermark: 9223372036854775807|292278994-08-17 15:12:55
+主链路> (a,2)
 ```
 从上面我们可以看到 id = 12 延迟到达而没有被处理的数据记录会输出到侧输出流中等待下一步的处理，这样我们就可以保证所有的数据不会丢失。
 

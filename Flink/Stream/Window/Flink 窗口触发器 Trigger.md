@@ -170,10 +170,6 @@ DataStream<String> result = stream
 
 ![](img-flink-stream-windows-trigger-3.png)
 
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg)
-
 相关推荐：
 - [Flink 窗口之Window机制](http://smartsi.club/introducing-stream-windows-in-apache-flink.html)
 - [Flink 窗口分配器 WindowAssigner](http://smartsi.club/flink-stream-windows-overall.html)

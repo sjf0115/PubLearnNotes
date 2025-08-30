@@ -29,10 +29,15 @@ public abstract void clear(W window, TriggerContext ctx) throws Exception;
 ```java
 // 是否支持合并触发器状态
 public boolean canMerge() {
-    return false;
+    return true;
 }
-public void onMerge(W window, OnMergeContext ctx) throws Exception {
-    throw new UnsupportedOperationException("This trigger does not support merging.");
+
+// 合并逻辑
+public void onMerge(TimeWindow window, Trigger.OnMergeContext ctx) {
+    long windowMaxTimestamp = window.maxTimestamp();
+    if (windowMaxTimestamp > ctx.getCurrentWatermark()) {
+        ctx.registerEventTimeTimer(windowMaxTimestamp);
+    }
 }
 ```
 如果触发器支持合并触发器状态，并可以与 MergingWindowAssigner 一起使用，那么 canMerge 返回 true，否则返回 false。如果触发器不支持合并，则无法与 MergingWindowAssigner 组合使用。当多个窗口需要合并为一个窗口，并且还需要合并触发器状态时会调用 onMerge 进行触发器状态的合并。需要注意的是，如果 canMerge 返回 true，那么必须实现 onMerge 方法。
@@ -62,55 +67,93 @@ public interface OnMergeContext extends TriggerContext {
 }
 ```
 
-## ProcessingTimeTrigger
+## 2. ProcessingTimeTrigger
 
-一旦当前系统处理时间超过了窗口结束的时间戳时，ProcessingTimeTrigger 触发器就会触发：
+ProcessingTimeTrigger 是一个完全基于机器系统时间的触发器。实现原理比较简单，一旦当前系统处理时间超过了窗口结束的时间戳时，`ProcessingTimeTrigger` 触发器就会触发：
+- 首次到达的元素：当第一个元素进入窗口时，onElement 方法会注册一个处理时间定时器，定时器的时间戳为窗口的结束时间 `window.maxTimestamp()`。
+- 定时器触发：当系统时间达到窗口结束时间时，onProcessingTime 方法被调用，触发窗口计算。
+
 ```java
 public class ProcessingTimeTrigger extends Trigger<Object, TimeWindow> {
+
+    // 元素处理
     @Override
-    public TriggerResult onElement(
-            Object element, long timestamp, TimeWindow window, TriggerContext ctx) {
+    public TriggerResult onElement(Object element, long timestamp, TimeWindow window, TriggerContext ctx) {
+        // 为当前窗口注册一个定时器，触发时间是窗口的结束时间  只注册不触发
         ctx.registerProcessingTimeTimer(window.maxTimestamp());
         return TriggerResult.CONTINUE;
     }
+
+    // 当一个基于事件时间的定时器（由Watermark驱动）触发时调用
     @Override
-    public TriggerResult onEventTime(long time, TimeWindow window, TriggerContext ctx)
-            throws Exception {
+    public TriggerResult onEventTime(long time, TimeWindow window, TriggerContext ctx) throws Exception {
+        // 处理时间触发器不关心事件时间 不触发
         return TriggerResult.CONTINUE;
     }
+
+    // 当一个基于处理时间的定时器触发时调用
     @Override
     public TriggerResult onProcessingTime(long time, TimeWindow window, TriggerContext ctx) {
+        // 当处理时间到达窗口结束时，触发窗口计算
         return TriggerResult.FIRE;
     }
-}
-```
 
-```java
-public void clear(TimeWindow window, TriggerContext ctx) throws Exception {
-    ctx.deleteProcessingTimeTimer(window.maxTimestamp());
-}
-```
+    // 当窗口被清除时执行删除定时器操作
+    public void clear(TimeWindow window, Trigger.TriggerContext ctx) throws Exception {
+        ctx.deleteProcessingTimeTimer(window.maxTimestamp());
+    }
 
-```java
-@Override
-public boolean canMerge() {
-    return true;
-}
+    // 支持窗口触发器合并
+    public boolean canMerge() {
+        return true;
+    }
 
-@Override
-public void onMerge(TimeWindow window, OnMergeContext ctx) {
-    long windowMaxTimestamp = window.maxTimestamp();
-    if (windowMaxTimestamp > ctx.getCurrentProcessingTime()) {
-        ctx.registerProcessingTimeTimer(windowMaxTimestamp);
+    // 窗口触发器合并
+    public void onMerge(TimeWindow window, Trigger.OnMergeContext ctx) {
+        long windowMaxTimestamp = window.maxTimestamp();
+        if (windowMaxTimestamp > ctx.getCurrentProcessingTime()) {
+            ctx.registerProcessingTimeTimer(windowMaxTimestamp);
+        }
     }
 }
 ```
 
-## EventTimeTrigger
+## 3. EventTimeTrigger
+
+EventTimeTrigger 是一个基于事件时间（由 Watermark 驱动）的触发器。它是处理乱序事件流、保证计算结果准确性的核心。实现原理：
+- 注册结束时间定时器：当第一个元素进入窗口时，onElement 方法会注册一个事件时间定时器，定时器的时间戳同样是窗口的结束时间 `window.maxTimestamp()`。
+- 等待 Watermark：系统会不断生成和推进 Watermark。
+- 定时器触发：当 Watermark >= 窗口结束时间时，onEventTime 方法被调用，触发窗口计算。
 
 ```java
+public class EventTimeTrigger extends Trigger<Object, TimeWindow> {
+    private static final long serialVersionUID = 1L;
 
+    private EventTimeTrigger() {
+    }
+
+    public TriggerResult onElement(Object element, long timestamp, TimeWindow window, Trigger.TriggerContext ctx) throws Exception {
+        if (window.maxTimestamp() <= ctx.getCurrentWatermark()) {
+            // 如果 Watermark 已经超过了窗口的结束时间，则不再注册定时器，直接触发
+            return TriggerResult.FIRE;
+        } else {
+            // 为当前窗口注册一个事件时间定时器，触发时间是窗口的结束时间
+            ctx.registerEventTimeTimer(window.maxTimestamp());
+            return TriggerResult.CONTINUE;
+        }
+    }
+
+    public TriggerResult onEventTime(long time, TimeWindow window, Trigger.TriggerContext ctx) {
+        // 只有当定时器时间等于窗口结束时间时才触发
+        return time == window.maxTimestamp() ? TriggerResult.FIRE : TriggerResult.CONTINUE;
+    }
+
+    public TriggerResult onProcessingTime(long time, TimeWindow window, Trigger.TriggerContext ctx) throws Exception {
+        // 事件时间触发器不关心处理时间
+        return TriggerResult.CONTINUE;
+    }
+
+    ...
+}
 ```
-
-
-...
+事件时间触发器与处理时间触发器实现上有一个不同点在于，onElement 中的 `window.maxTimestamp() <= ctx.getCurrentWatermark()` 判断：当一个元素到达时，如果 Watermark 已经超过了窗口的结束时间，直接触发。

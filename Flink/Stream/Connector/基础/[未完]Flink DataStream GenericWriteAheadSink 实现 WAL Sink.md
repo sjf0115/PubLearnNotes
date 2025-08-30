@@ -1,19 +1,12 @@
 Flink 应用端到端的一致性保障取决于 Sink 连接器的属性，正常情况下不做额外的操作是不能提供端到端的 Exactly-Once 语义保障的。例如 Failover 会导致作业重启，然后从最近一次成功的 Checkpoint 记录的 Offset 位点开始消费，这样会导致 Checkpoint 记录的 Offset 位点到实际消费到的 Offset 位点之间记录被重复消费。为了提供端到端的一致性保障，应用的 Sink 连接器要么实现幂等性，要么实现事务支持。如果无法实现幂等性写入，也没有提供内置的事务支持，那只能通过预写日志 WAL 的方式实现。
 
-预写日志 WAL 实现原理是在 Checkpoint 完成之前先将要输出的记录存储到 Sink 算子的状态中，并写入检查点，当一个任务接收到 Checkpoint 完成通知时，会将此 Checkpoint 周期内的所有记录写入到外部系统(这样就就跟 Checkpoint 重置的 Offset 对应)。Flink 已经帮我们实现了一个通用 WAL Sink 模板(GenericWriteAheadSink)来完成事务写入。
-
 ## 1. 原理
 
-为了简化事务 WAL Sink 的实现，Flink DataStream API 提供了一个 GenericWriteAheadSink 模板(抽象类)，可以通过继承这个抽象类更加方便的实现一致性的 Sink。实现 GenericWriteAheadSink 的算子会和 Flink 的检查点机制相结合，目的是将记录以 Exactly-Once 语义写入外部系统。
+为了简化预写日志 WAL Sink 的实现，Flink DataStream API 提供了一个 GenericWriteAheadSink 模板(抽象类)，可以通过继承这个抽象类更加方便的实现一致性的 Sink。实现 GenericWriteAheadSink 的算子会和 Flink 的检查点机制相结合，目的是将记录以 Exactly-Once 语义写入外部系统。
 
-GenericWriteAheadSink 的工作原理是经由检查点 "分段" 后的接收记录以追加的方式写入 WAL 中，即收集每个检查点周期内所有需要写出的记录，并将它们存储到 Sink 任务的算子状态中。最终状态会被写入到检查点并在故障时用来恢复。由于它在发生故障时可以恢复，所以不会导致数据丢失。当一个任务接收到检查点完成通知时，会将此检查点周期内的所有记录写入到外部系统。根据 Sink 的具体实现，这些记录可以被写入任意一个存储或者消息系统中。当所有记录发送成功时，Sink 需要在内部提交该检查点。
+GenericWriteAheadSink 的工作原理是收集每个 Checkpoint 周期内所有需要写出的记录，并将它们存储到 Sink 任务的算子状态中。最终状态进行 Checkpoint 写入持久化存储中并在故障时用来恢复。由于它在发生故障时可以恢复，所以不会导致数据丢失。当一个任务接收到 Checkpoint 完成通知时，会将此 Checkpoint 周期内的所有记录写入到外部系统。根据 Sink 的具体实现，这些记录可以被写入任意一个存储或者消息系统中。当所有记录发送成功时，Sink 需要在内部提交该 Checkpoint。
 
-检查点的提交分两步。第一步，Sink 需要将检查点已提交的信息持久化。第二步，删除 WAL 中相应的数据。检查点已提交的信息无法存储在 Flink 应用程序状态中，因为状态本身不具有持久性，并且会在故障恢复时重置状态。实际上，GenericWriteAheadSink 依赖一个名为 CheckpointCommitter 的可插拔组件来控制外部持久化系统存储和查找已提交检查点信息。
-
-需要特别注意的是，基于 WAL 的 Sink 在某些极端情况下可能会将同一条记录重复写出多次。因此 GenericWriteAheadSink 并不能百分之百的提供 Exactly-Once 语义保证，而只能做到 At-Least-Once 语义保证。有两种故障会导致同一条记录重复写出多次：
-- 在运行 `sendValues` 方法时发生故障。如果外部系统不支持原子性的写入多个记录(全写或者全不写)，那么就会出现部分数据已经写入而部分数据没能写入成功。由于此时检查点还没有提交，下次恢复时重写全部记录。
-- 所有记录都已经成功写入，`sendValues` 返回了 true，但是程序在调用 CheckpointCommitter 前出现故障或者 CheckpointCommitter 未能成功提交检查点。这样，在故障恢复期间，未提交的检查点所对应的全部记录都会被重新消费一次。
-
+Checkpoint 的提交分两步：第一步，Sink 需要将 Checkpoint 已提交的信息持久化。第二步，删除 WAL 中相应的数据。Checkpoint 已提交的信息无法存储在 Flink 应用程序状态中，因为状态本身不具有持久性，并且会在故障恢复时重置状态。实际上，GenericWriteAheadSink 依赖一个名为 CheckpointCommitter 的可插拔组件来控制外部持久化系统存储和查找已提交 Checkpoint 信息。
 
 ## 2. 实现
 
@@ -65,6 +58,13 @@ result.transform(
     new StdOutWALSink()
 );
 ```
+
+## 2. 注意
+
+需要特别注意的是，基于 WAL 的 Sink 在某些极端情况下可能会将同一条记录重复写出多次。因此 GenericWriteAheadSink 并不能百分之百的提供 Exactly-Once 语义保证，而只能做到 At-Least-Once 语义保证。有两种场景会导致同一条记录重复写出多次：
+- 在运行 `sendValues` 方法时发生故障。如果外部系统不支持原子性的写入多个记录(全写或者全不写)，那么就会出现部分数据已经写入而部分数据没能写入成功。由于此时检查点还没有提交，下次恢复时重写全部记录。
+- 所有记录都已经成功写入，`sendValues` 返回了 true，但是程序在调用 CheckpointCommitter 前出现故障或者 CheckpointCommitter 未能成功提交检查点。这样，在故障恢复期间，未提交的检查点所对应的全部记录都会被重新消费一次。
+
 
 ## 3. 源码分析
 

@@ -66,7 +66,7 @@ Checkpoint 提供给算子的 hook 有 CheckpointedFunction 和 CheckpointListen
 
 Bucketing File Sink 是 Flink 提供的一个 FileSystem Connector，用于将数据流写到固定大小的文件里。Bucketing File Sink 将文件分为三种状态，in-progress/pending/committed，分别表示正在写的文件、写完准备提交的文件和已经提交的文件。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-deliver-exactly-once.png?raw=true)
+![](img-flink-deliver-exactly-once.png)
 
 运行时，Bucketing File Sink 首先会打开一个临时文件并不断地将收到的数据写入（相当于事务的 beginTransaction 步骤），这时文件处于 in-progress。直到这个文件因为大小超过阈值或者一段时间内没有新数据写入，这时文件关闭并变为 pending 状态（相当于事务的 pre-commit 步骤）。由于 Flink checkpoint 是异步的，可能有多个并发的 checkpoint，Bucketing File Sink 会记录 pending 文件对应的 checkpoint epoch，当某个 epoch 的 checkpoint 完成后，Bucketing File Sink 会收到 callback 并将对应的文件改为 committed 状态。这是通过原子操作重命名来完成的，因此可以保证 pre-commit 的事务要么 commit 成功要么 commit 失败，不会出现其他中间状态。
 

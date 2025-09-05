@@ -95,7 +95,7 @@ public interface CleanupState {
 状态清理时间为空，即这个 key 是第一次出现
 或者当前时间加上 minRetentionTime 已经超过了状态清理时间
 
-
+table.exec.state.ttl
 
 参考：
 - [query_configuration](https://nightlies.apache.org/flink/flink-docs-release-1.12/dev/table/streaming/query_configuration.html)

@@ -5,6 +5,7 @@
 - [ ] [腾讯看点基于 Flink 构建万亿数据量下的实时数仓及实时查询系统](https://mp.weixin.qq.com/s/hei91VFKUJqywulE7JaXcw)
 - [ ] [Apache Flink 在汽车之家的应用与实践](https://mp.weixin.qq.com/s/1VL7xZLYzM7o4vbNaecM7w)
 - [ ] [快手基于 Flink 构建实时数仓场景化实践](https://mp.weixin.qq.com/s/L8-RSS6v3Ppts60CWngiOA)
+- [x] [快手基于 Apache Flink 的实时数仓建设实践](https://mp.weixin.qq.com/s/l1KM6aCyjJ7Lg8Hk2fRpRA)
 
 ## 2. Flink SQL
 
@@ -20,3 +21,4 @@
     - 聚合指标调整之后的状态兼容    
 
 - [x] [基于 TiDB + Flink 实现的滑动窗口实时累计指标算法](https://smartsi.blog.csdn.net/article/details/130541896)
+- [ ] [腾讯基于 Flink SQL 的功能扩展与深度优化实践](https://mp.weixin.qq.com/s/9Y6XCZRuZ79ICJ5ylTYRDQ)

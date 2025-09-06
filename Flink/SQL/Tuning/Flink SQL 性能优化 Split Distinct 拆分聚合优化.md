@@ -1,16 +1,4 @@
----
-layout: post
-author: sjf0115
-title: Flink SQL 性能优化 Split Distinct 拆分聚合优化
-date: 2022-10-16 10:02:21
-tags:
-  - Flink
-
-categories: Flink
-permalink: flink-sql-tuning-split-distinct-aggregate
----
-
-> Flink 版本：1.13.5
+> Flink 版本：1.13.6
 
 ## 1. 原理
 
@@ -40,7 +28,7 @@ GROUP BY day
 
 下图展示了拆分 DISTINCT 聚合如何提高性能（假设颜色表示 days，字母表示 user_id）：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-tuning-split-distinct-aggregate-1.png?raw=true)
+![](img-flink-sql-tuning-split-distinct-aggregate-1.png)
 
 注意：上面是可以从这个优化中受益的最简单的示例。除此之外，Flink 还支持拆分更复杂的聚合查询，例如使用不同 DISTINCT Key 的多个 DISTINCT 聚合（例如 `COUNT(DISTINCT a), SUM(DISTINCT b)` ），可以与其他非 DISTINCT 聚合（例如 SUM、MAX、MIN、COUNT ）一起使用。
 
@@ -64,7 +52,7 @@ configuration.setString("table.optimizer.distinct-agg.split.enabled", "true");
 ```
 判断是否生效，可以通过 Web UI 中观察最终生成的拓扑图，是否由原来一层的聚合变成了两层的聚合，其中一个 partialFinalType 为 PARTITAL，另一个为 FINAL：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-tuning-split-distinct-aggregate-2.png?raw=true)
+![](img-flink-sql-tuning-split-distinct-aggregate-2.png)
 
 ## 4. 示例
 

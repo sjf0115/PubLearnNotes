@@ -88,11 +88,20 @@ CREATE TABLE kafka_meta_source_table (
 ```
 > 如果表字段名称与元数据字段名称相同，可以不用指定 FROM，例如，offset。如果想使用不同的字段名称，需要指定 FROM，比如，partition_id。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-kafka-connector-1.png?raw=true)
+实际效果如下所示：
+```java
+behavior:2> +I[weibo_user_behavior, 0, 18, 2025-09-06T22:13:15.297, c01014739c046cd31d6f1b4fb71b440f, 0cd5ef13eb11ed0070f7625b14136ec9, 2015-08-19 22:44:55]
+behavior:2> +I[weibo_user_behavior, 0, 19, 2025-09-06T22:13:15.861, fa5aed172c062c61e196eac61038a03b, 7cce78a4ad39a91ec1f595bcc7fb5eba, 2015-08-01 14:06:31]
+behavior:2> +I[weibo_user_behavior, 0, 20, 2025-09-06T22:13:16.850, 77fc723c196a45203e70f4d359c96946, a3494d8cf475a92739a2ffd421640ddf, 2015-08-04 10:51:38]
+behavior:2> +I[weibo_user_behavior, 0, 21, 2025-09-06T22:13:17.854, e4097b07f34366399b623b94f174f60c, 6b89aea5aa7af093dde0894156c49dd3, 2015-08-16 14:59:19]
+behavior:2> +I[weibo_user_behavior, 0, 22, 2025-09-06T22:13:18.854, d43f7557c303b84070b13aa4eeeb21d3, 0bdeff19392e15737775abab46dc5437, 2015-08-04 22:30:46]
+behavior:2> +I[weibo_user_behavior, 0, 23, 2025-09-06T22:13:19.852, 87465974e53e9f047e355e6e9b135b55, 545c14094cbe50679daa63fe16419111, 2015-08-20 19:42:50]
+behavior:2> +I[weibo_user_behavior, 0, 24, 2025-09-06T22:13:20.855, 1425c7ee0ddf04e56cfe1af1443a45c8, d84ec9d2ca0c71b88385e11310c3bfa7, 2015-08-28 00:34:31]
+behavior:2> +I[weibo_user_behavior, 0, 25, 2025-09-06T22:13:21.858, fd17277c9db465ff66612b3bdd0faf85, e3fafecf482b3ad2f899ea971feae4c6, 2015-08-18 22:11:37]
+behavior:2> +I[weibo_user_behavior, 0, 26, 2025-09-06T22:13:22.858, bcbb49cd919fd563a424e9651a1e54c6, 7e24ef184b183339b68900282e095bdf, 2015-08-29 18:51:49]
+```
 
-> 完整示例代码请查阅： [kafka_meta_example](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/sql/connector/kafka/kafka_meta_example.sql)
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-sql-kafka-connector-2.png?raw=true)
+> 完整示例代码请查阅： [KafkaMetaExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/sql/connector/kafka/KafkaMetaExample.java)
 
 ### 4. Connector 参数
 
@@ -143,7 +152,7 @@ CREATE TABLE kafka_value_source_table (
 
 #### 5.2 Key 与 Value Format
 
-如下示例展示了如何配置一起使用 Key 和 Value Format。Format 配置使用 'key' 或 'value' 再加上 Format 标识符作为前缀。对于 Json Foramt，Key Format 均以 'key.json' 作为前缀，Value Format 均以 'value.json' 作为前缀：
+如下示例展示了如何配置一起使用 Key 和 Value Format。Format 配置使用 'key' 或 'value' 再加上 Format 标识符作为前缀。对于 Json Format，Key Format 均以 'key.json' 作为前缀，Value Format 均以 'value.json' 作为前缀：
 ```sql
 CREATE TABLE kafka_key_value_source_table (
   uid STRING COMMENT '用户Id',
@@ -165,8 +174,6 @@ CREATE TABLE kafka_key_value_source_table (
   'value.fields-include' = 'EXCEPT_KEY'
 );
 ```
-
-> 完整示例代码请查阅： [kafka-connector-key-value](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/sql/connector/kafka/kafka-connector-key-value.sql)
 
 假设 Kafka 消息 Key 数据如下所示：
 ```json
@@ -230,8 +237,6 @@ CREATE TABLE kafka_same_name_source_table (
 );
 ```
 
-> 完整示例代码请查阅： [kafka-connector-same-name](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/sql/connector/kafka/kafka-connector-same-name.sql)
-
 ### 6. 特性
 
 #### 6.1 Topic 和 Partition 自动发现
@@ -261,7 +266,7 @@ scan.startup.mode 配置项决定了 Kafka 消费者的启动模式。具体值�
 
 #### 6.4 一致性保证
 
-默认情况下，如果在启用 Checkpoint 模式下执行查询，Kafka Sink 会按照 At-Least-Once 语义保证将数据写入到 Kafka Topic 中。当 Flink Checkpoint 启用时，kafka Sink 可以提 Exactly-Once 语义保证。除了启用 Flink Checkpoint，还可以通过选择不同的 sink.semantic 选项来选择三种不同的运行模式：
+默认情况下，如果在未启用 Checkpoint 模式下执行查询，Kafka Sink 会按照 At-Least-Once 语义保证将数据写入到 Kafka Topic 中。当 Flink Checkpoint 启用时，kafka Sink 可以提供 Exactly-Once 语义保证。除了启用 Flink Checkpoint，还可以通过选择不同的 sink.semantic 选项来选择三种不同的运行模式：
 - None：不保证任何语义。输出的记录可能重复或者丢失。
 - At-Least-Once (默认设置)：保证不会有记录丢失，但可能会重复。
 - Exactly-Once：使用 Kafka 事务提供 Exactly-Once 语义。当使用事务向 Kafka 写入数据时，不要忘记设置所需的隔离级别（read_committed 或者 read_uncommitted，后者是默认值）。
@@ -269,9 +274,5 @@ scan.startup.mode 配置项决定了 Kafka 消费者的启动模式。具体值�
 #### 6.5 数据类型映射
 
 Kafka 将消息 Key 和值存储为字节，因此 Kafka 没有 Schema 以及数据类型。Kafka 消息按照配置 Format 进行反序列化和序列化，例如 csv、json、avro。因此，数据类型映射由特定 Format 决定。
-
-欢迎关注我的公众号和博客：
-
-![](https://github.com/sjf0115/ImageBucket/blob/main/Other/smartsi.jpg?raw=true)
 
 原文：[Apache Kafka SQL Connector](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/connectors/table/kafka/)

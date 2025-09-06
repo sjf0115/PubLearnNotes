@@ -78,7 +78,7 @@ public interface DeserializationFormatFactory
 ```
 在其实现类中只有 RawFormatFactory，没有发现与 json 相关的 FormatFactory：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-could-not-find-any-factory-for-identifier-json-1.png?raw=true)
+![](img-flink-could-not-find-any-factory-for-identifier-json-1.png)
 
 ## 3. 解决方案
 
@@ -93,4 +93,4 @@ public interface DeserializationFormatFactory
 
 我们再次查看 DeserializationFormatFactory 的实现类：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/Flink/flink-could-not-find-any-factory-for-identifier-json-2.png?raw=true)
+![](img-flink-could-not-find-any-factory-for-identifier-json-2.png)

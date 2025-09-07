@@ -127,7 +127,7 @@ public class ContinuousEventTimeTrigger<W extends Window> extends Trigger<Object
     private final long interval;
     private final ReducingStateDescriptor<Long> stateDesc = new ReducingStateDescriptor<>("fire-time", new Min(), LongSerializer.INSTANCE);
 
-    private CustomContinuousEventTimeTrigger(long interval) {
+    private ContinuousEventTimeTrigger(long interval) {
         this.interval = interval;
     }
 

@@ -28,10 +28,7 @@ SELECT
   agg_funcN(agg_colN) OVER (definitionN) AS colNameN
 FROM Tab1;
 ```
-
-
-可以在 SELECT 子句中定义多个 OVER 窗口聚合。但是对于流查询，由于当前的限制，所有聚合的 OVER 窗口聚合必须相同，即 agg_func1 到 agg_funcN 所对应的 OVER definition 必须相同。
-
+可以在 SELECT 子句中定义多个 OVER 窗口聚合。但是对于流查询，由于当前的限制，所有聚合的 OVER 窗口聚合必须相同，即 agg_func1 到 agg_funcN 所对应的 OVER definition 必须相同。下面详细介绍 OVER definition 中的参数：
 - ORDER BY 子句
   - 必选，定义数据顺序（必须基于时间属性，如事件时间或处理时间）
   - OVER 窗口聚合是在有序的行序列上定义的。由于表没有固定的顺序，所以 ORDER BY 子句是强制性的。对于流查询，Flink 目前只支持以升序时间属性顺序定义的 OVER 窗口聚合。
@@ -41,23 +38,22 @@ FROM Tab1;
 - range_definition 范围定义子句
   - 范围定义指定窗口聚合中包含多少行。范围由 BETWEEN 子句定义，该子句定义了窗口下限和上限。这些边界之间的所有行都包含在聚合中。
   - 需要注意的是 Flink 只支持 CURRENT ROW 作为上边界。
+  - 目前聚合数据的范围有两种指定方式，一种方式是按照行数聚合 ROWS OVER，另一种方式是按照时间区间聚合 RANGE OVER。
 
-## 2. 类型
+## 3. 类型
 
 Flink SQL 中对 OVER 窗口聚合的定义遵循标准 SQL 的定义语法。按照计算行的定义方式，OVER 窗口聚合可以分为以下两类：
-- ROWS OVER：每1行元素都被视为新的计算行，即每1行都是一个新的窗口。
-- RANGE OVER：具有相同时间值的所有元素行视为同一计算行，即具有相同时间值的所有行都是同一个窗口。
+- ROWS OVER：每1行元素都被视为新的计算行，即每1行都是一个新的窗口。可以理解为按照行数的滑动窗口聚合计算
+- RANGE OVER：具有相同时间值的所有元素行视为同一计算行，即具有相同时间值的所有行都是同一个窗口。可以理解为按照时间的滑动窗口聚合计算
 
 | 类型     | 说明     | proctime     | eventtime     |
 | :------------- | :------------- | :------------- | :------------- |
 | ROWS OVER       | 按照实际元素的行确定窗口。 | 支持 | 支持 |
 | RANGE OVER      | 按照实际的元素值（时间戳值）确定窗口。 | 支持 | 支持 |
 
-### 2.1 ROWS OVER
+### 3.1 ROWS OVER
 
-
-
-语法:
+ROWS OVER Window 的每个元素都确定一个窗口。窗口语法如下所示：
 ```sql
 SELECT
     agg1(col1) OVER(
@@ -67,40 +63,41 @@ SELECT
      BETWEEN (UNBOUNDED | rowCount) PRECEDING AND CURRENT ROW) AS colName, ...
 FROM Tab1;       
 ```
+- value_expression：分区值表达式。
+- timeCol：元素排序的时间字段。
+- rowCount：定义根据当前行开始向前追溯几行元素。
+
 ROWS OVER 是一个基于计数的窗口，精确定义聚合中包含多少行。下面的 ROWS OVER 定义当前行和当前行之前的10行（总共11行）包含在聚合中:
 ```sql
 ROWS BETWEEN 10 PRECEDING AND CURRENT ROW
 ```
 
-假设有一张商品上架表，包含商品ID、商品类型、商品上架时间、商品价格数据。要求输出在当前商品上架之前同类的最近3个商品中的最高价格。
-
+假设有一张商品上架表，包含商品ID、商品类目、商品价格以及商品上架时间。
 ```sql
-CREATE TEMPORARY TABLE tmall_item(
-  itemid VARCHAR,
-  itemtype VARCHAR,
-  eventtime varchar,                            
-  onselltime AS TO_TIMESTAMP(eventtime),
-  price DOUBLE,
-  WATERMARK FOR onselltime AS onselltime - INTERVAL '2' SECOND  -- 为Rowtime定义Watermark
+CREATE TABLE shop_sales (
+  product_id BIGINT COMMENT '商品Id',
+  category STRING COMMENT '商品类目',
+  price BIGINT COMMENT '商品价格',
+  `timestamp` BIGINT COMMENT '商品上架时间',
+  ts_ltz AS TO_TIMESTAMP_LTZ(`timestamp`, 3), -- 事件时间
+  WATERMARK FOR ts_ltz AS ts_ltz - INTERVAL '5' SECOND -- 在 ts_ltz 上定义watermark，ts_ltz 成为事件时间列
 ) WITH (
   'connector' = 'kafka',
-  'topic' = '<yourTopic>',
-  'properties.bootstrap.servers' = '<brokers>',
-  'scan.startup.mode' = 'earliest-offset',
-  'format' = 'csv'
-);
-
+  'topic' = 'shop_sales',
+  'properties.bootstrap.servers' = 'localhost:9092',
+  'properties.group.id' = 'shop_sales',
+  'scan.startup.mode' = 'latest-offset',
+  'format' = 'json',
+  'json.ignore-parse-errors' = 'false',
+  'json.fail-on-missing-field' = 'true'
+));
+```
+要求输出在当前商品上架之前同类的最近3个商品中的最高价格：
+```sql
 SELECT
-    itemid,
-    itemtype,
-    onselltime,
-    price,  
-    MAX(price) OVER (
-        PARTITION BY itemtype
-        ORDER BY onselltime
-        ROWS BETWEEN 2 preceding AND CURRENT ROW
-    ) AS maxprice
-FROM tmall_item;
+  product_id, category, price, DATE_FORMAT(ts_ltz, 'yyyy-MM-dd HH:mm:ss') AS time,
+  MAX(price) OVER (PARTITION BY category ORDER BY ts_ltz ROWS BETWEEN 2 preceding AND CURRENT ROW) AS max_price
+FROM shop_sales;
 ```
 
 ### 2.2 RANGE OVER

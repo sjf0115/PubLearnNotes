@@ -29,6 +29,4 @@ listeners 这个参数必须开启，否则绝对报异常 LEADER_NOT_AVAILABLE 
 advertised.listeners=PLAINTEXT://127.0.0.1:9092
 ```
 
-
-
 参考:[Leader Not Available Kafka in Console Producer](https://stackoverflow.com/questions/35788697/leader-not-available-kafka-in-console-producer)

@@ -67,37 +67,6 @@ export HADOOP_CLASSPATH=`hadoop classpath`
 ```
 > 修改 /etc/profile 配置文件，使用 source 命令并刷新，然后重启 Flink 集群
 
-### 3. No ExecutorFactory found to execute the application
-
-[Flink 1.11+ No ExecutorFactory found to execute the application](https://smartsi.blog.csdn.net/article/details/124067922)
-
-### 4. Hadoop is not in the classpath/dependencies
-
-【现象】在Idea中启动程序报如下错误：
-```java
-Caused by: org.apache.flink.core.fs.UnsupportedFileSystemSchemeException: Could not find a file system implementation for scheme 'hdfs'. The scheme is not directly supported by Flink and no Hadoop file system to support this scheme could be loaded. For a full list of supported file systems, please see https://ci.apache.org/projects/flink/flink-docs-stable/ops/filesystems/.
-	at org.apache.flink.core.fs.FileSystem.getUnguardedFileSystem(FileSystem.java:491)
-	at org.apache.flink.core.fs.FileSystem.get(FileSystem.java:389)
-	at org.apache.flink.core.fs.Path.getFileSystem(Path.java:292)
-	at org.apache.flink.runtime.state.filesystem.FsCheckpointStorage.<init>(FsCheckpointStorage.java:64)
-	at org.apache.flink.runtime.state.filesystem.FsStateBackend.createCheckpointStorage(FsStateBackend.java:501)
-	at org.apache.flink.runtime.checkpoint.CheckpointCoordinator.<init>(CheckpointCoordinator.java:302)
-	... 22 more
-Caused by: org.apache.flink.core.fs.UnsupportedFileSystemSchemeException: Hadoop is not in the classpath/dependencies.
-	at org.apache.flink.core.fs.UnsupportedSchemeFactory.create(UnsupportedSchemeFactory.java:58)
-	at org.apache.flink.core.fs.FileSystem.getUnguardedFileSystem(FileSystem.java:487)
-	... 27 more
-```
-【解决方案】添加如下依赖：
-```xml
-<dependency>
-    <groupId>org.apache.hadoop</groupId>
-    <artifactId>hadoop-client</artifactId>
-    <version>${hadoop.version}</version>
-    <scope>provided</scope>
-</dependency>
-```
-
 ### 5. ctx.timestamp() is null
 
 【现象】在使用 ProcessFunction 的时候报如下错误：
@@ -189,35 +158,5 @@ Caused by: java.lang.UnsupportedOperationException: Forward partitioning does no
 ```
 【解决方案】使用 ForwardPartitioner 时必须保证上下游算子的并行度保持一致，否则就需要其他的分区器，比如，BroadcastPartitioner、ShufflePartitioner 或者 RebalancePartitioner 等。
 
-### 8. cannot assign instance of org.apache.commons.collections.map.LinkedMap
 
-【现象】在使用 Flink 消费 Kafka 时，抛出如下异常：
-```java
-Caused by: java.lang.ClassCastException: cannot assign instance of org.apache.commons.collections.map.LinkedMap to field org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase.pendingOffsetsToCommit of type org.apache.commons.collections.map.LinkedMap in instance of org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer
-	at java.io.ObjectStreamClass$FieldReflector.setObjFieldValues(ObjectStreamClass.java:2233)
-	at java.io.ObjectStreamClass.setObjFieldValues(ObjectStreamClass.java:1405)
-	at java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2284)
-	at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2202)
-	at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2060)
-	at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1567)
-	at java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2278)
-	at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2202)
-	at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2060)
-	at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1567)
-	at java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:2278)
-	at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:2202)
-	at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:2060)
-	at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1567)
-	at java.io.ObjectInputStream.readObject(ObjectInputStream.java:427)
-	at org.apache.flink.util.InstantiationUtil.deserializeObject(InstantiationUtil.java:615)
-	at org.apache.flink.util.InstantiationUtil.deserializeObject(InstantiationUtil.java:600)
-	at org.apache.flink.util.InstantiationUtil.deserializeObject(InstantiationUtil.java:587)
-	at org.apache.flink.util.InstantiationUtil.readObjectFromConfig(InstantiationUtil.java:541)
-	at org.apache.flink.streaming.api.graph.StreamConfig.getStreamOperatorFactory(StreamConfig.java:322)
-	... 5 more
-```
-【解决方案】常见的原因是 Kafka 库与 Flink 的反向类加载方法不兼容。可以通过在 conf/flink-conf.yaml 中添加以下配置并重新启动 Flink 来解决此问题：
-```
-classloader.resolve-order: parent-first
-```
 ...

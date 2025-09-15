@@ -14,9 +14,9 @@ Apache Flink 的流式 Over 聚合是一种在无界数据流上按行或范围�
 
 ```sql
 SELECT
-    agg_func1(col1) OVER (definition1) AS colName,
+    agg_func1(agg_col1) OVER (definition1) AS colName,
     ...
-    agg_funcN(colN) OVER (definitionN) AS colNameN
+    agg_funcN(agg_colN) OVER (definitionN) AS colNameN
 FROM Tab1;
 
 SELECT
@@ -58,13 +58,14 @@ Flink SQL 中对 OVER 窗口聚合的定义遵循标准 SQL 的定义语法。�
 ROWS OVER Window 的每个元素都确定一个窗口。窗口语法如下所示：
 ```sql
 SELECT
-    agg1(col1) OVER(
+    agg_func1(agg_col1) OVER(
      [PARTITION BY (value_expression1,..., value_expressionN)]
      ORDER BY timeCol
      ROWS
      BETWEEN (UNBOUNDED | rowCount) PRECEDING AND CURRENT ROW) AS colName, ...
 FROM Tab1;       
 ```
+参数说明：
 - value_expression：分区值表达式。
 - timeCol：元素排序的时间字段。
 - rowCount：定义根据当前行开始向前追溯几行元素。
@@ -96,11 +97,12 @@ CREATE TABLE shop_sales (
   'json.fail-on-missing-field' = 'true'
 ));
 ```
-要求输出在当前商品上架之前同类的最近3个商品中的最高价格：
+  要求输出在当前商品上架之前同类的最近3个商品中的最高价格：
 ```sql
 SELECT
-  product_id, category, price, DATE_FORMAT(ts_ltz, 'yyyy-MM-dd HH:mm:ss') AS time,
-  MAX(price) OVER (PARTITION BY category ORDER BY ts_ltz ROWS BETWEEN 2 preceding AND CURRENT ROW) AS max_price
+    product_id, category, price, DATE_FORMAT(ts_ltz, 'yyyy-MM-dd HH:mm:ss') AS `time`,
+    MAX(price) OVER (PARTITION BY category ORDER BY ts_ltz ROWS BETWEEN 2 preceding AND CURRENT ROW) AS max_price,
+    LISTAGG(CAST(product_id AS VARCHAR), ',') OVER (PARTITION BY category ORDER BY ts_ltz ROWS BETWEEN 2 preceding AND CURRENT ROW) AS recent_three_product
 FROM shop_sales;
 ```
 
@@ -139,13 +141,13 @@ FROM shop_sales;
 
 > 最重要的是 1003 迟到记录的丢弃
 
-### 2.2 RANGE OVER
+### 3.2 RANGE OVER
 
-#### 2.2.1 语法
+#### 3.2.1 语法
 
 ```sql
 SELECT
-    agg1(col1) OVER(
+    agg_func1(agg_col1) OVER(
      [PARTITION BY (value_expression1,..., value_expressionN)]
      ORDER BY timeCol
      RANGE
@@ -153,18 +155,46 @@ SELECT
 ...
 FROM Tab1;
 ```
+参数说明：
+- value_expression：进行分区的字表达式。
+- timeCol：元素排序的时间字段。
+- timeInterval：定义根据当前行开始向前追溯指定时间的元素行。
 
-RANGE OVER 是在 ORDER BY 列的值上定义的，在 Flink 中总是一个时间属性。下面的 RANGE OVER 定义时间属性最多比当前行少30分钟的所有行都包含在聚合中:
+RANGE OVER 是在 ORDER BY 列的值上定义的，必须是一个时间属性。下面的 RANGE OVER 定义时间属性最多比当前行少30分钟的所有行都包含在聚合中:
 ```sql
 RANGE BETWEEN INTERVAL '30' MINUTE PRECEDING AND CURRENT ROW
 ```
 
-#### 2.2.2 示例
+#### 3.2.2 示例
 
-假设一张商品上架表，包含有商品ID、商品类型、商品上架时间、商品价格数据。需要求比当前商品上架时间早2分钟的同类商品中的最高价格。
-
+假设有一张商品上架表，包含商品ID、商品类目、商品价格以及商品上架时间：
 ```sql
+CREATE TABLE shop_sales (
+  product_id BIGINT COMMENT '商品Id',
+  category STRING COMMENT '商品类目',
+  price BIGINT COMMENT '商品价格',
+  `timestamp` BIGINT COMMENT '商品上架时间',
+  ts_ltz AS TO_TIMESTAMP_LTZ(`timestamp`, 3), -- 事件时间
+  WATERMARK FOR ts_ltz AS ts_ltz - INTERVAL '5' SECOND -- 在 ts_ltz 上定义watermark，ts_ltz 成为事件时间列
+) WITH (
+  'connector' = 'kafka',
+  'topic' = 'shop_sales',
+  'properties.bootstrap.servers' = 'localhost:9092',
+  'properties.group.id' = 'shop_sales',
+  'scan.startup.mode' = 'latest-offset',
+  'format' = 'json',
+  'json.ignore-parse-errors' = 'false',
+  'json.fail-on-missing-field' = 'true'
+));
+```
 
+需要求比当前商品上架时间早3分钟的同类商品中的最高价格：
+```sql
+SELECT
+    product_id, category, price, DATE_FORMAT(ts_ltz, 'yyyy-MM-dd HH:mm:ss') AS `time`,
+    MAX(price) OVER (PARTITION BY category ORDER BY ts_ltz RANGE BETWEEN INTERVAL '3' MINUTE preceding AND CURRENT ROW) AS max_price,
+    LISTAGG(CAST(product_id AS VARCHAR), ':') OVER (PARTITION BY category ORDER BY ts_ltz RANGE BETWEEN INTERVAL '3' MINUTE preceding AND CURRENT ROW) AS recent_three_product
+FROM shop_sales
 ```
 
 假设输入数据为：
@@ -200,7 +230,6 @@ RANGE BETWEEN INTERVAL '30' MINUTE PRECEDING AND CURRENT ROW
 +I[1005, 图书, 20, 2022-10-10 08:15:00, 60, 1004:1006:1005]
 ```
 
-
 ## 4. 流式处理中的特殊要求
 
 ### 4.1 时间属性
@@ -218,7 +247,3 @@ CREATE TABLE Events (
 ### 4.2 范围限制
 
 流式 Over 窗口的结束边界必须是 CURRENT ROW（不能使用 UNBOUNDED FOLLOWING），因为无法预知未来数据。
-
-
-https://help.aliyun.com/zh/flink/developer-reference/over-windows
-https://nightlies.apache.org/flink/flink-docs-release-1.20/docs/dev/table/sql/queries/over-agg/

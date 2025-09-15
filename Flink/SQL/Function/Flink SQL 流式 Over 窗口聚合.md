@@ -106,6 +106,8 @@ SELECT
 FROM shop_sales;
 ```
 
+> 完整示例：[RowsOverWindowEventTimeExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/sql/funciton/over/RowsOverWindowEventTimeExample.java)
+
 假设输入数据为：
 
 | product_id | category | price | timestamp | 备注 |
@@ -196,6 +198,8 @@ SELECT
     LISTAGG(CAST(product_id AS VARCHAR), ':') OVER (PARTITION BY category ORDER BY ts_ltz RANGE BETWEEN INTERVAL '3' MINUTE preceding AND CURRENT ROW) AS recent_three_product
 FROM shop_sales
 ```
+
+> 完整示例：[RangeOverWindowEventTimeExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/sql/funciton/over/RangeOverWindowEventTimeExample.java)
 
 假设输入数据为：
 

@@ -51,9 +51,125 @@ WHERE row_num <= 5
 
 ## 3. 算法
 
-当 TopN 的输入是非更新流（例如Source），TopN 只有 AppendRank 算法。当 TopN 的输入是更新流时（例如经过了 AGG 或 JOIN 计算），TopN 有 3 种算法，性能从高到低分别是：UpdateFastRank、UnaryUpdateRank 和 RetractRank。算法名字会显示在拓扑图的节点名字上。
+当 TopN 的输入是非更新流（例如Source），TopN 只有 AppendFastRank 算法。当 TopN 的输入是更新流时（例如经过了 AGG 或 JOIN 计算），TopN 有 2 种算法，性能从高到低分别是：UpdateFastRank 和 RetractRank。算法名字会显示在拓扑图的节点名字上。
 
-### 3.1 UpdateFastRank
+### 3.1 AppendFastRank
+
+AppendFastRank 专为仅追加（append-only）数据流设计，假设数据一旦产生就不会修改。
+
+假设有一张商品上架表，包含商品ID、商品类目、商品价格以及商品上架时间：
+```sql
+CREATE TABLE shop_sales (
+  product_id BIGINT COMMENT '商品Id',
+  category STRING COMMENT '商品类目',
+  price BIGINT COMMENT '商品价格',
+  `timestamp` BIGINT COMMENT '商品上架时间',
+  ts_ltz AS TO_TIMESTAMP_LTZ(`timestamp`, 3), -- 事件时间
+  WATERMARK FOR ts_ltz AS ts_ltz - INTERVAL '5' SECOND -- 在 ts_ltz 上定义watermark，ts_ltz 成为事件时间列
+) WITH (
+  'connector' = 'kafka',
+  'topic' = 'shop_sales',
+  'properties.bootstrap.servers' = 'localhost:9092',
+  'properties.group.id' = 'shop_sales',
+  'scan.startup.mode' = 'latest-offset',
+  'format' = 'json',
+  'json.ignore-parse-errors' = 'false',
+  'json.fail-on-missing-field' = 'true'
+))
+```
+
+要求输出每个商品类目下价格最高的3个商品以及排名：
+```sql
+SELECT category, product_id, price, `time`, row_num
+FROM (
+  SELECT
+    category, product_id, price, DATE_FORMAT(ts_ltz, 'yyyy-MM-dd HH:mm:ss') AS `time`,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY price DESC) AS row_num
+  FROM shop_sales
+)
+WHERE row_num <= 3
+```
+
+假设输入数据为：
+
+| product_id | category | price | timestamp | 备注 |
+| :------------- | :------------- | :------------- | :------------- | :------------- |
+| 1001 | 图书 | 40  | 1665360300000 | 2022-10-10 08:05:00 |
+| 2001 | 生鲜 | 80  | 1665360360000 | 2022-10-10 08:06:00 |
+| 1002 | 图书 | 30  | 1665360420000 | 2022-10-10 08:07:00 |
+| 2002 | 生鲜 | 80  | 1665360480000 | 2022-10-10 08:08:00 |
+| 2003 | 生鲜 | 150 | 1665360540000 | 2022-10-10 08:09:00 |
+| 1003 | 图书 | 100 | 1665360470000 | 2022-10-10 08:05:50 |
+| 2004 | 生鲜 | 70  | 1665360660000 | 2022-10-10 08:11:00 |
+| 2005 | 生鲜 | 20  | 1665360720000 | 2022-10-10 08:12:00 |
+| 1004 | 图书 | 10  | 1665360780000 | 2022-10-10 08:13:00 |
+| 2006 | 生鲜 | 120 | 1665360840000 | 2022-10-10 08:14:00 |
+| 1005 | 图书 | 20  | 1665360900000 | 2022-10-10 08:15:00 |
+| 1006 | 图书 | 60  | 1665360896000 | 2022-10-10 08:14:56 |
+| 1007 | 图书 | 90  | 1665361080000 | 2022-10-10 08:18:00 |
+
+实际效果如下所示：
+```java
+// 对应第1条输入记录: [1001:40]
++I[图书, 1001, 40, 2022-10-10 08:05:00, 1]
+// 2 [2001:80]
++I[生鲜, 2001, 80, 2022-10-10 08:06:00, 1]
+// 3 [1001:40, 1002:30]
++I[图书, 1002, 30, 2022-10-10 08:07:00, 2]
+// 4 [2001:80, 2002:80]
++I[生鲜, 2002, 80, 2022-10-10 08:08:00, 2]
+// 5 [2003:150, 2001:80, 2002:80]
+-U[生鲜, 2001, 80, 2022-10-10 08:06:00, 1]
++U[生鲜, 2003, 150, 2022-10-10 08:09:00, 1]
+-U[生鲜, 2002, 80, 2022-10-10 08:08:00, 2]
++U[生鲜, 2001, 80, 2022-10-10 08:06:00, 2]
++I[生鲜, 2002, 80, 2022-10-10 08:08:00, 3]
+// 6 [1003:100, 1001:40, 1002:30]
+-U[图书, 1001, 40, 2022-10-10 08:05:00, 1]
++U[图书, 1003, 100, 2022-10-10 08:05:50, 1]
+-U[图书, 1002, 30, 2022-10-10 08:07:00, 2]
++U[图书, 1001, 40, 2022-10-10 08:05:00, 2]
++I[图书, 1002, 30, 2022-10-10 08:07:00, 3]
+// 10 [2003:150, 2006:120, 2001:80]
+-U[生鲜, 2001, 80, 2022-10-10 08:06:00, 2]
++U[生鲜, 2006, 120, 2022-10-10 08:14:00, 2]
+-U[生鲜, 2002, 80, 2022-10-10 08:08:00, 3]
++U[生鲜, 2001, 80, 2022-10-10 08:06:00, 3]
+// 12 [1003:100, 1006:60, 1001:40]
+-U[图书, 1001, 40, 2022-10-10 08:05:00, 2]
++U[图书, 1006, 60, 2022-10-10 08:14:56, 2]
+-U[图书, 1002, 30, 2022-10-10 08:07:00, 3]
++U[图书, 1001, 40, 2022-10-10 08:05:00, 3]
+// 13 [1003:100, 1007:90, 1006:60]
+-U[图书, 1006, 60, 2022-10-10 08:14:56, 2]
++U[图书, 1007, 90, 2022-10-10 08:18:00, 2]
+-U[图书, 1001, 40, 2022-10-10 08:05:00, 3]
++U[图书, 1006, 60, 2022-10-10 08:14:56, 3]
+```
+
+### 3.2 RetractRank
+
+普通算法，性能最差，不建议在生产环境使用该算法。请检查输入流是否存在 PK 信息，如果存在，则可使用 UpdateFastRank 算法进行优化。
+
+```sql
+INSERT INTO shop_category_order_top
+SELECT category, product_id, order_amt, `time`, row_num
+FROM (
+  SELECT
+    category, product_id, order_amt, `time`,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY order_amt DESC) AS row_num
+  FROM (
+      SELECT
+          category, product_id, SUM(price) AS order_amt,
+          MAX(DATE_FORMAT(ts_ltz, 'yyyy-MM-dd HH:mm:ss')) AS `time`
+      FROM shop_sales
+      GROUP BY category, product_id
+  ) AS a1
+) AS b1
+WHERE row_num <= 3
+```
+
+### 3.3 UpdateFastRank
 
 使用该算法需要具备 2 个条件：
 - 输入流有 PK（Primary Key）信息，例如 ORDER BY AVG。
@@ -61,13 +177,29 @@ WHERE row_num <= 5
 
 如果您要获取到优化 Plan，则您需要在使用 ORDER BY SUM DESC 时，添加 SUM 为正数的过滤条件，确保 total_fee 为正数。
 
-### 3.2 UnaryUpdateRank
 
-性能仅次于 UpdateFastRank 的算法。使用该算法需要具备的条件是输入流中存在PK信息。
+```sql
+INSERT INTO shop_category_order_top
+SELECT category, product_id, order_amt, `time`, row_num
+FROM (
+  SELECT
+    category, product_id, order_amt, `time`,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY order_amt DESC) AS row_num
+  FROM (
+      SELECT
+          category, product_id, SUM(price) FILTER(WHERE price >= 0) AS order_amt,
+          MAX(DATE_FORMAT(ts_ltz, 'yyyy-MM-dd HH:mm:ss')) AS `time`
+      FROM shop_sales
+      WHERE price >= 0
+      GROUP BY category, product_id
+  ) AS a1
+) AS b1
+WHERE row_num <= 3
+```
 
-### 3.3 RetractRank
 
-普通算法，性能最差，不建议在生产环境使用该算法。请检查输入流是否存在 PK 信息，如果存在，则可使用 UnaryUpdateRank 或 UpdateFastRank 算法进行优化。
+
+
 
 ## 4. 无排名优化
 

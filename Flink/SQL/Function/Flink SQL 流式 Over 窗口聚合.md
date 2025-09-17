@@ -97,7 +97,7 @@ CREATE TABLE shop_sales (
   'json.fail-on-missing-field' = 'true'
 ));
 ```
-  要求输出在当前商品上架之前同类的最近3个商品中的最高价格：
+要求输出在当前商品上架之前同类的最近3个商品中的最高价格：
 ```sql
 SELECT
     product_id, category, price, DATE_FORMAT(ts_ltz, 'yyyy-MM-dd HH:mm:ss') AS `time`,

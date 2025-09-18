@@ -149,7 +149,9 @@ WHERE row_num <= 3
 
 ### 3.2 RetractRank
 
-普通算法，性能最差，不建议在生产环境使用该算法。请检查输入流是否存在 PK 信息，如果存在，则可使用 UpdateFastRank 算法进行优化。
+普通算法，性能最差，不建议在生产环境使用该算法。
+
+要求输出每个商品类目下价格最高的3个商品以及排名：
 
 ```sql
 INSERT INTO shop_category_order_top
@@ -168,6 +170,11 @@ FROM (
 ) AS b1
 WHERE row_num <= 3
 ```
+
+请检查输入流是否存在 PK 信息，如果存在，则可使用 UpdateFastRank 算法进行优化。
+
+
+
 
 ### 3.3 UpdateFastRank
 

@@ -21,4 +21,5 @@
     - 聚合指标调整之后的状态兼容    
 
 - [x] [基于 TiDB + Flink 实现的滑动窗口实时累计指标算法](https://smartsi.blog.csdn.net/article/details/130541896)
-- [ ] [腾讯基于 Flink SQL 的功能扩展与深度优化实践](https://mp.weixin.qq.com/s/9Y6XCZRuZ79ICJ5ylTYRDQ)
+- [x] [腾讯基于 Flink SQL 的功能扩展与深度优化实践](https://mp.weixin.qq.com/s/9Y6XCZRuZ79ICJ5ylTYRDQ)
+- [x] [最佳实践｜如何写出简单高效的 Flink SQL？](https://mp.weixin.qq.com/s/QlgQyh-sx4lMxdKo0rW-1g)

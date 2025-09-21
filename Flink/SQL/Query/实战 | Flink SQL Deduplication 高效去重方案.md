@@ -11,7 +11,8 @@ FROM (
    SELECT *,
     ROW_NUMBER() OVER (PARTITION BY col1[, col2..]
      ORDER BY timeAttributeCol [asc|desc]) AS rownum
-   FROM table_name)
+   FROM table_name
+)
 WHERE rownum = 1
 ```
 参数说明：
@@ -20,7 +21,7 @@ WHERE rownum = 1
 - `ORDER BY timeAttributeCol [asc|desc])`：指定排序列，必须是一个时间属性的字段（即 Proctime 或 Rowtime）。可以指定顺序（Keep FirstRow）或者倒序 （Keep LastRow）。
 - `WHERE rownum = 1`：仅支持rownum=1或rownum<=1。
 
-从上面语法可以看出，Deduplication 去重本质上是一种特殊的 TopN，限定 rownum=1 的场景。Deduplication 的特殊之处在于，排序字段必须是时间属性列，不能是其他非时间属性的普通列。在 rownum = 1 时，如果排序字段是普通列 planner 会将 SQL 作业翻译成 TopN 算子；如果是时间属性列 planner 会将 SQL 作业翻译成 Deduplication 算子。这两者最终的执行算子是不一样的，Deduplication 相比 TopN 算子专门做了对应的优化，性能会有很大提升。此外，如果排序字段是 Proctime 列，Flink 就会按照系统时间去重，其每次运行的结果是不确定的；如果排序字段是 Rowtime 列，Flink 就会按照业务时间去重，其每次运行的结果是确定的。
+从上面语法可以看出，Deduplication 去重本质上是一种特殊的 TopN，限定 rownum = 1 的场景。Deduplication 的特殊之处在于，排序字段必须是时间属性列，不能是其他非时间属性的普通列。在 rownum = 1 时，如果排序字段是普通列 planner 会将 SQL 作业翻译成 TopN 算子；如果是时间属性列 planner 会将 SQL 作业翻译成 Deduplication 算子。这两者最终的执行算子是不一样的，Deduplication 相比 TopN 算子专门做了对应的优化，性能会有很大提升。此外，如果排序字段是 Proctime 列，Flink 就会按照系统时间去重，其每次运行的结果是不确定的；如果排序字段是 Rowtime 列，Flink 就会按照业务时间去重，其每次运行的结果是确定的。
 
 Deduplication 去重对排名进行过滤，只取第一条（rownum = 1），从而达到了去重的目的。根据排序字段的方向不同，有保留第一行（Deduplicate Keep FirstRow）和保留最后一行（Deduplicate Keep LastRow）2种去重策略。如果排序字段方向是 `ASC`（正序方向），即对应只保留第一行（Deduplicate Keep FirstRow）策略；如果排序字段方向是 `DESC`（倒序方向），即对应保留最后一行（Deduplicate Keep LastRow）策略。
 
@@ -44,12 +45,26 @@ WHERE rowNum = 1
 ```
 以上示例是将 T 表按照 b 字段进行去重，并按照系统时间保留第一条数据。proctime 在这里是源表 T 中的一个具有 Processing Time 属性的字段。如果您按照系统时间去重，也可以将 proctime 字段简化 proctime() 函数调用，可以省略 proctime 字段的声明。
 
+
+#### 3.1.1 基于处理时间升序
+
+```sql
+
 ```
-2> +I[图书, 1002, 40, 2022-10-10T00:05:00Z, 1]
-2> -U[图书, 1002, 40, 2022-10-10T00:05:00Z, 1]
-2> +U[图书, 1001, 60, 2022-10-10T00:04:59Z, 1]
-1> +I[生鲜, 2001, 40, 2022-10-10T00:06:00Z, 1]
+
+#### 3.1.2 基于事件时间升序
+
+```sql
+SELECT category, product_id, price, `time`, row_num
+FROM (
+  SELECT
+    category, product_id, price, DATE_FORMAT(ts_ltz, 'yyyy-MM-dd HH:mm:ss') AS `time`,
+    ROW_NUMBER() OVER (PARTITION BY category ORDER BY ts_ltz ASC) AS row_num
+  FROM shop_sales
+)
+WHERE row_num = 1
 ```
+
 
 
 ### 3.2 保留最后一行

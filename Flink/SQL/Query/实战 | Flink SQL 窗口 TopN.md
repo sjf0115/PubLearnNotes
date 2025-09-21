@@ -73,6 +73,9 @@ FROM (
   )
 ) WHERE row_num <= 3
 ```
+
+> 完整代码：[WindowTopTVFExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/sql/query/windowTop/WindowTopTVFExample.java)
+
 实际效果如下所示：
 
 | op |  window_start |  window_end | category | price |  cnt |  row_num |

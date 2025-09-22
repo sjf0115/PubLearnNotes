@@ -37,6 +37,10 @@ public void setIdleStateRetentionTime(Time minTime, Time maxTime) {
 
 在最新版本中最大空闲状态保留时间会被忽略，只需要提供最小空闲状态保留时间即可
 ```java
+public void setIdleStateRetention(Duration duration) {
+    configuration.set(ExecutionConfigOptions.IDLE_STATE_RETENTION, duration);
+}
+
 @Deprecated
 public void setIdleStateRetentionTime(Time minTime, Time maxTime) {
     if (maxTime.toMilliseconds() - minTime.toMilliseconds() < 300000
@@ -50,14 +54,12 @@ public void setIdleStateRetentionTime(Time minTime, Time maxTime) {
     }
     setIdleStateRetention(Duration.ofMillis(minTime.toMilliseconds()));
 }
-
-public void setIdleStateRetention(Duration duration) {
-    configuration.set(ExecutionConfigOptions.IDLE_STATE_RETENTION, duration);
-}
 ```
+> IDLE_STATE_RETENTION 对应 table.exec.state.ttl 参数
+
 最大空闲状态保留时间会自动根据最小空闲状态保留时间乘以1.5来计算。
 
-如果要在 Flink SQL 中使用，只需要调用 setIdleStateRetention 即可，参数为最小空闲状态保留时间：
+如果要在 Flink SQL 中使用，只需要调用 `setIdleStateRetention` 即可，参数为最小空闲状态保留时间：
 ```java
 // Table 运行环境配置
 EnvironmentSettings settings = EnvironmentSettings

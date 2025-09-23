@@ -75,9 +75,9 @@ CREATE TEMPORARY TABLE t1 (
 
 -- join s1 and s2 and insert the result into t1
 INSERT INTO t1
-SELECT
-  s1.*, s2.attr
-FROM s1 JOIN s2
+SELECT s1.*, s2.attr
+FROM s1
+JOIN s2
 ON s1.level = s2.id;
 ```
 假设源表 s1 中 id 为 1 的记录的 Changelog 在时间 t0 插入(id=1, level=10)，然后在时间 t1 将该行更新为(id=1, level=20)。这对应三个拆分事件：
@@ -90,11 +90,11 @@ ON s1.level = s2.id;
 
 源表 s1 的主键是 id，但 Join 操作需要按 level 列进行 shuffle（见子句ON）。
 
+![](https://help-static-aliyun-doc.aliyuncs.com/assets/img/zh-CN/5166786171/p694577.png)
 
+如果 Join 算子的并发数为2，那么以上三个事件可能会被发送到两个任务中。即使使用复合 UPDATE 事件，它们也需要在 shuffle 阶段拆分，来保证数据的并行处理。
 
-
-
-
+![](https://help-static-aliyun-doc.aliyuncs.com/assets/img/zh-CN/5166786171/p694580.png)
 
 
 

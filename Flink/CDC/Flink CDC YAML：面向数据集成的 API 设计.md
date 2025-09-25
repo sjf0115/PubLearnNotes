@@ -111,13 +111,14 @@ Flink CDC 的 1.x 和 2.x 版本都只是一组支持了 CDC 的 Source 连接�
 ![](https://mmbiz.qpic.cn/mmbiz_jpg/8AsYBicEePu6TaWk6m7A2KFPyZ6QTZVOlrngZcru6GcmmwYTUhK9magm6RnPSGKYPWBU2nxEvZUlwsvKkbLIxQw/640?wx_fmt=other&from=appmsg&tp=webp&wxfrom=5&wx_lazy=1#imgIndex=14)
 
 在使用 Flink SQL 进行作业开发时，尤其是涉及整库同步的场景，通常需要编写大量的 DDL 语句来创建表。这种方式存在几个主要问题：首先，它难以应对表结构的变化，所有的字段名称及类型都需要在设计作业时确定。其次，当表结构发生变化时，更新（Update）操作的变更日志（Changelog）语义可能会被破坏；最后，由于每张表都需要对应一个处理节点，这会导致整个作业的拓扑变得异常庞大且复杂，给 Flink 集群及其管理器带来了较大压力，尤其是在构建 ODS 层等大规模数据集成任务中尤为明显。
+
 相比之下，采用 YAML 配置文件定义作业的方式提供了更灵活的解决方案。这种模式下，系统能够自动检测并适应表结构的变化，并且支持表结构变更同步功能。这不仅限于基本的上下游同步，还包括了更加精细级别的 Schema 调整能力。此外，在提交分库分表的整库同步作业时，当前版本的 Source 和 Sink 组件已经可以支持单个实例读写多个表的操作，这意味着不再需要为数据库中的每一单独表格都创建独立的物理算子，从而极大地简化了作业的设计与执行流程——从视觉上来看，整个同步过程仅需通过两个关键节点就能完成，而不是像之前那样，每张表都需要独立的 Source 节点并各自读取 Binlog。这种方法有效减轻了对 Flink 集群资源的需求，同时也提高了整体系统的可维护性和扩展性。
 
 ### 2.9 DataStream 作业 vs YAML 作业
 
 ![](https://mmbiz.qpic.cn/mmbiz_jpg/8AsYBicEePu6TaWk6m7A2KFPyZ6QTZVOl4wS4kdKNw4EOZEkkCtxVicocAWlcRxlJTkreXuicDdOtF2v7U0Z5xkXg/640?wx_fmt=other&from=appmsg&tp=webp&wxfrom=5&wx_lazy=1#imgIndex=15)
 
-对比一下 DataStream 作业和 YAML 作业，如果一个 Flink DataStream作业，需要用 CDC JSON Format 描述数据结构。这意味着每一条数据记录中，都需要携带对应 Schema 的信息描述。考虑到表结构变更并不常见，大部分数据记录的 Schema 都一样，重复发送给下游的 Schema 就会造成信息冗余、存储空间和 IO 带宽的浪费。而在 YAML CDC 中，数据记录中所有的结构都是经过压缩的 Binary Data，相比 DataStream 的数据记录结构更紧凑，在底层的物理存储上更加节约内存。此外，YAML 作业只在 Schema 发生变化时发送 SchemaChangeEvent 来描述变更信息，即总是使用最新的的 Schema 来描述随后的所有 DataChangeEvent，直到新的 SchemaChangeEvent 出现。这样的设计不用给每条数据记录携带一份 Schema 数据，减少了信息冗余。
+对比一下 DataStream 作业和 YAML 作业，如果一个 Flink DataStream 作业，需要用 CDC JSON Format 描述数据结构。这意味着每一条数据记录中，都需要携带对应 Schema 的信息描述。考虑到表结构变更并不常见，大部分数据记录的 Schema 都一样，重复发送给下游的 Schema 就会造成信息冗余、存储空间和 IO 带宽的浪费。而在 YAML CDC 中，数据记录中所有的结构都是经过压缩的 Binary Data，相比 DataStream 的数据记录结构更紧凑，在底层的物理存储上更加节约内存。此外，YAML 作业只在 Schema 发生变化时发送 SchemaChangeEvent 来描述变更信息，即总是使用最新的的 Schema 来描述随后的所有 DataChangeEvent，直到新的 SchemaChangeEvent 出现。这样的设计不用给每条数据记录携带一份 Schema 数据，减少了信息冗余。
 
 ![](https://mmbiz.qpic.cn/mmbiz_jpg/8AsYBicEePu6TaWk6m7A2KFPyZ6QTZVOlTvhRzFG04Ko9RicfU9wyPmETP167vlJBeA4Ve4FfWBKb2iaFKzUT0cvg/640?wx_fmt=other&from=appmsg&tp=webp&wxfrom=5&wx_lazy=1#imgIndex=16)
 
@@ -148,6 +149,7 @@ Flink CDC 的 1.x 和 2.x 版本都只是一组支持了 CDC 的 Source 连接�
 ![](https://mmbiz.qpic.cn/mmbiz_jpg/8AsYBicEePu6TaWk6m7A2KFPyZ6QTZVOlPib6j4ZMngOHicsUiaazrBdenwOkPOml6fjhicbCAicMeicXQJA2teA0L2pA/640?wx_fmt=other&from=appmsg&tp=webp&wxfrom=5&wx_lazy=1#imgIndex=19)
 
 Transform 数据加工过程是 ETL 当中 T 的部分。其中主要的需求包括从表中现存的列里投影出部分列、根据特定表达式的值筛选出特定的数据行、根据已有列计算出新列并加入其中。
+
 例如，一个较为复杂的场景可能是这样的：上游存在一个 age 字段，希望追加一个布尔变量 flag，判断 age 是否大于 18，并且只保留 age 和 flag 字段到下游，删除其余数据列。此外，计算列可能涉及到用户定义函数逻辑，甚至调用外部 Web 服务。此外，用户可能还希望根据条件表达式对数据行进行过滤。在合并分库分表写入 Paimon 等数据湖下游时，可能需要手动指定主键列（Primary Key）和分区列（Partition Key）。此外，在结合 AI 场景下是否能支持大模型的调用，这都是 Transform 需要解决的问题。
 
 ### 3.2 YAML 核心特性：Transform 实现

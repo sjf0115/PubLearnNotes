@@ -6,7 +6,7 @@ DBeaver 是一个 SQL 客户端和数据库管理工具。对于关系数据库�
 
 DBeaver支持在 Window、MacOS 和 Linux 上安装，这里基于 Mac 安装演示。
 
-DBeaver下载地址：Download | DBeaver Community
+DBeaver 下载地址：Download | DBeaver Community
 
 
 ### 1.2 DBeaver连接ClickHouse配置

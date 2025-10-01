@@ -1,4 +1,4 @@
-
+ExPLAIN 呈现的执行计划，由一系列的 Stage 组成，这一系列 Stage 具有依赖关系，每个 Stage 对应一个 MapReduce Job，或者一个文件系统操作等。若某个 Stage 对应的一个 MapReduce Job，其 Map 端和 Reduce 端的计算逻辑分别由 Map Operator Tree 和 Reduce Operator Tree 进行描述， Operator Tree 由一系列的 Operator 组成，一个 Operator 代表在 Map 或者 Reduce 阶段的一个单一的逻辑操作，例如 TableScan Operator，SelectOperator，JoinOperator 等。
 
 
 ### 1. 执行计划解读

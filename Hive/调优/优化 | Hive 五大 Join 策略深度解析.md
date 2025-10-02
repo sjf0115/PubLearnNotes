@@ -1,5 +1,3 @@
-引言
-
 Hive 中 Join 操作的效率直接决定了海量数据处理作业的性能，其核心挑战在于如何最小化代价高昂的 Shuffle 过程并有效应对数据倾斜。理解不同 Join 算法的原理和适用场景，是进行有效调优的关键。
 
 本文将深入剖析 Hive 支持的几种核心 Join 策略：
@@ -17,9 +15,9 @@ Hive 中 Join 操作的效率直接决定了海量数据处理作业的性能，
 
 ![](https://mmbiz.qpic.cn/mmbiz_png/iaibeauBlUEfjgc4fDM7N82YnhvjB8XbUQFhgbHR2a5CDmbIKHJlvgy3zcDNFFoQ9L2b9Laq6TqtgWiavKUMcxoNg/640?wx_fmt=png&from=appmsg&watermark=1&tp=webp&wxfrom=5&wx_lazy=1#imgIndex=0)
 
-> 执行引擎：兼容 MR 和 Tez。在 Tez 上效率更高(优化 Shuffle 过程)。
-
 ### 1.1 原理
+
+![](https://i-blog.csdnimg.cn/blog_migrate/b2dcbf83b090022eb9e899516f54d916.jpeg#pic_center)
 
 这是 Hive 最基础、最通用的 Join 实现，适用于任何大小的表。
 - Map阶段：每个 Mapper 读取输入表(或分区)的数据。为每条记录打上标签(Tag) 标明来源表，并将 Join Key 作为输出 Key，将(Tag + 记录值)作为输出 Value。
@@ -46,20 +44,21 @@ Hive 中 Join 操作的效率直接决定了海量数据处理作业的性能，
 - `hive.exec.reducers.bytes.per.reducer`：控制每个 Reducer 处理的数据量，影响并行度。
 - `hive.optimize.reducededuplication`：减少重复数据 Shuffle (MR 引擎)。
 
-数据要求：无特殊要求，通用性强。但数据倾斜时性能极差。
-
 ## 2. Map Join (Broadcast Join)
 
 > 引入版本：Hive 0.3.0 引入基础支持，Hive 0.7.0 优化并加入自动判断。
 
 ![](https://mmbiz.qpic.cn/mmbiz_png/iaibeauBlUEfjgc4fDM7N82YnhvjB8XbUQOLVQhDLTV8Axrroq6LgLsXicSfMGSA49LEuNhcLcNloTiaGJwxNEaiaxA/640?wx_fmt=png&from=appmsg&watermark=1&tp=webp&wxfrom=5&wx_lazy=1#imgIndex=1)
 
-> 执行引擎：兼容 MR 和 Tez。Tez 下效率更高(小表广播优化)。LLAP 下小表可常驻内存加速。
-
 ### 2.1 原理
 
-专门为一个大表(事实表)Join 一个足够小的小表(维度表) 的场景设计。核心思想是避免 Shuffle。
-- 小表广播：先将小表广播复制到所有节点。
+当其中一个 Join 表足够小可以装进内存时，所有 Mapper 都可以将数据保存在内存中并完成 Join。因此，所有 Join 操作都可以在 Mapper 阶段完成。这种 Join 称为 Map Join。但是，这种类型的 Map Join 存在一些扩展问题。当成千上万个 Mapper 同时从 HDFS 将小的 Join 表读入内存时，Join 表很容易成为性能瓶颈，导致 Mapper 在读取操作期间超时。
+
+![](https://i-blog.csdnimg.cn/blog_migrate/4224ab36429256c4c9abc49cbd3ba81d.jpeg#pic_center)
+
+[Hive-1641](https://issues.apache.org/jira/browse/HIVE-1641) 解决了这个扩展问题，在原始 Join 的 MapReduce 任务之前创建一个新的 MapReduce 本地任务。这个新任务是将小表数据从 HDFS 上读取到内存中的哈希表中。读完后，将内存中的哈希表序列化为哈希表文件。在下一阶段，当 MapReduce 任务启动时，会将这个哈希表文件上传到 Hadoop 分布式缓存中，该缓存会将这些文件发送到每个 Mapper 的本地磁盘上。因此，所有 Mapper 都可以将此持久化的哈希表文件加载回内存，并像之前一样进行 Join。优化的 Map Join 的执行流程如下图所示。优化后，小表只需要读取一次。此外，如果多个 Mapper 在同一台机器上运行，则分布式缓存只需将哈希表文件的一个副本发送到这台机器上。
+
+此 Join 专门为一个大表(事实表)Join 一个足够小的小表(维度表) 的场景设计。核心思想是避免 Shuffle。
 - 内存哈希表：将小表的数据完全加载进内存，并构建成一个哈希表(Hash Table)，Key 是Join Key。
 - Map阶段：启动处理大表的 Map Task。对于大表的每条输入记录，使用其 Join Key 去内存中的哈希表查找匹配的小表记录。
 - 结果生成：一旦找到匹配项，Map Task 会立即将大表记录与小表记录合并，并输出最终结果。整个过程不需要 Reduce 阶段。

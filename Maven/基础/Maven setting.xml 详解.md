@@ -65,7 +65,7 @@
 
 ## 3. 复杂配置
 
-### profiles
+### 3.1 profiles
 
 `profiles` 元素用来根据环境参数来调整构建配置的列表，包含一组 `profile`：
 ```xml
@@ -90,7 +90,7 @@
 
 profiles 需要与 activeProfiles 配合使用来决定具体激活哪个。
 
-#### repositories
+### 3.2 repositories
 
 `repositories` 用来定义一组远程仓库列表，它是 Maven 用来填充构建系统本地仓库所使用的一组远程仓库：
 ```xml

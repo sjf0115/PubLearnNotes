@@ -1,44 +1,26 @@
 
 ## 1. Bucket Map Join
 
-### 1.1 原理
-
 Bucket Map Join 是 Map Join 的一种扩展，打破了 Map Join 只适用于大表 Join 小表的限制，可用于大表 Join 大表(或者小表不够小，无法完全装入单个 Mapper 节点的内存)的场景。使用该 Join 策略要求参与 Join 的两个表均为分桶表，都根据 Join Key 进行分桶(CLUSTERED BY)，以及两表的桶数量相同或成倍数关系。
-- 分桶对齐：两个表的分桶机制确保了相同 Join Key 的记录必然落在相同编号的桶中(或具有映射关系的桶中)。
-- Mapper 处理对应桶：每个 Mapper 只处理两个表中相同桶编号(或具有映射关系的桶)的数据(例如，Mapper 1 只读 Table A 的 Bucket 1 和 Table B 的 Bucket 1)。
-- 内存哈希表(桶级别)：Mapper 将小表对应桶的数据加载到内存中构建哈希表。无需再缓存小表的全表数据额，只需要缓存其分桶中的数据即可。
-- Join 执行：使用大表(同一桶内)的记录去探测内存中的哈希表完成 Join。结果直接在 Mapper 输出。
 
-### 1.2 优点
+## 2. 使用条件
 
-- 打破了 Map Join 的局限性，可处理更大的"小表"：因为每个 Mapper 只需要加载小表的一个桶(或多个有映射关系的桶)，而非整个小表。
-- 避免全局 Shuffle：只需要在 Mapper 内处理对应桶的数据，无需跨节点传输。
-- 高效利用分桶特性。
-
-### 1.3 缺点
-
-- 严格依赖分桶：两个表必须在 Join Key 上预先进行分桶，且桶数量满足条件(相同或成倍数)。
-- 桶内数据仍需能装入内存：如果某个桶的数据量很大，该 Mapper 仍可能 OOM。
-
-## 2. 触发条件
-
-Bucket Map Join 不支持自动转换，必须通过用户在 SQL 语句中提供如下 Hint 提示，并配置相关参数，方可使用：
+Bucket Map Join 不支持自动转换，必须通过用户在 SQL 语句中提供如下 Hint 提示方可使用：
 ```sql
 SELECT
     /*+ MAPJOIN(ta) */
-    ta.id,
-    tb.id
+    ta.id, tb.id
 FROM table_a AS ta
 JOIN table_b AS tb
 ON ta.id=tb.id;
 ```
 
-关键参数说明：
-- `hive.ignore.mapjoin.hint`：必须设为 false。MapJoin hint 默认会被忽略(因为已经过时)，需将参数设置为 false。
-- `hive.cbo.enable`：必须设为 false。关闭 CBO 优化，CBO 会导致 hint 信息被忽略。
+还需要配置如下相关参数：
 - `hive.optimize.bucketmapjoin`：必须设为 true。启用 Bucket Map Join 优化功能。
-- `hive.enforce.bucketmapjoin`：是否强制检查分桶条件 (有时 CBO 足够智能可省略)。
-- `hive.auto.convert.join.noconditionaltask.size`：仍需满足，但评估的是小表的单个桶而非整表小。
+- `hive.ignore.mapjoin.hint`：必须设为 false。MapJoin hint 默认会被忽略(因为已经过时)，因此需将参数设置为 false。
+- `hive.cbo.enable`：必须设为 false。CBO 优化会导致 hint 信息被忽略，因此要关闭 CBO 优化。
+
+> hive.auto.convert.join 对于 Bucket Map Join 不是严格必需的！
 
 此外关于分桶表的一些限制：
 - 两表必须分桶 (CLUSTERED BY) Join Key。
@@ -54,7 +36,8 @@ ON ta.id=tb.id;
 SELECT o.order_id, o.user_id, p.payment_time, p.payment_amount
 FROM (
   SELECT id AS order_id, user_id
-  FROM tb_order WHERE dt = '2020-06-14'
+  FROM tb_order
+  WHERE dt = '2020-06-14'
 ) AS o
 JOIN (
   SELECT order_id, payment_time, total_amount AS payment_amount
@@ -63,11 +46,7 @@ JOIN (
 ) AS p
 ON o.order_id = p.order_id;
 ```
-上述 SQL 语句共有两张表一次 Join 操作，故优化前的执行计划应包含一个 Common Join 任务，通过一个 MapReduce Job 实现。
-
-> hive.auto.convert.join 默认为 true，自动开启转 MapJoin
-
-通过 `EXPLAIN xxx` 命令查询该语句的执行计划如下所示：
+上述 SQL 语句共有两张表一次 Join 操作，故优化前的执行计划应包含一个 Common Join 任务，通过一个 MapReduce Job 实现。通过 `EXPLAIN xxx` 命令查询该语句的执行计划如下所示：
 ```
 STAGE DEPENDENCIES:
   Stage-1 is a root stage
@@ -146,7 +125,7 @@ STAGE PLANS:
 `Stage-1` 是一个执行 Common Join 的 MapReduce 作业：
 - Map 端操作:
   - 表 tb_order 处理
-    - 表扫描（TableScan）
+    - 表扫描操作（TableScan）
       - 表 tb_order 是个大表（2000w行）
     - 过滤操作（Filter Operator）
       - 过滤掉 id 为 NULL 的记录(Join Key)
@@ -154,9 +133,9 @@ STAGE PLANS:
       - 选择 id 和 user_id 两列
     - 输出重命名为：`_col0`、`_col1`
     - Reduce 输出操作（Reduce Output Operator）
-      - 按 id 进行分区和排序
+      - 按 `_col0` 即 id 字段进行分区和排序
   - 表 tb_payment 处理
-    - 表扫描（TableScan）
+    - 表扫描操作（TableScan）
       - 表 tb_payment 是个中表（600w行）
     - 过滤操作（Filter Operator）
       - 过滤 order_id 为 NULL 的记录(Join Key)
@@ -164,13 +143,12 @@ STAGE PLANS:
       - 选择 order_id、payment_time、total_amount 3个字段
     - 输出重命名为：`_col0`、`_col1`、`_col2`
     - Reduce 输出操作（Reduce Output Operator）
-      - 按 order_id 进行分区和排序
+      - 按 `_col0` 即 order_id 字段进行分区和排序
 - Reduce 端操作:
   - JOIN 操作（Join Operator）：
     - Join 类型：Inner Join
     - Join 策略：Common Join
     - Join 键：`_col0`（tb_order.id = tb_payment.order_id）
-    - 输出列：`_col0`(order_id), `_col1`(user_id), `_col3`(payment_time), `_col4`(total_amount)
 
 
 ### 3.2 优化后
@@ -182,11 +160,11 @@ STAGE PLANS:
 | tb_order | 1136009934（约1122M） |
 | tb_payment	| 334198480（约319M）|
 
-两张表都相对较大，若采用普通的 Map Join 算法，则 Map 端需要较多的内存来缓存数据，当然可以选择为 Map 段分配更多的内存，来保证任务运行成功。但是，Map 端的内存不可能无上限的分配，所以当参与 Join 的表数据量均过大时，就可以考虑采用 Bucket Map Join 算法。下面演示如何使用 Bucket Map Join。
+两张表都相对较大，若采用普通的 Map Join 算法，则 Map 端需要较多的内存来缓存数据，当然可以选择为 Map 段分配更多的内存，来保证任务运行成功。但是，Map 端的内存不可能无上限的分配，所以当参与 Join 的表数据量均过大时，就可以考虑采用 Bucket Map Join 优化。下面演示如何使用 Bucket Map Join。
 
 #### 3.2.1 创建分桶表
 
-首先需要依据源表创建两个分桶表，tb_order 建议分 16 个 bucket，tb_payment 建议分 8 个 bucket：
+首先需要根据源表创建两个分桶表：tb_order 建议分 16 个 bucket，tb_payment 建议分 8 个 bucket：
 ```sql
 -- 订单表
 CREATE TABLE tb_order_bucket (
@@ -213,7 +191,7 @@ CREATE TABLE tb_payment_bucket(
     total_amount    decimal(16, 2) comment '支付金额'
 )
 PARTITIONED BY (dt string)
-CLUSTERED BY (order_id) into 8 buckets
+CLUSTERED BY (order_id) INTO 8 buckets
 ROW FORMAT DELIMITED
 FIELDS TERMINATED BY ','
 LINES TERMINATED BY '\n';
@@ -246,20 +224,21 @@ SELECT
 FROM tb_payment
 WHERE dt='2020-06-14';
 ```
-#### 3.2.2 参数优化
+#### 3.2.2 优化
 
-然后设置以下参数：
+优化执行之前首先需要设置相关参数：
 ```sql
---关闭cbo优化，cbo会导致hint信息被忽略，需将如下参数修改为false
-set hive.cbo.enable=false;
---map join hint默认会被忽略(因为已经过时)，需将如下参数修改为false
-set hive.ignore.mapjoin.hint=false;
---启用 bucket map join 优化功能,默认不启用，需将如下参数修改为true
+-- 启用 Bucket Map Join 优化，默认不启用，需将如下参数修改为 true
 set hive.optimize.bucketmapjoin = true;
-
+-- MapJoin hint 默认会被忽略(因为已经过时)，需将如下参数修改为false
+set hive.ignore.mapjoin.hint=false;
+-- CBO 优化会导致 hint 信息被忽略，因此要关闭 CBO 优化。需将如下参数修改为false
+set hive.cbo.enable=false;
 ```
-#### 3.2.3 执行计划
 
+> 如果验证 Bukcet Map Join 是否有效，可以设置 hive.enforce.bucketmapjoin=true，当无法执行 Bucket Map Join 时查询直接失败。
+
+Bucket Map Join 不支持自动转换，必须通过用户在 SQL 语句中提供 Hint 提示方可使用，改写 SQL 如下所示：
 ```sql
 SELECT
   /*+ MAPJOIN(p) */
@@ -277,7 +256,7 @@ JOIN (
 ON o.order_id = p.order_id;
 ```
 
-优化后的执行计划如下所示:
+通过 `EXPLAIN xxx` 命令查询该语句的执行计划如下所示：
 ```
 STAGE DEPENDENCIES:
   Stage-3 is a root stage
@@ -355,20 +334,20 @@ STAGE PLANS:
 
 ![](img-hive-optimization-bucket-map-join-2.png)
 
-- `Stage-3`：Map 端本地工作阶段，核心完成表 tb_payment_bucket 表的处理构建哈希表
-  - 表扫描（TableScan）：
+- `Stage-3`：Map 端本地工作阶段，核心完成表 tb_payment_bucket 的处理来构建哈希表
+  - 表扫描操作（TableScan）：
     - 扫描 tb_payment_bucket 表(600w行)
   - 过滤操作（Filter Operator）：
     - 过滤掉 order_id 为 NULL 的记录(Join Key)
   - 选择操作（Select Operator）：
     - 选择 order_id、payment_time、total_amount 3个字段
   - 输出重命名为：`_col0`、`_col1`、`_col2`
-  - 哈希表下沉操作（HashTable Sink Operator）：
-    - 关键步骤：为Map Join构建哈希表
+  - 哈希表输出操作（HashTable Sink Operator）：
+    - 核心为 Map Join 构建哈希表
     - Join键：`_col0`（即 order_id）
     - 这个阶段的结果将缓存在内存中供 Stage-1 使用
 - `Stage-1`：Map Reduce 阶段，在这上只有 Map
-  - 表扫描（TableScan）：
+  - 表扫描操作（TableScan）：
     - 扫描 tb_order_bucket 表（2000w行）
   - 过滤操作（Filter Operator）：
     - 过滤掉 id 为 NULL 的记录(Join Key)
@@ -378,10 +357,8 @@ STAGE PLANS:
     - Join 类型：Inner Join
     - Join 策略：Bucket Map Join
     - Join 键：`_col0`（tb_order_bucket.id = tb_payment_bucket.order_id）
-    - 输出列：`_col0`(order_id), `_col1`(user_id), `_col3`(payment_time), `_col4`(total_amount)
 
-
-需要注意的是，Bucket Map Join 的执行计划的基本信息和普通的 Map Join 无异，若想看到差异，可执行如下语句，查看执行计划的详细信息：
+需要注意的是，Bucket Map Join 的执行计划的基本信息和普通的 Map Join 无异。若想看到差异，可执行如下语句，查看执行计划的详细信息：
 ```sql
 EXPLAIN EXTENDED
 SELECT

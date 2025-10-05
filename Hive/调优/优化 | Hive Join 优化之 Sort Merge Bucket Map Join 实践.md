@@ -1,7 +1,7 @@
 
 ## 1. Sort Merge Bucket Map Join
 
-Sort Merge Bucket Map Join (SMB Map Join) 是在 Bucket Map Join 的基础上更进一步，除了要求参与 Join 的两个表均为分桶表，都根据 Join Key 进行分桶(CLUSTERED BY)，两表的桶数量相同或成倍数关系，新增要求每个桶内的数据在 Join Key 上排序(SORTED BY)。
+Sort Merge Bucket Map Join (SMB Map Join) 是在 [Bucket Map Join](https://smartsi.blog.csdn.net/article/details/152504326) 的基础上更进一步，除了要求参与 Join 的两个表均为分桶表，都根据 Join Key 进行分桶(CLUSTERED BY)，两表的桶数量相同或成倍数关系，还新增要求每个桶内的数据在 Join Key 上排序(SORTED BY)。
 
 SMB Map Join 与 Bucket Map Join 一样，都是利用两表分桶之间的关联关系，在分桶之间进行 Join 操作，不同的是分桶之间的实现算法。Bucket Map Join 两个分桶之间的 Join 实现算法是 Hash Join 算法，而 SMB Map Join 两个分桶之间的 Join 实现算法是 Sort Merge Join 算法。
 
@@ -252,6 +252,8 @@ set hive.ignore.mapjoin.hint=false;
 -- CBO 优化会导致 hint 信息被忽略，因此要关闭 CBO 优化。需将如下参数修改为false
 set hive.cbo.enable=false;
 ```
+> 不依赖 hive.auto.convert.sortmerge.join 参数，可以为 false。
+
 使用 Hint 方式自然需要修改 SQL 语句添加 Hint 信息：
 ```sql
 SELECT
@@ -314,7 +316,7 @@ STAGE PLANS:
         ListSink
 ```
 
-从上面信息可以知道，该查询涉及 `Stage-0` 和 `Stage-1` 2个执行阶段。`Stage-1` 是根阶段（root stage），即最开始执行的阶段。在这 `Stage-1` 是一个 MapReduce 作业(Sort Merge Bucket Map Join)；`Stage-0` 是一个 Fetch 作业，负责将结果返回给客户端。
+从上面信息可以知道，该查询涉及 `Stage-0` 和 `Stage-1` 2个执行阶段。`Stage-1` 是根阶段（root stage），即最开始执行的阶段。在这 `Stage-1` 是一个 MapReduce 阶段；`Stage-0` 是一个 Fetch 作业，负责将结果返回给客户端。
 
 ![](img-hive-optimization-sort-merge-bucket-map-join-1.png)
 

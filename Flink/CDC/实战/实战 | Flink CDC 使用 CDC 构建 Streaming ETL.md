@@ -6,10 +6,9 @@
 
 > 本教程的演示基于 Docker 环境
 
-
 架构概述如下：
 
-![](https://nightlies.apache.org/flink/flink-cdc-docs-release-3.5/fig/mysql-postgres-tutorial/flink-cdc-streaming-etl.png)
+![](img-flink-cdc-streaming-etl-0.png)
 
 ## 1. 准备阶段
 
@@ -163,7 +162,7 @@ cd flink-1.20.2
 
 启动成功的话，可以在 `http://localhost:8081/` 访问到 Flink Web UI，如下所示：
 
-![]()
+![](img-flink-cdc-streaming-etl-1.png)
 
 使用下面的命令启动 Flink SQL CLI
 ```
@@ -171,7 +170,7 @@ cd flink-1.20.2
 ```
 启动成功后，可以看到如下的页面：
 
-![]()
+![](img-flink-cdc-streaming-etl-2.png)
 
 ## 3. 在 Flink SQL CLI 中使用 Flink DDL 创建表
 
@@ -270,6 +269,65 @@ Flink SQL> INSERT INTO enriched_orders
  LEFT JOIN products AS p ON o.product_id = p.id
  LEFT JOIN shipments AS s ON o.order_id = s.order_id;
 ```
+启动成功后，可以访问 http://localhost:8081/#/job/running 在 Flink Web UI 上看到正在运行的 Flink Streaming Job，如下图所示：
 
+![](img-flink-cdc-streaming-etl-3.png)
 
-...
+现在，就可以在 Kibana 中看到包含商品和物流信息的订单数据了。首先访问  http://localhost:5601/app/kibana#/management/kibana/index_pattern 创建 index pattern `enriched_orders`：
+
+![](img-flink-cdc-streaming-etl-4.png)
+
+![](img-flink-cdc-streaming-etl-5.png)
+
+然后就可以在 http://localhost:5601/app/kibana#/discover 看到写入的数据了：
+
+![](img-flink-cdc-streaming-etl-6.png)
+
+接下来，修改 MySQL 和 Postgres 数据库中表的数据，Kibana 中显示的订单数据也将实时更新：
+
+【1】在 MySQL 的 orders 表中插入一条数据：
+```sql
+--MySQL
+INSERT INTO orders VALUES (default, '2020-07-30 15:22:00', 'Jark', 29.71, 104, false);
+```
+
+![](img-flink-cdc-streaming-etl-7.png)
+
+【2】在 Postgres 的 shipment 表中插入一条数据：
+```sql
+--PG
+INSERT INTO shipments VALUES (default,10004,'Shanghai','Beijing',false);
+```
+![](img-flink-cdc-streaming-etl-8.png)
+
+【3】在 MySQL 的 orders 表中更新订单的状态：
+```sql
+--MySQL
+UPDATE orders SET order_status = true WHERE order_id = 10004;
+```
+![](img-flink-cdc-streaming-etl-9.png)
+
+【4】在 Postgres 的 shipment 表中更新物流的状态：
+```sql
+--PG
+UPDATE shipments SET is_arrived = true WHERE shipment_id = 1004;
+```
+![](img-flink-cdc-streaming-etl-10.png)
+
+【5】在 MYSQL 的 orders 表中删除一条数据：
+```sql
+--MySQL
+DELETE FROM orders WHERE order_id = 10004;
+```
+![](img-flink-cdc-streaming-etl-11.png)
+
+## 5. 环境清理
+
+本教程结束后，在 `docker-compose.yml` 文件所在的目录下执行如下命令停止所有容器：
+```
+docker-compose down
+```
+在 Flink 所在目录 flink-1.20.2 下执行如下命令停止 Flink 集群：
+```
+./bin/stop-cluster.sh
+```

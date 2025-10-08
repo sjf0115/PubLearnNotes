@@ -67,6 +67,4 @@ Shuffle Hash Join的条件有以下几个：
 
 可以看出，无论分区有多大，Sort Merge Join都不用把某一侧的数据全部加载到内存中，而是即用即取即丢，从而大大提升了大数据量下sql join的稳定性。
 
-
-
 原文：https://blog.csdn.net/asongoficeandfire/article/details/53574034

@@ -30,19 +30,19 @@ export PATH=${SCALA_HOME}/bin:$PATH
 
 ## 2. Hadoop 安装
 
-如果没有安装 Hadoop，可以参考：[Hadoop 安装与启动]()。在这我们 Hadoop 版本为 2.7.7 版本。
+如果没有安装 Hadoop，可以参考：[Hadoop 安装与启动](https://smartsi.blog.csdn.net/article/details/132420027)。在这我们 Hadoop 版本为 3.2.1 版本。
 
 ## 3. Spark 安装
 
-第一步是选择 Spark 版本，在这我们选择的是 3.1.3 (Feb 18 2022) 版本。第二步是选择 Package 类型，官方目前提供了四种类型：
+第一步是选择 Spark 版本，在这我们选择的是 3.5.3 版本。第二步是选择 Package 类型，官方目前提供了四种类型：
 - Pre-built for Apache Hadoop 3.2 and later：基于 Hadoop 3.2 的预先编译版，可以支持 Hadoop 3.2+版本。
-- Pre-built for Apache Hadoop 2.7：基于 Hadoop 2.7 的预先编译版，需要与本机安装的 Hadoop 版本对应。
+- Pre-built for Apache Hadoop 3.3 and later (Scala 2.13)：基于 Hadoop 2.7 的预先编译版，需要与本机安装的 Hadoop 版本对应。
 - Pre-built with user-provided Apache Hadoop：'Hadoop free' 版，可使用任意 Hadoop 版本;
 - Source Code：Spark 源码，需要编译才能使用;
 
 > Spark 版本选择的不同，提供的 Package 类型也会不一样。
 
-Spark 与 Hadoop 需要配合使用，所以 Spark 必须按照我们目前安装的 Hadoop 版本来选择 Package 类型。如果你事先安装了 Spark 对应版本的 Hadoop，那么可以选择 for Hadoop x.x 类型，如果你安装的 Hadoop 版本没有对应的 Spark，可以选择 Pre-built with user-provided Apache Hadoop 类型。由于我们使用的 Hadoop 版本为 2.7.7 版本，所以可以选择 Pre-built for Apache Hadoop 2.7 类型。
+Spark 与 Hadoop 需要配合使用，所以 Spark 必须按照我们目前安装的 Hadoop 版本来选择 Package 类型。如果你事先安装了 Spark 对应版本的 Hadoop，那么可以选择 for Hadoop x.x 类型，如果你安装的 Hadoop 版本没有对应的 Spark，可以选择 Pre-built with user-provided Apache Hadoop 类型。由于我们使用的 Hadoop 版本为 3.2.1 版本，所以可以选择 Pre-built for Apache Hadoop 2.7 类型。
 
 选择 Spark 版本和 Package 类型之后，自动会为你生成 spark-3.1.3-bin-hadoop2.7.tgz 包地址，直接点击下载即可。
 
@@ -72,7 +72,7 @@ cp spark-env.sh.template spark-env.sh
 ```
 编辑 spark-env.sh ，在最后面加上如下一行：
 ```
-export SPARK_DIST_CLASSPATH=$(/opt/hadoop/bin/hadoop classpath)
+export SPARK_DIST_CLASSPATH=$(/opt/workspace/hadoop/bin/hadoop classpath)
 ```
 > 替换为你的 Hadoop 安装路径
 

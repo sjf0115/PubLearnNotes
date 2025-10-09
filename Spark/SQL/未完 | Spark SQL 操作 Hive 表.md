@@ -32,6 +32,7 @@ Spark SQL 的 Hive 支持的最重要的部分之一是与 Hive metastore 进行
 
 ### 1.2 添加依赖
 
+添加 Hive 依赖：
 ```xml
 <!-- Spark Hive -->
 <dependency>
@@ -40,5 +41,145 @@ Spark SQL 的 Hive 支持的最重要的部分之一是与 Hive metastore 进行
     <version>${spark.version}</version>
 </dependency>
 ```
+Spark 使用 Hive 元数据存储时，需要连接到 MySQL 数据库来存储元数据信息，因此需要添加如下 MySQL 驱动依赖：
+```xml
+<dependency>
+    <groupId>mysql</groupId>
+    <artifactId>mysql-connector-java</artifactId>
+    <version>8.0.33</version>
+</dependency>
+```
 
-原文：http://spark.apache.org/docs/2.3.0/sql-programming-guide.html#hive-tables
+### 1.3 读取 Hive
+
+> 与 Hive 交互需要开启 enableHiveSupport()
+
+```java
+SparkSession spark = SparkSession
+        .builder()
+        .master("local[*]")
+        .appName("Java Spark Hive Example")
+        .enableHiveSupport()
+        .getOrCreate();
+
+// 读取
+spark.sql("show databases").show();
+// +---------+
+// |namespace|
+// +---------+
+// |  default|
+// +---------+
+spark.sql("show tables").show();
+// +--------+--------------------+-----------+
+// |database|           tableName|isTemporary|
+// +--------+--------------------+-----------+
+// | default|   dim_user_behavior|      false|
+// | default|  dws_mt_qs_order_dd|      false|
+// | default|            tb_order|      false|
+// | default|     tb_order_bucket|      false|
+// | default|tb_order_sorted_b...|      false|
+// | default|          tb_payment|      false|
+// | default|   tb_payment_bucket|      false|
+// | default|tb_payment_sorted...|      false|
+// | default|          tb_product|      false|
+// | default|         tb_province|      false|
+// | default|tmp_hive_managed_...|      false|
+// | default|       user_behavior|      false|
+// +--------+--------------------+-----------+
+spark.sql("SELECT COUNT(*) FROM tb_order").show();
+// +--------+
+// |count(1)|
+// +--------+
+// |20000000|
+// +--------+
+```
+
+### 1.4 写入 Hive
+
+```java
+SparkSession spark = SparkSession
+        .builder()
+        .master("local[*]")
+        .appName("HiveWriteExample")
+        .enableHiveSupport()
+        .getOrCreate();
+
+// 创建 Hive 表
+spark.sql("CREATE TABLE IF NOT EXISTS src (key INT, value STRING) USING hive");
+// 导入数据
+spark.sql("LOAD DATA LOCAL INPATH 'spark-example-3.5/src/main/resources/data/kv.txt' INTO TABLE src");
+
+// 查询
+spark.sql("SELECT * FROM src").show();
+// +---+-------+
+// |key|  value|
+// +---+-------+
+// |238|val_238|
+// | 86| val_86|
+// |311|val_311|
+// ...
+
+// 聚合
+spark.sql("SELECT COUNT(*) FROM src").show();
+// +--------+
+// |count(1)|
+// +--------+
+// |    500 |
+// +--------+
+```
+
+### 1.5 与DataSet/DataFrame交互
+
+```java
+SparkSession spark = SparkSession
+        .builder()
+        .master("local[*]")
+        .appName("HiveDataSetExample")
+        .enableHiveSupport()
+        .getOrCreate();
+
+// DataFrame
+// SQL 查询的结果本身就是 dataframe，并支持所有正常功能。
+Dataset<Row> dataFrame = spark.sql("SELECT key, value FROM src WHERE key < 10 ORDER BY key");
+dataFrame.show();
+/*+---+-----+
+|key|value|
++---+-----+
+|  0|val_0|
+|  0|val_0|
+|  0|val_0|
+|  2|val_2|
+|  4|val_4|
+|  5|val_5|
+|  5|val_5|
+|  5|val_5|
+|  8|val_8|
+|  9|val_9|
++---+-----+*/
+
+// DataSet
+Dataset<String> dataset = dataFrame.map(
+        (MapFunction<Row, String>) row -> "Key: " + row.get(0) + ", Value: " + row.get(1),
+        Encoders.STRING());
+dataset.show();
+
+/*+--------------------+
+|               value|
++--------------------+
+|Key: 0, Value: val_0|
+|Key: 0, Value: val_0|
+|Key: 0, Value: val_0|
+|Key: 2, Value: val_2|
+|Key: 4, Value: val_4|
+|Key: 5, Value: val_5|
+|Key: 5, Value: val_5|
+|Key: 5, Value: val_5|
+|Key: 8, Value: val_8|
+|Key: 9, Value: val_9|
++--------------------+*/
+```
+
+
+
+原文：https://spark.apache.org/docs/3.5.3/sql-data-sources-hive-tables.html#specifying-storage-format-for-hive-tables
+https://cloud.tencent.com/developer/article/1733891

@@ -1,16 +1,3 @@
----
-layout: post
-author: sjf0115
-title: Spark Tungsten：让Spark将硬件性能压榨到极限
-date: 2018-03-08 19:31:01
-tags:
-  - Spark
-  - Spark SQL
-
-categories: Spark
-permalink: spark-sql-project-tungsten-bringing-spark-closer-to-bare-metal
----
-
 在之前的博文中，我们回顾和总结了2014年Spark在性能提升上所做的努力。本篇博文中，我们将为你介绍性能提升的下一阶段——Tungsten。在2014年，我们目睹了Spark缔造大规模排序的新世界纪录，同时也看到了Spark整个引擎的大幅度提升——从Python到SQL再到机器学习。
 
 Tungsten项目将是Spark自诞生以来内核级别的最大改动，以大幅度提升Spark应用程序的内存和CPU利用率为目标，旨在最大程度上压榨新时代硬件性能。Project Tungsten包括了3个方面的努力：

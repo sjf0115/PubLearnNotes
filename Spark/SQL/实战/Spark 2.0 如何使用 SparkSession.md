@@ -52,7 +52,7 @@ SparkSession spark = SparkSession
 ### 1.2 配置 Spark 的运行时属性
 
 一旦 SparkSession 被实例化，你就可以配置 Spark 的运行时配置属性。例如，在下面这段代码中，我们可以通过 `spark.conf.set` 改变已经存在的运行时配置选项：
-```java
+```
 //set new runtime options
 spark.conf.set("spark.sql.shuffle.partitions", 6)
 spark.conf.set("spark.executor.memory", "2g")
@@ -83,7 +83,7 @@ System.out.println("AppName: " + appName);
 spark.catalog.listDatabases.show(false)
 spark.catalog.listTables.show(false)
 ```
-![](../../Image/Spark/spark-sql-how-to-use-sparksession-in-spark-2-0-1.png)
+![](img-spark-sql-how-to-use-sparksession-in-spark-2-0-1.png)
 
 ### 1.4 创建 DataSets 和 DataFrame
 
@@ -103,7 +103,7 @@ val lpDF = langPercentDF.withColumnRenamed("_1", "language").withColumnRenamed("
 //order the DataFrame in descending order of percentage
 lpDF.orderBy(desc("percent")).show(false)
 ```
-![](../../Image/Spark/spark-sql-how-to-use-sparksession-in-spark-2-0-2.png)
+![](img-spark-sql-how-to-use-sparksession-in-spark-2-0-2.png)
 
 ### 1.5 使用 SparkSession API 读取 JSON 数据
 
@@ -128,7 +128,7 @@ zipsDF.cache()
 val resultsDF = spark.sql("SELECT city, pop, state, zip FROM zips_table")
 resultsDF.show(10)
 ```
-![](../../Image/Spark/spark-sql-how-to-use-sparksession-in-spark-2-0-3.png)
+![](img-spark-sql-how-to-use-sparksession-in-spark-2-0-3.png)
 
 ### 1.7 使用 SparkSession 保存和读取 Hive 表
 
@@ -142,7 +142,7 @@ spark.table("zips_table").write.saveAsTable("zips_hive_table")
 val resultsHiveDF = spark.sql("SELECT city, pop, state, zip FROM zips_hive_table WHERE pop > 40000")
 resultsHiveDF.show(10)
 ```
-![](../../Image/Spark/spark-sql-how-to-use-sparksession-in-spark-2-0-4.png)
+![](img-spark-sql-how-to-use-sparksession-in-spark-2-0-4.png)
 
 正如你所看到的，输出中的结果通过使用 DataFrame API，Spark SQL和Hive查询运行完全相同。其次，让我们把注意力转向 SparkSession 自动为你创建的两个Spark开发人员环境。
 
@@ -150,7 +150,7 @@ resultsHiveDF.show(10)
 
 最后，对于历史上下文，让我们简单了解一下 SparkContext 的底层功能。
 
-![](../../Image/Spark/spark-sql-how-to-use-sparksession-in-spark-2-0-5.png)
+![](img-spark-sql-how-to-use-sparksession-in-spark-2-0-5.png)
 
 如图所示，SparkContext 是一个访问 Spark 所有功能的入口；每个 JVM 仅存在一个 SparkContext。Spark Driver 使用它连接到集群管理器进行通信，提交 Spark 作业并知道要与之通信的资源管理器（YARN，Mesos或Standalone），允许你配置 Spark 参数。通过 SparkContext，Driver 可以访问其他上下文，如 SQLContext，HiveContext 和 StreamingContext 来编程 Spark。
 

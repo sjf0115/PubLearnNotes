@@ -53,7 +53,7 @@ spark.sql("SELECT count(*) FROM young")
 
 现代应用程序通常需要从各种来源收集和分析数据。DataFrame 支持从最流行的格式读取数据，包括 JSON文件、Parquet 文件、Hive 表，可以开箱即用。也可以通过 JDBC 从本地文件系统、分布式文件系统(HDFS)、云存储(S3)以及外部关系数据库系统读取数据。此外，通过 Spark SQL 的外部数据源 API, DataFrames 可以扩展到支持任何第三方数据格式或数据源。目前第三方扩展包括 Avro、CSV、ElasticSearch 和 Cassandra 等等。
 
-![](../../Image/Spark/spark-sql-how-to-use-dataframe-in-spark-1.png)
+![](img-spark-sql-how-to-use-dataframe-in-spark-1.png)
 
 DataFrame 对数据源的支持使应用程序能够轻松地组合来自不同数据源的数据(在数据库系统中称为联邦查询处理)。例如，可以将存储在 S3 中的站点的文本流量日志与 PostgreSQL 数据库连接起来，以计算每个用户访问该站点的次数。
 
@@ -69,7 +69,7 @@ DataFrame 对数据源的支持使应用程序能够轻松地组合来自不同�
 
 其次，Catalyst 将操作编译成执行的物理计划，并为这些计划生成 JVM 字节码，这些计划通常比手工编写的代码更优化。例如，可以在广播 JOIN 和 Shuffle JOIN 之间进行智能选择，以减少网络流量。还可以执行较低级别的优化，例如消除昂贵的对象分配和减少虚拟函数调用。因此，当现有的 Spark 程序迁移到 DataFrame 时，我们期望它们的性能得到改善。
 
-![](../../Image/Spark/spark-sql-how-to-use-dataframe-in-spark-2.png)
+![](img-spark-sql-how-to-use-dataframe-in-spark-2.png)
 
 上面的图表比较了在一台机器上对 1000 万整数对运行分组聚合的运行时性能。由于 Scala 和 Python 的 DataFrame 操作都被编译成 JVM 字节码执行，所以这两种语言之间几乎没有什么区别，而且它们的性能都比普通的 Python RDD 变体高出5倍，比 Scala RDD 变体高出2倍。
 

@@ -51,17 +51,17 @@ val counts = words
 ```
 由于 Datasets 版本的 WordCount 可以充分利用内置的聚合计数，所以这种计算不仅可以用较少的代码表示，而且还可以更快地执行。正如你在下面的图表中看到的那样，Datasets 的实现比原始的 RDD 实现要快得多。相反，使用 RDD 获得相同的性能需要用户手动考虑如何以最佳并行化方式表达计算。
 
-![](../../Image/Spark/spark-sql-how-to-use-datasets-in-spark-1.png)
+![](img-spark-sql-how-to-use-datasets-in-spark-1.png)
 
 这个新的 Datasets API 的另一个好处是减少了内存使用量。由于 Spark 了解 Datasets 中数据的结构，因此可以在缓存 Datasets 时在内存中创建更优化的布局。在下面的例子中，我们对比使用 Datasets 和 RDD 来在内存中缓存几百万个字符串。在这两种情况下，缓存数据都可以显着提高后续查询的性能。但是，由于 Datasets Encoder 向 Spark 提供有关正在存储数据的更多信息，因此优化后缓存会减少 4.5x 的空间。
 
-![](../../Image/Spark/spark-sql-how-to-use-datasets-in-spark-2.png)
+![](img-spark-sql-how-to-use-datasets-in-spark-2.png)
 
 ## 2. 使用 Encoder 进行快速序列化
 
 Encoder 经过高度优化，并使用运行时代码生成来构建用于序列化和反序列化的自定义字节码。因此，它们可以比 Java 或 Kryo 序列化更快地运行。
 
-![](../../Image/Spark/spark-sql-how-to-use-datasets-in-spark-3.png)
+![](img-spark-sql-how-to-use-datasets-in-spark-3.png)
 
 除了速度之外，由此产生的编码数据的序列化大小也明显更小（高达2倍），从而降低了网络传输的成本。此外，序列化的数据已经是 Tungsten　二进制格式，这意味着许多操作可以在原地完成，而不需要物化一个对象。Spark 内置支持自动生成原始类型（如String，Integer，Long），Scala Case 类和 Java Beans 的 Encoder。
 

@@ -1,19 +1,13 @@
 
 > Spark版本: 3.5.3
 
-Spark SQL 支持读取和写入存储在 Apache Hive 中的数据。但是，由于 Hive 具有大量依赖项，这些依赖项不包含在默认 Spark 发行版中。如果在类路径 classpath 中可以找到 Hive 依赖项，Spark 会自动加载。需要注意的是这些 Hive 依赖项也必须存在于所有 Worker 节点上，因为需要访问 Hive 序列化和反序列化库 (SerDes)才可以访问存储在 Hive 中的数据。
+Spark SQL 支持读取和写入存储在 Apache Hive 中的数据。但是，由于 Hive 具有大量依赖项，这些依赖项不包含在默认 Spark 发行版中。如果在类路径 classpath 中可以找到 Hive 依赖项，Spark 会自动加载。需要注意的是这些 Hive 依赖项也必须存在于所有 Worker 节点上，因为需要访问 Hive 序列化和反序列化库 (SerDes)才可以访问存储在 Hive 中的数据。通过将 `hive-site.xml` 文件放在 Spark 的 `conf/` 中来完成 Hive 配置，此外如果还需要访问 HDFS，也需要将 `core-site.xml` 和 `hdfs-site.xml` 放在 `conf/` 中。
 
-通过将 hive-site.xml 文件放在 `conf/` 中来完成 Hive 配置，此外如果还需要访问 HDFS，也需要将 core-site.xml和 hdfs-site.xml 放在 `conf/` 中。
-
-当使用 Hive 时，必须实例化支持 Hive 的 SparkSession，包括连接到持久化的 Hive 元数据，支持 Hive serdes 以及 Hive 用户自定义的函数。没有部署 Hive 的用户仍然可以启用 Hive 支持。当 hive-site.xml 未配置时，上下文会自动在当前目录中创建 `metastore_db`，并创建由 `spark.sql.warehouse.dir` 配置的目录，该目录默指向 Spark 应用程序启动时当前目录中的 spark-warehouse 目录。注意的是从 Spark 2.0.0 开始，`hive-site.xml` 中的 `hive.metastore.warehouse.dir` 属性已被弃用，使用 `spark.sql.warehouse.dir` 来指定 warehouse 中数据库的默认位置。你可能需要向启动 Spark 应用程序的用户授予写权限。
-
-```
-
-```
-
-
+下面介绍几种读写 Hive 的交互方式。
 
 ## 1. 通过 spark-shell 读写 Hive
+
+第一种方式通过 spark-shell 与 Hive 交互实现读写数据。
 
 ## 1.1 环境配置
 
@@ -32,11 +26,13 @@ cp /opt/workspace/hive/lib/mysql-connector-java-8.0.16.jar /opt/workspace/spark/
 
 在 Spark shell 中，已经为你创建了一个专有的 `SparkContext`，可以直接通过变量 `sc` 访问，但是无法直接使用你自己创建的 `SparkContext` 的。可以用 `--master` 参数来设置 `SparkContext` 要连接的集群，用 `--jars` 来设置需要添加到 classpath 中的 JAR 包，如果有多个 JAR 包使用逗号分割符连接。你还可以通过 `--packages` 参数提供逗号分隔的 maven 坐标列表，将依赖关系（例如Spark Packages）添加到 shell 会话中。依赖项存在的任何可选存储库（例如Sonatype）可以传递给 `--repositories` 参数。
 
-使用 `./bin/spark-shell` 命令spark-shell：
+使用 `./bin/spark-shell` 命令来启动 spark-shell：
 
-![]()
+![](img-spark-sql-hive-1.png)
 
-### 1.3 读取 Hive
+### 1.3 与 Hive 交互
+
+#### 1.3.1 读取 Hive
 
 查看所有数据库：
 ```sql
@@ -79,12 +75,11 @@ scala> spark.sql("SELECT COUNT(*) FROM tb_order").show();
 +--------+
 ```
 
-### 1.4 写入 Hive
+#### 1.3.2 写入 Hive
 
 创建 Hive 表:
 ```sql
 scala> spark.sql("CREATE TABLE IF NOT EXISTS tmp_1 (key INT, value STRING) USING hive");
-25/10/11 23:55:55 WARN HiveMetaStore: Location: hdfs://localhost:9000/user/hive/warehouse/tmp_1 specified for non-external table:tmp_1
 res3: org.apache.spark.sql.DataFrame = []
 ```
 导入数据:
@@ -121,13 +116,15 @@ scala> spark.sql("SELECT COUNT(*) FROM tmp_1").show();
 
 ## 2. 通过 spark-sql 读写 Hive
 
-在 spark-shell 中执行查询都需要运行 `spark.sql("").show` 格式命令，比较麻烦。Spark 专门给我们提供了书写 SQL 的工具: spark-sql。
+第二种方式通过 spark-sql 与 Hive 交互实现读写数据。
+
+在上述 spark-shell 中执行查询都需要运行 `spark.sql("").show` 格式命令，比较麻烦。Spark 专门给我们提供了书写 SQL 的工具: spark-sql。
 
 > 环境配置与 spark-shell 一样，在 spark-shell 部分已经介绍过了，在这不再说明。
 
 ### 2.1 启动 spark-sql
 
-使用 `./bin/spark-sql` 命令 spark-sql：
+使用 `./bin/spark-sql` 命令启动 spark-sql：
 ```
 smarsi:spark smartsi$ ./bin/spark-sql
 Setting default log level to "WARN".
@@ -137,7 +134,9 @@ Spark master: local[*], Application Id: local-1760198943267
 spark-sql (default)>
 ```
 
-### 2.2 读取 Hive
+### 2.2 与 Hive 交互
+
+### 2.2.1 读取 Hive
 
 查看所有数据库：
 ```sql
@@ -172,12 +171,11 @@ spark-sql (default)> SELECT COUNT(*) FROM tb_order;
 Time taken: 2.82 seconds, Fetched 1 row(s)
 ```
 
-### 2.3 写入 Hive
+#### 2.2.2 写入 Hive
 
 创建 Hive 表:
 ```sql
 spark-sql (default)> CREATE TABLE IF NOT EXISTS tmp_2 (key INT, value STRING) USING hive;
-25/10/12 00:11:55 WARN HiveMetaStore: Location: hdfs://localhost:9000/user/hive/warehouse/tmp_2 specified for non-external table:tmp_2
 Time taken: 0.224 seconds
 ```
 导入数据:
@@ -209,15 +207,52 @@ Time taken: 0.109 seconds, Fetched 1 row(s)
 
 ## 3. 通过编程方式读写 Hive
 
+第三种方式通过编程方式与 Hive 交互实现读写数据。
+
 ### 3.1 配置
 
 将 Hive 的配置文件 `$HIVE_HOME/conf/hive-site.xml` 拷贝到 `resources` 目录下：
 
-![]()
+![](img-spark-sql-hive-2.png)
+
+核心配置如下所示：
+```xml
+<configuration>
+    <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>/user/hive/warehouse</value>
+    </property>
+
+    <property>
+        <name>hive.metastore.port</name>
+        <value>9083</value>
+    </property>
+
+    <property>
+        <name>javax.jdo.option.ConnectionUserName</name>
+        <value>root</value>
+    </property>
+
+    <property>
+        <name>javax.jdo.option.ConnectionPassword</name>
+        <value>root</value>
+    </property>
+
+    <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>jdbc:mysql://localhost:3306/hive_meta?createDatabaseIfNotExist=true</value>
+    </property>
+
+    <property>
+        <name>javax.jdo.option.ConnectionDriverName</name>
+        <value>com.mysql.cj.jdbc.Driver</value>
+    </property>
+</configuration>
+```
 
 ### 3.2 添加依赖
 
-添加 Hive 依赖：
+与 Hive 交互需要添加 Hive 依赖：
 ```xml
 <!-- Spark Hive -->
 <dependency>
@@ -231,13 +266,23 @@ Spark 使用 Hive 元数据存储时，需要连接到 MySQL 数据库来存储�
 <dependency>
     <groupId>mysql</groupId>
     <artifactId>mysql-connector-java</artifactId>
-    <version>8.0.33</version>
+    <version>8.0.16</version>
 </dependency>
 ```
 
-### 3.3 读取 Hive
+### 3.3 与 Hive 交互
 
-> 与 Hive 交互需要开启 enableHiveSupport()
+当使用 Hive 时，必须实例化支持 Hive 的 SparkSession，这样可以连接到持久化的 Hive 元数据，支持 Hive serdes 以及 Hive 用户自定义的函数。实例化支持 Hive 的 SparkSession 只需要在 SparkSession 中添加 `enableHiveSupport()`：
+```java
+SparkSession spark = SparkSession
+        .builder()
+        .master("local[*]")
+        .appName("Java Spark Hive Example")
+        .enableHiveSupport()
+        .getOrCreate();
+```
+
+#### 3.3.1 读取 Hive
 
 ```java
 SparkSession spark = SparkSession
@@ -279,7 +324,7 @@ spark.sql("SELECT COUNT(*) FROM tb_order").show();
 // +--------+
 ```
 
-### 3.4 写入 Hive
+#### 3.3.2 写入 Hive
 
 ```java
 SparkSession spark = SparkSession
@@ -313,8 +358,9 @@ spark.sql("SELECT COUNT(*) FROM src").show();
 // +--------+
 ```
 
-### 3.5 与DataSet/DataFrame交互
+#### 3.3.3 转换 DataSet/DataFrame
 
+从 Hive 读取的数据可以转为 DataSet/DataFrame，从而使用 DataSet/DataFrame 的能力：
 ```java
 SparkSession spark = SparkSession
         .builder()
@@ -363,16 +409,3 @@ dataset.show();
 |Key: 9, Value: val_9|
 +--------------------+*/
 ```
-
-
-### 指定 Hive 表的存储格式
-
-创建 Hive 表时，需要定义如何 从/向 文件系统 read/write 数据，即 “输入格式” 和 “输出格式”。 您还需要定义该表如何将数据反序列化为行，或将行序列化为数据，即 “serde”。 以下选项可用于指定存储格式 (“serde”, “input format”, “output format”)，例如，CREATE TABLE src(id int) USING hive OPTIONS(fileFormat 'parquet')。 默认情况下，我们将以纯文本形式读取表格文件。 请注意，Hive 存储处理程序在创建表时不受支持，您可以使用 Hive 端的存储处理程序创建一个表，并使用 Spark SQL 来读取它。
-
-
-### 与不同版本的 Hive Metastore 进行交互
-
-Spark SQL 的 Hive 支持的最重要的部分之一是与 Hive metastore 进行交互，这使得 Spark SQL 能够访问 Hive 表的元数据。从 Spark 1.4.0 开始，使用 Spark SQL 的单一二进制构建可以使用下面所述的配置来查询不同版本的 Hive 元数据。请注意，独立于用于与转移点通信的 Hive 版本，内部 Spark SQL 将针对 Hive 1.2.1 进行编译，并使用这些类进行内部执行（serdes，UDF，UDAF等）。
-
-原文：https://spark.apache.org/docs/3.5.3/sql-data-sources-hive-tables.html#specifying-storage-format-for-hive-tables
-https://cloud.tencent.com/developer/article/1733891

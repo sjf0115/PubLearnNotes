@@ -17,7 +17,7 @@ Kafka Connector 提供了从 Kafka topic 中消费和写入数据的能力。
 
 ### 1. 依赖
 
-无论是使用构建自动化工具（例如 Maven 或 SBT）的项目还是带有 SQL JAR 包的 SQL 客户端，如果想使用 Kafka Connector，都需要引入如下依赖项：
+使用 Maven 构建自动化工具的项目，如果想使用 Kafka Connector 需要引入如下依赖项：
 ```xml
 <dependency>
   <groupId>org.apache.flink</groupId>

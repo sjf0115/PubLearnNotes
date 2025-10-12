@@ -51,44 +51,106 @@ Flink 不使用包含 UPDATE_BEFORE 和 UPDATE_AFTER 的复合 UPDATE 事件类�
 ### 1.4 示例
 
 下面是一个复合 UPDATE 事件必须拆分为 DELETE 和 INSERT 事件的场景示例。本文后续也将围绕此 SQL 作业示例讨论 Changelog 事件乱序问题并提供相应的解决方案。
+
 ```sql
--- CDC source tables:  s1 & s2
-CREATE TEMPORARY TABLE s1 (
-  id BIGINT,
-  level BIGINT,
-  PRIMARY KEY(id) NOT ENFORCED
-)WITH (...);
+-- 用户明细表
+CREATE TABLE user_detail (
+  user_id BIGINT NOT NULL PRIMARY KEY COMMENT '用户ID',
+  level_id BIGINT NOT NULL COMMENT '等级ID'
+);
 
-CREATE TEMPORARY TABLE s2 (
-  id BIGINT,
-  attr VARCHAR,
-  PRIMARY KEY(id) NOT ENFORCED
-)WITH (...);
+-- 等级明细
+CREATE TABLE level_detail (
+  level_id BIGINT NOT NULL PRIMARY KEY COMMENT '等级ID',
+  level_name VARCHAR(255) NOT NULL COMMENT '等级名称'
+);
 
--- sink table: t1
-CREATE TEMPORARY TABLE t1 (
-  id BIGINT,
-  level BIGINT,
-  attr VARCHAR,
-  PRIMARY KEY(id) NOT ENFORCED
-)WITH (...);
-
--- join s1 and s2 and insert the result into t1
-INSERT INTO t1
-SELECT s1.*, s2.attr
-FROM s1
-JOIN s2
-ON s1.level = s2.id;
+CREATE TABLE user_level_detail (
+	user_id BIGINT NOT NULL PRIMARY KEY COMMENT '用户ID',
+  level_id BIGINT NOT NULL COMMENT '等级ID',
+  level_name VARCHAR(255) NOT NULL COMMENT '等级名称'
+);
 ```
-假设源表 s1 中 id 为 1 的记录的 Changelog 在时间 t0 插入(id=1, level=10)，然后在时间 t1 将该行更新为(id=1, level=20)。这对应三个拆分事件：
 
-| s1 | 事件类型|
+
+
+```sql
+-- CDC source tables:  user_detail & level_detail
+CREATE TEMPORARY TABLE user_detail (
+  user_id BIGINT,
+  level_id BIGINT,
+  PRIMARY KEY (user_id) NOT ENFORCED
+) WITH (
+  'connector' = 'mysql-cdc',
+  'hostname' = 'localhost',
+  'port' = '3306',
+  'username' = 'root',
+  'password' = '123456',
+  'database-name' = 'flink',
+  'table-name' = 'user_detail',
+	'scan.startup.mode' = 'latest-offset'
+);
+
+CREATE TEMPORARY TABLE level_detail (
+  level_id BIGINT,
+  level_name VARCHAR,
+  PRIMARY KEY (level_id) NOT ENFORCED
+) WITH (
+  'connector' = 'mysql-cdc',
+  'hostname' = 'localhost',
+  'port' = '3306',
+  'username' = 'root',
+  'password' = '123456',
+  'database-name' = 'flink',
+  'table-name' = 'level_detail',
+	'scan.startup.mode' = 'initial'
+);
+
+-- sink table:
+CREATE TEMPORARY TABLE user_level_detail (
+	user_id BIGINT,
+	level_id BIGINT,
+  level_name VARCHAR,
+  PRIMARY KEY (user_id) NOT ENFORCED
+) WITH (
+  'connector' = 'jdbc',
+  'url' = 'jdbc:mysql://localhost:3306/flink',
+  'username' = 'root',
+  'password' = '123456',
+  'table-name' = 'user_level_detail',
+	'sink.parallelism'='2'
+);
+
+-- join user_detail and level_detail and insert the result into user_level_detail
+INSERT INTO user_level_detail
+SELECT a1.user_id, a1.level_id, a2.level_name
+FROM user_detail AS a1
+JOIN level_detail AS a2
+ON a1.level_id = a2.level_id;
+```
+
+```sql
+-- 初始化
+INSERT INTO level_detail VALUES (1,"A"), (2,"B"), (3,"C"), (4,"D");
+
+-- 模拟数据
+INSERT INTO user_detail VALUES (1001, 2);
+UPDATE user_detail SET level_id = 1 WHERE user_id = 1001;
+```
+
+```
+SET 'table.exec.sink.upsert-materialize'='none';
+```
+
+假设源表 user_detail 中 user_id 为 1 的记录的 Changelog 在时间 t0 插入(user_id=1001, level_id=2)，然后在时间 t1 将该行更新为(user_id=1001, level=3)。这对应三个拆分事件：
+
+| user_detail | 事件类型|
 | :------------- | :------------- |
-| +I（id=1，level=10） | INSERT |
-| -U（id=1，level=10） | UPDATE_BEFORE |
-| +U（id=1，level=20） | UPDATE_AFTER |
+| +I（user_id=1，level_id=2） | INSERT |
+| -U（user_id=1，level_id=2） | UPDATE_BEFORE |
+| +U（user_id=1，level_id=1） | UPDATE_AFTER |
 
-源表 s1 的主键是 id，但 Join 操作需要按 level 列进行 shuffle（见子句ON）。
+源表 user_detail 的主键是 user_id，但 Join 操作需要按 level_id 列进行 shuffle（见子句ON）。
 
 ![](https://help-static-aliyun-doc.aliyuncs.com/assets/img/zh-CN/5166786171/p694577.png)
 

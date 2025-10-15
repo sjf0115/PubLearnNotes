@@ -51,104 +51,42 @@ Flink 不使用包含 UPDATE_BEFORE 和 UPDATE_AFTER 的复合 UPDATE 事件类�
 ### 1.4 示例
 
 下面是一个复合 UPDATE 事件必须拆分为 DELETE 和 INSERT 事件的场景示例。本文后续也将围绕此 SQL 作业示例讨论 Changelog 事件乱序问题并提供相应的解决方案。
-
 ```sql
--- 用户明细表
-CREATE TABLE user_detail (
-  user_id BIGINT NOT NULL PRIMARY KEY COMMENT '用户ID',
-  level_id BIGINT NOT NULL COMMENT '等级ID'
-);
+-- CDC source tables:  s1 & s2
+CREATE TEMPORARY TABLE s1 (
+  id BIGINT,
+  level BIGINT,
+  PRIMARY KEY(id) NOT ENFORCED
+)WITH (...);
 
--- 等级明细
-CREATE TABLE level_detail (
-  level_id BIGINT NOT NULL PRIMARY KEY COMMENT '等级ID',
-  level_name VARCHAR(255) NOT NULL COMMENT '等级名称'
-);
+CREATE TEMPORARY TABLE s2 (
+  id BIGINT,
+  attr VARCHAR,
+  PRIMARY KEY(id) NOT ENFORCED
+)WITH (...);
 
-CREATE TABLE user_level_detail (
-	user_id BIGINT NOT NULL PRIMARY KEY COMMENT '用户ID',
-  level_id BIGINT NOT NULL COMMENT '等级ID',
-  level_name VARCHAR(255) NOT NULL COMMENT '等级名称'
-);
+-- sink table: t1
+CREATE TEMPORARY TABLE t1 (
+  id BIGINT,
+  level BIGINT,
+  attr VARCHAR,
+  PRIMARY KEY(id) NOT ENFORCED
+)WITH (...);
+
+-- join s1 and s2 and insert the result into t1
+INSERT INTO t1
+SELECT
+  s1.*, s2.attr
+FROM s1 JOIN s2
+ON s1.level = s2.id;
 ```
+假设源表 s1 中 id 为 1 的记录的 Changelog 在时间 t0 插入(id=1, level=10)，然后在时间 t1 将该行更新为(id=1, level=20)。这对应三个拆分事件：
 
-
-
-```sql
--- CDC source tables:  user_detail & level_detail
-CREATE TEMPORARY TABLE user_detail (
-  user_id BIGINT,
-  level_id BIGINT,
-  PRIMARY KEY (user_id) NOT ENFORCED
-) WITH (
-  'connector' = 'mysql-cdc',
-  'hostname' = 'localhost',
-  'port' = '3306',
-  'username' = 'root',
-  'password' = '123456',
-  'database-name' = 'flink',
-  'table-name' = 'user_detail',
-	'scan.startup.mode' = 'latest-offset'
-);
-
-CREATE TEMPORARY TABLE level_detail (
-  level_id BIGINT,
-  level_name VARCHAR,
-  PRIMARY KEY (level_id) NOT ENFORCED
-) WITH (
-  'connector' = 'mysql-cdc',
-  'hostname' = 'localhost',
-  'port' = '3306',
-  'username' = 'root',
-  'password' = '123456',
-  'database-name' = 'flink',
-  'table-name' = 'level_detail',
-	'scan.startup.mode' = 'initial'
-);
-
--- sink table:
-CREATE TEMPORARY TABLE user_level_detail (
-	user_id BIGINT,
-	level_id BIGINT,
-  level_name VARCHAR,
-  PRIMARY KEY (user_id) NOT ENFORCED
-) WITH (
-  'connector' = 'jdbc',
-  'url' = 'jdbc:mysql://localhost:3306/flink',
-  'username' = 'root',
-  'password' = '123456',
-  'table-name' = 'user_level_detail',
-	'sink.parallelism'='2'
-);
-
--- join user_detail and level_detail and insert the result into user_level_detail
-INSERT INTO user_level_detail
-SELECT a1.user_id, a1.level_id, a2.level_name
-FROM user_detail AS a1
-JOIN level_detail AS a2
-ON a1.level_id = a2.level_id;
-```
-
-```sql
--- 初始化
-INSERT INTO level_detail VALUES (1,"A"), (2,"B"), (3,"C"), (4,"D");
-
--- 模拟数据
-INSERT INTO user_detail VALUES (1001, 2);
-UPDATE user_detail SET level_id = 1 WHERE user_id = 1001;
-```
-
-```
-SET 'table.exec.sink.upsert-materialize'='none';
-```
-
-假设源表 user_detail 中 user_id 为 1 的记录的 Changelog 在时间 t0 插入(user_id=1001, level_id=2)，然后在时间 t1 将该行更新为(user_id=1001, level=3)。这对应三个拆分事件：
-
-| user_detail | 事件类型|
+| s1 | 事件类型 |
 | :------------- | :------------- |
-| +I（user_id=1，level_id=2） | INSERT |
-| -U（user_id=1，level_id=2） | UPDATE_BEFORE |
-| +U（user_id=1，level_id=1） | UPDATE_AFTER |
+| +I（id=1，level=10） | INSERT |
+| -U（id=1，level=10） | UPDATE_BEFORE |
+| +U（id=1，level=20） | UPDATE_AFTER |
 
 源表 user_detail 的主键是 user_id，但 Join 操作需要按 level_id 列进行 shuffle（见子句ON）。
 
@@ -158,10 +96,100 @@ SET 'table.exec.sink.upsert-materialize'='none';
 
 ![](https://help-static-aliyun-doc.aliyuncs.com/assets/img/zh-CN/5166786171/p694580.png)
 
+## 2. Changelog 事件乱序问题
 
+### 2.1 乱序原因
 
+假设示例中表 s2 已有两行数据进入 Join 算子（`+I（id=10，attr=a1`)，`+I（id=20，attr=b1）`），Join 运算符从表 s1 新接收到三个 Changelog 事件。在分布式环境中，实际的 Join 在两个任务上并行处理，下游算子（示例中为 Sink 任务）接收的事件序列可能情况如下所示。
 
+![](https://help-static-aliyun-doc.aliyuncs.com/assets/img/zh-CN/5166786171/p801579.png)
 
+| 情况1 | 情况2 | 情况3 |
+| :------------- | :------------- | :------------- |
+| +I (id=1，level=10，attr='a1')<br>-U (id=1，level=10，attr='a1')<br>+U (id=1，level=20，attr='b1')   | +U (id=1，level=20，attr='b1')<br>+I (id=1，level=10，attr='a1')<br>-U (id=1，level=10，attr='a1') | +I (id=1，level=10，attr='a1')<br>+U (id=1，level=20，attr='b1')<br>-U (id=1，level=10，attr='a1')<br> |
+
+情况 1 的事件序列与顺序处理中的事件序列相同。情况 2 和情况 3 显示了 Changelog 事件在 Flink SQL 中到达下游算子时的乱序情况。乱序情况可能会导致不正确的结果。在示例中，结果表声明的主键是 id，外部存储进行 upsert 更新时，在情况 2 和 3 中，如果没有其他措施，将从外部存储不正确地删除 id=1 的行，而期望的结果是`(id=1, level=20, attr='b1')`。
+
+### 2.2 使用 SinkUpsertMaterializer 解决
+
+在示例中，Join 操作生成更新流，其中输出包含 INSERT 事件（`+I`）和 UPDATE 事件（`-U`和`+U`），如果不正确处理，乱序可能会导致正确性问题。
+
+#### 2.2.1 唯一键与upsert键
+
+`唯一键`是指 SQL 操作后满足唯一约束的列或列组合。在本示例中`(s1.id)`、`(s1.id, s1.level)`和`(s1.id, s2.id)`这三组都是唯一键。
+
+Flink SQL 的 Changelog 参考了 binlog 机制，但实现方式更加简洁。Flink 不再像 binlog 一样记录每个更新的时间戳，而是通过 planner 中的全局分析来确定主键接收到的更新历史记录的排序。如果某个键维护了唯一键的排序，则对应的键称为 upsert 键。对于存在 upsert 键的情况，下游算子可以正确地按照更新历史记录的顺序接收 upsert 键的值。如果 shuffle 操作破坏了唯一键的排序，upsert 键将为空，此时下游算子需要使用一些算法（例如计数算法）来实现最终的一致性。
+
+在示例中，表 s1 中的行根据列 level 进行 shuffle。Join 生成多个具有相同 `s1.id` 的行，因此 Join 输出的 upsert 键为空（即 Join 后唯一键上不存在排序）。此时，Flink 需存储所有输入记录，然后检查比较所有列以区分更新和插入。
+
+此外，结果表的主键为列 id。Join 输出的 upsert 键与结果表的主键不匹配，需要进行一些处理将 Join 输出的行进行正确转换为结果表所需的行。
+
+#### 2.2.2 SinkUpsertMaterializer
+
+根据唯一键与 upsert 键的内容，当 Join 输出的是更新流且其 upsert 键与结果表主键不匹配时，需要一个中间步骤来消除乱序带来的影响，以及基于结果表的主键产生新的主键对应的 Changelog 事件。Flink 在 Join 算子和下游算子之间引入了 SinkUpsertMaterializer 算子（[FLINK-20374](https://issues.apache.org/jira/browse/FLINK-20374?page=com.atlassian.jira.plugin.system.issuetabpanels%3Aall-tabpanel)）。
+
+结合乱序原因中的 Changelog 事件，可以看到 Changelog 事件乱序遵循着一些规则。例如，对于一个特定的 upsert 键（或 upsert 键为空则表示所有列），事件 `ADD（+I、+U）` 总是在事件 `RETRACT（-D、-U）` 之前发生；即使涉及到数据 shuffle，相同 upsert 键的一对匹配的 Changelog 事件也总是被相同的任务处理。这些规则也说明了为什么示例仅存在乱序原因中三个 Changelog 事件的组合。
+
+SinkUpsertMaterializer 就是基于上述规则实现的，其工作原理如下图所示。SinkUpsertMaterializer 在其状态中维护了一个 RowData 列表。当 SinkUpsertMaterializer 被触发，在处理输入行时，它根据推断的 upsert 键或整行（如果 upsert 键为空）检查状态列表中是否存在相同的行。在 ADD 的情况下添加或更新状态中的行，在 RETRACT 的情况下从状态中删除行。最后，它根据结果表的主键生成 Changelog 事件，更多详细信息请参见 [SinkUpsertMaterializer 源代码](https://github.com/apache/flink/blob/release-1.17/flink-table/flink-table-runtime/src/main/java/org/apache/flink/table/runtime/operators/sink/SinkUpsertMaterializer.java)。
+
+![](https://help-static-aliyun-doc.aliyuncs.com/assets/img/zh-CN/7341918571/CAEQQxiBgMCL2pX0_RgiIDViN2ZjY2Q3NjkyMjQ5ZWI4NjllNDc1NGI3ZmEzNDc53789734_20240518215802.438.svg)
+
+通过 SinkUpsertMaterializer，将示例中 Join 算子输出的 Changelog 事件处理并转换为结果表主键对应的 Changelog 事件，结果如下图所示。根据 SinkUpsertMaterializer 的工作原理，在情况2中，处理 `-U(id=1，level=10，attr='a1')` 时，会将最后一行从状态中移除，并向下游发送倒数第二行；在情况3中，当处理 `+U (id=1,level=20,attr='b1')` 时，SinkUpsertMaterializer 会将其原样发出，而当处理 `-U(id=1,level=10,attr='a1')` 时，将从状态中删除行而不发出任何事件。最终，通过 SinkUpsertMaterializer 算子情况2和3也会得到期望结果 `(id=1,level=20,attr='b1')`。
+
+![](https://help-static-aliyun-doc.aliyuncs.com/assets/img/zh-CN/5166786171/p694613.png)
+
+## 3. 常见场景
+
+触发 SinkUpsertMaterializer 算子的常见场景如下所示。
+
+- 结果表定义主键，而写入该结果表的数据丢失了唯一性。通常包括但不限于以下操作：
+	- 源表缺少主键，而结果表却设置了主键。
+	- 向结果表插入数据时，忽略了主键列的选择，或错误地使用了源表的非主键数据填充结果表的主键。
+	- 源表的主键数据在转换或经过分组聚合后出现精度损失。例如，将BIGINT类型降为INT类型。
+	- 对源表的主键列或经过分组聚合之后的唯一键进行了运算，如数据拼接或将多个主键合并为单一字段。
+
+		```sql
+		CREATE TABLE students (
+		  student_id BIGINT NOT NULL,
+		  student_name STRING NOT NULL,
+		  course_id BIGINT NOT NULL,
+		  score DOUBLE NOT NULL,
+		  PRIMARY KEY(student_id) NOT ENFORCED
+		) WITH (...);
+
+		CREATE TABLE performance_report (
+		  student_info STRING NOT NULL PRIMARY KEY NOT ENFORCED,
+		  avg_score DOUBLE NOT NULL
+		) WITH (...);
+
+		CREATE TEMPORARY VIEW v AS
+		SELECT student_id, student_name, AVG(score) AS avg_score
+		FROM students
+		GROUP BY student_id, student_name;
+
+		-- 将分组聚合后的key进行拼接当作主键写入结果表，但实际上已经丢失了唯一性约束
+		INSERT INTO performance_report
+		SELECT
+		  CONCAT('id:', student_id, ',name:', student_name) AS student_info,
+		  avg_score
+		FROM v;
+		```
+- 结果表的确立依赖于主键的设定，然而在数据输入过程中，其原有的顺序性却遭到破坏。
+	- 例如本文的示例，双流Join时若一方数据未通过主键与另一方关联，而结果表的主键列又是基于另一方的主键列生成的，这便可能导致数据顺序的混乱。
+- 明确配置了 `table.exec.sink.upsert-materialize` 参数为'force'，配置详情请参见下方的参数设置。
+
+## 4. 使用建议
+
+正如前面所提到的，SinkUpsertMaterializer 在其状态中维护了一个 RowData 列表。这可能会导致状态过大并增加状态访问I/O的开销，最终影响作业的吞吐量。因此，应尽量避免使用它。
+
+### 4.1 参数设置
+
+SinkUpsertMaterializer 可以通过 `table.exec.sink.upsert-materialize` 进行配置：
+- `auto`（默认值）：Flink 会从正确性的角度推断出乱序是否存在，如果必要的话，则会添加 SinkUpsertMaterializer。
+- `none`：不使用。
+- `force`：强制使用。即便结果表的 DDL 未指定主键，优化器也会插入 SinkUpsertMaterializer 状态节点，以确保数据的物理化处理。
+
+需要注意的是，设置为 auto 并不一定意味着实际数据是乱序的。例如，使用 grouping sets 语法结合 coalesce 转换 null 值时，SQL planner 可能无法确定由 grouping sets与 coalesce 组合生成的 upsert 键是否与结果表的主键匹配。出于正确性的考虑，Flink 将添加 SinkUpsertMaterializer。如果一个作业可以在不使用 SinkUpsertMaterializer 的情况下生成正确的输出，建议设置为 none。
 
 
 

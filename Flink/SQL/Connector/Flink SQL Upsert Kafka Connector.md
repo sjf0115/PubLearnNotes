@@ -28,10 +28,8 @@ Upsert Kafka Connector 可以以 upsert 的方式从 Kafka Topic 读取数据或
 | :------------- | :------------- | :------------- | :------------- | :------------- |
 | connector | 必填 | 无 | String | 指定使用的 Connector 名称，对于 Upsert Kafka 为 'upsert-kafka' |
 | topic | Sink 必填	| 无 | String | 读取或者写入的 Kafka Topic 名称 |
-| topic-pattern | 可选 | 无 | String | 匹配读取 topic 名称的正则表达式。在作业开始运行时，所有匹配该正则表达式的 topic 都将被 Kafka consumer 订阅。注意，对 source 表而言，'topic' 和 'topic-pattern' 两个选项只能使用其中一个 |
 | properties.bootstrap.servers | 必填 | 无 | String | 逗号分隔的 Kafka Broker 列表 |
-| properties.group.id | Source 必填 | 无 | String | Kafka Source 的消费组id |
-| properties.* | 可选	| 无 |	String | 可以设置和传递的任意 Kafka 配置项。后缀名必须与 Kafka 文档中的相匹配。Flink 会删除 "properties." 前缀并将变换后的配置键和值传入底层的 Kafka 客户端。例如，你可以通过 'properties.allow.auto.create.topics' = 'false' 来禁用 topic 的自动创建。但是某些配置项不支持进行配置，因为 Flink 会覆盖这些配置，例如 'key.deserializer' 和 'value.deserializer'。|
+| properties.* | 可选	| 无 |	String | 可以设置和传递的任意 Kafka 配置项。后缀名必须与 [Kafka 文档](https://kafka.apache.org/documentation/#configuration)中的相匹配。Flink 会删除 "properties." 前缀并将变换后的配置键和值传入底层的 Kafka 客户端。例如，你可以通过 'properties.allow.auto.create.topics' = 'false' 来禁用 topic 的自动创建。但是某些配置项不支持进行配置，因为 Flink 会覆盖这些配置，例如 'key.deserializer' 和 'value.deserializer'。|
 | format | 必填 |	无	| String | 序列化或反序列化 Kafka 消息 Value 部分的 Format。注意：该配置项和 'value.format' 二者必需其一。|
 | key.format | 可选	| 无 |	String | 序列化和反序列化 Kafka 消息 Key 部分的 Format。注意：该配置项与 'key.fields' 配置项必须成对出现。否则 Kafka 记录将使用空值作为键。|
 | key.fields | 可选	| [] | `List<String>`	| Kafka 消息 Key 字段列表。默认情况下该列表为空，即消息 Key 没有定义。列表格式为 'field1;field2'。|

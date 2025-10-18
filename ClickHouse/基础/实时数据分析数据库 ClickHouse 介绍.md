@@ -16,11 +16,11 @@ permalink: what-is-clickhouse
 
 在`正常`的面向行的DBMS中，数据按以下顺序存储：
 
-![](what-is-clickhouse-1.png)
+![](img-what-is-clickhouse-1.png)
 
 换句话说，与一行相关的所有值都物理存储在相邻的位置。面向行的 DBMS 的示例是 MySQL，Postgres 和 MS SQL Server。在面向列的DBMS中，数据存储如下：
 
-![](what-is-clickhouse-2.png)
+![](img-what-is-clickhouse-2.png)
 
 这些示例仅显示数据的排列顺序。不同列的值分别存储，同一列的数据一起存储。面向列的 DBMS 的示例有：`Vertica`，`Paraccel`（Actian Matrix和Amazon Redshift），`Sybase IQ`，`Exasol`，`Infobright`，`InfiniDB`，`MonetDB`（VectorWise和Actian Vector），`LucidDB`，`SAP HANA`，`Google Dremel`，`Google PowerDrill`，`Druid`和`KDB+`。
 
@@ -51,11 +51,11 @@ permalink: what-is-clickhouse
 
 面向行的数据库：
 
-![](what-is-clickhouse-3.gif)
+![](img-what-is-clickhouse-3.gif)
 
 面向列的数据库：
 
-![](what-is-clickhouse-4.gif)
+![](img-what-is-clickhouse-4.gif)
 
 看到不同了？
 

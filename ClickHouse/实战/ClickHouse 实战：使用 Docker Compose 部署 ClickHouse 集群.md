@@ -76,8 +76,10 @@ smartsi@localhost docker % cd clickhouse
     <path>/var/lib/clickhouse/</path>
     <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
 
-    <!--  监听host  -->
+    <!--  监听 IPv6 host  -->
     <listen_host>::</listen_host>
+    <!--  监听 IPv4 host  -->
+    <!-- <listen_host>0.0.0.0</listen_host> -->
 </clickhouse>
 ```
 > 这里列出来 config.xml 的一些核心配置，可以根据业务自行决定自定义配置
@@ -219,8 +221,7 @@ Query id: e27df6dc-c433-4c6a-97f2-416fd27364a9
 
 1 row in set. Elapsed: 0.002 sec.
 ```
-> 注意是否需要添加 `<listen_host>::</listen_host>` 配置，否则有可能抛出 `Code: 210. DB::NetException: Connection refused (ck1:9000). (NETWORK_ERROR)` 异常
-
+> 注意: 对于支持 IPv6 添加 `<listen_host>::</listen_host>`，否则配置 `<listen_host>0.0.0.0</listen_host>` 配置，否则有可能抛出 `Code: 210. DB::NetException: Connection refused (ck1:9000). (NETWORK_ERROR)` 异常
 
 此外，ClickHouse 提供了一个 HTTP 接口，用户可以通过任何支持 HTTP 的客户端来执行查询：
 ```

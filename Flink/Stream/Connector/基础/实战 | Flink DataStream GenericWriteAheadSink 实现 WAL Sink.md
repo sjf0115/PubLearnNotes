@@ -2,17 +2,17 @@ Flink 应用端到端的一致性保障取决于 Sink 连接器的属性，正�
 
 ## 1. 原理
 
-为了简化预写日志 WAL Sink 的实现，Flink DataStream API 提供了一个 GenericWriteAheadSink 模板(抽象类)，可以通过继承这个抽象类更加方便的实现一致性的 Sink。实现 GenericWriteAheadSink 的算子会和 Flink 的检查点机制相结合，目的是将记录以 Exactly-Once 语义写入外部系统。
+为了简化预写日志 WAL Sink 的实现，Flink DataStream API 提供了一个 [GenericWriteAheadSink](https://smartsi.blog.csdn.net/article/details/153583174) 模板(抽象类)，可以通过继承这个抽象类更加方便的实现一致性的 Sink。实现 GenericWriteAheadSink 的算子会和 Flink 的检查点机制相结合，目的是将记录以 Exactly-Once 语义写入外部系统。
 
-GenericWriteAheadSink 的工作原理是收集每个 Checkpoint 周期内所有需要写出的记录，并将它们存储到 Sink 任务的算子状态中。最终状态进行 Checkpoint 写入持久化存储中并在故障时用来恢复。由于在发生故障时可以恢复，所以不会导致数据丢失。当一个任务接收到 Checkpoint 完成通知时，会将此 Checkpoint 周期内的所有记录写入到外部系统。根据 Sink 的具体实现，这些记录可以被写入任意一个存储或者消息系统中。当所有记录发送成功时，Sink 需要在内部提交该 Checkpoint。
+GenericWriteAheadSink 的工作原理是收集每个 Checkpoint 周期内所有需要写出的记录，并将它们暂时存储到 Sink 任务的算子状态中。最终状态进行 Checkpoint 写入持久化存储中并在故障时用来恢复。由于在发生故障时可以恢复，所以不会导致数据丢失。当一个任务接收到 Checkpoint 完成通知时，会将此 Checkpoint 周期内的所有记录写入到外部系统。根据 Sink 的具体实现，这些记录可以被写入任意一个存储或者消息系统中。当所有记录发送成功时，Sink 需要在内部提交该 Checkpoint 来标记该 Checkpoint 对应的数据已提交到外部系统。
 
-Checkpoint 的提交分两步：第一步，Sink 需要将 Checkpoint 已提交的信息持久化。第二步，删除 WAL 中相应的数据。Checkpoint 已提交的信息无法存储在 Flink 应用程序状态中，因为状态本身不具有持久性，并且会在故障恢复时重置状态。实际上，GenericWriteAheadSink 依赖一个名为 CheckpointCommitter 的可插拔组件来控制外部持久化系统存储和查找已提交 Checkpoint 信息。
+Checkpoint 的提交分两步：第一步，Sink 需要将已提交的 Checkpoint 信息持久化。已提交的 Checkpoint 信息不能存储在 Flink 应用程序状态中，因为状态本身不具有持久性，并且会在故障恢复时重置状态。在实现上 GenericWriteAheadSink 依赖一个名为 CheckpointCommitter 的可插拔组件来控制外部持久化系统存储和查找已提交 Checkpoint 信息；第二步，删除 WAL 中相应的数据。
 
 ## 2. 注意
 
 需要特别注意的是，基于 WAL 的 Sink 在某些极端情况下可能会将同一条记录重复写出多次。因此 GenericWriteAheadSink 并不能百分之百的提供 Exactly-Once 语义保证，而只能做到 At-Least-Once 语义保证。有两种场景会导致同一条记录重复写出多次：
-- 在运行 `sendValues` 方法时发生故障。如果外部系统不支持原子性的写入多个记录(全写或者全不写)，那么就会出现部分数据已经写入而部分数据没能写入成功。由于此时检查点还没有提交，下次恢复时重写全部记录。
-- 所有记录都已经成功写入，`sendValues` 返回了 true，但是程序在调用 CheckpointCommitter 前出现故障或者 CheckpointCommitter 未能成功提交检查点。这样，在故障恢复期间，未提交的检查点所对应的全部记录都会被重新消费一次。
+- 在运行 `sendValues` 方法时发生故障。如果外部系统不支持原子性的写入多个记录(全写或者全不写)，那么就会出现部分数据已经写入而部分数据没能写入成功。由于此时 CheckpointCommitter 还没有标记 Checkpoint 已提交，下次恢复时重写全部记录。
+- 所有记录都已经成功写入，`sendValues` 返回了 true，但是程序在调用 CheckpointCommitter 前出现故障或者 CheckpointCommitter 未能成功提交 Checkpoint。这样，在故障恢复期间，未提交的检查点所对应的全部记录都会被重新消费一次。
 
 ## 3. 实现
 
@@ -54,6 +54,84 @@ private static class StdOutWALSink extends GenericWriteAheadSink<String> {
     }
 }
 ```
+### 3.1 FileCheckpointCommitter
+
+从上面可以看到内部使用一个名为 FileCheckpointCommitter 的 CheckpointCommitter，其目的是将 Sink 算子实例提交的检查点信息保存到文件中：
+```java
+public class FileCheckpointCommitter extends CheckpointCommitter {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FileCheckpointCommitter.class);
+
+    private String jobBasePath;
+    private final String basePath;
+
+    public FileCheckpointCommitter(String basePath) {
+        this.basePath = basePath;
+    }
+
+    @Override
+    public void open() throws Exception {
+        LOG.info("open committer");
+        // no need to open a connection
+    }
+
+    @Override
+    public void close() throws Exception {
+        LOG.info("close committer");
+        // no need to close a connection
+    }
+
+    // 创建资源(在这为文件)
+    @Override
+    public void createResource() throws Exception {
+        this.jobBasePath = this.basePath + "/" + this.jobId;
+        // 当前 JobId 作为提交文件的目录
+        Files.createDirectory(Paths.get(this.jobBasePath));
+        LOG.info("create resource {}", this.jobBasePath);
+    }
+
+    // 提交 Checkpoint(为每个任务实例提交)
+    @Override
+    public void commitCheckpoint(int subTaskIdx, long checkpointID) throws Exception {
+        Path commitPath = Paths.get(this.jobBasePath + "/" + subTaskIdx);
+        // 将 CheckpointID 转换为 16 进制字符串
+        String hexID = "0x" + StringUtils.leftPad(Long.toHexString(checkpointID), 16, "0");
+        // 将 16 进制字符串写进提交文件中
+        Files.write(commitPath, hexID.getBytes());
+        LOG.info("CheckpointId {} (SubTask = {}) commit, path is {}", checkpointID, subTaskIdx, commitPath);
+    }
+
+    // 判断该子任务对应的 Checkpoint 是否已经提交
+    @Override
+    public boolean isCheckpointCommitted(int subTaskIdx, long checkpointID) throws Exception {
+        boolean isCommitted;
+        Path commitPath = Paths.get(this.jobBasePath + "/" + subTaskIdx);
+        if (!Files.exists(commitPath)) {
+            // 提交文件都没有表示没有提交过
+            isCommitted = false;
+        } else {
+            // 从文件中读取提交的 CheckpointId
+            String hexID = Files.readAllLines(commitPath).get(0);
+            Long commitCheckpointID = Long.decode(hexID);
+            // 判断当前 CheckpointID 是否小于等于已提交的 CheckpointID
+            isCommitted = checkpointID <= commitCheckpointID;
+        }
+        if (isCommitted) {
+            LOG.info("CheckpointId {} (SubTask = {}) is committed", checkpointID, subTaskIdx);
+        } else {
+            LOG.info("CheckpointId {} (SubTask = {}) has not committed", checkpointID, subTaskIdx);
+        }
+        return isCommitted;
+    }
+}
+```
+
+
+
+> 具体实现可以查阅[源码解读 | Flink CheckpointCommitter](https://smartsi.blog.csdn.net/article/details/130550211)。
+
+### 3.2 构造函数
+
 GenericWriteAheadSink 完善的内部逻辑使得我们可以相对容易的实现基于 WAL 的 Sink。继承自 GenericWriteAheadSink 的算子需要在构造方法中提供三个参数：
 - 一个 CheckpointCommitter
 - 一个用于序列化输入记录的 TypeSerializer
@@ -72,7 +150,8 @@ public StdOutWALSink() throws Exception {
     );
 }
 ```
-> 从上面可以看到内部使用一个名为 FileCheckpointCommitter 的 CheckpointCommitter，其目的是将 Sink 算子实例提交的检查点信息保存到文件中，具体实现可以查阅[源码解读 | Flink CheckpointCommitter](https://smartsi.blog.csdn.net/article/details/130550211)。
+
+### 3.3 输出数据到外部系统 sendValues
 
 此外，最重要的是需要实现 `sendValues` 方法：
 ```java

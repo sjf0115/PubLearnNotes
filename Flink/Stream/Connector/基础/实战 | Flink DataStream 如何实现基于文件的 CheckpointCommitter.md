@@ -2,7 +2,7 @@
 
 CheckpointCommitter 很好的解决了第二个问题，可以通过保存是否提交了检查点信息来判断是否提交成功。这些数据必须存储在一个后端 Backend(比如分布式文件或者数据库)，即使在重启期间也是持久化的(这样就把 Flink 状态排除在外)，并且所有机器都可以访问。
 
-## 1. 解读
+## 1. 架构
 
 CheckpointCommitter 是一个抽象类，主要用来保存 Sink 算子实例提交给后端的检查点信息：
 ```java
@@ -118,6 +118,10 @@ public boolean isCheckpointCommitted(int subTaskIdx, long checkpointID) throws E
 ```
 首先判断以作业ID为目录，实例ID命名的文件是否存在，如果连文件都没有则表示该检查点肯定没有提交过。如果对应的文件存在，则需要判断文件中提交的检查点ID是否大于等于指定的检查点ID，如果大于等于，则表示提交过了。
 
+> 完整代码：[FileCheckpointCommitter](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/sink/wal/FileCheckpointCommitter.java)
+
+## 3. 使用
+
 创建完 FileCheckpointCommitter 之后，简单看一下如何使用：
 ```java
 private static class StdOutWALSink extends GenericWriteAheadSink<Tuple2<String, Long>> {
@@ -133,8 +137,6 @@ private static class StdOutWALSink extends GenericWriteAheadSink<Tuple2<String, 
 ```
 从上面可以看到我们在基于 GenericWriteAheadSink 实现的一个 WAL Sink 中使用 FileCheckpointCommitter 来保存 Sink 算子实例提交给后端的检查点信息。使用比较简单，只需要传递一个保存文件的目录即可，在这我们选择的是系统临时目录。
 
-> 详细代码请查阅：[StdOutWriteAheadSinkExample](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/sink/wal/StdOutWriteAheadSinkExample.java)
+> 完整代码：[StdOutWriteAheadSinkExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/sink/wal/StdOutWriteAheadSinkExample.java)
 
 除了我们自己实现的 FileCheckpointCommitter 之外，你也可以查看 Flink 的一个内置实现 [CassandraCommitter](https://github.com/apache/flink/blob/release-1.16.1/flink-connectors/flink-connector-cassandra/src/main/java/org/apache/flink/streaming/connectors/cassandra/CassandraCommitter.java)。
-
-> 完整代码请查阅：[FileCheckpointCommitter](https://github.com/sjf0115/data-example/blob/master/flink-example/src/main/java/com/flink/example/stream/state/checkpoint/FileCheckpointCommitter.java)

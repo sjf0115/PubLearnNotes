@@ -54,9 +54,11 @@ private static class StdOutWALSink extends GenericWriteAheadSink<String> {
     }
 }
 ```
+> 详细实现细节可以查阅[源码解读 | Flink DataStream GenericWriteAheadSink 深度解析](https://smartsi.blog.csdn.net/article/details/153583174)。
+
 ### 3.1 FileCheckpointCommitter
 
-从上面可以看到内部使用一个名为 FileCheckpointCommitter 的 CheckpointCommitter，其目的是将 Sink 算子实例提交的检查点信息保存到文件中：
+从上面可以看到内部使用一个名为 FileCheckpointCommitter 的 CheckpointCommitter，其目的是将通过 sendValues 成功输出数据到外部系统的对应的 CheckpointId 保存到文件中：
 ```java
 public class FileCheckpointCommitter extends CheckpointCommitter {
 
@@ -126,9 +128,7 @@ public class FileCheckpointCommitter extends CheckpointCommitter {
 }
 ```
 
-
-
-> 具体实现可以查阅[源码解读 | Flink CheckpointCommitter](https://smartsi.blog.csdn.net/article/details/130550211)。
+> 详细实现细节可以查阅[实战 | Flink DataStream 如何实现基于文件的 CheckpointCommitter](https://smartsi.blog.csdn.net/article/details/130550211)。
 
 ### 3.2 构造函数
 
@@ -167,13 +167,13 @@ protected boolean sendValues(Iterable<Tuple2<String, Long>> words, long checkpoi
     return true;
 }
 ```
-GenericWriteAheadSink 会调用 `sendValues` 方法将已完成检查点 `checkpointId` 对应的全部记录写入外部存储系统。该方法第一个参数是检查点 `checkpointId` 对应全部记录的 Iterable 对象 `words`、检查点ID `checkpointId` 以及检查点的生成时间 `timestamp`。在这我们简单实现了一个写标准输出的 WAL Sink，输出该检查点对应的全部记录。在全部记录写出成功时返回 true，如果失败则返回 false。
+GenericWriteAheadSink 会调用 `sendValues` 方法将 `checkpointId` 对应的全部记录写入外部存储系统。该方法第一个参数是检查点 `checkpointId` 对应全部记录的 Iterable 对象 `words`、检查点ID `checkpointId` 以及检查点的生成时间 `timestamp`。在这我们简单实现了一个写标准输出的 WAL Sink，输出该检查点对应的全部记录。在全部记录写出成功时返回 true，如果失败则返回 false。
 
 > 你可以简单理解 GenericWriteAheadSink 实现了一个缓存，在收到上游的记录时，先将消息存储在状态中，再收到 Checkpoint 完成通知后，调用 `sendValues` 方法向外部系统输出缓冲的全部记录。GenericWriteAheadSink 相当于缓存了一个 Checkpoint 间隔的记录。
 
-
 ## 4. 示例
 
+这个示例中统计单词的出现次数。为了模拟程序 Failover 遇到 ERROR 的单词则抛出异常：
 ```java
 // 每隔 30s 进行一次 Checkpoint 如果不设置 Checkpoint 自定义 WAL Sink 不会输出数据
 env.enableCheckpointing(30 * 1000);
@@ -216,7 +216,7 @@ wordCountStream.transform(
 );
 ```
 
->完整代码请查阅：[StdOutWriteAheadSinkExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/sink/wal/StdOutWriteAheadSinkExample.java)
+> 完整代码请查阅：[StdOutWriteAheadSinkExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/sink/wal/StdOutWriteAheadSinkExample.java)
 
 需要注意的是，GenericWriteAheadSink 没有实现 SinkFunction 接口。因此我们无法使用 `DataStream.addSink()` 方法添加一个继承自 GenericWriteAheadSink 的 Sink，而是要使用 `DataStream.transform()` 方法：
 ```java
@@ -228,7 +228,7 @@ result.transform(
 ```
 
 实际输出效果如下所示：
-```
+```java
 22:51:41,269 INFO  org.apache.kafka.clients.consumer.KafkaConsumer              [] - [Consumer clientId=consumer-word-count-2, groupId=word-count] Subscribed to partition(s): word-0
 22:51:41,271 INFO  org.apache.kafka.clients.consumer.internals.SubscriptionState [] - [Consumer clientId=consumer-word-count-2, groupId=word-count] Seeking to LATEST offset of partition word-0
 22:51:41,277 INFO  org.apache.kafka.clients.Metadata                            [] - [Consumer clientId=consumer-word-count-2, groupId=word-count] Cluster ID: 08_cspBUQ76ihA2JXXIV9w

@@ -29,9 +29,13 @@ public ChangelogMode getChangelogMode() {
 
 ##### 1.1.1.2 用户显式设置 'table.exec.source.cdc-events-duplicate' = 'true'
 
-解析：在使用 at-least-once 语义进行CDC事件处理时，可能会产生重复的变更日志。在需要 exactly-once 语义时，用户需要开启此配置项来对变更日志进行去重。
+在使用 at-least-once 语义进行 CDC 事件处理时，可能会产生重复的变更日志。在需要 exactly-once 语义时，用户需要开启此配置项来对变更日志进行去重。
 
-**举例：**当出现该算子时，上游数据将按照 FlinkSQL 源表 DDL 中定义的主键做一次 hash shuffle 操作后使用 ValueState 来存储当前主键下最新的整行记录，以更新状态向下游发送变更。故处理第二条 `-U(2, 'Jerry', 77)` 的时候 state 已经是 empty 了, 说明截止目前 `+I/+UA` 和 `-D/-UB` 已经两两抵销, 当前这条 retract 消息就是重复的, 可以丢弃。
+![](img-control-state-size-to-prevent-backpressure-in-sql-deployments-1.svg)
+
+当出现该算子时，上游数据将按照 Flink SQL 源表 DDL 中定义的主键做一次 hash shuffle 操作后使用 ValueState 来存储当前主键下最新的整行记录，以更新状态向下游发送变更。故处理第二条 `-U(2, 'Jerry', 77)` 的时候 state 已经是 empty 了, 说明截止目前 `+I/+UA` 和 `-D/-UB` 已经两两抵销, 当前这条 retract 消息就是重复的, 可以丢弃。
+
+![](img-control-state-size-to-prevent-backpressure-in-sql-deployments-2.svg)
 
 #### 1.1.2 SinkUpsertMaterializer
 
@@ -123,7 +127,7 @@ s2 表收到了如下一条对于s2表，接收到了一条新的插入事件：
 
 #### 1.1.3 LookupJoin
 
-在处理LookupJoin操作时，若用户主动配置了系统优化选项'table.optimizer.non-deterministic-update.strategy'为'TRY_RESOLVE'，且优化器识别到潜在的非确定性更新问题[4](https://nightlies.apache.org/flink/flink-docs-release-1.18/zh/docs/dev/table/concepts/determinism/#33-如何消除流查询的不确定性影响)，则系统会尝试采取特殊措施以解决这一问题。具体而言，若通过引入一个状态算子能够消除非确定性，优化器便会自动创建一个带状态的LookupJoin算子。
+在处理 LookupJoin 操作时，若用户主动配置了系统优化选项 'table.optimizer.non-deterministic-update.strategy' 为 'TRY_RESOLVE'，且优化器识别到潜在的[非确定性更新问题](https://smartsi.blog.csdn.net/article/details/153190145)，则系统会尝试采取特殊措施以解决这一问题。具体而言，若通过引入一个状态算子能够消除非确定性，优化器便会自动创建一个带状态的 LookupJoin 算子。
 
 这种带状态的 LookupJoin 算子主要适用于以下情况：结果表被定义了主键，而这些主键完全或部分来自于维度表（维表），同时维表中的数据可能会发生变化（例如通过变更数据捕获，即CDC Lookup Source机制）。此外，用于Join操作的字段在维表中并非主键。在这种情况下，带状态的LookupJoin算子能够有效地处理数据的动态变化，确保查询结果的准确性和一致性。
 

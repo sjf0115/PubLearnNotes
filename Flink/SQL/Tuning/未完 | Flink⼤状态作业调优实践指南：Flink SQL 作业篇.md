@@ -133,8 +133,7 @@ s2 表收到了如下一条对于s2表，接收到了一条新的插入事件：
 
 ### 1.2 基于 SQL 操作产生的状态算子
 
-基于 SQL 操作产生的状态算子，按状态清理机制可以分为 **TTL 过期**和 **依赖 watermark 推进** 两类。具体说来，Flink SQL 里有部分状态算子的生命周期不是由 TTL 来控制的，比如 Window 相关的状态计算，如 WindowAggregate、WindowDeduplicate、WindowJoin、WindowTopN 等。它们的状态清理主要依赖于 watermark 的推进，当 watermark 超过窗口结束时间时，内置的定时器就会触发状态清理。
-
+基于 SQL 操作产生的状态算子，按状态清理机制可以分为 **TTL 过期** 和 **依赖 watermark 推进** 两类。具体说来，Flink SQL 里有部分状态算子的生命周期不是由 TTL 来控制的，比如 Window 相关的状态计算，如 WindowAggregate、WindowDeduplicate、WindowJoin、WindowTopN 等。它们的状态清理主要依赖于 watermark 的推进，当 watermark 超过窗口结束时间时，内置的定时器就会触发状态清理。
 
 | 状态算子 | 如何产生 | 状态清理机制 |
 | -------- | -------- | -------- |
@@ -156,14 +155,18 @@ s2 表收到了如下一条对于s2表，接收到了一条新的插入事件：
 
 
 ## 2. 调优方法
+
 ### 2.1 主动避免生成不必要的状态算子
+
 基于 SQL 操作的状态计算一般很难避免，这里主要针对优化器自动推导的算子进行讨论。
 
 #### 2.1.1 ChangelogNormalize
-在使用 upsert source 进行数据处理时，我们需注意其ChangelogNormalize 这种状态节点的生成。通常情况下，除了事件时间的时态关联（event time temporal join）之外，其他 upsert source 应用场景都会产生该状态节点。因此，在选择 upsert-kafka 或类似的 upsert 连接器时，应首先评估具体的使用场景。对于非事件时间关联的场景，我们应特别关注状态算子的状态指标（state metrics）。由于状态节点是基于 KeyedState 的，当源表的主键数量庞大时，状态节点的规模也会相应增加。如果物理表的主键更新频繁，状态节点也将频繁地被访问和修改。从实践角度而言，像数据同步类的场景，最好避免使用 upsert-kafka 作为源表连接器，同时在数据同步工具上也最好选择能够保证 exactly-once 语义的。
+
+在使用 upsert source 进行数据处理时，我们需注意其 ChangelogNormalize 这种状态节点的生成。通常情况下，除了事件时间的时态关联（event time temporal join）之外，其他 upsert source 应用场景都会产生该状态节点。因此，在选择 upsert-kafka 或类似的 upsert 连接器时，应首先评估具体的使用场景。对于非事件时间关联的场景，我们应特别关注状态算子的状态指标（state metrics）。由于状态节点是基于 KeyedState 的，当源表的主键数量庞大时，状态节点的规模也会相应增加。如果物理表的主键更新频繁，状态节点也将频繁地被访问和修改。从实践角度而言，像数据同步类的场景，最好避免使用 upsert-kafka 作为源表连接器，同时在数据同步工具上也最好选择能够保证 exactly-once 语义的。
 
 #### 2.1.2 SinkUpsertMaterializer
-在 `table.exec.sink.upsert-materialize` 配置项中，AUTO作为其预设选项，表明系统会自动判断数据的一致性，尤其是在变更日志（changelog）出现无序的情况下。该机制确保了通过引入 SinkUpsertMaterializer 算子来维持数据处理的准确性。然而，这并不意味着每当该算子被激活，数据就一定存在无序问题。例如，在先前的讨论中，我们提到了将多个分组键（group by key）合并的操作，这种情况下，优化器无法准确推导出upsert键，因此出于安全考虑，会默认添加 SinkUpsertMaterializer。然而，对于用户而言，如果他们对数据的分布有充分的了解，即便不使用这个状态算子，也能够确保输出结果的正确性，从而在数据正确性和性能上都得到保证。
+
+在 `table.exec.sink.upsert-materialize` 配置项中，AUTO 作为其预设选项，表明系统会自动判断数据的一致性，尤其是在变更日志（changelog）出现无序的情况下。该机制确保了通过引入 SinkUpsertMaterializer 算子来维持数据处理的准确性。然而，这并不意味着每当该算子被激活，数据就一定存在无序问题。例如，在先前的讨论中，我们提到了将多个分组键（group by key）合并的操作，这种情况下，优化器无法准确推导出upsert键，因此出于安全考虑，会默认添加 SinkUpsertMaterializer。然而，对于用户而言，如果他们对数据的分布有充分的了解，即便不使用这个状态算子，也能够确保输出结果的正确性，从而在数据正确性和性能上都得到保证。
 
 为了从实际操作层面了解 SinkUpsertMaterializer 的使用情况，用户可以通过检查作业的最后一个节点来确认其是否被激活。在作业的运行拓扑图中，该算子通常会与 sink 算子一起显示，形成一个操作链。通过这种方式，用户可以直观地监控和评估SinkUpsertMaterializer在数据处理过程中的实际应用情况，从而做出更加合理的优化决策。
 

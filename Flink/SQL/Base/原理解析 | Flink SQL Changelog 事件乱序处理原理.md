@@ -12,7 +12,7 @@
 
 binlog 和 CDC 是与 Flink 集成的外部 Changelog 数据源，Flink SQL 内部也会生成 Changelog 数据。为了区分事件是否为更新事件，我们将仅包含 INSERT 类型事件的 Changelog 称为追加流(Append-only)或非更新流，而同时包含其他类型（例如 UPDATE）事件的 Changelog 称为更新流。Flink 中的一些操作（如分组聚合和去重）可以产生更新事件，生成更新事件的操作通常会使用状态，这类操作被称为状态算子。需要注意的是，并非所有状态算子都支持处理更新流。例如，Over 窗口聚合和 Interval Join 暂不支持更新流作为输入。
 
-### 1.3 Changelog的事件类型
+### 1.3 Changelog 的事件类型
 
 [FLINK-6047](https://issues.apache.org/jira/browse/FLINK-6047) 引入了回撤机制，使用 INSERT 和 DELETE 两种事件类型（尽管数据源仅支持 INSERT 事件），实现了流 SQL 算子的增量更新算法。[FLINK-16987](https://issues.apache.org/jira/browse/FLINK-16987) 以后，Changelog 事件类型被重构为四种类型（如下），形成一个完整的 Changelog 事件类型体系，便于与 CDC 生态系统连接。
 ```java
@@ -45,7 +45,7 @@ public enum RowKind {
 ```
 
 Flink 不使用包含 UPDATE_BEFORE 和 UPDATE_AFTER 的复合 UPDATE 事件类型的原因主要有两个方面：
-- 拆分的事件无论是何种事件类型（仅RowKind不同）都具有相同的事件结构，这使得序列化更简单。如果使用复合UPDATE事件，那么事件要么是异构的，要么是 INSERT 或 DELETE 事件对齐 UPDATE 事件（例如，INSERT事件仅含有UPDATE_AFTER，DELETE事件仅含有UPDATE_BEFORE）。
+- 拆分的事件无论是何种事件类型（仅 RowKind 不同）都具有相同的事件结构，这使得序列化更简单。如果使用复合 UPDATE 事件，那么事件要么是异构的，要么是 INSERT 或 DELETE 事件对齐 UPDATE 事件（例如，INSERT事件仅含有UPDATE_AFTER，DELETE事件仅含有UPDATE_BEFORE）。
 - 在分布式环境下，经常涉及数据shuffle（例如Join、聚合）。即使使用复合UPDATE事件，有时仍需将其拆分为单独的DELETE和INSERT事件进行shuffle，例如下面的示例。
 
 ### 1.4 示例

@@ -1,18 +1,15 @@
-https://zhuanlan.zhihu.com/p/266526305
-https://blog.csdn.net/hyunbar/article/details/121682399
-https://mp.weixin.qq.com/s/KaWJ99oGn3WJysfc5OcmTA
+> Flink 版本：1.13.6
 
-
-Flink 提供了丰富的 Date 和 Time 数据类型，包括 DATE、TIME、TIMESTAMP、TIMESTAMP_LTZ、INTERVAL YEAR TO MONTH、INTERVAL DAY TO SECOND（详见日期和时间）。 Flink 支持在会话级别设置时区（详见 table.local-time-zone）。 Flink 的这些时间戳数据类型和时区支持使得跨时区处理业务数据变得容易。
+Flink 提供了丰富的 Date 和 Time 数据类型，包括 DATE、TIME、TIMESTAMP、TIMESTAMP_LTZ、INTERVAL YEAR TO MONTH、INTERVAL DAY TO SECOND（详见[日期和时间](https://nightlies.apache.org/flink/flink-docs-release-1.13/docs/dev/table/types/#date-and-time)）。 Flink 支持在会话级别设置时区（详见 table.local-time-zone）。 Flink 的这些时间戳数据类型和时区支持使得跨时区处理业务数据变得容易。
 
 ## 1. TIMESTAMP vs TIMESTAMP_LTZ
 
-### 1.1 TIMESTAMP
+### 1.1 TIMESTAMP 数据类型
 
-- TIMESTAMP(p) 是 TIMESTAMP(p) WITHOUT TIME ZONE 的缩写，精度 p 支持的范围是 0 到 9，默认为 6。
+- `TIMESTAMP(p)` 是 `TIMESTAMP(p) WITHOUT TIME ZONE` 的缩写，精度 p 支持的范围是 0 到 9，默认为 6。
 - TIMESTAMP 描述了一个时间戳，表示年、月、日、小时、分钟、秒和小数秒。
 - TIMESTAMP 可以从字符串文字中指定，例如
-```
+```sql
 Flink SQL> SELECT TIMESTAMP '1970-01-01 00:00:04.001';
 +----+-------------------------+
 | op |                  EXPR$0 |
@@ -22,10 +19,10 @@ Flink SQL> SELECT TIMESTAMP '1970-01-01 00:00:04.001';
 Received a total of 1 row
 ```
 
-### 1.2 TIMESTAMP_LTZ
+### 1.2 TIMESTAMP_LTZ 数据类型
 
-- TIMESTAMP_LTZ(p) 是 TIMESTAMP(p) WITH LOCAL TIME ZONE 的缩写，精度 p 支持范围为 0 到 9，默认为 6。
-- TIMESTAMP_LTZ 描述时间线上的一个绝对时间点，表示从时间原点流逝过的时间。用一个表示纪元毫秒的 long 值和一个表示纳秒毫秒的 int 值表示。同一时刻，从时间原点流逝的时间在所有时区都是相同的，所以这个 Long 值是绝对时间的概念。当我们在不同的时区去观察这个值，我们会用本地的时区去解释成 “年-月-日-时-分-秒” 的可读格式。TIMESTAMP_LTZ 类型也更加符合用户在不同时区下的使用习惯。每个 TIMESTAMP_LTZ 类型的数据都在当前会话中配置的本地时区进行解释，以进行计算和可视化。
+- `TIMESTAMP_LTZ(p)` 是 `TIMESTAMP(p) WITH LOCAL TIME ZONE` 的缩写，精度 p 支持范围为 0 到 9，默认为 6。
+- TIMESTAMP_LTZ 描述时间线上的一个绝对时间点，表示从时间原点流逝过的时间。用一个表示纪元毫秒的 Long 值和一个表示纳秒毫秒的 int 值表示。同一时刻，从时间原点流逝的时间在所有时区都是相同的，所以这个 Long 值是绝对时间的概念。当我们在不同的时区去观察这个值时，会用本地的时区去解释成 '年-月-日-时-分-秒' 的可读格式。TIMESTAMP_LTZ 类型也更加符合用户在不同时区下的使用习惯。每个 TIMESTAMP_LTZ 类型的数据都在当前会话中配置的本地时区进行解释，以进行计算和可视化。
 - TIMESTAMP_LTZ 没有字符串表示形式，因此不能从字符串中指定。
 - TIMESTAMP_LTZ 可以用于跨时区业务，因为是绝对时间点描述了不同时区的同一瞬时点。在同一时间点，世界上所有机器的 System.currentTimeMillis() 返回的值都是一样的。这两者是一样的逻辑。
 
@@ -82,7 +79,7 @@ tEnv.getConfig().setLocalTimeZone(ZoneId.of("America/Los_Angeles"));
 ```
 在会话中设置时区在 Flink SQL 中很有用。
 
-### 2.1 决定时间函数返回值
+### 2.1 影响时间函数的返回值
 
 如下时间函数会受到配置的时区影响：
 - LOCALTIME
@@ -209,7 +206,7 @@ Flink SQL> DESC MyView3;
 +-----------------+-----------------------------+-------+-----+--------+-----------+
 ```
 使用以下命令在终端中提取 MyTable1 的数据：
-```
+```sql
 > nc -lk 9999
 A,1.1
 B,1.2
@@ -252,7 +249,7 @@ Flink 支持在 TIMESTAMP 列和 TIMESTAMP_LTZ 列上定义事件时间属性。
 #### 3.2.1 TIMESTAMP 上的事件时间属性
 
 如果源中的时间戳数据表示为年-月-日-时-分-秒，通常是没有时区信息的字符串值，例如 2020-04-15 20:13:40.564，建议将事件时间属性定义为 TIMESTAMP 列：
-```
+```sql
 Flink SQL> CREATE TABLE MyTable2 (
                   item STRING,
                   price DOUBLE,
@@ -289,7 +286,7 @@ Flink SQL> DESC MyView4;
 +----------------+------------------------+------+-----+--------+-----------+
 ```
 使用以下命令在终端中提取 MyTable2 的数据：
-```
+```sql
 > nc -lk 9999
 A,1.1,2021-04-15 14:01:00
 B,1.2,2021-04-15 14:02:00
@@ -299,7 +296,7 @@ C,3.8,2021-04-15 14:05:00
 C,3.8,2021-04-15 14:11:00
 ```
 
-```
+```sql
 Flink SQL> SET 'table.local-time-zone' = 'UTC';
 Flink SQL> SELECT * FROM MyView4;
 +-------------------------+-------------------------+-------------------------+------+-----------+
@@ -314,7 +311,7 @@ Flink SQL> SELECT * FROM MyView4;
 ```
 与 UTC 时区中的计算相比，返回相同的窗口开始、窗口结束和窗口行时间。
 
-```
+```sql
 +-------------------------+-------------------------+-------------------------+------+-----------+
 |            window_start |              window_end |          window_rowtime | item | max_price |
 +-------------------------+-------------------------+-------------------------+------+-----------+
@@ -372,7 +369,7 @@ C,3.8,1618495500000  # The corresponding utc timestamp is 2021-04-15 14:05:00
 C,3.8,1618495860000  # The corresponding utc timestamp is 2021-04-15 14:11:00
 ```
 
-```
+```sql
 Flink SQL> SET 'table.local-time-zone' = 'UTC';
 Flink SQL> SELECT * FROM MyView5;
 +-------------------------+-------------------------+-------------------------+------+-----------+
@@ -401,7 +398,7 @@ Flink SQL> SELECT * FROM MyView5;
 Flink SQL 支持在 TIMESTAMP_LTZ 列上定义时间属性，基于此，Flink SQL 在窗口处理中优雅地使用 TIMESTAMP 和 TIMESTAMP_LTZ 类型来支持夏令时。
 
 Flink 使用时间戳字面量来分割窗口，并根据每一行的纪元时间将窗口分配给数据。这意味着 Flink 使用 TIMESTAMP 类型作为窗口开始和窗口结束（例如 TUMBLE_START 和 TUMBLE_END），使用 TIMESTAMP_LTZ 作为窗口时间属性（例如 TUMBLE_PROCTIME、TUMBLE_ROWTIME）。 给定滚动窗口的示例，Los_Angeles 的 DaylightTime 开始于时间 2021-03-14 02:00:00：
-```
+```sql
 long epoch1 = 1615708800000L; // 2021-03-14 00:00:00
 long epoch2 = 1615712400000L; // 2021-03-14 01:00:00
 long epoch3 = 1615716000000L; // 2021-03-14 03:00:00, skip one hour (2021-03-14 02:00:00)

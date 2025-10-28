@@ -70,9 +70,11 @@ update_time  product_id product_name price
 
 ## 4. 创建版本表
 
+### 4.1 版本化表数据源
+
 可以将定义成变更日志的 Source 或 Format 的任何表隐式定义为版本表。示例包括 upsert Kafka 源以及数据库变更日志格式，如 debezium 和 canal。如上所述，惟一的附加要求是 CREATE 表语句必须包含 PRIMARY KEY 和事件时间属性。
 
-### 4.1 基于 CDC 数据源创建
+#### 4.1.1 基于 CDC 数据源创建
 
 ```sql
 -- 使用 MySQL CDC 连接器创建版本化表
@@ -103,7 +105,7 @@ FROM products
 FOR SYSTEM_TIME AS OF update_time;
 ```
 
-### 4.2 基于变更日志流创建
+#### 4.1.2 基于变更日志流创建
 
 ```sql
 -- 假设有产品变更数据流
@@ -135,9 +137,12 @@ CREATE TABLE products (
 ) WITH (...);
 ```
 
-如果底层查询包含唯一键约束和事件时间属性，Flink 还支持定义版本化视图。想象一个仅能附加的汇率表。
 
-```
+
+### 4.2 版本化表视图
+
+如果底层查询包含唯一键约束和事件时间属性，Flink 还支持定义版本化视图。假设有一个 Append-only 的汇率表：
+```sql
 CREATE TABLE currency_rates (
 	currency      STRING,
 	rate          DECIMAL(32, 10),
@@ -150,6 +155,56 @@ CREATE TABLE currency_rates (
 	'format'    = 'json'
 );
 ```
+currency_rates 表包含每种货币相对于美元的汇率记录，并且每次汇率变化时都会接收一条新记录。JSON 格式不支持原生的变更日志 Changelog 语义，因此 Flink 只能以 Append-only 模式读取此表。
+```
+(changelog kind) update_time   currency   rate
+================ ============= =========  ====
++(INSERT)        09:00:00      Yen        102
++(INSERT)        09:00:00      Euro       114
++(INSERT)        09:00:00      USD        1
++(INSERT)        11:15:00      Euro       119
++(INSERT)        11:49:00      Pounds     108
+```
+Flink 将每一行解释为对表的一次插入，这意味着我们无法在 currency 字段上定义主键。但是对我们（查询开发者）来说很清楚，这个表包含了定义版本表所需的所有信息。Flink 可以通过定义一个去重查询，将此表重新解释为一个版本表，该查询生成一个带有推断的主键 `currency` 和事件时间 `update_time` 的有序变更日志流。
+
+```sql
+-- 定义版本化视图
+CREATE VIEW versioned_rates AS              
+SELECT currency, rate, update_time              -- (1) `update_time` keeps the event time
+  FROM (
+      SELECT *,
+      ROW_NUMBER() OVER (PARTITION BY currency  -- (2) the inferred unique key `currency` can be a primary key
+         ORDER BY update_time DESC) AS rownum
+      FROM currency_rates)
+WHERE rownum = 1;
+
+-- versioned_rates 视图产生如下 Changelog
+(changelog kind) update_time currency   rate
+================ ============= =========  ====
++(INSERT)        09:00:00      Yen        102
++(INSERT)        09:00:00      Euro       114
++(INSERT)        09:00:00      USD        1
++(UPDATE_AFTER)  10:45:00      Euro       116
++(UPDATE_AFTER)  11:15:00      Euro       119
++(INSERT)        11:49:00      Pounds     108
+```
+Flink 有一个特殊的优化步骤，可以将此查询高效地转换为可用于后续查询的版本化表。一般来说，具有以下格式的查询结果会产生一个版本化表：
+```sql
+SELECT [column_list]
+FROM (
+   SELECT [column_list],
+     ROW_NUMBER() OVER ([PARTITION BY col1[, col2...]]
+       ORDER BY time_attr DESC) AS rownum
+   FROM table_name)
+WHERE rownum = 1
+```
+参数规范
+- `ROW_NUMBER()`：为每一行分配一个唯一的、连续的数字，从1开始。
+- `PARTITION BY col1[, col2...]`：指定分区列，即去重键。这些列形成后续版本化表的主键。
+- `ORDER BY time_attr DESC`：指定排序列，必须是一个时间属性。
+- `WHERE rownum = 1`：`rownum = 1` 是 Flink 识别此查询旨在生成版本化表所必需的。
+
+
 
 ## 5. Versioned Tables 的查询操作
 
@@ -224,4 +279,5 @@ FROM price_changes
 WHERE prev_price IS NOT NULL;
 ```
 
+> https://blog.csdn.net/bluishglc/article/details/136392632
 > https://nightlies.apache.org/flink/flink-docs-release-1.14/docs/dev/table/concepts/versioned_tables/

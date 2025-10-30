@@ -11,10 +11,10 @@ categories: Flink
 permalink: flink-sql-table-source-sink
 ---
 
-> Flink 版本：1.10
+> Flink 版本：1.11
 
 
-https://blog.csdn.net/wangpei1949/article/details/105619547
+https://wangpei.blog.csdn.net/article/details/105619547
 
 TableFactory 接口允许将与外部系统的连接声明与实际实现分开。Table Factory 根据标准化、基于字符串的属性创建 TableSource 或者 TableSink 的配置实例。可以使用 Descriptor 以编程方式或通过 SQL 客户端的 YAML 配置文件生成属性。
 
@@ -30,9 +30,9 @@ TableSource<T> {
   public String explainSource();
 }
 ```
-- getTableSchema()：返回生成表的 schema，即表的字段名称和类型。字段类型使用 Flink 的 DataType 定义。需要注意的是，返回的 TableSchema 不会包含计算列来表达物理 TableSource 的 schema。
-- getReturnType()：返回 DataStream（StreamTableSource）或 DataSet（BatchTableSource）的物理类型以及 TableSource 产生的记录。
-- explainSource()：返回一个描述 TableSource 的字符串。此方法是可选的，仅用于显示目的。
+- `getTableSchema()`：返回生成表的 schema，即表的字段名称和类型。字段类型使用 Flink 的 DataType 定义。需要注意的是，返回的 TableSchema 不会包含计算列来表达物理 TableSource 的 schema。
+- `getReturnType()`：返回 DataStream（StreamTableSource）或 DataSet（BatchTableSource）的物理类型以及 TableSource 产生的记录。
+- `explainSource()`：返回一个描述 TableSource 的字符串。此方法是可选的，仅用于显示目的。
 
 TableSource 接口将逻辑表 schema 与返回的 DataStream 或 DataSet 的物理类型做了区分。因此，表 schema (getTableSchema()) 的所有字段都必须映射到具有物理返回类型 (getReturnType()) 对应类型的字段。默认情况下，此映射是基于字段名称完成的。例如，表 schema 具有两个字段 [name: String, size: Integer] 的 TableSource 需要一个 TypeInformation，其中至少有两个字段，String 类型的 name 以及 Integer 类型的 size。可能是一个 PojoTypeInfo 或一个 RowTypeInfo，它们有两个名为 name 和 size 且类型匹配的字段。
 

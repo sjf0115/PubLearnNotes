@@ -49,6 +49,7 @@ DynamicTableSourceFactory 和 DynamicTableSinkFactory 提供指定 Connector 的
 
 
 
+mvn dependency:resolve -Dincludes=org.apache.flink:flink-table-api-java-bridge_2.12 -Dclassifier=sources
 
 
 

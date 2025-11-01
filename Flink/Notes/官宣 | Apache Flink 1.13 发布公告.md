@@ -1,3 +1,5 @@
+https://mp.weixin.qq.com/s/zR_W_xZwkFkHeWMYhBnB-A
+
 Flink 1.13 发布了！Flink 1.13 包括了超过 200 名贡献者所提交的 1000 多项修复和优化。
 
 这一版本中，Flink 的一个主要目标取得了重要进展，即让流处理应用的使用像普通应用一样简单和自然。Flink 1.13 新引入的被动扩缩容使得流作业的扩缩容和其它应用一样简单，用户仅需要修改并发度即可。
@@ -196,67 +198,40 @@ END;
 
 ### 2.4 Hive 查询语法兼容性
 
-用户现在在 Flink 上也可以使用 Hive SQL 语法。除了 Hive DDL 方言之外，Flink现在也支持常用的 Hive DML 和 DQL 方言。
+用户现在在 Flink 上也可以使用 Hive SQL 语法。除了 Hive DDL 方言之外，Flink 现在也支持常用的 Hive DML 和 DQL 方言。
 
-
-
-为了使用 Hive SQL 方言，需要设置 table.sql-dialect 为 hive 并且加载 HiveModule。后者非常重要，因为必须要加载 Hive 的内置函数后才能正确实现对 Hive 语法和语义的兼容性。例子如下：
-
-
-
+为了使用 Hive SQL 方言，需要设置 `table.sql-dialect` 为 hive 并且加载 HiveModule。后者非常重要，因为必须要加载 Hive 的内置函数后才能正确实现对 Hive 语法和语义的兼容性。例子如下：
+```sql
 CREATE CATALOG myhive WITH ('type' = 'hive'); -- setup HiveCatalog
 USE CATALOG myhive;
+
 LOAD MODULE hive; -- setup HiveModule
 USE MODULES hive,core;
+
 SET table.sql-dialect = hive; -- enable Hive dialect
 SELECT key, value FROM src CLUSTER BY key; -- run some Hive queries
-
+```
 
 需要注意的是， Hive 方言中不再支持 Flink 语法的 DML 和 DQL 语句。如果要使用 Flink 语法，需要切换回 default 的方言配置。
 
-
-
 ### 2.5 优化的 SQL 时间函数
 
-
-在数据处理中时间处理是一个重要的任务。但是与此同时，处理不同的时区、日期和时间是一个日益复杂[16] 的任务。
-
-
-
-在 Flink 1.13 中，我们投入了大量的精力来简化时间函数的使用。我们调整了时间相关函数的返回类型使其更加精确，例如 PROCTIME()，CURRENT_TIMESTAMP() 和 NOW()。
-
-
-
-其次，用户现在还可以基于一个 TIMESTAMP_LTZ 类型的列来定义 Event Time 属性，从而可以优雅的在窗口处理中支持夏令时。
-
-
+在数据处理中时间处理是一个重要的任务。但是与此同时，处理不同的时区、日期和时间是一个日益复杂的任务。在 Flink 1.13 中，我们投入了大量的精力来简化时间函数的使用。我们调整了时间相关函数的返回类型使其更加精确，例如 `PROCTIME()`，`CURRENT_TIMESTAMP()` 和 `NOW()`。其次，用户现在还可以基于一个 TIMESTAMP_LTZ 类型的列来定义 Event Time 属性，从而可以优雅的在窗口处理中支持夏令时。
 
 用户可以参考 Release Note 来查看该部分的完整变更。
 
-
-
-
 ## 3. PyFlink 核心优化
-
 
 这个版本对 PyFlink 的改进主要是使基于 Python 的 DataStream API 与 Table API 与 Java/scala 版本的对应功能更加一致。
 
-
 ### 3.1 Python DataStream API 中的有状态算子
-
 
 在 Flink 1.13 中，Python 程序员可以享受到 Flink 状态处理 API 的所有能力。在 Flink 1.12 版本重构过的 Python DataStream API 现在已经拥有完整的状态访问能力，从而使用户可以将数据的信息记录到 state 中并且在后续访问。
 
-
-
 带状态的处理能力是许多依赖跨记录状态共享（例如 Window Operator）的复杂数据处理场景的基础。
 
-
-
 以下例子展示了一个自定义的计算窗口的实现：
-
-
-
+```python
 class CountWindowAverage(FlatMapFunction):
     def __init__(self, window_size):
         self.window_size = window_size
@@ -281,30 +256,20 @@ class CountWindowAverage(FlatMapFunction):
 ds = ...  # type: DataStream
 ds.key_by(lambda row: row[0]) \
   .flat_map(CountWindowAverage(5))
-
+```
 
 ### 3.2 PyFlink DataStream API 中的用户自定义窗口
 
-
 Flink 1.13 中 PyFlink DataStream 接口增加了对用户自定义窗口的支持，现在用户可以使用标准窗口之外的窗口定义。
-
-
 
 由于窗口是处理无限数据流的核心机制 （通过将流切分为多个有限的『桶』），这一功能极大的提高的 API 的表达能力。
 
-
-
 ### 3.3 PyFlink Table API 中基于行的操作
-
 
 Python Table API 现在支持基于行的操作，例如用户对行数据的自定义函数。这一功能使得用户可以使用非内置的数据处理函数。
 
-
-
 一个使用 map() 操作的 Python Table API 示例如下：
-
-
-
+```
 @udf(result_type=DataTypes.ROW(
   [DataTypes.FIELD("c1", DataTypes.BIGINT()),
    DataTypes.FIELD("c2", DataTypes.STRING())]))
@@ -313,23 +278,15 @@ def increment_column(r: Row) -> Row:
 
 table = ...  # type: Table
 mapped_result = table.map(increment_column)
-
+```
 
 除了 map()，这一 API 还支持 flat_map()，aggregate()，flat_aggregate() 和其它基于行的操作。这使 Python Table API 的功能与 Java Table API 的功能更加接近。
 
-
-
 ### 3.3 PyFlink DataStream API 支持 Batch 执行模式
-
 
 对于有限流，PyFlink DataStream API 现在已经支持 Flink 1.12 DataStream API 中引入的 Batch 执行模式。
 
-
-
 通过复用数据有限性来跳过 State backend 和 Checkpoint 的处理，Batch 执行模式可以简化运维，并且提高有限流处理的性能。
-
-
-
 
 ## 4. 其它优化
 
@@ -373,53 +330,20 @@ HBase Lookup Table Source 现在可以支持异步查询模式和查询缓存。
 在之前的版本中，HBase Lookup Source 仅支持同步通信，从而导致作业吞吐以及资源利用率降低。
 
 升级 Flink 1.13 需要注意的改动：
-- FLINK-21709[18] – 老的 Table & SQL API 计划器已经被标记为废弃，并且将在 Flink 1.14 中被删除。Blink 计划器在若干版本之前已经被设置为默认计划器，并且将成为未来版本中的唯一计划器。这意味着 BatchTableEnvironment 和 DataSet API 互操作后续也将不再支持。用户需要切换到统一的 TableEnvironment 来编写流或者批的作业。
-- FLINK-22352[19] – Flink 社区决定废弃对 Apache mesos 的支持，未来有可能会进一步删除这部分功能。用户最好能够切换到其它的资源管理系统上。
-- FLINK-21935[20] – state.backend.async 这一配置已经被禁用了，因为现在 Flink 总是会异步的来保存快照（即之前的配置默认值），并且现在没有实现可以支持同步的快照保存操作。
-- FLINK-17012[21] – Task 的 RUNNING 状态被细分为两步：INITIALIZING 和 RUNNING。Task 的 INITIALIZING 阶段包括加载 state 和在启用 unaligned checkpoint 时恢复 In-flight 数据的过程。通过显式区分这两种状态，监控系统可以更好的区分任务是否已经在实际工作。
-- FLINK-21698[22] – NUMERIC 和 TIMESTAMP 类型之间的直接转换存在问题，现在已经被禁用，例如 CAST(numeric AS TIMESTAMP(3))。用户应该使用 TO_TIMESTAMP(FROM_UNIXTIME(numeric)) 来代替。
-- FLINK-22133[23] – 新的 Source 接口有一个小的不兼容的修改，即 SplitEnumerator.snapshotState() 方法现在多接受一个 checkpoint id 参数来表示正在进行的 snapshot 操作所属的 checkpoint 的 id。
-- FLINK-19463[24] – 由于老的 Statebackend 接口承载了过多的语义并且容易引起困惑，这一接口被标记为废弃。这是一个纯 API 层的改动，而并不会影响应用运行时。对于如何升级现有作业，请参考作业迁移指引[25]。
+- [FLINK-21709](https://issues.apache.org/jira/browse/FLINK-21709) – 老的 Table & SQL API 计划器已经被标记为废弃，并且将在 Flink 1.14 中被删除。Blink 计划器在若干版本之前已经被设置为默认计划器，并且将成为未来版本中的唯一计划器。这意味着 BatchTableEnvironment 和 DataSet API 互操作后续也将不再支持。用户需要切换到统一的 TableEnvironment 来编写流或者批的作业。
+- [FLINK-22352](https://issues.apache.org/jira/browse/FLINK-22352) – Flink 社区决定废弃对 Apache mesos 的支持，未来有可能会进一步删除这部分功能。用户最好能够切换到其它的资源管理系统上。
+- [FLINK-21935](https://issues.apache.org/jira/browse/FLINK-21935) – state.backend.async 这一配置已经被禁用了，因为现在 Flink 总是会异步的来保存快照（即之前的配置默认值），并且现在没有实现可以支持同步的快照保存操作。
+- [FLINK-17012](https://issues.apache.org/jira/browse/FLINK-17012) – Task 的 RUNNING 状态被细分为两步：INITIALIZING 和 RUNNING。Task 的 INITIALIZING 阶段包括加载 state 和在启用 unaligned checkpoint 时恢复 In-flight 数据的过程。通过显式区分这两种状态，监控系统可以更好的区分任务是否已经在实际工作。
+- [FLINK-21698](https://issues.apache.org/jira/browse/FLINK-21698) – NUMERIC 和 TIMESTAMP 类型之间的直接转换存在问题，现在已经被禁用，例如 CAST(numeric AS TIMESTAMP(3))。用户应该使用 TO_TIMESTAMP(FROM_UNIXTIME(numeric)) 来代替。
+- [FLINK-22133](https://issues.apache.org/jira/browse/FLINK-22133) – 新的 Source 接口有一个小的不兼容的修改，即 SplitEnumerator.snapshotState() 方法现在多接受一个 checkpoint id 参数来表示正在进行的 snapshot 操作所属的 checkpoint 的 id。
+- [FLINK-19463](https://issues.apache.org/jira/browse/FLINK-19463) – 由于老的 Statebackend 接口承载了过多的语义并且容易引起困惑，这一接口被标记为废弃。这是一个纯 API 层的改动，而并不会影响应用运行时。对于如何升级现有作业，请参考作业[迁移指引](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/ops/state/state_backends/#migrating-from-legacy-backends)。
 
 ## 5. 其它资源
 
-二进制和代码可以从 Flink 官网的下载页面[26] 获得，最新的 PyFlink 发布可以从 PyPI[27] 获得。
+二进制和代码可以从 Flink 官网的下载页面获得，最新的 PyFlink 发布可以从 [PyPI](https://pypi.org/project/apache-flink/) 获得。
 
-如果想要升级到 Flink 1.13，请参考发布说明[28]。这一版本与之前 1.x 的版本在标记为@Public 的接口上是兼容的。
+如果想要升级到 Flink 1.13，请参考发布说明。这一版本与之前 1.x 的版本在标记为@Public 的接口上是兼容的。
 
-用户也可以查看新版本修改列表[29] 与更新后的文档[30] 来获得修改和新功能的详细列表。
+用户也可以查看新版本修改列表与更新后的文档来获得修改和新功能的详细列表。
 
 原文链接：https://flink.apache.org/news/2021/05/03/release-1.13.0.html
-
-参考链接：
-
-[1] https://flink.apache.org/downloads.html
-[2] https://flink.apache.org/community.html#mailing-lists
-[3] https://issues.apache.org/jira/projects/FLINK/summary
-[4] https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/concepts/flink-architecture/#flink-application-execution
-[5] https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/deployment/resource-providers/standalone/overview/#application-mode
-[6] https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/deployment/resource-providers/standalone/kubernetes/#deploy-application-cluster
-[7] https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/deployment/elastic_scaling/#reactive-mode
-[8] https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/ops/debugging/flame_graphs
-[9] https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/ops/state/state_backends/#the-embeddedrocksdbstatebackend
-[10] https://www.ververica.com/blog/the-impact-of-disks-on-rocksdb-state-backend-in-flink-a-case-study
-[11] https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/deployment/resource-providers/native_kubernetes/
-[12] https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/ops/state/checkpoints/#unaligned-checkpoints
-[13] https://github.com/apache/flink-ml
-[14] https://github.com/alibaba/Alink
-[15] https://github.com/alibaba/flink-ai-extended
-[16] https://xkcd.com/1883/
-[17] https://cwiki.apache.org/confluence/display/FLINK/FLIP-148%3A+Introduce+Sort-Merge+Based+Blocking+Shuffle+to+Flink
-[18] https://issues.apache.org/jira/browse/FLINK-21709
-[19] https://issues.apache.org/jira/browse/FLINK-22352
-[20] https://issues.apache.org/jira/browse/FLINK-21935
-[21] https://issues.apache.org/jira/browse/FLINK-17012
-[22] https://issues.apache.org/jira/browse/FLINK-21698
-[23] https://issues.apache.org/jira/browse/FLINK-22133
-[24] https://issues.apache.org/jira/browse/FLINK-19463
-[25] https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/ops/state/state_backends/#migrating-from-legacy-backends
-[26] https://flink.apache.org/downloads.html
-[27] https://pypi.org/project/apache-flink/
-[28] https://ci.apache.org/projects/flink/flink-docs-release-1.13/release-notes/flink-1.13
-[29] https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12315522&version=12349287
-[30] https://ci.apache.org/projects/flink/flink-docs-release-1.13/

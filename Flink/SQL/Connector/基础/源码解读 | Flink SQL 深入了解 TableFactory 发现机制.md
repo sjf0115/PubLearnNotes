@@ -93,7 +93,7 @@ private static <T extends TableFactory> T findSingleInternal(Class<T> factoryCla
     }
 }
 ```
-首先通过 SPI 加载所有的 TableFactory，然后再根据 DDL 属性组筛选出满足要求的 TableFactory。如果查出满足条件的 TableFactory 实现类有多个，则抛出 AmbiguousTableFactoryException 异常，否则返回具体的 TableFactory。
+首先通过 SPI 加载所有的 TableFactory，然后再根据 DDL 属性筛选出满足要求的 TableFactory。如果查出满足条件的 TableFactory 实现类有多个，则抛出 AmbiguousTableFactoryException 异常，否则返回具体的 TableFactory。
 
 ### 3.2 加载所有候选 TableFactory
 
@@ -137,7 +137,7 @@ private static <T extends TableFactory> List<T> filter(List<TableFactory> foundF
     return filterBySupportedProperties(factoryClass, properties, classFactories, contextFactories);
 }
 ```
-#### 3.3.1 是否是实现类
+#### 3.3.1 实现类匹配
 
 > 首要条件是 factoryClass 的实现类
 
@@ -156,65 +156,66 @@ private static <T> List<T> filterByFactoryClass(Class<T> factoryClass, Map<Strin
     return (List<T>) classFactories;
 }
 ```
-#### 3.3.2 是否满足必要属性
+#### 3.3.2 上下文属性匹配
 
 > 次要条件是必须满足必要属性(requiredContext 定义的必要属性)
 
-第二层是判断是否匹配 TableFactory 中 requiredContext 定义的必要属性。在匹配过程中会分别记录下属性值不匹配的属性和缺失的属性，并计算出匹配到的属性个数。如果匹配到的属性个数等于 requiredContext 定义的必要属性个数，表明这有可能是我们要找的 TableFactory，添加到命中匹配列表 matchingFactories 中；如果不相等，则会根据属性匹配个数挑选一个最接近的存储在最优备选 bestMatched 中。如果没有找到命中匹配的 TableFactory，则会根据 bestMatched 告诉用户哪些属性值不匹配，哪些属性缺失：
+第二层是判断是否匹配 TableFactory 中 requiredContext 定义的必要属性。在匹配过程中会分别记录下属性值不匹配的属性和缺失的属性，并计算出匹配到的属性个数。如果匹配到的属性个数等于 requiredContext 定义的必要属性个数，表明这有可能是我们要找的 TableFactory，添加到完全匹配集合 matchingFactories 中；如果不相等，则会根据属性匹配个数挑选一个最优的存储在最佳部分匹配 bestMatched 中，用于错误诊断。如果没有找到命中匹配的 TableFactory，则会根据 bestMatched 告诉用户哪些属性值不匹配，哪些属性缺失：
 ```java
 private static <T extends TableFactory> List<T> filterByContext(Class<T> factoryClass, Map<String, String> properties, List<T> classFactories) {
     List<T> matchingFactories = new ArrayList<>();
     ContextBestMatched<T> bestMatched = null;
     for (T factory : classFactories) {
-        // 格式化 requiredContext 中的属性
+        // 1. 预处理候选 requiredContext 中的属性：转换为小写、移除版本信息，避免版本号影响匹配
         Map<String, String> requestedContext = normalizeContext(factory);
         Map<String, String> plainContext = new HashMap<>(requestedContext);
         plainContext.remove(CONNECTOR_PROPERTY_VERSION);
         plainContext.remove(FORMAT_PROPERTY_VERSION);
         plainContext.remove(FactoryUtil.PROPERTY_VERSION.key());
-        // 检查 requiredContext 中的属性是否满足
-        // 不匹配的属性
+        // 2. 检查候选 requiredContext 中的属性是否满足
+        // 不匹配属性集合
         Map<String, Tuple2<String, String>> mismatchedProperties = new HashMap<>();
-        // 缺失的属性
+        // 缺失属性集合
         Map<String, String> missingProperties = new HashMap<>();
         for (Map.Entry<String, String> e : plainContext.entrySet()) {
             if (properties.containsKey(e.getKey())) {
+                // 在上下文必备属性中
                 String fromProperties = properties.get(e.getKey());
-                //
                 if (!Objects.equals(fromProperties, e.getValue())) {
+                    // 属性值不匹配：放在不匹配属性集合中
                     mismatchedProperties.put(e.getKey(), new Tuple2<>(e.getValue(), fromProperties));
                 }
             } else {
-                // 属性缺失
+                // 不在上下文必备属性中：放在缺失属性集合中
                 missingProperties.put(e.getKey(), e.getValue());
             }
         }
-        // 匹配属性个数
+        // 3. 匹配属性个数：总必需属性数 - 不匹配属性数 - 缺失属性数
         int matchedSize = plainContext.size() - mismatchedProperties.size() - missingProperties.size();
-        // 属性全部匹配
+        // 属性个数是否全部匹配
         if (matchedSize == plainContext.size()) {
-            // 匹配命中的 TableFactory
+            // 完全匹配：所有必需属性都满足，放在匹配集合 matchingFactories 中
             matchingFactories.add(factory);
         } else {
-            // 最优备选的 TableFactory
+            // 部分匹配：选择一个最佳部分匹配的 TableFactory(匹配属性最多的)，于错误诊断
             if (bestMatched == null || matchedSize > bestMatched.matchedSize) {
                 bestMatched = new ContextBestMatched<>(factory, matchedSize, mismatchedProperties, missingProperties);
             }
         }
     }
-    // 没有命中匹配的 TableFactory，则告诉用户哪些地方不匹配
+    // 4. 没有命中匹配的 TableFactory，则告诉用户哪些属性不匹配
     if (matchingFactories.isEmpty()) {
         String bestMatchedMessage = null;
-        // 有最佳备选 TableFactory 输出提示信息
+        // 最佳部分匹配的 TableFactory 输出提示信息
         if (bestMatched != null && bestMatched.matchedSize > 0) {
             StringBuilder builder = new StringBuilder();
             builder.append(bestMatched.factory.getClass().getName());
-
+            // 构建缺失属性信息
             if (bestMatched.missingProperties.size() > 0) {
                 builder.append("\nMissing properties:");
                 bestMatched.missingProperties.forEach((k, v) -> builder.append("\n").append(k).append("=").append(v));
             }
-
+            // 构建不匹配属性信息  
             if (bestMatched.mismatchedProperties.size() > 0) {
                 builder.append("\nMismatched properties:");
                 bestMatched.mismatchedProperties.entrySet().stream()
@@ -232,16 +233,27 @@ private static <T extends TableFactory> List<T> filterByContext(Class<T> factory
     return matchingFactories;
 }
 ```
-#### 3.3.3 是否匹配支持属性
+
+从上面可以看到匹配状态分为如下三类：
+
+| 状态 | 条件 | 存储位置 | 示例 |
+| :------------- | :------------- |
+| 完全匹配 | 属性存在且值相等  | matchingFactories | connector=kafka ↔ connector=kafka |
+| 属性值不匹配 | 属性存在但属性值不同	| mismatchedProperties	| 期望 connector=kafka，实际 connector=jdbc|
+| 属性缺失	| 属性不存在 | missingProperties | 期望 connector 属性，但配置中无此键 |
+
+#### 3.3.3 支持属性匹配
 
 > 最后判断是否是支持所有配置属性
 
-第三层判断是否支持 TableFactory 中 supportedProperties 定义的属性：
+第三层判断是否支持 TableFactory 中 supportedProperties 定义的属性。首先预处理 DDL 支持的属性进行规范化：将属性中数组索引替换为通配符，例如将 `format.fields.0.name` 转换为 `format.fields.#.name`；此外还进行去重处理来避免重复的属性影响匹配判断。针对每个候选 TableFactory 都需要验证 DDL 中的可选属性是否都支持，返回支持属性都支持的 TableFactory 集合 supportedFactories。如果没有都支持的 TableFactory，则会根据支持的属性个数挑选一个最优的存储在最佳部分匹配元组 bestMatched 中，用于错误诊断：
 ```java
 private static <T extends TableFactory> List<T> filterBySupportedProperties(Class<T> factoryClass, Map<String, String> properties, List<T> classFactories, List<T> contextFactories) {
     final List<String> plainGivenKeys = new LinkedList<>();
+    // 1. 预处理 DDL 支持的属性：将数组索引替换为通配符、忽略重复项
     properties.keySet().forEach(
                     k -> {
+                        // format.fields.0.name -> format.fields.#.name
                         String key = k.replaceAll(".\\d+", ".#");
                         // ignore duplicates
                         if (!plainGivenKeys.contains(key)) {
@@ -252,20 +264,22 @@ private static <T extends TableFactory> List<T> filterBySupportedProperties(Clas
     List<T> supportedFactories = new LinkedList<>();
     Tuple2<T, List<String>> bestMatched = null;
     for (T factory : contextFactories) {
+        // 2. 处理候选 Factory 上下文必需属性：转小写
         Set<String> requiredContextKeys = normalizeContext(factory).keySet();
-        // tuple2.f0 表示 supportedProperties 的属性
-			  // tuple2.f1 表示 supportedProperties 中 .* 相关的属性，例如connector.*
+        // 3. 处理候选 Factory 支持属性：转二元组
+        // 元组 f0 是支持属性的 Key 键
+			  // 元组 f1 是支持属性中通配符属性前缀，例如 format.* 的 format. 形式
         Tuple2<List<String>, List<String>> tuple2 = normalizeSupportedProperties(factory);
-        // 过滤 requiredContext 中的属性 key
+        // 4. 从 DDL 支持属性中过滤掉候选 Factory 上下文必需属性
         List<String> givenContextFreeKeys =
                 plainGivenKeys.stream()
                         .filter(p -> !requiredContextKeys.contains(p))
                         .collect(Collectors.toList());
-        // 过滤特殊属性 Key，比如 TableForamtFactory 相关的                
+        // 5. 过滤特殊属性 Key，只针对 TableFormatFactory 处理               
         List<String> givenFilteredKeys = filterSupportedPropertiesFactorySpecific(factory, givenContextFreeKeys);
         boolean allTrue = true;
         List<String> unsupportedKeys = new ArrayList<>();
-        // 判断 DDL 属性组中的 key 是否支持
+        // 6. 判断 DDL 支持属性中是否有 Factory 不支持的
         for (String k : givenFilteredKeys) {
             if (!(tuple2.f0.contains(k) || tuple2.f1.stream().anyMatch(k::startsWith))) {
                 allTrue = false;
@@ -273,10 +287,10 @@ private static <T extends TableFactory> List<T> filterBySupportedProperties(Clas
             }
         }
         if (allTrue) {
-            // 匹配命中
+            // DDL 中的支持属性 Factory 都支持
             supportedFactories.add(factory);
         } else {
-            // 最优备选
+            // 记录最佳匹配（不支持的属性最少的工厂）
             if (bestMatched == null || unsupportedKeys.size() < bestMatched.f1.size()) {
                 bestMatched = new Tuple2<>(factory, unsupportedKeys);
             }
@@ -284,6 +298,7 @@ private static <T extends TableFactory> List<T> filterBySupportedProperties(Clas
     }
 
     if (supportedFactories.isEmpty()) {
+        // 7. 输出错误诊断信息
         String bestMatchedMessage = null;
         if (bestMatched != null) {
             bestMatchedMessage = String.format(
@@ -305,15 +320,13 @@ private static <T extends TableFactory> List<T> filterBySupportedProperties(Clas
 ### 4.1 设计思想总结
 
 - 可扩展性：基于 SPI 机制，支持用户自定义扩展
-- 灵活性：通过多级匹配策略处理复杂的工厂选择场景
-- 性能优化：采用缓存机制避免重复的类加载和扫描
+- 灵活性：通过多级匹配策略处理复杂的 TableFactory 选择场景
 - 错误诊断：提供详细的错误信息帮助用户调试配置问题
 
 ### 4.2 使用建议
 
-- 明确上下文：在自定义工厂中明确定义 requiredContext()
-- 完整属性支持：在 supportedProperties() 中列出所有支持的属性
+- 明确上下文：在自定义工厂中明确定义 `requiredContext()`
+- 完整属性支持：在 `supportedProperties()` 中列出所有支持的属性
 - 避免冲突：使用唯一的 connector 类型标识符
-- 合理缓存：理解工厂实例的缓存机制，避免类加载器泄漏
 
-通过深入理解 Flink TableFactory 的发现机制，我们能够更好地扩展 Flink 的连接器生态，解决实际生产环境中的复杂数据集成需求。
+通过深入理解 Flink TableFactory 的发现机制，我们能够更好地扩展 Flink 的连接器生态，解决实际生产环境中 `Could not find a suitable table factory` 等问题。

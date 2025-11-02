@@ -42,20 +42,11 @@ public interface TableFactory {
 ```
 `requiredContext()` 定义该工厂所需的上下文环境，框架保证只有在满足指定的属性和值集时才匹配工厂。`supportedProperties()` 定义该工厂支持的所有配置属性，如果传递的属性是此工厂无法处理的，则会引发异常。需要注意该列表不能包含由上下文环境指定的键(即 `equiredContext()` 中配置的属性)。
 
-## 2. 工厂发现基础
-
-`TableFactoryService` 类是 TableFactory 发现机制的核心入口，提供了所有工厂查找的静态方法：
-```
-```
-> org.apache.flink.table.factories.TableFactoryService
-
-## 3. 工厂发现算法
-
-### 3.1 多条件匹配机制
+## 2. 工厂发现服务
 
 > 查找满足一定条件的 factoryClass 实现类
 
-TableFactoryService 的核心方法是 `find()`，它实现了复杂的多条件匹配逻辑：
+`TableFactoryService` 类是 TableFactory 发现机制的核心入口，提供了所有工厂查找的静态方法。核心方法是 `find()`，实现了复杂的多条件匹配逻辑：
 ```java
 // 通过 Factory 类和描述符 Descriptor 来寻找 TableFactory
 public static <T extends TableFactory> T find(Class<T> factoryClass, Descriptor descriptor) {
@@ -78,6 +69,8 @@ public static <T extends TableFactory> T find(Class<T> factoryClass, Map<String,
     return findSingleInternal(factoryClass, propertyMap, Optional.of(classLoader));
 }
 ```
+> org.apache.flink.table.factories.TableFactoryService
+
 可以看到 find 函数最终都是通过 `findSingleInternal` 函数来寻找 TableFactory：
 ```java
 private static <T extends TableFactory> T findSingleInternal(Class<T> factoryClass, Map<String, String> properties, Optional<ClassLoader> classLoader) {
@@ -95,7 +88,9 @@ private static <T extends TableFactory> T findSingleInternal(Class<T> factoryCla
 ```
 首先通过 SPI 加载所有的 TableFactory，然后再根据 DDL 属性筛选出满足要求的 TableFactory。如果查出满足条件的 TableFactory 实现类有多个，则抛出 AmbiguousTableFactoryException 异常，否则返回具体的 TableFactory。
 
-### 3.2 加载所有候选 TableFactory
+## 3. 工厂发现算法
+
+### 3.1 加载所有候选 TableFactory
 
 首先看一下如何通过 `discoverFactories` 函数加载所有的候选 TableFactory：
 ```java
@@ -122,7 +117,7 @@ Flink 在 TableFactoryService 中封装了 Java 标准的 SPI 机制：
 ServiceLoader.load(TableFactory.class, cl).iterator().forEachRemaining(result::add);
 ```
 
-### 3.3 筛选 TableFactory
+### 3.2 筛选 TableFactory
 
 加载所有的候选 TableFactory 之后，需要根据不同的过滤逻辑筛选出满足要求的 TableFactory，目前有三层筛选逻辑：第一层判断是否是指定 factoryClass 的实现类；第二层是判断是否匹配 TableFactory 中 requiredContext 定义的必要属性；第三层判断是否支持 TableFactory 中 supportedProperties 定义的属性：
 ```java
@@ -137,7 +132,7 @@ private static <T extends TableFactory> List<T> filter(List<TableFactory> foundF
     return filterBySupportedProperties(factoryClass, properties, classFactories, contextFactories);
 }
 ```
-#### 3.3.1 实现类匹配
+#### 3.2.1 实现类匹配
 
 > 首要条件是 factoryClass 的实现类
 
@@ -156,7 +151,7 @@ private static <T> List<T> filterByFactoryClass(Class<T> factoryClass, Map<Strin
     return (List<T>) classFactories;
 }
 ```
-#### 3.3.2 上下文属性匹配
+#### 3.2.2 上下文属性匹配
 
 > 次要条件是必须满足必要属性(requiredContext 定义的必要属性)
 
@@ -237,12 +232,12 @@ private static <T extends TableFactory> List<T> filterByContext(Class<T> factory
 从上面可以看到匹配状态分为如下三类：
 
 | 状态 | 条件 | 存储位置 | 示例 |
-| :------------- | :------------- |
+| :------------- | :------------- | :------------- | :------------- |
 | 完全匹配 | 属性存在且值相等  | matchingFactories | connector=kafka ↔ connector=kafka |
 | 属性值不匹配 | 属性存在但属性值不同	| mismatchedProperties	| 期望 connector=kafka，实际 connector=jdbc|
 | 属性缺失	| 属性不存在 | missingProperties | 期望 connector 属性，但配置中无此键 |
 
-#### 3.3.3 支持属性匹配
+#### 3.2.3 支持属性匹配
 
 > 最后判断是否是支持所有配置属性
 

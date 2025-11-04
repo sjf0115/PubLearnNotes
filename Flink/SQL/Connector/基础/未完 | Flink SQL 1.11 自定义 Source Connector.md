@@ -69,29 +69,58 @@ public interface StreamTableSource<T> extends TableSource<T> {
 
 #### 1.3.1 定义处理时间属性
 
-处理时间属性通常用于流式查询。处理时间属性返回算子的当前挂钟时间。TableSource 通过实现 DefinedProctimeAttribute 接口来定义处理时间属性。接口如下所示：
+[处理时间属性](https://smartsi.blog.csdn.net/article/details/127173096)通常用于流式查询。处理时间属性返回算子的当前系统时间。TableSource 通过实现 DefinedProctimeAttribute 接口来定义处理时间属性，如下所示：
 ```java
-DefinedProctimeAttribute {
-  public String getProctimeAttribute();
+public class TimeAttributeTableSource implements StreamTableSource<Row>, DefinedProctimeAttribute {
+    private final Optional<String> procTimeAttribute;
+
+    public TimeAttributeTableSource(Optional<String> procTimeAttribute) {
+        this.procTimeAttribute = procTimeAttribute;
+    }
+
+    ...
+
+    // DefinedProctimeAttribute
+    @Nullable
+    @Override
+    public String getProctimeAttribute() {
+        return procTimeAttribute.orElse(null);
+    }
 }
 ```
-getProctimeAttribute()：返回处理时间属性的名称。指定的属性必须在表 schema 中定义为 Types.SQL_TIMESTAMP 类型，并且可以在基于时间的操作中使用。DefinedProctimeAttribute 可以通过返回 null 来定义无处理时间属性。
+`getProctimeAttribute()` 返回处理时间属性的名称。指定的属性必须在表 schema 中定义为 Types.SQL_TIMESTAMP 类型，并且可以在基于时间的操作中使用。DefinedProctimeAttribute 可以通过返回 null 来定义无处理时间属性。
 
 > StreamTableSource 和 BatchTableSource 都可以实现 DefinedProctimeAttribute 并定义处理时间属性。在 BatchTableSource 的情况下，处理时间字段在表扫描期间使用当前时间戳初始化。
 
-#### 1.3.2 定义Rowtime属性
+#### 1.3.2 定义 Rowtime 属性
 
-Rowtime 属性是 TIMESTAMP 类型的属性，在流式查询和批处理查询中统一处理。SQL_TIMESTAMP 类型的字段可以通过为 rowtime 属性指定如下信息来声明：
+[Rowtime 属性](https://smartsi.blog.csdn.net/article/details/127173096)是 TIMESTAMP 类型的属性，在流式查询和批处理查询中统一处理。SQL_TIMESTAMP 类型的字段可以通过指定如下信息来声明 rowtime 属性：
 - 字段名称
 - TimestampExtractor，计算属性的实际值（通常来自一个或多个其他字段）
 - WatermarkStrategy，指定如何为 rowtime 属性生成 Watermark。
 
-TableSource 通过实现 DefinedRowtimeAttributes 接口来定义 Rowtime 属性。接口如下所示：
+TableSource 通过实现 DefinedRowtimeAttributes 接口来定义 Rowtime 属性，如下所示：
 ```java
-DefinedRowtimeAttribute {
-  public List<RowtimeAttributeDescriptor> getRowtimeAttributeDescriptors();
+public class TimeAttributeTableSource implements StreamTableSource<Row>, DefinedRowtimeAttributes {
+    private final List<RowtimeAttributeDescriptor> rowTimeAttributeDescriptors;
+
+    public TimeAttributeTableSource(List<RowtimeAttributeDescriptor> rowTimeAttributeDescriptors) {
+        this.rowTimeAttributeDescriptors = rowTimeAttributeDescriptors;
+    }
+
+    ...
+
+    // DefinedRowtimeAttributes
+    @Override
+    public List<RowtimeAttributeDescriptor> getRowtimeAttributeDescriptors() {
+        return rowTimeAttributeDescriptors;
+    }
 }
 ```
+`getRowtimeAttributeDescriptors()` 方法返回 RowtimeAttributeDescriptor 的列表。RowtimeAttributeDescriptor 用以下属性描述 rowtime 属性：
+- 字段名称：表 Schema 中 rowtime 属性的名称。该字段必须用 Types.SQL_TIMESTAMP 类型定义。
+- TimestampExtractor：时间戳提取器从具有返回类型的记录中提取时间戳。例如，它可以将 Long 字段转换为时间戳或解析字符串编码的时间戳。Flink 提供了一组用于常见用例的内置 TimestampExtractor 实现。也可以提供自定义实现。
+- WatermarkStrategy：Watermark 策略定义了如何为 rowtime 属性生成 Watermark。Flink 提供了一组内置的 Watermark 策略实现，用于常见的用例。也可以提供自定义实现。
 
 ### 1.4 使用投影下推定义 TableSource
 

@@ -39,20 +39,28 @@ cp paimon-flink-2.0-1.2.0.jar /opt/workspace/flink-1.20.2/lib/
 ```
 > 在这 Flink 版本为 1.20.0，Paimon 版本为 1.2.0
 
-### 2.3 复制 Hadoop Bundled Jar
+### 2.3 配置 Hadoop
 
-> 如果机器处于 Hadoop 环境中，请确保环境变量 `HADOOP_CLASSPATH` 的值包含通用的 Hadoop 库路径，您不需要使用以下预捆绑的 Hadoop jar。
-
-[下载](https://flink.apache.org/downloads.html)预捆绑的 Hadoop jar 并将 jar 文件复制到 Flink 安装目录的 lib 目录中：
+配置 Hadoop 有两种方式可供选择。第一种方式是[下载](https://flink.apache.org/downloads.html)预捆绑的 Hadoop jar 并将 jar 文件复制到 Flink 安装目录的 lib 目录中：
 ```
 cp flink-shaded-hadoop-2-uber-*.jar <FLINK_HOME>/lib/
 ```
+第二种方式是配置环境变量。这种方式需要确保机器处于 Hadoop 环境中，只需要按照如下方式配置环境变量 `HADOOP_CLASSPATH` 即可：
+```
+# Flink 需要
+export HADOOP_CLASSPATH=`hadoop classpath`
+
+# 前提同样配置 Hadoop
+export HADOOP_HOME=/opt/workspace/hadoop
+export PATH=$HADOOP_HOME/bin:$PATH
+```
+> export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 
 ### 2.4 启动 Flink 本地集群
 
 为了同时运行多个 Flink 任务，你需要修改 `<FLINK_HOME>/conf/flink-conf.yaml`（Flink 版本 < 1.19）或 `<FLINK_HOME>/conf/config.yaml`（Flink 版本 >= 1.19）中的集群配置:
 ```
-taskmanager.numberOfTaskSlots: 2
+taskmanager.numberOfTaskSlots: 4
 ```
 要启动本地集群，请运行 Flink 自带的 bash 脚本：
 ```

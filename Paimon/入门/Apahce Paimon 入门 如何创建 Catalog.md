@@ -5,22 +5,20 @@ Paimon Catalog 目前支持三种类型的元存储：
 
 ## 1. Filesystem Catalog
 
-以下 Flink SQL 注册并使用一个名为 my_catalog 的 Paimon Catalog。元数据和表文件存储在 hdfs:///path/to/warehouse 下。
+以下 Flink SQL 注册并使用一个名为 my_catalog 的 Paimon Catalog。元数据和表文件存储在 `hdfs://localhost:9000/paimon/fs` 下。
 ```sql
-CREATE CATALOG my_catalog WITH (
+CREATE CATALOG fs_catalog WITH (
     'type' = 'paimon',
-    'warehouse' = 'hdfs:///path/to/warehouse'
+    'warehouse' = 'hdfs://localhost:9000/paimon/fs'
 );
 
-USE CATALOG my_catalog;
+USE CATALOG fs_catalog;
 ```
 您可以为 Catalog 中创建的表使用 `table-default.` 前缀定义任何默认表选项。
 
 ## 2. JDBC Catalog
 
-通过使用 Paimon JDBC Catalog，可以将元数据直接存储在 SQLite、MySQL、postgres 等关系型数据库中。
-
-目前，仅 MySQL 和 SQLite 支持锁配置。如果您使用的是其他类型的数据库进行目录存储，请不要配置 `lock.enabled`。
+通过使用 Paimon JDBC Catalog，可以将元数据直接存储在 SQLite、MySQL、postgres 等关系型数据库中。目前，仅 MySQL 和 SQLite 支持锁配置。如果您使用的是其他类型的数据库进行目录存储，请不要配置 `lock.enabled`。
 
 在 Flink 中的 Paimon JDBC Catalog 需要正确添加用于连接数据库的相应 jar 包。您应该首先下载 JDBC 连接器 jar 文件，并将其添加到 classpath 中。例如 MySQL、postgres。
 

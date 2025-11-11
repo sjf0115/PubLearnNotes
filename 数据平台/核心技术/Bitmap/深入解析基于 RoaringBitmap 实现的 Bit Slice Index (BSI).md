@@ -103,7 +103,7 @@ BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩，将每个整数�
 
 ### 3.1 初始化
 
-
+通过一个最小值和一个最大值来初始化 Bit Slice Index 的实现 Rbm32BitSliceIndex：
 ```java
 public Rbm32BitSliceIndex(int minValue, int maxValue) {
     if (minValue < 0) {
@@ -120,13 +120,12 @@ public Rbm32BitSliceIndex(int minValue, int maxValue) {
     this.maxValue = maxValue;
 }
 ```
+索引切片个数 sliceSize 的计算是核心，它决定了 BSI 能够表示的最大数值范围。索引切片个数等于最大整数的二进制位数，可以通过 32 减去最大整数二进制0填充个数计算得到。每个切片对应一个二进制位，从低位(0)到高位(sliceSize-1)，存储在一个独立的 RoaringBitmap 位图中。ebm 是 "Existence Bitmap" 的缩写，存储所有的 Key，用于快速判断 Key 是否存在。
 
 ### 3.2 容量管理
 
+在上述初始化时根据设置的最大值来设置初始化容量，随着添加值的变化，可与动态调整 BSI 的容量：
 ```java
-/**
- * 调整切片个数
- */
 private void resize(int newSliceSize) {
     if (newSliceSize <= this.sliceSize) {
         // 小于等于之前切片个数不需要调整
@@ -148,6 +147,11 @@ private void resize(int newSliceSize) {
     this.sliceSize = newSliceSize;
 }
 ```
+如果调整的切片个数 newSliceSize 小于等于当前切片个数 this.sliceSize，说明当前容量已经足够表示新值，直接返回，避免不必要的扩容操作。容量调整逻辑按照如下调整：
+- 根据新容量分配 RoaringBitmap 数组创建新的切片数组。
+- 通过 System.arraycopy 高效拷贝旧切片数据
+- 为新增的高位创建空 RoaringBitmap 来初始化新切片
+- 切换至新数组并更新容量记录
 
 ### 3.3  数据插入操作
 
@@ -168,20 +172,234 @@ public void put(int key, int value) {
     // 为指定 Key 关联指定 Value
     putValueInternal(key, value);
 }
+
+private void putValueInternal(int key, int value) {
+    // 为 value 的每个切片 bitmap 添加 x
+    for (int i = 0; i < this.sliceSize(); i += 1) {
+        if ((value & (1 << i)) > 0) {
+            this.slices[i].add(key);
+        } else {
+            this.slices[i].remove(key);
+        }
+    }
+    this.ebm.add(key);
+}
 ```
 
 ### 3.4 数据查询操作
 
-#### 3.4.1 单键查询：
+#### 3.4.1 包含查询
 
 ```java
-
+public boolean containsKey(int key) {
+    return this.ebm.contains(key);
+}
 ```
 
-#### 3.4.2 极值查询
+#### 3.4.2 单键查询
+
+```java
+public int get(int key) {
+    if (!this.containsKey(key)) {
+        return -1;
+    }
+    return getValueInternal(key);
+}
+
+private int getValueInternal(int key) {
+    int value = 0;
+    for (int i = 0; i < this.sliceSize; i += 1) {
+        // 切片 i 包含指定的 key 则关联的 value 第 i 位为 1
+        if (this.slices[i].contains(key)) {
+            value |= (1 << i);
+        }
+    }
+    return value;
+}
+```
+
+#### 3.4.3 最小值查询
+
+```java
+public int minValue() {
+    if (this.isEmpty()) {
+        return -1;
+    }
+
+    RoaringBitmap keys = ebm;
+    for (int i = this.sliceSize - 1; i >= 0; i -= 1) {
+        RoaringBitmap tmp = RoaringBitmap.andNot(keys, slices[i]);
+        if (!tmp.isEmpty()) {
+            keys = tmp;
+        }
+    }
+
+    return getValueInternal(keys.first());
+}
+```
+#### 3.4.4 最大值查询
+
+```java
+public int maxValue() {
+    if (this.isEmpty()) {
+        return -1;
+    }
+
+    RoaringBitmap keys = ebm;
+    for (int i = this.sliceSize - 1; i >= 0; i -= 1) {
+        RoaringBitmap tmp = RoaringBitmap.and(keys, slices[i]);
+        if (!tmp.isEmpty()) {
+            keys = tmp;
+        }
+    }
+
+    return getValueInternal(keys.first());
+}
+```
 
 
-### 3.5 O'Neil 范围查询算法
+### 3.5 范围查询
 
+#### 3.5.1 O'Neil 范围查询
 
-### 3.6 聚合计算
+```java
+private RoaringBitmap oNeilRange(Operation operation, int value) {
+    RoaringBitmap GT = new RoaringBitmap();
+    RoaringBitmap LT = new RoaringBitmap();
+    RoaringBitmap EQ = this.ebm; // 不需要 this.ebm.clone()
+    // 从高位到低位开始遍历
+    for (int i = this.sliceSize - 1; i >= 0; i--) {
+        // 第 i 位的值 1或者0
+        int bit = (value >> i) & 1;
+        if (bit == 1) {
+            LT = RoaringBitmap.or(LT, RoaringBitmap.andNot(EQ, this.slices[i]));
+            EQ = RoaringBitmap.and(EQ, this.slices[i]);
+        } else {
+            GT = RoaringBitmap.or(GT, RoaringBitmap.and(EQ, this.slices[i]));
+            EQ = RoaringBitmap.andNot(EQ, this.slices[i]);
+        }
+    }
+
+    switch (operation) {
+        case EQ:
+            return EQ;
+        case NEQ:
+            return RoaringBitmap.andNot(this.ebm, EQ);
+        case GT:
+            return GT;
+        case LT:
+            return LT;
+        case LE:
+            return RoaringBitmap.or(LT, EQ);
+        case GE:
+            return RoaringBitmap.or(GT, EQ);
+        default:
+            throw new IllegalArgumentException("");
+    }
+}
+```
+
+#### 3.5.2 等于查询
+
+```java
+public RoaringBitmap eq(int value) {
+    return oNeilRange(Operation.EQ, value);
+}
+```
+
+#### 3.5.3 不等于查询
+
+```java
+public RoaringBitmap neq(int value) {
+    return oNeilRange(Operation.NEQ, value);
+}
+```
+
+#### 3.5.4 小于等于查询
+
+```java
+public RoaringBitmap le(int value) {
+    return oNeilRange(Operation.LE, value);
+}
+```
+
+#### 3.5.5 小于查询
+
+```java
+public RoaringBitmap lt(int value) {
+    return oNeilRange(Operation.LT, value);
+}
+```
+
+#### 3.5.6 大于等于查询
+
+```java
+public RoaringBitmap ge(int value) {
+    return oNeilRange(Operation.GE, value);
+}
+```
+
+#### 3.5.7 大于查询
+
+```java
+public RoaringBitmap gt(int value) {
+    return oNeilRange(Operation.GT, value);
+}
+```
+
+#### 3.5.8 区间查询
+
+```java
+public RoaringBitmap between(int lower, int upper) {
+    RoaringBitmap lowerBitmap = oNeilRange(Operation.GE, lower);
+    RoaringBitmap upperBitmap = oNeilRange(Operation.LE, upper);
+    RoaringBitmap resultBitmap = lowerBitmap;
+    resultBitmap.and(upperBitmap);
+    return resultBitmap;
+}
+```
+
+### 3.6 删除操作
+
+```java
+public int remove(int key) {
+    if (!this.containsKey(key)) {
+        return -1;
+    }
+    return removeValueInternal(key);
+}
+
+private int removeValueInternal(int key) {
+    int value = 0;
+    for (int i = 0; i < this.sliceSize; i += 1) {
+        // 切片 i 包含指定的 key 则关联的 value 第 i 位为 1
+        if (this.slices[i].contains(key)) {
+            value |= (1 << i);
+            this.slices[i].remove(key);
+        }
+    }
+    this.ebm.remove(key);
+    return value;
+}
+```
+
+### 3.7 聚合计算
+
+#### 3.7.1 求和
+
+```java
+public Long sum(RoaringBitmap rbm) {
+    if (null == rbm || rbm.isEmpty()) {
+        return 0L;
+    }
+    long sum = 0;
+    for (int i = 0; i < this.sliceSize; i ++) {
+        long sliceValue = 1 << i;
+        sum += sliceValue * RoaringBitmap.andCardinality(this.slices[i], rbm);
+    }
+    return sum;
+}
+```
+#### 3.7.2 Top
+
+### 4. 序列化

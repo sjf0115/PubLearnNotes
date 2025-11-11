@@ -258,7 +258,7 @@ public int maxValue() {
 ```
 
 
-### 3.5 范围查询
+### 3.5 范围查询操作
 
 #### 3.5.1 O'Neil 范围查询
 
@@ -359,7 +359,7 @@ public RoaringBitmap between(int lower, int upper) {
 }
 ```
 
-### 3.6 删除操作
+### 3.6 数据删除操作
 
 ```java
 public int remove(int key) {
@@ -383,7 +383,7 @@ private int removeValueInternal(int key) {
 }
 ```
 
-### 3.7 聚合计算
+### 3.7 聚合计算操作
 
 #### 3.7.1 求和
 
@@ -402,4 +402,4 @@ public Long sum(RoaringBitmap rbm) {
 ```
 #### 3.7.2 Top
 
-### 4. 序列化
+### 3.8 序列化操作

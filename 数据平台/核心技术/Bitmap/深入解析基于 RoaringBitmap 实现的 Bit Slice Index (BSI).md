@@ -67,24 +67,25 @@ BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩，将每个整数�
 
 ## 3. 核心操作实现详解
 
-- 构建 BSI
+- 初始化操作
+  - Rbm32BitSliceIndex(int minValue, int maxValue)
+- 容量管理操作
+  - void resize(int newSliceSize)
+- 基础操作
   - int sliceSize();
   - long getLongCardinality();
-  - void clear();
   - boolean isEmpty();
+  - BitSliceIndex clone();
+- 插入操作
   - void put(int key, int value);
   - void putAll(BitSliceIndex otherBsi);
-- 序列化
-  - void serialize(ByteBuffer buffer) throws IOException;
-  - void deserialize(ByteBuffer buffer) throws IOException;
-- 键操作
-  - boolean containsKey(int key);
-  - int remove(int key);
-  - RoaringBitmap keys();
-- 精确查询值
-  - boolean containsValue(int value);
-  - int get(int key);
-- 范围查询值
+- 删除操作
+  - 删除指定 Key：`int remove(int key)`
+  - 清空所有 Key：`void clear()`
+- 精确查询操作
+  - 包含查询：`boolean containsKey(int key)`
+  - 按 Key 查询：`int get(int key)`
+- 范围查询操作
   - max
   - min
   - eq
@@ -93,15 +94,14 @@ BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩，将每个整数�
   - gt
   - ge
   - range
-- 运算
+- 聚合计算操作
   - SUM
-  - Top
-  - and
-  - or
-  - xor
-  - not
+- 序列化
+  - void serialize(ByteBuffer buffer) throws IOException;
+  - void deserialize(ByteBuffer buffer) throws IOException;
 
-### 3.1 初始化
+
+### 3.1 初始化操作
 
 通过一个最小值和一个最大值来初始化 Bit Slice Index 的实现 Rbm32BitSliceIndex：
 ```java
@@ -153,7 +153,54 @@ private void resize(int newSliceSize) {
 - 为新增的高位创建空 RoaringBitmap 来初始化新切片
 - 切换至新数组并更新容量记录
 
-### 3.3  数据插入操作
+### 3.3 基础操作
+
+#### 3.3.1 BSI 切片个数
+
+```java
+public int sliceSize() {
+    return sliceSize;
+}
+```
+
+#### 3.3.2 BSI 基数
+
+BSI 基数即 BSI 中 Key 的个数：
+```java
+public long getLongCardinality() {
+    return this.ebm.getLongCardinality();
+}
+```
+
+#### 3.3.3 BSI 是否为空
+
+```java
+public boolean isEmpty() {
+    return this.getLongCardinality() == 0;
+}
+```
+#### 3.3.4 BSI 克隆
+
+```java
+public BitSliceIndex clone() {
+    Rbm32BitSliceIndex bitSliceIndex = new Rbm32BitSliceIndex();
+    // 克隆属性
+    bitSliceIndex.minValue = this.minValue;
+    bitSliceIndex.maxValue = this.maxValue;
+    bitSliceIndex.sliceSize = this.sliceSize;
+    bitSliceIndex.runOptimized = this.runOptimized;
+    bitSliceIndex.ebm = this.ebm.clone();
+    // 克隆切片
+    RoaringBitmap[] cloneSlices = new RoaringBitmap[this.sliceSize];
+    for (int i = 0; i < cloneSlices.length; i++) {
+        cloneSlices[i] = this.slices[i].clone();
+    }
+    bitSliceIndex.slices = cloneSlices;
+    return bitSliceIndex;
+}
+```
+
+### 3.4  插入操作
 
 ```java
 public void put(int key, int value) {
@@ -185,10 +232,49 @@ private void putValueInternal(int key, int value) {
     this.ebm.add(key);
 }
 ```
+> 一个 Key 只能设置一个 Value。
 
-### 3.4 数据查询操作
+### 3.5 删除操作
 
-#### 3.4.1 包含查询
+#### 3.5.1 删除指定 Key
+
+```java
+public int remove(int key) {
+    if (!this.containsKey(key)) {
+        return -1;
+    }
+    return removeValueInternal(key);
+}
+
+private int removeValueInternal(int key) {
+    int value = 0;
+    for (int i = 0; i < this.sliceSize; i += 1) {
+        // 切片 i 包含指定的 key 则关联的 value 第 i 位为 1
+        if (this.slices[i].contains(key)) {
+            value |= (1 << i);
+            this.slices[i].remove(key);
+        }
+    }
+    this.ebm.remove(key);
+    return value;
+}
+```
+
+#### 3.5.2 清空所有 Key
+
+```java
+public void clear() {
+    this.maxValue = -1;
+    this.minValue = -1;
+    this.ebm = new RoaringBitmap();
+    this.slices = null;
+    this.sliceSize = 0;
+}
+```
+
+### 3.6 精确数据查询操作
+
+#### 3.6.1 包含查询
 
 ```java
 public boolean containsKey(int key) {
@@ -196,7 +282,7 @@ public boolean containsKey(int key) {
 }
 ```
 
-#### 3.4.2 单键查询
+#### 3.6.2 按 Key 查询
 
 ```java
 public int get(int key) {
@@ -218,7 +304,7 @@ private int getValueInternal(int key) {
 }
 ```
 
-#### 3.4.3 最小值查询
+#### 3.6.3 最小值查询
 
 ```java
 public int minValue() {
@@ -237,7 +323,7 @@ public int minValue() {
     return getValueInternal(keys.first());
 }
 ```
-#### 3.4.4 最大值查询
+#### 3.6.4 最大值查询
 
 ```java
 public int maxValue() {
@@ -257,10 +343,9 @@ public int maxValue() {
 }
 ```
 
+### 3.7 范围查询操作
 
-### 3.5 范围查询操作
-
-#### 3.5.1 O'Neil 范围查询
+#### 3.7.1 O'Neil 范围查询
 
 ```java
 private RoaringBitmap oNeilRange(Operation operation, int value) {
@@ -299,7 +384,7 @@ private RoaringBitmap oNeilRange(Operation operation, int value) {
 }
 ```
 
-#### 3.5.2 等于查询
+#### 3.7.2 等于查询
 
 ```java
 public RoaringBitmap eq(int value) {
@@ -307,7 +392,7 @@ public RoaringBitmap eq(int value) {
 }
 ```
 
-#### 3.5.3 不等于查询
+#### 3.7.3 不等于查询
 
 ```java
 public RoaringBitmap neq(int value) {
@@ -315,7 +400,7 @@ public RoaringBitmap neq(int value) {
 }
 ```
 
-#### 3.5.4 小于等于查询
+#### 3.7.4 小于等于查询
 
 ```java
 public RoaringBitmap le(int value) {
@@ -323,7 +408,7 @@ public RoaringBitmap le(int value) {
 }
 ```
 
-#### 3.5.5 小于查询
+#### 3.7.5 小于查询
 
 ```java
 public RoaringBitmap lt(int value) {
@@ -331,7 +416,7 @@ public RoaringBitmap lt(int value) {
 }
 ```
 
-#### 3.5.6 大于等于查询
+#### 3.7.6 大于等于查询
 
 ```java
 public RoaringBitmap ge(int value) {
@@ -339,7 +424,7 @@ public RoaringBitmap ge(int value) {
 }
 ```
 
-#### 3.5.7 大于查询
+#### 3.7.7 大于查询
 
 ```java
 public RoaringBitmap gt(int value) {
@@ -347,7 +432,7 @@ public RoaringBitmap gt(int value) {
 }
 ```
 
-#### 3.5.8 区间查询
+#### 3.7.8 区间查询
 
 ```java
 public RoaringBitmap between(int lower, int upper) {
@@ -359,33 +444,9 @@ public RoaringBitmap between(int lower, int upper) {
 }
 ```
 
-### 3.6 数据删除操作
+### 3.8 聚合计算操作
 
-```java
-public int remove(int key) {
-    if (!this.containsKey(key)) {
-        return -1;
-    }
-    return removeValueInternal(key);
-}
-
-private int removeValueInternal(int key) {
-    int value = 0;
-    for (int i = 0; i < this.sliceSize; i += 1) {
-        // 切片 i 包含指定的 key 则关联的 value 第 i 位为 1
-        if (this.slices[i].contains(key)) {
-            value |= (1 << i);
-            this.slices[i].remove(key);
-        }
-    }
-    this.ebm.remove(key);
-    return value;
-}
-```
-
-### 3.7 聚合计算操作
-
-#### 3.7.1 求和
+#### 3.8.1 求和
 
 ```java
 public Long sum(RoaringBitmap rbm) {
@@ -400,6 +461,5 @@ public Long sum(RoaringBitmap rbm) {
     return sum;
 }
 ```
-#### 3.7.2 Top
 
-### 3.8 序列化操作
+### 3.9 序列化操作

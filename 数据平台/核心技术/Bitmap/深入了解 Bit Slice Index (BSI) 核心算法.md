@@ -1,4 +1,4 @@
-BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩，将每个整数值分解为二进制表示，每个二进制位存储在一个独立的位图中。对于值 value，其二进制表示的第 i 位为 1 时，在 slices[i] 位图中记录对应的 key。下面以用户(key)与用户获取的积分(value)为例为你介绍 BSI 的原理与结构。
+BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩，将每个整数值分解为二进制表示，每个二进制位存储在一个独立的位图中。对于值 value，其二进制表示的第 i 位为 1 时，在第 i 位图中记录对应的 key。下面以用户(key)与用户获取的积分(value)为例为你介绍如何构造 BSI 。
 
 | user_id(用户) | score(积分十进制) | score(积分二进制) |
 | :------------- | :------------- | :------------- |
@@ -97,12 +97,25 @@ switch (operation) {
 }
 ```
 
-
-
-
 ## 3. SUM
 
+- 第一步：初始化 SUM 为 0
+- 第二步：从低位到高位切片迭代累加
+  - 每个切片的 SliceValue 从 1 开始，每迭代一次左移一次
+  - 每轮都要计算 SliceValue 与切片上指定用户个数的乘积进行累加
+- 多轮迭代之后 SUM 值就是最终我们指定用户的求和
 
-
-
-## 4. Top
+算法如下实现：
+```java
+public Long sum(RoaringBitmap rbm) {
+    if (null == rbm || rbm.isEmpty()) {
+        return 0L;
+    }
+    long sum = 0;
+    for (int i = 0; i < this.sliceSize; i ++) {
+        long sliceValue = 1 << i;
+        sum += sliceValue * RoaringBitmap.andCardinality(this.slices[i], rbm);
+    }
+    return sum;
+}
+```

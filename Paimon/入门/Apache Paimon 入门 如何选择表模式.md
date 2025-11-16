@@ -168,7 +168,7 @@ CREATE TABLE MyTable (
 
 ### 4.2 Append Queue 表
 
-```
+```sql
 CREATE TABLE MyTable (
     user_id BIGINT,
     item_id BIGINT,

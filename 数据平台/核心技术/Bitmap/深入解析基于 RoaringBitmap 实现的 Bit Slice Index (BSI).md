@@ -466,7 +466,7 @@ public RoaringBitmap neq(int value) {
 
 #### 3.7.4 小于查询
 
-小于查询使用 Operation.LT 操作符返回 LT 集合位图，即返回小于指定 Value 的所有 Key：
+小于查询使用 Operation.LT 操作符返回 LT 集合位图 RoaringBitmap，即返回小于指定 Value 的所有 Key：
 ```java
 public RoaringBitmap lt(int value) {
     return oNeilRange(Operation.LT, value);
@@ -475,7 +475,7 @@ public RoaringBitmap lt(int value) {
 
 #### 3.7.5 小于等于查询
 
-小于等于查询使用 Operation.LE 操作符返回 LT 和 EQ 并集的位图，即返回小于等于指定 Value 的所有 Key：
+小于等于查询使用 Operation.LE 操作符返回 LT 和 EQ 并集的位图 RoaringBitmap，即返回小于等于指定 Value 的所有 Key：
 ```java
 public RoaringBitmap le(int value) {
     return oNeilRange(Operation.LE, value);
@@ -484,7 +484,7 @@ public RoaringBitmap le(int value) {
 
 #### 3.7.6 大于查询
 
-大于查询使用 Operation.GT 操作符返回 GT 集合位图，即返回大于指定 Value 的所有 Key：
+大于查询使用 Operation.GT 操作符返回 GT 集合位图 RoaringBitmap，即返回大于指定 Value 的所有 Key：
 ```java
 public RoaringBitmap gt(int value) {
     return oNeilRange(Operation.GT, value);
@@ -493,7 +493,7 @@ public RoaringBitmap gt(int value) {
 
 #### 3.7.7 大于等于查询
 
-大于等于查询使用 Operation.GE 操作符返回 LT 和 EQ 并集的位图，即返回大于等于指定 Value 的所有 Key：
+大于等于查询使用 Operation.GE 操作符返回 LT 和 EQ 并集的位图 RoaringBitmap，即返回大于等于指定 Value 的所有 Key：
 ```java
 public RoaringBitmap ge(Integer value) {
     return oNeilRange(Operation.GE, value);

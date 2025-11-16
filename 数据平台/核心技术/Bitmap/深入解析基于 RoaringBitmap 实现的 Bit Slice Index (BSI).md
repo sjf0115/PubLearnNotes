@@ -64,48 +64,42 @@ BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩，将每个整数�
 
 此外，ebm 记录所有存在的用户 `{1,2,3,4,5,6,7,8,9}`，用于快速判断某个用户是否存在；maxValue 存储最大值 96，minValue 存储最小值 1。
 
-
 ## 3. 核心操作实现详解
 
 - 初始化操作
-  - Rbm32BitSliceIndex(int minValue, int maxValue)
+  - `Rbm32BitSliceIndex(Integer minValue, Integer maxValue)`
 - 容量管理操作
-  - void resize(int newSliceSize)
+  - `void resize(int newSliceSize)`
 - 基础操作
-  - int sliceSize();
-  - long getLongCardinality();
-  - boolean isEmpty();
-  - BitSliceIndex clone();
+  - BSI 切片个数：`int sliceSize()`
+  - BSI 基数：`long getLongCardinality()`
+  - BSI 是否为空：`boolean isEmpty()`
+  - 克隆 BSI：`BitSliceIndex clone()`
 - 插入操作
-  - void put(int key, int value);
-  - void putAll(BitSliceIndex otherBsi);
+  - `void put(Integer key, Integer value)`
+  - `void putAll(BitSliceIndex otherBsi)`
 - 删除操作
-  - 删除指定 Key：`int remove(int key)`
+  - 删除指定 Key：`Integer remove(Integer key)`
   - 清空所有 Key：`void clear()`
 - 精确查询操作
-  - 包含查询：`boolean containsKey(int key)`
-  - 按 Key 查询：`int get(int key)`
+  - 包含查询：`boolean containsKey(Integer key)`
+  - 按 Key 查询：`Integer get(Integer key)`
 - 范围查询操作
-  - max
-  - min
-  - eq
-  - lt
-  - le
-  - gt
-  - ge
-  - range
+  - 等于：`RoaringBitmap eq(Integer value)`
+  - 不等于：`RoaringBitmap neq(Integer value)`
+  - 小于：`RoaringBitmap lt(Integer value)`
+  - 小于等于：`RoaringBitmap le(Integer value)`
+  - 大于：`RoaringBitmap gt(Integer value)`
+  - 大于等于：`RoaringBitmap ge(Integer value)`
+  - 范围：`RoaringBitmap between(Integer lower, Integer upper)`
 - 聚合计算操作
-  - SUM
-- 序列化
-  - void serialize(ByteBuffer buffer) throws IOException;
-  - void deserialize(ByteBuffer buffer) throws IOException;
-
+  - 求和：`Long sum(RoaringBitmap rbm)`
 
 ### 3.1 初始化操作
 
 通过一个最小值和一个最大值来初始化 Bit Slice Index 的实现 Rbm32BitSliceIndex：
 ```java
-public Rbm32BitSliceIndex(int minValue, int maxValue) {
+public Rbm32BitSliceIndex(Integer minValue, Integer maxValue) {
     if (minValue < 0) {
         throw new IllegalArgumentException("Value should be non-negative");
     }
@@ -157,30 +151,36 @@ private void resize(int newSliceSize) {
 
 #### 3.3.1 BSI 切片个数
 
+有专门的属性字段 sliceSize 来记录 BSI 切片个数，直接返回即可：
 ```java
 public int sliceSize() {
     return sliceSize;
 }
 ```
+> 每个二进制位存储在一个独立的 Bitmap 中。BSI 切片个数即为 Bitmap 的个数。
 
 #### 3.3.2 BSI 基数
 
-BSI 基数即 BSI 中 Key 的个数：
+ebm 存储位图存储了所有的 Key，直接返回 ebm 位图的基数即可：
 ```java
 public long getLongCardinality() {
     return this.ebm.getLongCardinality();
 }
 ```
+> BSI 基数即 BSI 中 Key 的个数：
 
 #### 3.3.3 BSI 是否为空
 
+如果 BSI 基数为 0，表示 BSI 中没有存储 Key，是一个空 BSI：
 ```java
 public boolean isEmpty() {
     return this.getLongCardinality() == 0;
 }
 ```
+
 #### 3.3.4 BSI 克隆
 
+可以通过 `clone()` 方法克隆一个 KV 完全一致的 BSI：
 ```java
 public BitSliceIndex clone() {
     Rbm32BitSliceIndex bitSliceIndex = new Rbm32BitSliceIndex();
@@ -199,11 +199,13 @@ public BitSliceIndex clone() {
     return bitSliceIndex;
 }
 ```
+克隆 BSI 核心深拷贝属性字段和切片。
 
 ### 3.4  插入操作
 
+可以通过 `put()` 方法来在 BSI 中添加一个新的 KV：
 ```java
-public void put(int key, int value) {
+public void put(Integer key, Integer value) {
     // 更新最大值和最小值
     if (this.isEmpty()) {
         this.minValue = value;
@@ -216,41 +218,46 @@ public void put(int key, int value) {
     // 调整切片个数
     int newSliceSize = Integer.toBinaryString(value).length();
     resize(newSliceSize);
-    // 为指定 Key 关联指定 Value
+    // 为指定的 Key 设置 Value
     putValueInternal(key, value);
 }
 
-private void putValueInternal(int key, int value) {
-    // 为 value 的每个切片 bitmap 添加 x
+private void putValueInternal(Integer key, Integer value) {
+    // 为 value 的每个切片 bitmap 添加 key
     for (int i = 0; i < this.sliceSize(); i += 1) {
         if ((value & (1 << i)) > 0) {
             this.slices[i].add(key);
         } else {
+            // 一个 Key 只能设置一个 Value，旧值会被新值覆盖。
             this.slices[i].remove(key);
         }
     }
     this.ebm.add(key);
 }
 ```
+首先根据为 key 设置的 value 来更新 BSI 的最大值和最小值。根据最大值的二进制位数来判断是否需要动态扩容，如果二进制位数比之前的大，则需要通过 `resize()` 方法来扩容。剩下最重要的事情就是为 BSI 添加新的 KV，核心逻辑是在 value 二进制位对应切片 Bitmap 中添加 key：从低位到高位遍历切片 Bitmap，如果 value 二进制位对应的 bit 为 1 则对应的切片 Bitmap 添加 key。
+
 > 一个 Key 只能设置一个 Value。
 
 ### 3.5 删除操作
 
 #### 3.5.1 删除指定 Key
 
+可以通过 `remove` 方法来删除指定的 Key：如果指定的 Key 存在删除并返回对应的 Value，否则返回 -1：
 ```java
-public int remove(int key) {
+public Integer remove(Integer key) {
+    // 不存在返回 -1
     if (!this.containsKey(key)) {
         return -1;
     }
     return removeValueInternal(key);
 }
 
-private int removeValueInternal(int key) {
+private Integer removeValueInternal(Integer key) {
     int value = 0;
     for (int i = 0; i < this.sliceSize; i += 1) {
-        // 切片 i 包含指定的 key 则关联的 value 第 i 位为 1
         if (this.slices[i].contains(key)) {
+            // 通过位图反向重建原始值
             value |= (1 << i);
             this.slices[i].remove(key);
         }
@@ -259,9 +266,11 @@ private int removeValueInternal(int key) {
     return value;
 }
 ```
+首先通过 `containsKey()` 方法快速判断指定 Key 是否存在，如果不存在返回 -1，表示 "not found" 语义。删除逻辑通过内部方法 `removeValueInternal` 实现，核心逻辑是在 value 二进制位对应切片 Bitmap 中移除 key，并通过位移操作反向重建原始值：从低位到高位遍历切片 Bitmap。
 
-#### 3.5.2 清空所有 Key
+#### 3.5.2 清空所有 KV
 
+通过 `clear()` 方法来清空所有的 Key：
 ```java
 public void clear() {
     this.maxValue = -1;
@@ -276,77 +285,102 @@ public void clear() {
 
 #### 3.6.1 包含查询
 
+通过 `containsKey()` 方法判断是否存在指定的 Key：
 ```java
-public boolean containsKey(int key) {
+public boolean containsKey(Integer key) {
     return this.ebm.contains(key);
 }
 ```
 
 #### 3.6.2 按 Key 查询
 
+可以通过 `get` 方法来查询指定的 Key 的 Value，如果指定的 Key 不存在则返回 -1：
 ```java
-public int get(int key) {
+public Integer get(Integer key) {
     if (!this.containsKey(key)) {
         return -1;
     }
     return getValueInternal(key);
 }
 
-private int getValueInternal(int key) {
+private Integer getValueInternal(Integer key) {
     int value = 0;
     for (int i = 0; i < this.sliceSize; i += 1) {
-        // 切片 i 包含指定的 key 则关联的 value 第 i 位为 1
         if (this.slices[i].contains(key)) {
+            // 通过位图反向重建原始值
             value |= (1 << i);
         }
     }
     return value;
 }
 ```
+可以看到按 Key 查询的核心实现逻辑与 `remove()` 方法删除指定 Key 的实现逻辑几乎一致，只是在 value 二进制位对应切片 Bitmap 中不需要移除 Key。
 
 #### 3.6.3 最小值查询
 
+可以通过 `minValue()` 查询 BSI 中的最小值，通过 `minValue(RoaringBitmap rbm)` 查询 BSI 中指定 Key 集合下的最小值：
 ```java
-public int minValue() {
-    if (this.isEmpty()) {
+public Integer minValue() {
+    return minValue;
+}
+
+public Integer minValue(RoaringBitmap rbm) {
+    if (this.isEmpty() || Objects.equals(rbm, null) || rbm.getLongCardinality() == 0) {
         return -1;
     }
-
-    RoaringBitmap keys = ebm;
+    // 指定 Key 与 BSI 中 Key 的交集
+    RoaringBitmap keys = RoaringBitmap.and(rbm, ebm);
+    if (keys.getLongCardinality() == 0) {
+        return -1;
+    }
+    // 查询最小值
     for (int i = this.sliceSize - 1; i >= 0; i -= 1) {
         RoaringBitmap tmp = RoaringBitmap.andNot(keys, slices[i]);
         if (!tmp.isEmpty()) {
             keys = tmp;
         }
     }
-
+    // 可能存在多个 Key 拥有最小值
     return getValueInternal(keys.first());
 }
 ```
+BSI 的全局最小值可以通过 minValue 属性直接返回。而查询指定 Key 集合下的最小值则稍微麻烦一些，需要从高位到低位遍历切片 Bitmap。
+
+
 #### 3.6.4 最大值查询
 
+可以通过 `maxValue()` 查询 BSI 中的最大值，通过 `maxValue(RoaringBitmap rbm)` 查询 BSI 中指定 Key 集合下的最大值：
 ```java
-public int maxValue() {
-    if (this.isEmpty()) {
+public Integer maxValue() {
+    return maxValue;
+}
+
+public Integer maxValue(RoaringBitmap rbm) {
+    if (this.isEmpty() || Objects.equals(rbm, null) || rbm.getLongCardinality() == 0) {
         return -1;
     }
-
-    RoaringBitmap keys = ebm;
+    // 指定 Key 与 BSI 中 Key 的交集
+    RoaringBitmap keys = RoaringBitmap.and(rbm, ebm);
+    if (keys.getLongCardinality() == 0) {
+        return -1;
+    }
     for (int i = this.sliceSize - 1; i >= 0; i -= 1) {
         RoaringBitmap tmp = RoaringBitmap.and(keys, slices[i]);
         if (!tmp.isEmpty()) {
             keys = tmp;
         }
     }
-
+    // 可能存在多个 Key 拥有最大值
     return getValueInternal(keys.first());
 }
 ```
+BSI 的全局最大值可以通过 maxValue 属性直接返回。而查询指定 Key 集合下的最大值则稍微麻烦一些，需要从高位到低位遍历切片 Bitmap。
 
 ### 3.7 范围查询操作
 
 #### 3.7.1 O'Neil 范围查询
 
+范围查询均是基于 O'Neil 范围查询算法实现：
 ```java
 private RoaringBitmap oNeilRange(Operation operation, int value) {
     RoaringBitmap GT = new RoaringBitmap();
@@ -383,9 +417,39 @@ private RoaringBitmap oNeilRange(Operation operation, int value) {
     }
 }
 ```
+- 第一步：初始化
+  - EQ 初始化为全集 ebm 作为候选集合
+  - GT 和 LT 初始化为空集合
+- 第二步：从高位到低位迭代比较 EQ 候选集合中的值和查询值 Value 的 Bit 位大小
+  - 比较策略：
+    - 如果目标值 Bit 为 1，而 EQ 候选值 Bit 为 0，则说明该候选值小于目标值，则从 EQ 集合中转移到 LT 集合中
+    - 如果目标值 Bit 为 0，而候选值 Bit 为 1，则说明该候选值大于目标值，则从 EQ 集合中转移到 GT 集合中
+    - 如果目标值和候选值的 Bit 一样，则说明高位 Bit 目前还保持一致，还有相等的可能，继续留在 EQ 集合中
+- 多轮迭代之后，大于查询值的 Key 存储在 GT 集合中，小于查询值的 Key 存储在 LT 集合中，等于查询值的 Key 存储在 EQ 集合中
+
+根据查询操作选择对应的集合即可：
+```java
+switch (operation) {
+    case EQ:
+        return EQ;
+    case NEQ:
+        return RoaringBitmap.andNot(this.ebm, EQ);
+    case GT:
+        return GT;
+    case LT:
+        return LT;
+    case LE:
+        return RoaringBitmap.or(LT, EQ);
+    case GE:
+        return RoaringBitmap.or(GT, EQ);
+    default:
+        throw new IllegalArgumentException("");
+}
+```
 
 #### 3.7.2 等于查询
 
+等于查询使用 Operation.EQ 操作符返回 EQ 集合位图，即返回等于指定 Value 的所有 Key：
 ```java
 public RoaringBitmap eq(int value) {
     return oNeilRange(Operation.EQ, value);
@@ -394,48 +458,54 @@ public RoaringBitmap eq(int value) {
 
 #### 3.7.3 不等于查询
 
+不等于查询使用 Operation.NEQ 操作符返回 ebm 和 EQ 与非操作的位图，即返回等于不指定 Value 的所有 Key：
 ```java
 public RoaringBitmap neq(int value) {
     return oNeilRange(Operation.NEQ, value);
 }
 ```
 
-#### 3.7.4 小于等于查询
+#### 3.7.4 小于查询
 
-```java
-public RoaringBitmap le(int value) {
-    return oNeilRange(Operation.LE, value);
-}
-```
-
-#### 3.7.5 小于查询
-
+小于查询使用 Operation.LT 操作符返回 LT 集合位图，即返回小于指定 Value 的所有 Key：
 ```java
 public RoaringBitmap lt(int value) {
     return oNeilRange(Operation.LT, value);
 }
 ```
 
-#### 3.7.6 大于等于查询
+#### 3.7.5 小于等于查询
 
+小于等于查询使用 Operation.LE 操作符返回 LT 和 EQ 并集的位图，即返回小于等于指定 Value 的所有 Key：
 ```java
-public RoaringBitmap ge(int value) {
-    return oNeilRange(Operation.GE, value);
+public RoaringBitmap le(int value) {
+    return oNeilRange(Operation.LE, value);
 }
 ```
 
-#### 3.7.7 大于查询
+#### 3.7.6 大于查询
 
+大于查询使用 Operation.GT 操作符返回 GT 集合位图，即返回大于指定 Value 的所有 Key：
 ```java
 public RoaringBitmap gt(int value) {
     return oNeilRange(Operation.GT, value);
 }
 ```
 
+#### 3.7.7 大于等于查询
+
+大于等于查询使用 Operation.GE 操作符返回 LT 和 EQ 并集的位图，即返回大于等于指定 Value 的所有 Key：
+```java
+public RoaringBitmap ge(Integer value) {
+    return oNeilRange(Operation.GE, value);
+}
+```
+
 #### 3.7.8 区间查询
 
+区间查询使用 Operation.GE 操作符返回大于等于 lower 的位图 lowerBitmap，使用 Operation.LE 操作符返回小于等于 upper 的位图 upperBitmap，区间查询的结果就是 lowerBitmap 和 upperBitmap 的交集：
 ```java
-public RoaringBitmap between(int lower, int upper) {
+public RoaringBitmap between(Integer lower, Integer upper) {
     RoaringBitmap lowerBitmap = oNeilRange(Operation.GE, lower);
     RoaringBitmap upperBitmap = oNeilRange(Operation.LE, upper);
     RoaringBitmap resultBitmap = lowerBitmap;
@@ -448,6 +518,7 @@ public RoaringBitmap between(int lower, int upper) {
 
 #### 3.8.1 求和
 
+可以通过 `SUM` 方法计算指定 Key 集合下 Value 的总和：
 ```java
 public Long sum(RoaringBitmap rbm) {
     if (null == rbm || rbm.isEmpty()) {
@@ -461,5 +532,199 @@ public Long sum(RoaringBitmap rbm) {
     return sum;
 }
 ```
+SUM 计算逻辑如下所示：
+- 第一步：初始化 SUM 为 0
+- 第二步：从低位到高位切片迭代累加
+  - 每个切片的 SliceValue 从 1 开始，每迭代一次左移一次
+  - 每轮都要计算 SliceValue 与切片上指定用户个数的乘积进行累加
+- 多轮迭代之后 SUM 值就是最终我们指定用户的求和
 
-### 3.9 序列化操作
+## 4. 实战
+
+以数据结构原理章节的用户与积分示例来实践操作如何使用 BSI。
+
+### 4.1 构建 BSI
+
+```java
+Map<Integer, Integer> initMap = new HashMap<>();
+Rbm32BitSliceIndex bsi = new Rbm32BitSliceIndex();
+// 用户ID(user_id)、积分(score)
+initMap.put(1, 48);
+initMap.put(2, 80);
+initMap.put(3, 75);
+initMap.put(4, 19);
+initMap.put(5, 1);
+initMap.put(6, 57);
+initMap.put(7, 63);
+initMap.put(8, 22);
+initMap.put(9, 96);
+initMap.put(10, 34);
+for (int key : initMap.keySet()) {
+    bsi.put(key, initMap.get(key));
+}
+```
+
+### 4.2 基础操作
+
+```java
+@Test
+public void sliceTest() {
+    int sliceSize = bsi.sliceSize();
+    System.out.println("SliceSize: " + sliceSize);
+    assert(sliceSize == 7);
+}
+
+@Test
+public void getLongCardinalityTest() {
+    long cardinality = bsi.getLongCardinality();
+    System.out.println("Cardinality: " + cardinality);
+    assert(cardinality == 10);
+}
+
+@Test
+public void isEmptyTest() {
+    boolean isEmpty = bsi.isEmpty();
+    System.out.println("IsEmpty: " + isEmpty);
+    assert(isEmpty == false);
+}
+```
+
+### 4.3 精确查询操作
+
+```java
+@Test
+public void containsKeyExistTest() {
+    boolean isExist = bsi.containsKey(10);
+    System.out.println("isExist: " + isExist);
+    assert(isExist == true);
+}
+
+@Test
+public void containsKeyNoExistTest() {
+    boolean isExist = bsi.containsKey(11);
+    System.out.println("isExist: " + isExist);
+    assert(isExist == false);
+}
+
+@Test
+public void getTest() {
+    int value = bsi.get(10);
+    System.out.println("Value: " + value);
+    assert(value == 34);
+}
+```
+
+### 4.4 极值查询操作
+
+```java
+@Test
+public void maxValueTest() {
+    int maxValue = bsi.maxValue();
+    System.out.println("MaxValue: " + maxValue);
+    assert(maxValue == 96);
+}
+
+@Test
+public void maxValueByKeysTest() {
+    RoaringBitmap rbm = new RoaringBitmap();
+    rbm.add(3,4,6,7);
+    int maxValue = bsi.maxValue(rbm);
+    System.out.println("MaxValue: " + maxValue);
+    assert(maxValue == 75);
+}
+
+@Test
+public void minValueTest() {
+    int minValue = bsi.minValue();
+    System.out.println("MinValue: " + minValue);
+    assert(minValue == 1);
+}
+
+@Test
+public void minValueByKeysTest() {
+    RoaringBitmap rbm = new RoaringBitmap();
+    rbm.add(3,4,6,7);
+    int minValue = bsi.minValue(rbm);
+    System.out.println("MinValue: " + minValue);
+    assert(minValue == 19);
+}
+```
+
+### 4.5 范围查询操作
+
+```java
+@Test
+public void eqTest() {
+    RoaringBitmap eqBitmap = bsi.eq(57);
+    // 6
+    for (int key : eqBitmap.toArray()) {
+        System.out.println("key: " + key + ", value: " + bsi.get(key));
+    }
+}
+
+@Test
+public void neqTest() {
+    RoaringBitmap neqBitmap = bsi.neq(57);
+    // 1,2,3,4,5,7,8,9,10
+    for (int key : neqBitmap.toArray()) {
+        System.out.println("key: " + key + ", value: " + bsi.get(key));
+    }
+}
+
+@Test
+public void leTest() {
+    RoaringBitmap leBitmap = bsi.le(57);
+    // 1,4,5,6,8,10
+    for (int key : leBitmap.toArray()) {
+        System.out.println("key: " + key + ", value: " + bsi.get(key));
+    }
+}
+
+@Test
+public void ltTest() {
+    RoaringBitmap ltBitmap = bsi.lt(57);
+    // 1,4,5,8,10
+    for (int key : ltBitmap.toArray()) {
+        System.out.println("key: " + key + ", value: " + bsi.get(key));
+    }
+}
+
+@Test
+public void geTest() {
+    RoaringBitmap geBitmap = bsi.ge(57);
+    // 2,3,6,7,9
+    for (int key : geBitmap.toArray()) {
+        System.out.println("key: " + key + ", value: " + bsi.get(key));
+    }
+}
+
+@Test
+public void gtTest() {
+    RoaringBitmap gtBitmap = bsi.gt(57);
+    // 2,3,7,9
+    for (int key : gtBitmap.toArray()) {
+        System.out.println("key: " + key + ", value: " + bsi.get(key));
+    }
+}
+
+@Test
+public void betweenTest() {
+    RoaringBitmap betweenBitmap = bsi.between(57, 83);
+    // 2,3,6,7
+    for (int key : betweenBitmap.toArray()) {
+        System.out.println("key: " + key + ", value: " + bsi.get(key));
+    }
+}
+```
+
+### 4.6 SUM
+
+```java
+@Test
+public void sumTest() {
+    RoaringBitmap rbm = RoaringBitmap.bitmapOf(3,6,8,9);
+    long sum = bsi.sum(rbm);
+    System.out.println("Sum: " + sum);
+    assertEquals(250L, sum);
+}
+```

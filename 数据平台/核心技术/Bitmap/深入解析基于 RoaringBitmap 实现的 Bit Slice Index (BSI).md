@@ -2,12 +2,12 @@
 
 Bit Slice Index (BSI) 是一种高效的数值索引结构，它将整数值按位分解到多个位图中，从而支持快速的范围查询、聚合计算等操作。结合 RoaringBitmap 的高效压缩位图实现，BSI 能够在保持高性能的同时显著减少内存使用。在这深入解析基于 RoaringBitmap 的 Bit Slice Index 算法实现 Rbm32BitSliceIndex。
 
-## 2. 2. 核心数据结构设计
+## 2. 核心数据结构设计
 
 ### 2.1 关键成员变量
 
 ```java
-public class Rbm32BitSliceIndex implements BitSliceIndex {
+public class Rbm32BitSliceIndex implements BitSliceIndex<Integer, Integer> {
     private int maxValue = -1;        // 存储的最大值
     private int minValue = -1;        // 存储的最小值
     private int sliceSize = 0;        // 切片个数（二进制位数）
@@ -16,15 +16,16 @@ public class Rbm32BitSliceIndex implements BitSliceIndex {
     private Boolean runOptimized = false; // 运行优化标志
 }
 ```
-BSI 中还会存储如下信息：
-- Existence bitmap（ebm）：存在位图，存储 user_id 数组的 RoaringBitmap。
+BSI 中会存储如下信息：
+- Existence bitmap（ebm）：存在位图，存储 Key 的 RoaringBitmap。
 - maxValue：存储的最大值。
 - minValue：存储的最小值。
-- sliceSize：切片个数，最大 score 的二进制位数，本示例为 7。
+- sliceSize：切片个数，最大值的二进制位数。
+- slices：切片 RoaringBitmap 数组，每个切片对应一个 RoaringBitmap。
 
 ### 2.2 数据结构原理
 
-BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩，将每个整数值分解为二进制表示，每个二进制位存储在一个独立的位图中。对于值 value，其二进制表示的第 i 位为 1 时，在 slices[i] 位图中记录对应的 key。下面以用户(key)与用户获取的积分(value)为例为你介绍 BSI 的原理与结构。
+BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩，将每个整数值分解为二进制表示，每个二进制位存储在一个独立的 RoaringBitmap 位图中。对于值 value，其二进制表示的第 i 位为 1 时，在 slices[i] 位图中记录对应的 key。下面以用户(key)与用户获取的积分(value)为例为你介绍 BSI 的原理与结构。
 
 | user_id(用户) | score(积分十进制) | score(积分二进制) |
 | :------------- | :------------- | :------------- |
@@ -39,7 +40,7 @@ BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩，将每个整数�
 | 9 | 96 | 1100000 |
 | 10 | 34 | 0100010 |
 
-表中包含用户ID user_id 列和积分 score 列。其中，score 的最大值为 96，即二进制最大位数为 7 位，因此将所有 score 的二进制值补充为 7 位。然后对二进制数据从低位向高位遍历，将位值为 1 的 user_id 存入切片 RoaringBitmap 数组的 slices 中，形成位切片索引 BSI(Bit Slice Index)。我们以用户ID为 1 的用户为例介绍，用户对应的积分 48(二进制 110000)：
+表中包含用户ID user_id 列和积分 score 列。其中，score 的最大值为 96，即二进制最大位数为 7 位，因此将所有 score 的二进制值补充为 7 位。然后对二进制数据从低位向高位遍历，将第 i 位值为 1 的 user_id 存入切片 RoaringBitmap 的 slices[i] 中，形成位切片索引 BSI(Bit Slice Index)。我们以 user_id 为 1 的用户为例介绍，该用户对应的积分 48(二进制 110000)：
 - slices[0] 不添加 key=1（第0位为0）
 - slices[1] 不添加 key=1（第1位为0）
 - slices[2] 不添加 key=1（第2位为0）
@@ -77,7 +78,6 @@ BSI(Bit Slice Index)本质上是对 KV 键值数据的压缩，将每个整数�
   - 克隆 BSI：`BitSliceIndex clone()`
 - 插入操作
   - `void put(Integer key, Integer value)`
-  - `void putAll(BitSliceIndex otherBsi)`
 - 删除操作
   - 删除指定 Key：`Integer remove(Integer key)`
   - 清空所有 Key：`void clear()`
@@ -114,11 +114,11 @@ public Rbm32BitSliceIndex(Integer minValue, Integer maxValue) {
     this.maxValue = maxValue;
 }
 ```
-索引切片个数 sliceSize 的计算是核心，它决定了 BSI 能够表示的最大数值范围。索引切片个数等于最大整数的二进制位数，可以通过 32 减去最大整数二进制0填充个数计算得到。每个切片对应一个二进制位，从低位(0)到高位(sliceSize-1)，存储在一个独立的 RoaringBitmap 位图中。ebm 是 "Existence Bitmap" 的缩写，存储所有的 Key，用于快速判断 Key 是否存在。
+索引切片个数 sliceSize 的计算是核心，它决定了 BSI 能够表示的最大数值范围。索引切片个数等于最大整数的二进制位数，可以通过 32 减去最大整数二进制0填充个数计算得到。每个切片表示一个二进制位，从低位(0)到高位(sliceSize-1)分别存储在一个独立的 RoaringBitmap 位图中。ebm 是 "Existence Bitmap" 的缩写，存储所有的 Key，用于快速判断 Key 是否存在。
 
 ### 3.2 容量管理
 
-在上述初始化时根据设置的最大值来设置初始化容量，随着添加值的变化，可与动态调整 BSI 的容量：
+在上述初始化时根据设置的最大值来设置初始化容量，随着添加值的变化，可以动态调整 BSI 的容量：
 ```java
 private void resize(int newSliceSize) {
     if (newSliceSize <= this.sliceSize) {
@@ -141,7 +141,7 @@ private void resize(int newSliceSize) {
     this.sliceSize = newSliceSize;
 }
 ```
-如果调整的切片个数 newSliceSize 小于等于当前切片个数 this.sliceSize，说明当前容量已经足够表示新值，直接返回，避免不必要的扩容操作。容量调整逻辑按照如下调整：
+如果调整的切片个数 newSliceSize 小于等于当前切片个数 sliceSize，说明当前容量已经足够表示新值，直接返回，避免不必要的扩容操作。如果需要扩容，容量调整逻辑按照如下调整：
 - 根据新容量分配 RoaringBitmap 数组创建新的切片数组。
 - 通过 System.arraycopy 高效拷贝旧切片数据
 - 为新增的高位创建空 RoaringBitmap 来初始化新切片
@@ -161,13 +161,12 @@ public int sliceSize() {
 
 #### 3.3.2 BSI 基数
 
-ebm 存储位图存储了所有的 Key，直接返回 ebm 位图的基数即可：
+BSI 基数即 BSI 中 Key 的个数，ebm 存储位图存储了所有的 Key，直接返回 ebm 位图的基数即可：
 ```java
 public long getLongCardinality() {
     return this.ebm.getLongCardinality();
 }
 ```
-> BSI 基数即 BSI 中 Key 的个数：
 
 #### 3.3.3 BSI 是否为空
 
@@ -180,7 +179,7 @@ public boolean isEmpty() {
 
 #### 3.3.4 BSI 克隆
 
-可以通过 `clone()` 方法克隆一个 KV 完全一致的 BSI：
+可以通过 `clone()` 方法克隆一个所有 KV 都一样的 BSI：
 ```java
 public BitSliceIndex clone() {
     Rbm32BitSliceIndex bitSliceIndex = new Rbm32BitSliceIndex();
@@ -235,7 +234,7 @@ private void putValueInternal(Integer key, Integer value) {
     this.ebm.add(key);
 }
 ```
-首先根据为 key 设置的 value 来更新 BSI 的最大值和最小值。根据最大值的二进制位数来判断是否需要动态扩容，如果二进制位数比之前的大，则需要通过 `resize()` 方法来扩容。剩下最重要的事情就是为 BSI 添加新的 KV，核心逻辑是在 value 二进制位对应切片 Bitmap 中添加 key：从低位到高位遍历切片 Bitmap，如果 value 二进制位对应的 bit 为 1 则对应的切片 Bitmap 添加 key。
+首先根据为 key 设置的 value 来更新 BSI 的最大值和最小值。然后根据最大值的二进制位数来判断是否需要动态扩容，如果二进制位数比之前的大，则需要通过 `resize()` 方法来扩容。剩下最重要的事情就是为 BSI 添加新的 KV，核心逻辑是在 value 二进制位对应切片 RoaringBitmap 中添加 key：从低位到高位遍历切片 RoaringBitmap，如果 value 二进制位对应的 bit 为 1 则对应的切片 RoaringBitmap 添加 key。
 
 > 一个 Key 只能设置一个 Value。
 
@@ -243,7 +242,7 @@ private void putValueInternal(Integer key, Integer value) {
 
 #### 3.5.1 删除指定 Key
 
-可以通过 `remove` 方法来删除指定的 Key：如果指定的 Key 存在删除并返回对应的 Value，否则返回 -1：
+可以通过 `remove` 方法来删除指定的 Key：如果指定的 Key 存在则删除并返回对应的 Value，否则返回 -1：
 ```java
 public Integer remove(Integer key) {
     // 不存在返回 -1
@@ -266,7 +265,7 @@ private Integer removeValueInternal(Integer key) {
     return value;
 }
 ```
-首先通过 `containsKey()` 方法快速判断指定 Key 是否存在，如果不存在返回 -1，表示 "not found" 语义。删除逻辑通过内部方法 `removeValueInternal` 实现，核心逻辑是在 value 二进制位对应切片 Bitmap 中移除 key，并通过位移操作反向重建原始值：从低位到高位遍历切片 Bitmap。
+首先通过 `containsKey()` 方法快速判断指定 Key 是否存在，如果不存在则返回 -1，表示 "not found" 语义。删除逻辑通过内部方法 `removeValueInternal` 实现，核心逻辑是在 value 二进制位对应切片 RoaringBitmap 中移除 key，并通过位移操作反向重建原始值。
 
 #### 3.5.2 清空所有 KV
 
@@ -314,11 +313,11 @@ private Integer getValueInternal(Integer key) {
     return value;
 }
 ```
-可以看到按 Key 查询的核心实现逻辑与 `remove()` 方法删除指定 Key 的实现逻辑几乎一致，只是在 value 二进制位对应切片 Bitmap 中不需要移除 Key。
+可以看到按 Key 查询的核心实现逻辑与 `remove()` 方法删除指定 Key 的实现逻辑几乎一致，只是在 value 二进制位对应切片 RoaringBitmap 中不再需要移除 Key。
 
 #### 3.6.3 最小值查询
 
-可以通过 `minValue()` 查询 BSI 中的最小值，通过 `minValue(RoaringBitmap rbm)` 查询 BSI 中指定 Key 集合下的最小值：
+可以通过 `minValue()` 查询 BSI 中的全局最小值，通过 `minValue(RoaringBitmap rbm)` 查询 BSI 中指定 Key 集合下的最小值：
 ```java
 public Integer minValue() {
     return minValue;
@@ -344,12 +343,12 @@ public Integer minValue(RoaringBitmap rbm) {
     return getValueInternal(keys.first());
 }
 ```
-BSI 的全局最小值可以通过 minValue 属性直接返回。而查询指定 Key 集合下的最小值则稍微麻烦一些，需要从高位到低位遍历切片 Bitmap。
+BSI 的全局最小值可以通过 minValue 属性直接返回。而查询指定 Key 集合下的最小值则稍微麻烦一些，需要从高位到低位遍历切片 RoaringBitmap。
 
 
 #### 3.6.4 最大值查询
 
-可以通过 `maxValue()` 查询 BSI 中的最大值，通过 `maxValue(RoaringBitmap rbm)` 查询 BSI 中指定 Key 集合下的最大值：
+可以通过 `maxValue()` 查询 BSI 中的全局最大值，通过 `maxValue(RoaringBitmap rbm)` 查询 BSI 中指定 Key 集合下的最大值：
 ```java
 public Integer maxValue() {
     return maxValue;
@@ -374,7 +373,7 @@ public Integer maxValue(RoaringBitmap rbm) {
     return getValueInternal(keys.first());
 }
 ```
-BSI 的全局最大值可以通过 maxValue 属性直接返回。而查询指定 Key 集合下的最大值则稍微麻烦一些，需要从高位到低位遍历切片 Bitmap。
+BSI 的全局最大值可以通过 maxValue 属性直接返回。而查询指定 Key 集合下的最大值则稍微麻烦一些，需要从高位到低位遍历切片 RoaringBitmap。
 
 ### 3.7 范围查询操作
 
@@ -449,7 +448,7 @@ switch (operation) {
 
 #### 3.7.2 等于查询
 
-等于查询使用 Operation.EQ 操作符返回 EQ 集合位图，即返回等于指定 Value 的所有 Key：
+等于查询使用 Operation.EQ 操作符返回 EQ 集合位图 RoaringBitmap，即返回等于指定 Value 的所有 Key：
 ```java
 public RoaringBitmap eq(int value) {
     return oNeilRange(Operation.EQ, value);
@@ -458,7 +457,7 @@ public RoaringBitmap eq(int value) {
 
 #### 3.7.3 不等于查询
 
-不等于查询使用 Operation.NEQ 操作符返回 ebm 和 EQ 与非操作的位图，即返回等于不指定 Value 的所有 Key：
+不等于查询使用 Operation.NEQ 操作符返回 ebm 和 EQ 与非操作的位图 RoaringBitmap，即返回不等于指定 Value 的所有 Key：
 ```java
 public RoaringBitmap neq(int value) {
     return oNeilRange(Operation.NEQ, value);

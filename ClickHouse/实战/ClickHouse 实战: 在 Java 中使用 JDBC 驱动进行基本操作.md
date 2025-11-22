@@ -54,7 +54,7 @@ properties.setProperty("password", "");
 
 try (Connection connection = new ClickHouseDataSource(url, properties).getConnection()) {
     Statement st = connection.createStatement();
-    st.executeQuery(createSQL);
+    st.execute(createSQL);
 } catch (SQLException e) {
     e.printStackTrace();
 }
@@ -67,7 +67,7 @@ try (Connection connection = new ClickHouseDataSource(url, properties).getConnec
 #### 3.2.1 单条插入
 
 ```java
-String insertSQL = "INSERT INTO test VALUES (?, ?, ?, ?)";
+String insertSQL = "INSERT INTO test VALUES (?, ?)";
 
 String url = "jdbc:ch:http://localhost:8123/default";
 Properties properties = new Properties();

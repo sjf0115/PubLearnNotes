@@ -5,11 +5,11 @@
 
 ## 2. 驱动演进史
 
-起源：ClickHouse 是由 Yandex 开发的，主要用于在线分析处理（OLAP）任务。它最初是为了解决 Yandex 内部在大数据分析方面的需求而设计的。
-
-开源：Yandex 在 2016 年将 ClickHouse 开源，这意味着任何人都可以自由地使用、修改和分发 ClickHouse 的代码。这一举措极大地促进了其在全球范围内的应用和推广。
+- 起源：ClickHouse 是由 Yandex 开发的，主要用于在线分析处理（OLAP）任务。它最初是为了解决 Yandex 内部在大数据分析方面的需求而设计的。
+- 开源：Yandex 在 2016 年将 ClickHouse 开源，这意味着任何人都可以自由地使用、修改和分发 ClickHouse 的代码。这一举措极大地促进了其在全球范围内的应用和推广。
 
 ### 2.1 旧版驱动（Yandex时代）
+
 - **生命周期**：2016-2021
 - **标识符**：`ru.yandex.clickhouse:clickhouse-jdbc`
 - **特点**：
@@ -24,6 +24,7 @@ Connection conn = DriverManager.getConnection("jdbc:clickhouse://node1:8123/mydb
 ```
 
 ### 2.2 新版驱动（开源社区时代）
+
 - **诞生背景**：ClickHouse 脱离 Yandex 独立运营
 - **标识符**：`com.clickhouse:clickhouse-jdbc`
 - **重大改进**：
@@ -44,6 +45,7 @@ Connection conn = DriverManager.getConnection("jdbc:clickhouse://node1:8123/mydb
 | 查询性能         | 微秒级延迟              | 毫秒级延迟            |
 
 ### 3.2 线程模型对比
+
 ```mermaid
 graph TD
     A[旧版驱动] --> B[同步阻塞模型]
@@ -153,6 +155,7 @@ future.thenAccept(response -> {
 ## 6. 迁移实践指南
 
 ### 6.1 依赖变更
+
 ```xml
 <!-- 移除旧驱动 -->
 <dependency>
@@ -172,6 +175,7 @@ future.thenAccept(response -> {
 ```
 
 ### 6.2 连接配置变更
+
 ```properties
 # 旧版配置
 clickhouse.url=jdbc:clickhouse://node1:8123/mydb

@@ -5,7 +5,7 @@
 
 在通过 MyBatis 将数据插入 MySQL 数据库时，将中文插入数据后变成了问号：如下所示：
 
-![](../../../Image/MyBatis/mybatis-xml-mapper-crud-1.png)
+![](img-mybatis-xml-mapper-crud-1.png)
 
 ## 2. 解决方案
 
@@ -34,4 +34,4 @@
 ```
 修改完配置之后重新插入该记录中文不会变成问号：
 
-![](../../../Image/MyBatis/mybatis-xml-mapper-crud-2.png)
+![](img-mybatis-xml-mapper-crud-2.png)

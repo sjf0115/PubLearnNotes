@@ -290,7 +290,7 @@ System.out.println("目标用户: " + user);
 - 定义与 SQL 映射文件同名的 Mapper 接口
 - 设置 SQL 映射文件的 namespace 属性为 Mapper 接口全限定名
 
-![](../../../Image/Mybatis/mybatis-quick-start-1.png)
+![](img-mybatis-quick-start-1.png)
 
 - 在 Mapper 接口中定义的方法名与 SQL 映射文件中 SQL 语句的 id 保持一致，参数类型和返回值类型也要保持一致
 

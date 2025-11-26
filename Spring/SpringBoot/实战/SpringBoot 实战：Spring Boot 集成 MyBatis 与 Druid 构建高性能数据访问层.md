@@ -1,66 +1,76 @@
+作为企业级应用开发的核心组成部分，数据访问层的性能与稳定性直接关系到整个系统的质量。今天我将为大家详细介绍如何在 Spring Boot 项目中集成 MyBatis 和 Druid，打造高效可靠的数据访问解决方案。
 
-## 1. 创建工程
+## 1. 技术栈简介
 
-首先通过 Spring Initializr 来快速搭建一个 SpringBoot 项目，部分 pom 依无需手动添加赖，也无需自己编写引导类，相对更方便一些。通过 Spring Initializr 快速搭建点击 Spring Initializr 选项而不是 Maven 选项：
+### 1.1 Spring Boot
 
-![](img-spring-boot-mybatis-1.png)
+Spring Boot 通过自动配置和起步依赖极大简化了 Spring 应用的初始搭建和开发过程。
 
-这里我们创建的是 Web工程，所以选中 web 即可：
+### 1.2 MyBatis
 
-![](img-spring-boot-mybatis-2.png)
+MyBatis 是一款优秀的持久层框架，它支持定制化 SQL、存储过程以及高级映射，避免了几乎所有的 JDBC 代码和手动设置参数。
 
-此外还需要选中 MyBatis 和 MySQL。
+### 1.3 Druid
 
-工程创建之后会自动生成的引导类如下所示：
-```java
-package com.spring.example;
+Druid 是阿里巴巴开源的高性能数据库连接池，提供了强大的监控和扩展功能。
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+## 2. 项目搭建与配置
 
-@SpringBootApplication
-public class SpringBootInitializrApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(SpringBootInitializrApplication.class, args);
-    }
-}
-```
-最终依赖如下所示：
+### 2.1 创建 Spring Boot 项目
+
+首先使用 Spring Initializr 创建项目，选择以下依赖：
+- Spring Web
+- MyBatis Framework
+- MySQL Driver
+
+### 2.2 添加依赖
+
+在 `pom.xml` 中添加必要依赖：
 ```xml
-<!-- Web开发需要的起步依赖 -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-web</artifactId>
-</dependency>
+<dependencies>
+    <!-- Spring Boot Starter -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
 
-<!-- 集成 MyBatis -->
-<dependency>
-    <groupId>org.mybatis.spring.boot</groupId>
-    <artifactId>mybatis-spring-boot-starter</artifactId>
-    <version>${mybatis.spring.version}</version>
-</dependency>
+    <!-- MyBatis Spring Boot Starter -->
+    <dependency>
+        <groupId>org.mybatis.spring.boot</groupId>
+        <artifactId>mybatis-spring-boot-starter</artifactId>
+        <version>${mybatis.spring.version}</version>
+    </dependency>
 
-<!-- MySQL 数据驱动 -->
-<dependency>
-    <groupId>mysql</groupId>
-    <artifactId>mysql-connector-java</artifactId>
-</dependency>
+    <!-- MySQL 驱动 -->
+    <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+    </dependency>
 
-<!-- 其他依赖 -->
+    <!-- Druid 连接池 -->
+    <dependency>
+        <groupId>com.alibaba</groupId>
+        <artifactId>druid-spring-boot-starter</artifactId>
+        <version>${druid.spring.version}</version>
+    </dependency>
 
-<!-- Lombok -->
-<dependency>
-    <groupId>org.projectlombok</groupId>
-    <artifactId>lombok</artifactId>
-</dependency>
+    <!-- Lombok 简化代码 -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+    </dependency>
+</dependencies>
 ```
 
-## 2. 配置数据源与 MyBatis 参数
+### 2.3 配置文件
 
-在 `application.yml` 中配置数据源与 MyBatis 参数如下所示：
+在 `application.yml` 中配置数据源和 MyBatis：
+
 ```
+# 指定数据源类型为 Druid 第一种通用配置方式：通过 type:com.alibaba.druid.pool.DruidDataSource 配置
 spring:
   datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/test?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true
     username: root
@@ -74,6 +84,19 @@ mybatis:
   configuration:
     # 开启驼峰命名转换
     map-underscore-to-camel-case: true
+```
+更推荐指定数据源类型为 Druid 第二种专用配置方式：
+```
+# 指定数据源类型为 Druid 第二种专用配置方式：通过 druid: 配置
+spring:
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/test?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true
+      username: root
+      password: root
+
+...
 ```
 
 ## 3. 实体类
@@ -242,4 +265,4 @@ public class UserController {
 }
 ```
 
-> [完整代码实现](https://github.com/sjf0115/spring-example/tree/main/spring-boot-mybatis)
+> [完整代码实现](https://github.com/sjf0115/spring-example/tree/main/spring-boot-mybatis-druid)

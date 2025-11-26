@@ -6,7 +6,7 @@
 
 在这我们创建一个名为 `spring-boot-hello` 的 Maven 模块 module，其他不需要选择什么：
 
-![](../../../Image/Spring/spring-boot-quick-start-1.png)
+![](img-spring-boot-quick-start-1.png)
 
 ### 1.2 添加依赖
 
@@ -68,7 +68,7 @@ public class HelloApplication {
 
 直接运行引导类 HelloApplication 的 main 方法即可，输出如下运行信息：
 
-![](../../../Image/Spring/spring-boot-quick-start-2.png)
+![](img-spring-boot-quick-start-2.png)
 
 启动成功之后，在浏览器中访问 hello 接口(`http://localhost:8080/hello`)：
 ```
@@ -86,15 +86,15 @@ Hello SpringBoot!
 
 通过 Spring Initializr 快速搭建点击 Spring Initializr 选项而不是 Maven 选项：
 
-![](../../../Image/Spring/spring-boot-quick-start-3.png)
+![](img-spring-boot-quick-start-3.png)
 
 这里我们创建的是 Web工程，所以选中 web 即可：
 
-![](../../../Image/Spring/spring-boot-quick-start-4.png)
+![](img-spring-boot-quick-start-4.png)
 
 创建完毕，SpringBoot 会自动配置好我们需要的依赖以及相关目录：
 
-![](../../../Image/Spring/spring-boot-quick-start-5.png)
+![](img-spring-boot-quick-start-5.png)
 
 自动生成的引导类如下所示：
 ```java
@@ -133,7 +133,7 @@ public class HelloController {
 
 直接运行引导类 SpringBootInitializrApplication 的 main 方法即可，输出如下运行信息：
 
-![](../../../Image/Spring/spring-boot-quick-start-6.png)
+![](img-spring-boot-quick-start-6.png)
 
 启动成功之后，在浏览器中访问 hello 接口(`http://localhost:8080/hello`)：
 ```

@@ -76,9 +76,9 @@ INSERT INTO tb_user (id, name, age, email) VALUES
 
 我们使用 Spring Initializer 快速初始化一个 Spring Boot 工程，不了解的可以参考[SpringBoot 2.x 快速搭建入门项目](https://smartsi.blog.csdn.net/article/details/130333373)：
 
-![](../../Image/Spring/mybatis-plus-intro-1.png)
+![](img-mybatis-plus-intro-1.png)
 
-![](../../Image/Spring/mybatis-plus-intro-2.png)
+![](img-mybatis-plus-intro-2.png)
 
 由于 idea 没有收录 Mybaits-Plus，所以在这不能直接选中添加依赖，只能手动添加：
 ```xml

@@ -2,7 +2,7 @@
 
 前往 [Apache Tomcat](https://tomcat.apache.org/index.html) 官网下载 Tomcat：
 
-![](../../Image/Spring/apache-tomcat-setup-1.png)
+![](img-apache-tomcat-setup-1.png)
 
 在这我们 Tomcat 8 为例(8.5.90)。把下载好的文件解压到 /opt 目录下：
 ```
@@ -46,7 +46,7 @@ Tomcat started.
 ```
 在浏览器中访问 `http://localhost:8080` 即可看到提示：
 
-![](../../Image/Spring/apache-tomcat-setup-2.png)
+![](img-apache-tomcat-setup-2.png)
 
 ## 3. 修改端口号
 

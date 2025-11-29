@@ -204,11 +204,11 @@ template.execute("INSERT INTO tb_book (type, name, description) VALUES('计算�
 
 JdbcTemplate 中以 update 开头的方法，用来执行增、删、改操作：
 
-![](../../Image/Spring/spring-jdbctemplate-1.png)
+![](img-spring-jdbctemplate-1.png)
 
 以 query 开头的方法，用来执行查询操作：
 
-![](../../Image/Spring/spring-jdbctemplate-2.png)
+![](img-spring-jdbctemplate-2.png)
 
 | 方法 | 说明 |
 | :------------- | :------------- |

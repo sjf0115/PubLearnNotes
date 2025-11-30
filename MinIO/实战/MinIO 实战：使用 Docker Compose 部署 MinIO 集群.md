@@ -164,15 +164,8 @@ docker network create pub-network
 
 一旦部署完成，你可以通过访问 minio1 服务节点的管理控制台来验证你的集群，管理控制台通过端口 9001 访问。可以在浏览器中输入 `http://localhost:9001` 来访问。使用环境变量中设置的 MINIO_ROOT_USER 和 MINIO_ROOT_PASSWORD 登录:
 
-![](docker-compose-deployment-minio-1.png)
+![](img-docker-compose-deployment-minio-1.png)
 
 登录成功之后如下所示：
 
-![](docker-compose-deployment-minio-2.png)
-
-
-
-
-
-
-...
+![](img-docker-compose-deployment-minio-2.png)

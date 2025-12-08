@@ -30,6 +30,20 @@ Quartz 提供了多种触发器类型，每种都有特定的 Misfire 处理策�
 
 ### 1. SimpleTrigger 的 Misfire 策略
 
+SimpleTrigger Misfire策略
+
+SimpleTrigger有几个misfire相关的策略，告诉quartz当misfire发生的时候应该如何处理。(Misfire策略参考教程四：Trigger介绍)。这些策略以常量的形式在SimpleTrigger中定义(JavaDoc中介绍了它们的功能)。这些策略包括：
+
+MISFIRE_INSTRUCTION_IGNORE_MISFIRE_POLICY
+MISFIRE_INSTRUCTION_FIRE_NOW
+MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_EXISTING_REPEAT_COUNT
+MISFIRE_INSTRUCTION_RESCHEDULE_NOW_WITH_REMAINING_REPEAT_COUNT
+MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_REMAINING_COUNT
+MISFIRE_INSTRUCTION_RESCHEDULE_NEXT_WITH_EXISTING_COUNT
+
+> http://ifeve.com/quartz-5-simpletrigger/
+
+
 SimpleTrigger适用于简单的时间间隔调度，提供了以下Misfire处理指令：
 
 ```java

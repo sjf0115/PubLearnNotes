@@ -102,3 +102,5 @@ scheduler.start();
 ## 3. 总结
 
 正确注册 Job 和 Trigger 是使用 Quartz 的基础。无论选择哪种方法，记住核心原则：**Trigger 必须关联到一个已注册的 JobDetail**。
+
+> [完整代码](https://github.com/sjf0115/quartz-example/blob/main/quartz-quick-start/src/main/java/com/quartz/example/scheduler/RegisterJobAndTriggerExample.java)

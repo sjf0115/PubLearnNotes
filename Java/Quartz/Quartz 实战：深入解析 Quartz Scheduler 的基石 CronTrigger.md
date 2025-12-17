@@ -12,7 +12,7 @@ Cron 表达式由 6 或 7 个字段组成（Quartz 支持 7 个字段，包含�
 * * * * * * *
 | | | | | | |
 | | | | | | +--- 年 Year (1970-2099) 或留空
-| | | | | +----- 周 Day-of-Week (1-7 或 SUN-SAT)
+| | | | | +----- 周 Day-of-Week (1-7 或 SUN-SAT，1表示星期日)
 | | | | +------- 月 Month (1-12 或 JAN-DEC)
 | | | +--------- 日 Day-of-Month (1-31)
 | | +----------- 小时 Hours (0-23)
@@ -28,7 +28,7 @@ Cron 表达式由 6 或 7 个字段组成（Quartz 支持 7 个字段，包含�
 - `?`：不指定值
   - 字符 `?` 用在日 Day-of-Month 和周 Day-of-Week 字段中，指 '没有具体的值'。
   - 当两个字段其中一个被指定了值以后，为了避免冲突，需要将另外一个的值设为`?`。
-  - 例如，想在每月20日触发调度，不管20号是星期几，只能用如下写法：`0 0 0 20 * ? *`，其中周 Day-of-Week 字段只能用 `?`，而不能用 `*`。
+  - 例如，想在每月20日触发调度，不管20号是星期几，只能用如下写法：`0 0 0 20 * ?`，其中周 Day-of-Week 字段只能用 `?`，而不能用 `*`。
 - `-`：范围
   - 字符 `-` 用来表示指定范围。
   - 秒和分钟字段可以取0到59的整数，小时字段可以取0到23的整数，日字段(Day-of-Month)可以取1到31的整数，不过你需要注意指定的月份到底有多少天。月字段可以取0到11之间的整数
@@ -98,12 +98,48 @@ Trigger trigger1 = TriggerBuilder.newTrigger()
 
 ### 2.3 Cron 表达式
 
-Cron 表达式通常通过 CronScheduleBuilder 的 `cronSchedule` 方法来设置。
+Cron 表达式通常通过 CronScheduleBuilder 的 `cronSchedule` 方法来设置：
+```java
+Trigger trigger = TriggerBuilder.newTrigger()
+    .withIdentity("trigger", "group")
+    .startNow() // 立即开始
+    .withSchedule(CronScheduleBuilder.cronSchedule("0/10 0-2 * * * ?")) // 每小时的0-2分钟每隔10秒执行一次
+    .build();
+```
 
-- dailyAtHourAndMinute
-- atHourAndMinuteOnGivenDaysOfWeek
-- weeklyOnDayAndHourAndMinute
-- monthlyOnDayAndHourAndMinute
+此外还可以通过如下快捷方法设置：
+- dailyAtHourAndMinute：每天在指定的小时和分钟触发，适用于需要每日固定时间执行的任务
+  ```java
+  Trigger trigger1 = TriggerBuilder.newTrigger()
+      .withIdentity("trigger1", "group1")
+      .startNow() // 立即开始
+      .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(12, 0))// 每天12点触发
+      .build();
+  ```
+- atHourAndMinuteOnGivenDaysOfWeek：在指定的星期几(可以指定多天)的特定时间触发，适用于工作日或特定日期执行的定时任务
+  ```java
+  Trigger trigger1 = TriggerBuilder.newTrigger()
+      .withIdentity("trigger1", "group1")
+      .startNow() // 立即开始
+      .withSchedule(CronScheduleBuilder.atHourAndMinuteOnGivenDaysOfWeek(12, 0, 2,3))// 每周一二的12点触发
+      .build();
+  ```
+- weeklyOnDayAndHourAndMinute：每周在指定星期几的特定时间触发，适用于每周固定时间执行的任务
+  ```java
+  Trigger trigger1 = TriggerBuilder.newTrigger()
+      .withIdentity("trigger1", "group1")
+      .startNow() // 立即开始
+      .withSchedule(CronScheduleBuilder.weeklyOnDayAndHourAndMinute(2, 12, 0))// 每周一12点触发
+      .build();
+  ```
+- monthlyOnDayAndHourAndMinute：每月在指定日期的特定时间触发，适用于月度任务
+  ```java
+  Trigger trigger1 = TriggerBuilder.newTrigger()
+      .withIdentity("trigger1", "group1")
+      .startNow() // 立即开始
+      .withSchedule(CronScheduleBuilder.monthlyOnDayAndHourAndMinute(1, 12, 0))// 每月1号12点触发
+      .build();
+  ```
 
 ## 3. CronTrigger 高级操作
 
@@ -113,12 +149,15 @@ Cron 表达式通常通过 CronScheduleBuilder 的 `cronSchedule` 方法来设�
 
 ```java
 // 设置特定时区的 CronTrigger
-TimeZone timeZone = TimeZone.getTimeZone("America/New_York");
+TimeZone timeZone = TimeZone.getTimeZone("America/New_York"); // 特定时区
 Trigger trigger = TriggerBuilder.newTrigger()
-    .withIdentity("timezoneTrigger", "group1")
-    .withSchedule(CronScheduleBuilder.cronSchedule("0 0 12 * * ?")
-        .inTimeZone(timeZone))
-    .build();
+        .withIdentity("trigger", "group")
+        .startNow() // 立即开始
+        .withSchedule(CronScheduleBuilder
+                .cronSchedule("0/10 0-2 * * * ?")
+                .inTimeZone(timeZone)
+        ) // 每小时的0-2分钟每隔10秒执行一次
+        .build();
 ```
 
 ### 3.2 基于日历的排除规则
@@ -138,223 +177,50 @@ Trigger trigger = TriggerBuilder.newTrigger()
     .build();
 ```
 
-## 4. 实战：复杂调度场景实现
+## 4. 实战
 
-### 3.1 场景一：工作日调度
-
+首先定义一个 Job 作业 `CronTriggerJob`：
 ```java
-// 周一至周五，上午9点到下午6点，每半小时执行一次
-String cronExpression = "0 0/30 9-18 ? * MON-FRI";
+public class CronTriggerJob implements Job {
+    private static final Logger LOG = LoggerFactory.getLogger(CronTriggerJob.class);
 
-// 等价的手动构建方式
-CronScheduleBuilder scheduleBuilder = CronScheduleBuilder
-    .weeklyOnDayAndHourAndMinute(DateBuilder.MONDAY, 9, 0)
-    .endingDailyAtTimeOfDay(18, 30, 0)
-    .onMondayThroughFriday();
-```
-
-### 3.2 场景二：复杂时间组合
-
-```java
-// 每月最后一天下午5点，且不是周末
-String cronExpression = "0 0 17 L * ?";
-
-// 每月第三个星期五上午10点
-String cronExpression2 = "0 0 10 ? * 6#3";
-```
-
-### 3.3 动态 Cron 表达式
-
-```java
-// 从数据库或配置中心动态获取 Cron 表达式
-public Trigger createDynamicTrigger(String triggerName, String cronFromConfig) {
-    try {
-        return TriggerBuilder.newTrigger()
-            .withIdentity(triggerName, "dynamicGroup")
-            .withSchedule(CronScheduleBuilder
-                .cronSchedule(cronFromConfig)
-                .withMisfireHandlingInstructionDoNothing())
-            .build();
-    } catch (Exception e) {
-        // 回退到默认调度
-        return TriggerBuilder.newTrigger()
-            .withSchedule(CronScheduleBuilder.dailyAtHourAndMinute(0, 0))
-            .build();
+    // 定时任务实际执行逻辑
+    public void execute(JobExecutionContext context) throws JobExecutionException {
+        String jobName = context.getJobDetail().getKey().toString();
+        // 执行具体的业务逻辑
+        LOG.info("Welcome To Quartz: {}", jobName);
     }
 }
 ```
-
-## 四、性能优化与最佳实践
-
-### 4.1 触发器数量优化
-
+下面实现一个每小时第0-2分钟内每隔10秒触发调度一次的需求：
 ```java
-// 错误做法：为每个微小差异创建不同触发器
-// 正确做法：使用 JobDataMap 区分任务
-JobDetail job = JobBuilder.newJob(ReportJob.class)
-    .withIdentity("reportJob", "group1")
-    .usingJobData("reportType", "DAILY")
-    .build();
+public class CronTriggerExample {
+    private static final Logger LOG = LoggerFactory.getLogger(CronTriggerExample.class);
 
-// 单个触发器处理多种报告
-Trigger trigger = TriggerBuilder.newTrigger()
-    .withIdentity("reportTrigger", "group1")
-    .withSchedule(CronScheduleBuilder.cronSchedule("0 0 23 * * ?"))
-    .forJob(job)
-    .build();
-```
+    public static void main(String[] args) throws Exception {
+        // 1. 调度器
+        Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
 
-### 4.2 集群环境注意事项
+        // 2. 任务实例
+        JobDetail jobDetail = JobBuilder.newJob(CronTriggerJob.class)
+                .withIdentity("job", "group") // 任务名称/任务分组名称
+                .build();
 
-```java
-// 确保在集群配置中使用合适的失火策略
-Properties props = new Properties();
-props.put("org.quartz.jobStore.misfireThreshold", "60000"); // 60秒失火阈值
+        // 3. 触发器
+        // 立即触发，仅执行一次
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger", "group")
+                .startNow() // 立即开始
+                .withSchedule(CronScheduleBuilder.cronSchedule("0/10 0-2 * * * ?")) // 每小时的0-2分钟每隔10秒执行一次
+                .build();
 
-// 集群配置示例
-props.put("org.quartz.jobStore.class", "org.quartz.impl.jdbcjobstore.JobStoreTX");
-props.put("org.quartz.jobStore.isClustered", "true");
-props.put("org.quartz.scheduler.instanceId", "AUTO");
-```
+        // 4. 将任务和触发器注册到调度器
+        scheduler.scheduleJob(jobDetail, trigger);
 
-### 4.3 监控与调试
+        // 5. 启动调度器
+        scheduler.start();
 
-```java
-// 添加监听器监控触发器执行
-scheduler.getListenerManager().addTriggerListener(new TriggerListener() {
-    @Override
-    public String getName() {
-        return "monitoringTriggerListener";
-    }
-
-    @Override
-    public void triggerFired(Trigger trigger, JobExecutionContext context) {
-        logger.info("Trigger {} fired at {}", trigger.getKey(), new Date());
-    }
-
-    @Override
-    public boolean vetoJobExecution(Trigger trigger, JobExecutionContext context) {
-        // 可以在此处添加执行条件检查
-        return false;
-    }
-
-    @Override
-    public void triggerMisfired(Trigger trigger) {
-        logger.warn("Trigger {} misfired!", trigger.getKey());
-        // 发送警报或记录指标
-    }
-
-    @Override
-    public void triggerComplete(Trigger trigger, JobExecutionContext context,
-            Trigger.CompletedExecutionInstruction triggerInstructionCode) {
-        logger.info("Trigger {} completed with instruction {}",
-            trigger.getKey(), triggerInstructionCode);
-    }
-});
-```
-
-## 五、CronTrigger 的局限与替代方案
-
-### 5.1 何时不应该使用 CronTrigger
-
-1. **简单固定间隔任务**：使用 `SimpleTrigger` 更合适
-2. **需要精确执行次数的任务**：`SimpleTrigger` 可以指定具体次数
-3. **基于事件触发的任务**：考虑使用 `TriggerBuilder` 的 `startNow()`
-
-### 5.2 自定义触发器实现
-
-当 Cron 表达式无法满足需求时，可以实现自定义触发器：
-
-```java
-public class CustomBusinessDayTrigger implements Trigger {
-    // 实现复杂的工作日逻辑，考虑节假日调休等
-}
-```
-
-## 六、常见问题与解决方案
-
-### 6.1 Cron 表达式验证
-
-```java
-public boolean isValidCronExpression(String cronExpression) {
-    try {
-        new CronExpression(cronExpression);
-        return true;
-    } catch (ParseException e) {
-        logger.error("Invalid cron expression: {}", cronExpression, e);
-        return false;
-    }
-}
-
-// 提供用户友好的错误信息
-public String validateCronWithMessage(String cronExpression) {
-    try {
-        CronExpression parsed = new CronExpression(cronExpression);
-        Date nextFireTime = parsed.getNextValidTimeAfter(new Date());
-        return "表达式有效，下次执行时间：" + nextFireTime;
-    } catch (ParseException e) {
-        return "表达式无效：" + e.getMessage();
+        LOG.info("调度器启动成功，任务开始执行...");
     }
 }
 ```
-
-### 6.2 时区陷阱
-
-```java
-// 错误的时区处理方式
-// 正确的做法：始终明确指定时区
-public Trigger createTimeZoneAwareTrigger(String expression, String timeZoneId) {
-    TimeZone tz = TimeZone.getTimeZone(timeZoneId);
-    if (!tz.getID().equals(timeZoneId)) {
-        logger.warn("时区 {} 无效，使用默认时区", timeZoneId);
-        tz = TimeZone.getDefault();
-    }
-
-    return TriggerBuilder.newTrigger()
-        .withSchedule(CronScheduleBuilder.cronSchedule(expression)
-            .inTimeZone(tz))
-        .build();
-}
-```
-
-### 6.3 性能问题排查
-
-```java
-// 监控触发器计算性能
-public class PerformanceMonitoringCronExpression extends CronExpression {
-    @Override
-    public Date getNextValidTimeAfter(Date afterTime) {
-        long startTime = System.nanoTime();
-        Date result = super.getNextValidTimeAfter(afterTime);
-        long duration = System.nanoTime() - startTime;
-
-        if (duration > 100_000_000) { // 超过100ms
-            logger.warn("Cron表达式计算耗时过长: {} ns", duration);
-        }
-
-        return result;
-    }
-}
-```
-
-## 七、未来展望与 Quartz 3.0
-
-随着 Java 和调度需求的发展，`CronTrigger` 也在不断进化：
-
-1. **对 Java Time API 的更好支持**
-2. **更智能的错过触发恢复**
-3. **响应式编程集成**
-4. **云原生优化**
-
-## 结语
-
-`CronTrigger` 是 Quartz 框架中最强大、最灵活的触发器之一，它通过简洁的 Cron 表达式提供了近乎无限的调度可能性。然而，强大的功能也意味着需要更深入的理解和更谨慎的使用。
-
-关键要点总结：
-1. 始终考虑失火策略的影响
-2. 在跨时区应用中明确指定时区
-3. 合理使用日历排除机制
-4. 在集群环境中进行充分测试
-5. 为复杂调度需求考虑自定义实现
-
-掌握 `CronTrigger` 不仅意味着学会 Cron 表达式语法，更重要的是理解各种场景下的最佳实践和陷阱规避。希望这篇深度解析能帮助你在实际项目中更加得心应手地使用这一强大工具。

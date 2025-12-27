@@ -1,8 +1,6 @@
-在现代微服务架构中，单一应用连接多个数据库的场景越来越常见。例如，电商系统中订单数据和商品数据可能分布在不同的物理数据库上，如何优雅地管理这些数据源并实现透明切换是架构设计的重要课题。本文将详细介绍如何使用Spring Boot结合AbstractRoutingDataSource实现多数据源动态切换，让订单和商品数据源能够按需切换。
+在现代微服务架构中，单一应用连接多个数据库的场景越来越常见。例如，电商系统中订单数据和商品数据可能分布在不同的物理数据库上，如何优雅地管理这些数据源并实现透明切换是架构设计的重要课题。本文将详细介绍如何使用 Spring Boot 通过配置多个独立的 MyBatis 框架实例来实现多数据源访问，让订单和商品数据源能够按需切换。
 
-## 1.
-
-## 2. 项目依赖
+## 1. 项目依赖
 
 首先使用 Spring Initializr 创建项目，需要在 pom.xml 文件中引入如下依赖：
 ```xml
@@ -61,7 +59,7 @@
 </dependencies>
 ```
 
-## 3. 配置文件
+## 2. 配置文件
 
 在 application.yml 中配置数据库信息，使用 orders 和 goods 两个数据库：
 ```
@@ -85,21 +83,11 @@ spring:
       url: jdbc:mysql://localhost:3306/goods?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true
       username: root
       password: root
-
-# MyBatis 配置
-mybatis:
-  # 指定 mapper.xml 文件路径
-  mapper-locations: classpath:mapper/*.xml
-  # 指定实体类包路径 xxxMapper.xml 不用指定全限定名
-  type-aliases-package: com.spring.example.bean
-  configuration:
-    # 开启驼峰命名转换
-    map-underscore-to-camel-case: true
 ```
 
-## 4. 数据源配置
+## 3. 数据源配置
 
-### 4.1 数据源类型枚举
+### 3.1 数据源类型枚举
 
 ```java
 public enum DataSourceType {
@@ -137,79 +125,22 @@ public enum DataSourceType {
 }
 ```
 
-### 4.2 数据源上下文持有器
+### 3.2 数据源配置类
 
-动态数据源上下文持有器 DataSourceContextHolder 使用 ThreadLocal 保证线程安全。ThreadLocal为每个线程提供独立的变量副本：
-```java
-public class DataSourceContextHolder {
-    private static final ThreadLocal<DataSourceType> DATASOURCE_HOLDER = new ThreadLocal<>();
+通过配置多个独立的 MyBatis 框架实例来实现多数据源访问，那就需要为每个数据源配置单独的配置类。
 
-    /**
-     * 获取当前线程的数据源
-     * @return
-     */
-    public static DataSourceType getDataSource() {
-        return DATASOURCE_HOLDER.get();
-    }
+#### 3.2.1 订单数据源
 
-    /**
-     * 设置数据源
-     * @param dataSourceType
-     */
-    public static void setDataSource(DataSourceType dataSourceType) {
-        DATASOURCE_HOLDER.set(dataSourceType);
-    }
-
-    /**
-     * 删除当前数据源
-     */
-    public static void removeDataSource() {
-        DATASOURCE_HOLDER.remove();
-    }
-}
-```
-
-### 4.3 动态数据源实现
-
-DynamicDataSource 继承 AbstractRoutingDataSource 实现动态数据源的切换：
-```java
-@Component
-@Primary // 设置为主要注入的 Bean 数据源
-public class DynamicDataSource extends AbstractRoutingDataSource {
-    // 订单数据源
-    @Autowired
-    private DataSource orderDataSource;
-    // 商品数据源
-    @Autowired
-    private DataSource goodsDataSource;
-
-    // 返回当前数据源标识
-    @Override
-    protected Object determineCurrentLookupKey() {
-        return DataSourceContextHolder.getDataSource();
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        // 为 targetDataSources 初始化所有数据源
-        Map<Object, Object> targetDataSources = new HashMap<>();
-        targetDataSources.put(DataSourceType.ORDER, orderDataSource);
-        targetDataSources.put(DataSourceType.GOODS, goodsDataSource);
-        super.setTargetDataSources(targetDataSources);
-        // 默认数据源
-        super.setDefaultTargetDataSource(orderDataSource);
-        super.afterPropertiesSet();
-    }
-}
-```
-determineCurrentLookupKey 方法决定了当前线程使用的数据源标识。在 afterPropertiesSet 方法中为 targetDataSources 初始化所有数据源，并设置默认的数据源为订单数据源。
-
-### 4.4 数据源配置类
-
+为订单数据源配置 OrderDataSourceConfig 配置类：
 ```java
 @Configuration
-public class DataSourceConfig {
-
+@MapperScan(
+        // 包路径下扫描 Mapper 接口
+        basePackages = "com.spring.example.mapper.order",
+        // 使用哪个 SqlSessionFactory
+        sqlSessionFactoryRef = "orderSqlSessionFactory"
+)
+public class OrderDataSourceConfig {
     // 订单数据源
     @Bean
     @ConfigurationProperties(prefix = "spring.datasource.order")
@@ -218,6 +149,43 @@ public class DataSourceConfig {
         return DruidDataSourceBuilder.create().build();
     }
 
+    @Bean(name = "orderSqlSessionFactory")
+    @Primary
+    public SqlSessionFactory orderSqlSessionFactory() throws Exception {
+        final SqlSessionFactoryBean sessionFactory = new SqlSessionFactoryBean();
+        // 设置数据源
+        sessionFactory.setDataSource(orderDataSource());
+        // 加载XML映射文件
+        sessionFactory.setMapperLocations(
+                new PathMatchingResourcePatternResolver()
+                        .getResources("classpath:mapper/order/*.xml"));
+
+        // 可选但建议的配置
+        sessionFactory.setTypeAliasesPackage("com.spring.example.bean.order");
+        // 可选：配置驼峰命名
+        org.apache.ibatis.session.Configuration configuration =
+                new org.apache.ibatis.session.Configuration();
+        configuration.setMapUnderscoreToCamelCase(true);
+        sessionFactory.setConfiguration(configuration);
+
+        return sessionFactory.getObject();
+    }
+}
+```
+`@MapperScan` 告诉 Spring 在指定的包路径下扫描 Mapper 接口（即 DAO 接口），并将这些接口注册为 MyBatis 的 Mapper。同时，通过 sqlSessionFactoryRef 属性指定这些 Mapper 接口使用哪个 SqlSessionFactory 来创建代理对象。
+
+因为 `@MapperScan` 只是将 Mapper 接口注册到 Spring 容器，并指定使用哪个 SqlSessionFactory，但并没有告诉 SqlSessionFactory 去哪里加载 XML 映射文件（如果你使用 XML 方式定义 SQL 映射的话）。
+
+`setMapperLocations` 告诉 MyBatis 去哪里找 XML 映射文件，并将 XML 中的 SQL 与方法绑定。如果你在 Mapper 接口中使用了注解来定义 SQL，那么可以不用设置 XML 映射文件的位置。但如果你使用了 XML 文件，则必须设置。
+
+#### 3.2.2 商品数据源
+
+同理为商品数据源配置 GoodsDataSourceConfig 配置类：
+```java
+@Configuration
+@MapperScan(basePackages = "com.spring.example.mapper.goods",
+        sqlSessionFactoryRef = "goodsSqlSessionFactory")
+public class GoodsDataSourceConfig {
     // 商品数据源
     @Bean
     @ConfigurationProperties(prefix = "spring.datasource.goods")
@@ -225,10 +193,20 @@ public class DataSourceConfig {
         // 底层会自动拿到 spring.datasource.order 中的配置创建一个 DruidDataSource
         return DruidDataSourceBuilder.create().build();
     }
+
+    @Bean
+    public SqlSessionFactory goodsSqlSessionFactory(@Qualifier("goodsDataSource") DataSource goodsDataSource) throws Exception {
+        final SqlSessionFactoryBean sessionFactory = new SqlSessionFactoryBean();
+        sessionFactory.setDataSource(goodsDataSource);
+        sessionFactory.setMapperLocations(
+                new PathMatchingResourcePatternResolver()
+                        .getResources("classpath:mapper/goods/*.xml"));
+        return sessionFactory.getObject();
+    }
 }
 ```
 
-## 5. 实体类
+## 4. 实体类
 
 在 `com.spring.example.bean` 包路径下定义 POJO 实体，在这创建两个实体分别对应两个数据库实体对象：
 ```java
@@ -249,11 +227,11 @@ public class Order {
 }
 ```
 
-## 6. MyBatis 配置文件
+## 5. MyBatis 配置文件
 
-### 6.1 创建 Mapper XML 定义映射配置
+### 5.1 创建 Mapper XML 定义映射配置
 
-在 `resources/mapper/` 目录下创建 GoodsMapper.xml 和 OrderMapper.xml 文件。
+分别在 `resources/mapper/goods` 和 `resources/mapper/order` 目录下创建 GoodsMapper.xml 和 OrderMapper.xml 文件。
 
 GoodsMapper.xml 文件如下所示：
 ```xml
@@ -263,7 +241,7 @@ GoodsMapper.xml 文件如下所示：
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <!-- namespace 命名空间 -->
-<mapper namespace="com.spring.example.mapper.GoodsMapper">
+<mapper namespace="com.spring.example.mapper.goods.GoodsMapper">
 
     <resultMap id="BaseResultMap" type="com.spring.example.bean.Goods">
         <id column="id" jdbcType="BIGINT" property="id" />
@@ -290,7 +268,7 @@ OrderMapper.xml 文件如下所示：
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <!-- namespace 命名空间 -->
-<mapper namespace="com.spring.example.mapper.OrderMapper">
+<mapper namespace="com.spring.example.mapper.order.OrderMapper">
 
     <resultMap id="BaseResultMap" type="com.spring.example.bean.Order">
         <id column="id" jdbcType="BIGINT" property="id" />
@@ -311,9 +289,9 @@ OrderMapper.xml 文件如下所示：
 ```
 Mapper 映射文件中定义了 SQL 查询语句实现与数据库的交互，主要目的是实现 SQL 的统一管理。一个 SQL 语句既可以通过 XML 定义，也可以通过注解定义。因为 MyBatis 提供的所有特性都可以利用基于 XML 的映射语言来实现，在这我们采用 XML 来定义语句。
 
-#### 6.2 定义 Mapper 数据层接口
+#### 5.2 定义 Mapper 数据层接口
 
-在 `com.spring.example.mapper` 包路径下创建 GoodsMapper 和 OrderMapper 类：
+分别在 `com.spring.example.mapper.goods` 和 `com.spring.example.mapper.order` 包路径下创建 GoodsMapper 和 OrderMapper 类：
 ```java
 @Mapper
 public interface GoodsMapper {
@@ -326,7 +304,7 @@ public interface OrderMapper {
 }
 ```
 
-## 7. Service层实现
+## 6. Service层实现
 
 Service 层 GoodsService 和 OrderService 中提供 getList 方法来获取所有的商品和订单：
 ```java
@@ -360,7 +338,7 @@ public class OrderService {
 }
 ```
 
-## 8. Controller层实现
+## 7. Controller层实现
 
 Controller 层 GoodsController 和 OrderController 中提供 getList 方法来获取所有的商品和订单：
 ```java
@@ -373,7 +351,6 @@ public class GoodsController {
 
     @GetMapping(value = "/list")
     public List<Goods> getList() {
-        DataSourceContextHolder.setDataSource(DataSourceType.GOODS);
         return goodsService.getList();
     }
 }
@@ -387,15 +364,13 @@ public class OrderController {
 
     @GetMapping(value = "/list")
     public List<Order> getList() {
-        DataSourceContextHolder.setDataSource(DataSourceType.ORDER);
         List<Order> orders = orderService.getList();
         return orders;
     }
 }
 ```
-可以看到 getList 方法通过数据源上下文持有器来动态切换数据源从而实现不同方法访问不同数据库的能力，GoodsController 中的 getList 方法通过数据源上下文持有器来设置为 GOODS 类型来访问商品数据库，同理 OrderController 设置之后访问订单数据库。
 
-## 9. 效果
+## 8. 效果
 
 请求 `http://localhost:8090/goods/list` 接口获取所有的商品：
 ```json
@@ -440,4 +415,4 @@ public class OrderController {
 ]
 ```
 
-> [完整代码实现](https://github.com/sjf0115/spring-example/tree/main/spring-boot-dynamic-datasource-simple)
+> [完整代码实现](https://github.com/sjf0115/spring-example/tree/main/spring-boot-dynamic-datasource-mybatis)

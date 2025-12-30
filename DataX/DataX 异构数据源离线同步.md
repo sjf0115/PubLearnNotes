@@ -18,7 +18,7 @@ permalink: datax-introduction
 
 DataX 是一个异构数据源离线同步工具，致力于实现包括关系型数据库(MySQL、Oracle等)、HDFS、Hive、ODPS、HBase、FTP 等各种异构数据源之间稳定高效的数据同步功能。
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/DataX/datax-introduction-1.png?raw=true)
+![](img-datax-introduction-1.png)
 
 为了解决异构数据源同步问题，DataX 将复杂的网状的同步链路变成了星型数据链路，DataX 作为中间传输载体负责连接各种数据源。当需要接入一个新的数据源的时候，只需要将此数据源对接到 DataX，便能跟已有的数据源做到无缝数据同步。
 
@@ -26,7 +26,7 @@ DataX 在阿里巴巴集团内被广泛使用，承担了所有大数据的离�
 
 ## 2. 架构
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/DataX/datax-introduction-2.png?raw=true)
+![](img-datax-introduction-2.png)
 
 DataX 本身作为离线数据同步框架，采用 Framework + Plugin 架构的模式构建。将数据源读取和写入分别抽象为 Reader 和 Writer 插件，并纳入到整个同步框架中：
 - Reader：作为数据采集模块，负责数据源数据的采集，并将数据发送给 Framework。
@@ -37,7 +37,7 @@ DataX 本身作为离线数据同步框架，采用 Framework + Plugin 架构的
 
 DataX 3.0 开源版本支持单机多线程模式完成同步作业运行，一个 DataX 作业生命周期的时序图如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/DataX/datax-introduction-3.png?raw=true)
+![](img-datax-introduction-3.png)
 
 - 生成 Job：DataX 完成单个数据同步的作业称之为 Job。DataX 接收到一个 Job 之后，将启动一个进程来完成整个作业同步。Job 是单个作业的中枢管理节点，承担了数据清理、子任务切分(将单一作业计算转化为多个子 Task)、TaskGroup 管理等功能。
 - Task 切分：Job 启动后，会根据不同的源端切分策略，将 Job 切分成多个小的 Task(子任务)，以便于并发执行。Task 是 DataX 作业的最小单元，每一个 Task 都会负责一部分数据的同步工作。
@@ -53,7 +53,7 @@ DataX 作业运行起来之后， Job 监控并等待多个 TaskGroup 任务的�
 
 经过几年积累，DataX 目前已经有了比较全面的插件体系，主流的 RDBMS 数据库、NOSQL、大数据计算系统都已经接入。DataX 目前支持数据如下：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/DataX/datax-introduction-4.png?raw=true)
+![](img-datax-introduction-4.png)
 
 DataX Framework 提供了简单的接口与插件交互，提供简单的插件接入机制，只需要任意加上一种插件，就能无缝对接其他数据源。
 

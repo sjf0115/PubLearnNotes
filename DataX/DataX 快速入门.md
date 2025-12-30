@@ -40,7 +40,7 @@ python /opt/datax/bin/datax.py /opt/datax/job/job.json
 ```
 看到如下运行信息表示我们已经运行成功了：
 
-![](https://github.com/sjf0115/ImageBucket/blob/main/DataX/datax-quick-start-1.png?raw=true)
+![](img-datax-quick-start-1.png)
 
 ## 3. 示例
 

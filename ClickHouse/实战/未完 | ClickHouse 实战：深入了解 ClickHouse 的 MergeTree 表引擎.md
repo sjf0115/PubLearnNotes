@@ -12,7 +12,7 @@ MergeTree 引擎目前有如下几种：
 
 #### 2.1.1 MergeTree
 
-MergeTree表引擎主要用于海量数据分析，支持数据分区、存储有序、主键索引、稀疏索引和数据TTL等。MergeTree 表引擎支持云数据库ClickHouse的所有SQL语法，但是部分功能与标准SQL存在差异。
+MergeTree 表引擎主要用于海量数据分析，支持数据分区、存储有序、主键索引、稀疏索引和数据TTL等。MergeTree 表引擎支持云数据库ClickHouse的所有SQL语法，但是部分功能与标准SQL存在差异。
 
 
 > 尽管名字相似， Merge 引擎与 xxxMergeTree 引擎是不同的。
@@ -39,19 +39,7 @@ SETTINGS index_granularity = 8192;
 
 #### 2.1.2 ReplacingMergeTree
 
-处理数据更新的场景，通过版本字段解决重复数据问题。
 
-```sql
-CREATE TABLE user_profile (
-    user_id UInt64,
-    username String,
-    email String,
-    updated_at DateTime,
-    version UInt32
-) ENGINE = ReplacingMergeTree(version)
-PARTITION BY bitShiftRight(user_id, 20)
-ORDER BY (user_id, username);
-```
 
 #### 2.1.3 SummingMergeTree
 

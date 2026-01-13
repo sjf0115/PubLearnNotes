@@ -175,16 +175,19 @@ Reader读取 → Channel传输 → Writer写入
 
 ### 2.4 plugin.json
 
-与 package.xml 文件相对应在 `src/main/resources/` 下创建 `plugin.json` 文件：
+代码写好了，有没有想过框架是怎么找到插件的入口类的？框架是如何加载插件的呢？在每个插件的项目中，都有一个 `plugin.json` 文件，这个文件定义了插件的相关信息，包括入口类。在 `src/main/resources/` 下创建 `plugin.json` 文件：
 ```json
 {
-    "name": "kafkawriter",
-    "class": "com.alibaba.datax.plugin.writer.KafkaWriter",
-    "description": "Kafka Writer",
-    "developer": "sjf0115"
+  "name": "kafkawriter",
+  "class": "com.alibaba.datax.plugin.writer.kafkawriter.KafkaWriter",
+  "description": "Kafka Writer",
+  "developer": "sjf0115"
 }
 ```
-> class 与我们下面定义的 KafkaWriter 全限定名称相对应。
+- name: 插件名称，大小写敏感。框架根据用户在配置文件中指定的名称来搜寻插件。 十分重要 。
+- class: 入口类的全限定名称，框架通过反射插件入口类的实例。十分重要 。
+- description: 描述信息。
+- developer: 开发人员。
 
 ## 3. 插件配置
 
@@ -214,9 +217,6 @@ Reader读取 → Channel传输 → Writer写入
   - 支持配置单个或者多个字符作为分隔符，支持以 `\u0001` 格式配置 Unicode 字符，支持 `\t`、`\n` 等转义字符。默认值为 `\t`。
   - 如果 writeMode 未配置为 text 或者配置了 valueIndex，该配置项无效。
 - column
-
-
-
 
 ### 3.2 插件配置示例
 
@@ -272,7 +272,7 @@ Reader读取 → Channel传输 → Writer写入
 
 ## 4. 核心代码实现
 
-### 2.5.1 KafkaWriterErrorCode
+### 4.1 KafkaWriterErrorCode
 
 ```java
 public enum KafkaWriterErrorCode implements ErrorCode {
@@ -304,9 +304,9 @@ public enum KafkaWriterErrorCode implements ErrorCode {
 }
 ```
 
-#### 2.5.2 Job 执行类
+#### 4.2 Job 执行类
 
-#### 2.5.2.1 init
+#### 4.2.1 init
 
 ```java
 package com.alibaba.datax.plugin.writer.kafkawriter;
@@ -370,7 +370,7 @@ public class KafkaWriter extends Writer {
 }
 ```
 
-#### 2.3.2 Task
+#### 4.3 Task
 
 ```java
 public static class Task extends Writer.Task {
@@ -521,308 +521,210 @@ public static class Task extends Writer.Task {
 }
 ```
 
-### 2.4 配置参数详解
+## 5. 插件安装
 
-```java
-public class Key {
-    // Kafka连接配置
-    public static final String BOOTSTRAP_SERVERS = "bootstrapServers";
-    public static final String TOPIC = "topic";
+### 5.1 生成插件
 
-    // 消息配置
-    public static final String KEY_FIELD = "keyField";
-    public static final String FORMAT = "format";
-    public static final String COMPRESSION_TYPE = "compressionType";
+DataX 使用 assembly 打包，打包命令如下：
+```
+mvn -U clean package assembly:assembly -Dmaven.test.skip=true -pl :kafkawriter -am -Dautoconfig.skip
+```
+当你看到如下类似信息时表示生成打包成功：
+```
+...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary:
+[INFO]
+[INFO] datax-all 0.0.1-SNAPSHOT ........................... SUCCESS [01:39 min]
+[INFO] datax-common ....................................... SUCCESS [  1.178 s]
+[INFO] kafkawriter 1.0 .................................... SUCCESS [  2.219 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 01:44 min
+[INFO] Finished at: 2026-01-11T18:05:47+08:00
+[INFO] ------------------------------------------------------------------------
+```
+打包生成的插件在目录 `DataX/kafkawriter/target/datax/plugin` 下：
+```
+smarsi:datax smartsi$ tree -L 4
+.
+└── plugin
+    └── writer
+        └── kafkawriter
+            ├── kafkawriter-1.0.jar
+            ├── libs
+            └── plugin.json
+```
+- libs: 插件的依赖库。
+- plugin.json: 插件描述文件。
 
-    // 发送配置
-    public static final String SYNC_SEND = "sync";
-    public static final String BATCH_SIZE = "batchSize";
-    public static final String LINGER_MS = "lingerMs";
-    public static final String ACKS = "acks";
-    public static final String RETRY_TIMES = "retryTimes";
+> 插件的目录名字必须和plugin.json中定义的插件名称一致
 
-    // 生产者高级配置（以producer.前缀传递）
-    public static final String PRODUCER_PREFIX = "producer.";
-}
+### 5.2 安装 Datax
+
+[]()
+
+### 5.3 上传自定义插件
+
+DataX 集群 Writer 插件均存放在 `${DATAX_HOME}/plugin/writer` 目录下：
+```
+smarsi:writer smartsi$ ls -al
+total 0
+drwxr-xr-x@ 41 smartsi  wheel  1312  8 23 21:03 .
+drwxr-xr-x@  4 smartsi  wheel   128  8 23 21:03 ..
+drwxr-xr-x@  6 smartsi  wheel   192  8 23 21:03 adbpgwriter
+drwxr-xr-x@  6 smartsi  wheel   192  8 23 21:03 adswriter
+drwxr-xr-x@  6 smartsi  wheel   192  8 23 21:03 cassandrawriter
+drwxr-xr-x@  6 smartsi  wheel   192  8 23 21:03 clickhousewriter
+...
+```
+我们自定义的 KafkaWriter 插件也需要上传到该目录下。将自己开发的 plugin 目录下所有文件上传到 DataX 插件目录下：
 ```
 
-## 三、高级特性实现
-
-### 3.1 连接池管理优化
-
-```java
-public class KafkaProducerManager {
-
-    private static final Map<String, KafkaProducer<String, String>>
-        producerPool = new ConcurrentHashMap<>();
-
-    public static KafkaProducer<String, String> getProducer(
-        Configuration config) {
-
-        String key = generateConfigKey(config);
-
-        return producerPool.computeIfAbsent(key, k -> {
-            Properties props = buildProperties(config);
-            return new KafkaProducer<>(props);
-        });
-    }
-
-    private static String generateConfigKey(Configuration config) {
-        // 根据配置生成唯一Key
-        return config.getString(Key.BOOTSTRAP_SERVERS) +
-               config.getString(Key.TOPIC, "");
-    }
-
-    public static void closeAll() {
-        producerPool.values().forEach(KafkaProducer::close);
-        producerPool.clear();
-    }
-}
 ```
 
-### 3.2 数据分区策略
+## 6. 实践
 
-```java
-public class PartitionStrategy {
+```sql
+CREATE TABLE `datax_user` (
+  `id` bigint NOT NULL COMMENT '主键ID',
+  `name` varchar(30) DEFAULT NULL COMMENT '姓名',
+  `age` int DEFAULT NULL COMMENT '年龄',
+  `email` varchar(50) DEFAULT NULL COMMENT '邮箱',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
 
-    public static Partitioner getPartitioner(Configuration config) {
-        String strategy = config.getString(Key.PARTITION_STRATEGY, "default");
-
-        switch (strategy) {
-            case "hash":
-                return new HashPartitioner(
-                    config.getString(Key.PARTITION_KEY_FIELD)
-                );
-            case "roundrobin":
-                return new RoundRobinPartitioner();
-            case "random":
-                return new RandomPartitioner();
-            default:
-                return new DefaultPartitioner();
-        }
-    }
-
-    public interface Partitioner {
-        Integer getPartition(Record record, int partitionCount);
-    }
-}
+INSERT INTO datax_user (id, name, age, email) VALUES
+  ('1', 'Jone', 18, 'jone@163.com'),
+  ('2', 'Jack', 20, 'jack@163.com'),
+  ('3', 'Tom', 28, 'tom@163.com'),
+  ('4', 'Sandy', 21, 'sandy@163.com'),
+  ('5', 'Billie', 24, 'billie@163.com'),
+  ('6', null, 24, null)
+;
 ```
 
-### 3.3 错误处理与重试机制
+### 6.1 作业配置
 
-```java
-public class RetryHandler {
-
-    private static final int MAX_RETRIES = 3;
-    private static final long INITIAL_BACKOFF = 1000L;
-
-    public static void sendWithRetry(
-        KafkaProducer<String, String> producer,
-        ProducerRecord<String, String> record) {
-
-        int retryCount = 0;
-        while (retryCount <= MAX_RETRIES) {
-            try {
-                producer.send(record).get();
-                return;
-            } catch (Exception e) {
-                retryCount++;
-                if (retryCount > MAX_RETRIES) {
-                    throw new DataXException(
-                        KafkaWriterErrorCode.WRITE_ERROR,
-                        "Failed to send message after " + MAX_RETRIES + " retries",
-                        e
-                    );
-                }
-
-                // 指数退避
-                long backoff = INITIAL_BACKOFF * (long) Math.pow(2, retryCount);
-                try {
-                    Thread.sleep(backoff);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new DataXException(
-                        KafkaWriterErrorCode.WRITE_INTERRUPTED,
-                        "Send interrupted during retry backoff"
-                    );
-                }
-            }
-        }
-    }
-}
-```
-
-
-## 五、性能优化建议
-
-### 5.1 批处理优化
-
-```java
-// 动态调整批次大小
-private int calculateBatchSize(int recordSize, int recordCount) {
-    int defaultBatchSize = 16384;
-    int maxBatchSize = 1048576; // 1MB
-
-    if (recordCount < 100) {
-        return Math.min(defaultBatchSize, recordSize * recordCount);
-    } else {
-        return Math.min(maxBatchSize, recordSize * 100);
-    }
-}
-```
-
-### 5.2 内存管理
-
-```java
-// 监控生产者缓冲区
-private void monitorBufferPool(KafkaProducer producer) {
-    Metrics metrics = producer.metrics();
-    metrics.forEach((name, metric) -> {
-        if (name.name().contains("buffer")) {
-            LOG.debug("Metric {}: {}", name, metric.metricValue());
-        }
-    });
-}
-```
-
-## 六、测试与验证
-
-### 6.1 单元测试示例
-
-```java
-public class KafkaWriterTest {
-
-    @Test
-    public void testRecordConversion() {
-        Configuration config = Configuration.newDefault();
-        config.set(Key.FORMAT, "json");
-
-        Task task = new Task();
-        task.setPluginJobConf(config);
-
-        Record record = RecordCreator.create();
-        record.addColumn(new StringColumn("test_value"));
-
-        String result = task.convertRecordToMessage(record);
-        assertTrue(result.contains("test_value"));
-    }
-
-    @Test
-    public void testConnectionPool() {
-        Configuration config1 = Configuration.newDefault();
-        config1.set(Key.BOOTSTRAP_SERVERS, "server1:9092");
-
-        Configuration config2 = Configuration.newDefault();
-        config2.set(Key.BOOTSTRAP_SERVERS, "server1:9092");
-
-        KafkaProducer<?, ?> p1 = KafkaProducerManager.getProducer(config1);
-        KafkaProducer<?, ?> p2 = KafkaProducerManager.getProducer(config2);
-
-        // 相同配置应该返回同一个实例
-        assertEquals(p1, p2);
-    }
-}
-```
-
-### 6.2 集成测试配置
-
+创建 DataX 同步作业配置文件 mysql2kafka.json 文件，实现从 MySQL 读取数据发送到 Kafka：
 ```json
 {
-  "job": {
-    "setting": {
-      "speed": {
-        "channel": 4
-      }
-    },
-    "content": [{
-      "reader": {
-        "name": "streamreader",
-        "parameter": {
-          "column": [
-            {"value": "test_data", "type": "string"}
-          ],
-          "sliceRecordCount": 10000
-        }
-      },
-      "writer": {
-        "name": "kafkawriter",
-        "parameter": {
-          "bootstrapServers": "localhost:9092",
-          "topic": "test_topic",
-          "sync": true
-        }
-      }
-    }]
-  }
+    "job": {
+        "setting": {
+            "speed": {
+                 "channel": 3
+            },
+            "errorLimit": {
+                "record": 0,
+                "percentage": 0.02
+            }
+        },
+        "content": [
+            {
+                "reader": {
+                    "name": "mysqlreader",
+                    "parameter": {
+                        "username": "root",
+                        "password": "root",
+                        "column": [
+                            "id",
+                            "name",
+                            "age",
+                            "email"
+                        ],
+                        "splitPk": "id",
+                        "connection": [
+                            {
+                                "table": [
+                                    "datax_user"
+                                ],
+                                "jdbcUrl": [
+                                    "jdbc:mysql://127.0.0.1:3306/test"
+                                ]
+                            }
+                        ]
+                    }
+                },
+               "writer": {
+                    "name": "kafkawriter",
+                    "parameter": {
+                        "server": "127.0.0.1:9092",
+                        "keyIndex": 1,
+                        "valueIndex": 1,
+                        "topic": "user",
+                        "":"",
+                        "batchSize": 1024
+                    }
+                }
+            }
+        ]
+    }
 }
 ```
 
-## 七、生产环境部署建议
+```json
+"writer": {
+     "name": "kafkawriter",
+     "parameter": {
+         "server": "127.0.0.1:9092",
+         "topic": "user",
+         "keyIndex": 1,
+         "nullKeyFormat":"default",
+         "writeMode": "text",
+         "fieldDelimiter":",",
+         "nullValueFormat":"null",
+         "batchSize": 1024
+     }
+}
+```
 
-### 7.1 监控指标收集
+```json
+"writer": {
+     "name": "kafkawriter",
+     "parameter": {
+         "server": "127.0.0.1:9092",
+         "topic": "user",
+         "keyIndex": 1,
+         "nullKeyFormat":"default",
+         "writeMode": "json",
+         "nullValueFormat":"-",
+         "column": [
+            {"name": "id", "type": "JSON_NUMBER"},
+            {"name": "name", "type": "JSON_STRING"},
+            {"name": "age", "type": "JSON_NUMBER"},
+            {"name": "email", "type": "JSON_STRING"},
+            {"name": "gender", "type": "JSON_STRING"}
+         ],
+         "batchSize": 1024
+     }
+}
+```
 
+### 6.2 运行
+
+```
+python3 bin/datax.py job/kafka/mysql2kafka_json.json
+```
+
+> 可能报错：
+
+> 2022-12-09 15:18:30.412 [main] WARN ConfigParser - 插件[txtfilereader,kafkawriter]加载失败，1s后重试... Exception:Code:[Common-00], Describe:[您提供的配置文件存在错误信息，请检查您的作业配置 .] - 配置信息错误，您提供的配置文件[/home/hadoop/datax/plugin/writer/.DS_Store/plugin.json]不存在. 请检查您的配置文件.
+
+> 原因，Mac电脑打包自己默认将.DS_Store打进去了，需要删除，不然DataX会解析失败
+
+执行结果：
 ```java
-public class KafkaWriterMetrics {
-
-    private Meter writeMeter;
-    private Counter errorCounter;
-    private Histogram latencyHistogram;
-
-    public void init() {
-        // 使用JMX或Prometheus收集指标
-        writeMeter = Metrics.newMeter("kafka.writer.records", "records");
-        errorCounter = Metrics.newCounter("kafka.writer.errors");
-        latencyHistogram = Metrics.newHistogram("kafka.writer.latency");
-    }
-
-    public void recordWrite(int recordCount, long latency) {
-        writeMeter.mark(recordCount);
-        latencyHistogram.update(latency);
-    }
-}
+2026-01-11 22:52:59.351 [job-0] INFO  JobContainer - PerfTrace not enable!
+2026-01-11 22:52:59.352 [job-0] INFO  StandAloneJobContainerCommunicator - Total 6 records, 102 bytes | Speed 10B/s, 0 records/s | Error 0 records, 0 bytes |  All Task WaitWriterTime 0.000s |  All Task WaitReaderTime 0.000s | Percentage 100.00%
+2026-01-11 22:52:59.355 [job-0] INFO  JobContainer -
+任务启动时刻                    : 2026-01-11 22:52:48
+任务结束时刻                    : 2026-01-11 22:52:59
+任务总计耗时                    :                 10s
+任务平均流量                    :               10B/s
+记录写入速度                    :              0rec/s
+读出记录总数                    :                   6
+读写失败总数                    :                   0
 ```
-
-### 7.2 配置管理最佳实践
-
-```yaml
-# application-kafka.yaml
-kafka:
-  writer:
-    default:
-      bootstrapServers: ${KAFKA_BOOTSTRAP_SERVERS}
-      topicPrefix: datax_
-      producer:
-        acks: 1
-        retries: 3
-        compression.type: snappy
-    largeBatch:
-      batchSize: 65536
-      lingerMs: 500
-    realtime:
-      batchSize: 4096
-      lingerMs: 0
-```
-
-## 总结与展望
-
-本文详细介绍了DataX KafkaWriter插件的完整实现过程，从架构设计到代码实现，从基础功能到高级特性。通过这个自定义插件，我们可以：
-
-1. **实现实时数据同步**：将各种数据源的数据实时同步到Kafka
-2. **灵活的数据转换**：支持JSON、CSV等多种格式输出
-3. **高性能传输**：利用批处理和异步发送提升吞吐量
-4. **企业级可靠性**：完善的错误处理和重试机制
-
-未来还可以考虑扩展以下功能：
-- Exactly-Once语义支持
-- Schema Registry集成
-- 基于Kafka Connect API的兼容层
-- 动态主题路由
-
-通过这个自定义插件，DataX可以更好地融入现代数据架构，为企业提供更完整的数据同步解决方案。
-
----
-**注意**：本文代码为示例代码，实际使用时需要根据具体业务需求进行调整和优化。建议在生产环境使用前进行充分的测试和性能验证。
-
-
 
 > [异源数据同步 → DataX 为什么要支持 kafka？](https://cloud.tencent.com/developer/article/2447802)

@@ -10,7 +10,7 @@ MergeTree 引擎目前有如下几种：
 - GraphiteMergeTree
 - CoalescingMergeTree
 
-MergeTree 家族表引擎专为高数据摄取速率和海量数据规模而设计。 插入操作会创建表部件（part），这些部件会由后台进程与其他表部件进行合并。
+MergeTree 家族表引擎专为高数据摄取速率和海量数据规模而设计。插入操作会创建表部件（part），这些部件会由后台进程与其他表部件进行合并。
 
 MergeTree 家族表引擎的主要特性：
 

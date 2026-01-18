@@ -3,9 +3,13 @@
 
 ## 1. 概览
 
-MergeTree 系列的表引擎是 ClickHouse 数据存储能力的核心。它们提供了弹性和高性能数据检索所需的大部分功能:列式存储、自定义分区、稀疏主索引、二级数据跳过索引等。MergeTree 表引擎可以视为单节点 ClickHouse 实例的默认表引擎,因为它功能全面且适用于各种使用场景。
+在 ClickHouse 中，按照特点可以将表引擎大致分为合并树(MergeTree)、外部存储、内存、文件、接口等表引擎，每一个系列的表引擎都有着独自的特点与使用场景。在它们之中，最为核心的当属 MergeTree 系列，因为它们拥有最为强大的性能和最广泛的使用场合。其中 MergeTree 有两层含义：
+- 一是指 MergeTree 表引擎家族；
+- 二是指 MergeTree 表引擎家族中最基础的 MergeTree 表引擎。
 
-MergeTree 引擎以及 MergeTree 家族中的其他引擎（例如 ReplacingMergeTree、AggregatingMergeTree）是 ClickHouse 中最常用、也最健壮的表引擎。尽管名称相似，但是 Merge 引擎与 `*MergeTree` 引擎是不同的。MergeTree 系列的其他引擎都为特定使用场景添加了额外功能。通常,这些功能通过后台的额外数据操作来实现。
+在整个家族中，除了基础表引擎 MergeTree 之外，常用的表引擎还有 `ReplacingMergeTree`、`SummingMergeTree`、`AggregatingMergeTree`、`CollapsingMergeTree` 和 `VersionedCollapsingMergeTree`。尽管名称相似，但是 Merge 引擎与 `*MergeTree` 引擎是不同的。MergeTree 系列的其他引擎在继承了基础 MergeTree 的能力之后，都为特定使用场景添加了额外功能。
+
+MergeTree 作为家族系列最基础的表引擎，提供了弹性和高性能数据检索所需的大部分功能：列式存储、自定义分区、稀疏主索引、二级数据跳过索引等。MergeTree 基础表引擎可以视为单节点 ClickHouse 实例的默认表引擎，因为它功能全面且适用于各种使用场景。
 
 ## 2. 语法
 
@@ -41,9 +45,8 @@ ENGINE = MergeTree()
 
 ### 3.1 分区键
 
-分区是 MergeTree 最核心的概念之一，它影响数据存储、查询性能和维护操作。分区键通过 `PARTITION BY` 语句来声明。分区是一个可选选项。在大多数情况下不需要分区键；
+分区是 MergeTree 最核心的概念之一，它影响数据存储、查询性能和维护操作。分区键通过 `PARTITION BY` 语句来声明。分区是一个可选选项，在大多数情况下不需要分区键；
   - 即使需要分区，通常按月分区已经足够，无需使用比'按月'更细粒度的分区键。
-  - 分区并不会加速查询（与 ORDER BY 表达式不同）。
   - 不要使用过于细粒度的分区。不要按客户端标识符或名称对数据进行分区（应将客户端标识符或名称作为 ORDER BY 表达式中的第一列）。
   - 要按月进行分区，使用 `toYYYYMM(date_column)` 表达式，其中 date_column 是一个类型为 Date 的日期列。此处的分区名称采用 "YYYYMM" 格式。
 

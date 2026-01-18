@@ -122,7 +122,7 @@ SELECT * FROM t_column_ttl;
 ```sql
 ALTER TABLE t_column_ttl MODIFY COLUMN code String TTL create_time + INTERVAL 1 MINUTE;
 ```
-目前 ClickHouse 没有提供取消列级别TTL的方法。
+> 目前 ClickHouse 没有提供取消列级别 TTL 的方法。
 
 #### 3.5.2 表级别 TTL
 

@@ -98,58 +98,112 @@ SELECT * FROM replacing_merge_tree_v2 FINAL;
 
 ### 3.2 状态控住
 
-`is_deleted` 是一个 `UInt8` 类型的可选参数，表示当前行状态。只有在使用 `ver` 时才可以启用 `is_deleted`。
-
-is_deleted — 在合并过程中用于确定该行数据表示的是当前状态还是应被删除的列名；1 表示“删除”行，0 表示“状态”行。
-
-## 3.3 查询模式 & FINAL
-
-在合并阶段，`ReplacingMergeTree` 使用 ORDER BY 列（用于创建表）中的值作为唯一标识来识别重复行，并仅保留版本最高的那一行。不过，这种方式只能在最终状态上接近正确——它并不保证所有重复行都会被去重，因此不应将其作为严格依赖。由于更新和删除记录在查询时仍可能被计算在内，查询结果因此可能不正确。
-
-为了获得准确的结果，用户需要在后台合并的基础上，再配合查询时去重以及删除记录的剔除。这可以通过使用 `FINAL` 运算符来实现。
-
-还是考虑之前示例：
-```sql
-SELECT * FROM replacing_merge_tree_v2;
-┌─id─┬─code─┬─────────create_time─┐
-│ 1  │ A3   │ 2026-01-01 01:01:01 │
-└────┴──────┴─────────────────────┘
-┌─id─┬─code─┬─────────create_time─┐
-│ 1  │ A1   │ 2026-01-01 00:00:00 │
-└────┴──────┴─────────────────────┘
-┌─id─┬─code─┬─────────create_time─┐
-│ 1  │ A2   │ 2026-01-01 01:01:01 │
-└────┴──────┴─────────────────────┘
-```
-在不使用 FINAL 的情况下进行查询返回结果没有达到去重的效果（具体情况会因合并情况而异）。
-```sql
-SELECT * FROM replacing_merge_tree_v2 FINAL;
-┌─id─┬─code─┬─────────create_time─┐
-│ 1  │ A1   │ 2026-01-01 00:00:00 │
-└────┴──────┴─────────────────────┘
-```
-添加 FINAL 后得到了预期结果。
-
-## 4. 问题
-
-到目前为止，`ReplacingMergeTree` 看起来完美地解决了重复数据的问题。事实果真如此吗？现在尝试写入一批新数据：
+版本号 `ver` 决定了相同排序键（ORDER BY）行的保留优先级，而 `is_deleted` 标记行的逻辑状态(`UInt8` 类型的可选参数)：1 表示行被删除，0 表示行未被删除(有效行)：
 ```sql
 CREATE TABLE replacing_merge_tree_v3 (
     id String,
     code String,
-    create_time DateTime
+    create_time DateTime,
+    is_deleted UInt8
 )
-ENGINE = ReplacingMergeTree()
+ENGINE = ReplacingMergeTree(create_time, is_deleted)
 PARTITION BY toYYYYMM(create_time)
 ORDER BY id;
 ```
-`replacing_merge_tree_v2` 相比于 `replacing_merge_tree_v1` 没有指定版本号 `ver`，还是基于 id 字段(排序键)去重。现在向表中插入如下数据：
+> 需要注意的是只有在使用 `ver` 时才可以启用 `is_deleted`。
+
+`replacing_merge_tree_v3` 指定版本号 `ver` 同时还设置行状态标记 `is_deleted`，此外还是基于 id 字段(排序键)去重。现在向表中插入如下数据：
 ```sql
-INSERT INTO replacing_merge_tree_v2 Values (1, 'A3', '2026-01-01 01:01:01');
-INSERT INTO replacing_merge_tree_v2 Values (1, 'A2', '2026-01-01 01:01:01');
-INSERT INTO replacing_merge_tree_v2 Values (1, 'A1', '2026-01-01 00:00:00');
-INSERT INTO replacing_merge_tree_v2 Values (1, 'A1', '2026-02-01 00:00:00');
+INSERT INTO replacing_merge_tree_v3 Values (1, 'A1', '2026-01-01 01:01:01', 0);
+INSERT INTO replacing_merge_tree_v3 Values (1, 'A1', '2026-01-01 01:01:01', 1);
 ```
+那么在合并删除重复数据时，根据版本号会保留版本号最大的一行数据，如果插入的两行数据具有相同的版本号，则会保留最后插入的那一行，在这最后一行 `is_deleted` = 1 表示被删除(删除行)：
+```sql
+SELECT * FROM replacing_merge_tree_v3 FINAL;
+
+0 rows in set. Elapsed: 0.003 sec.
+```
+
+## 3.3 查询模式 & FINAL
+
+在合并阶段，`ReplacingMergeTree` 使用 ORDER BY 列中的值作为唯一标识来识别重复行，并仅保留版本最高的那一行。不过，这种方式只能在最终状态上接近正确——它并不保证所有重复行都会被去重，因此不应将其作为严格依赖。由于更新和删除记录在查询时仍可能被计算在内，查询结果因此可能不正确。为了获得准确的结果，用户需要在后台合并的基础上，再配合查询时去重以及删除记录的剔除，这可以通过使用 `FINAL` 运算符来实现。
+
+假设我们有如下表：
+```sql
+CREATE TABLE replacing_merge_tree_v4 (
+    id String,
+    code String,
+    create_time DateTime
+)
+ENGINE = ReplacingMergeTree(create_time)
+PARTITION BY toYYYYMM(create_time)
+ORDER BY id;
+```
+现在向表中插入如下数据：
+```sql
+INSERT INTO replacing_merge_tree_v4 Values (1, 'A3', '2026-01-01 01:01:01');
+INSERT INTO replacing_merge_tree_v4 Values (1, 'A2', '2026-01-01 01:01:01');
+INSERT INTO replacing_merge_tree_v4 Values (1, 'A1', '2026-01-01 00:00:00');
+```
+在不使用 FINAL 的情况下进行查询返回结果没有达到去重的效果（具体情况会因合并情况而异）：
+```sql
+SELECT * FROM replacing_merge_tree_v4;
+┌─id─┬─code─┬─────────create_time─┐
+│ 1  │ A2   │ 2026-01-01 01:01:01 │
+└────┴──────┴─────────────────────┘
+┌─id─┬─code─┬─────────create_time─┐
+│ 1  │ A1   │ 2026-01-01 00:00:00 │
+└────┴──────┴─────────────────────┘
+┌─id─┬─code─┬─────────create_time─┐
+│ 1  │ A3   │ 2026-01-01 01:01:01 │
+└────┴──────┴─────────────────────┘
+```
+添加 FINAL 后确实得到了预期结果：
+```sql
+SELECT * FROM replacing_merge_tree_v4 FINAL;
+┌─id─┬─code─┬─────────create_time─┐
+│ 1  │ A2   │ 2026-01-01 01:01:01 │
+└────┴──────┴─────────────────────┘
+```
+
+## 4. 问题
+
+接下来，用一个具体的示例说明使用它的一个注意事项。假设我们有如下表：
+```sql
+CREATE TABLE replacing_merge_tree_v5 (
+    id String,
+    code String,
+    create_time DateTime
+)
+ENGINE = ReplacingMergeTree(create_time)
+PARTITION BY toYYYYMM(create_time)
+ORDER BY (id, code)
+PRIMARY KEY id;
+```
+注意这里的 `ORDER BY` 是去除重复数据的关键，排序键 `ORDER BY` 所声明的表达式是后续作为判断数据是否重复的依据。
+
+现在向表中插入如下数据：
+```sql
+INSERT INTO replacing_merge_tree_v5 Values (1, 'A1', '2026-02-01 01:01:01');
+INSERT INTO replacing_merge_tree_v5 Values (1, 'A1', '2026-02-01 00:00:00');
+INSERT INTO replacing_merge_tree_v5 Values (1, 'A2', '2026-02-01 00:00:00');
+INSERT INTO replacing_merge_tree_v5 Values (1, 'A2', '2026-02-01 01:01:01');
+```
+写入之后，执行 optimize 强制分区合并或者使用 `FINAL`，并查询数据发现会按照 id 和 code 分组，保留分组内 create_time 最大的一条：
+```sql
+SELECT * FROM replacing_merge_tree_v5 FINAL;
+┌─id─┬─code─┬─────────create_time─┐
+│ 1  │ A1   │ 2026-02-01 01:01:01 │
+│ 1  │ A2   │ 2026-02-01 01:01:01 │
+└────┴──────┴─────────────────────┘
+```
+到目前为止，`ReplacingMergeTree` 看起来完美地解决了重复数据的问题。事实果真如此吗？ 现在尝试写入一条新数据：
+```sql
+INSERT INTO replacing_merge_tree_v5 Values (1, 'A2', '2026-08-01 01:01:01');
+```
+
+
+
 这是怎么回事呢？这是因为 ReplacingMergeTree 是以分区为单位删除重复数据的。只有在相同的数据分区内重复的数据才可以被删除，而不同数据分区之间的重复数据依然不能被剔除。这就是上面说 ReplacingMergeTree 只是在一定程度上解决了重复数据问题的原因。
 
 

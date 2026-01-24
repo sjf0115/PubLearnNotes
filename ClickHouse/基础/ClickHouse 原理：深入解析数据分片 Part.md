@@ -1,6 +1,8 @@
-## 1. ClickHouse 中的表 Part 是什么？
+在 ClickHouse 的世界里，Part（数据分片） 是一个核心概念，它直接影响到系统的存储效率、查询性能和数据管理方式。理解 Part 的工作原理，对于优化 ClickHouse 集群的性能至关重要。本文将从基础概念出发，逐步深入探讨 Part 的各个方面。
 
-在 ClickHouse 中，每个使用 MergeTree 表引擎家族的表时，其数据在磁盘上被组织成一组不可变的 data parts（数据分片）。
+## 1. 什么是数据分片 Part
+
+在 ClickHouse 中，每个使用 MergeTree 表引擎家族的表时，其数据在磁盘上都被组织成一组不可变的数据分片 Part。
 
 为说明这一点，我们使用这张表（改编自 UK property prices dataset），用于追踪英国已售房产的成交日期、城镇、街道和价格：
 ```sql
@@ -13,7 +15,14 @@ CREATE TABLE uk.uk_price_paid_simple (
 ENGINE = MergeTree
 ORDER BY (town, street);
 ```
-每当有一组行被插入到表中时，就会创建一个数据分片 Part。如下图所示：
+每当有一组行被插入到表中时，就会创建一个数据分片 Part。
+```
+
+```
+
+
+
+如下图所示：
 
 ![](https://clickhouse.com/docs/zh/assets/images/part-aae66074e0cc955e3293358543ffcd59.png)
 
@@ -25,7 +34,13 @@ ORDER BY (town, street);
 
 > 根据表所使用的具体引擎，在排序的同时可能还会进行其他处理。
 
+## 2. Part 内部结构
+
 **数据分片 Part** 是自包含的，包含了解释其内容所需的全部元数据，而不需要一个集中式 Catalog。除了稀疏主索引之外，**数据分片 Part** 还包含其他元数据，例如二级数据跳过索引、列统计信息、校验和、最小-最大索引（如果使用了分区），以及更多信息。
+
+如前所述，`Part` 是磁盘上的物理文件。默认情况下，所有与数据相关的文件都位于 `/var/lib/clickhouse` 目录下。ClickHouse 中的每个 MergeTree 表都有一个唯一目录路径来存储 `Part`。你可以通过 `system.parts` 系统表查询到 `Parts` 的实际存储位置、片段名称、分区信息（如果有的话）以及其他一些有用的信息。
+
+
 
 ## 2. Part 合并
 

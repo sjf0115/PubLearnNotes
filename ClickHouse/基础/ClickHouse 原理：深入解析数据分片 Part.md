@@ -43,9 +43,10 @@ SELECT
 FROM system.parts
 WHERE database = 'default' AND table = 'uk_price_paid_simple';
 ```
+
 ![](img-clickhouse-part-1.png)
 
-如上例所示，`default` 数据库中的 `uk_price_paid_simple` 表只包含 1 个数据分片 `Part`。每个数据分片 `Part` 都有其独立的目录，在这里的这个数据分片 `Part` 对应的目录名称为 `all_1_1_0`：
+如上所示，`default` 数据库中的 `uk_price_paid_simple` 表只包含 1 个数据分片 Part。每个数据分片 Part 都有其独立的目录，在这里的这个数据分片 Part 对应的目录名称为 `all_1_1_0`：
 - `all` 表示分区标识，对应 `partition_id` 列。如果没有分区则固定为 `all`。
 - 第一个 `1` 表示数据分片 `Part` 所包含数据块的最小编号，对应 `min_block_number` 列；
 - 第二个 `1` 表示数据分片 `Part` 所包含数据块的最大编号，对应 `max_block_number` 列；
@@ -53,7 +54,7 @@ WHERE database = 'default' AND table = 'uk_price_paid_simple';
 
 此外，`part_type` 字段中的 `Compact` 则表示所有列都存储在同一个文件中，如果是 `Wide` 则表示每列在文件系统中以单独的文件形式存储。在 `partition` 列中，`tuple()` 表示该表未进行分区。
 
-如前所述，数据分片 Part 是磁盘上的物理文件。默认情况下，所有与数据相关的文件都位于 `/var/lib/clickhouse` 目录下。ClickHouse 中的每个 MergeTree 表都有一个唯一目录路径来存储数据分片 Part。通过 `path` 列可以知道数据分片 Part 数据实际存储的独立目录 为 `/var/lib/clickhouse/store/bde/bde83c3a-ce66-4bc5-8cc0-521cd56130a0/all_1_1_0/`。你也可以在目录 `/var/lib/clickhouse/data/<DB_NAME>/<TABLE_NAME>/<PART_NAME>` 中查看表的数据分片 Part。数据分片的完整存储结构如下所示：
+如前所述，数据分片 Part 是磁盘上的物理文件。默认情况下，所有与数据相关的文件都位于 `/var/lib/clickhouse` 目录下。ClickHouse 中的每个 MergeTree 表都有一个唯一目录路径来存储数据分片 Part。通过 `path` 列可以知道数据分片 Part 实际存储的独立目录为 `/var/lib/clickhouse/store/bde/bde83c3a-ce66-4bc5-8cc0-521cd56130a0/all_1_1_0/`。你也可以在目录 `/var/lib/clickhouse/data/<DB_NAME>/<TABLE_NAME>/<PART_NAME>` 中查看表的数据分片 Part。数据分片的完整存储结构如下所示：
 ```shell
 root@e729684b70f2:/var/lib/clickhouse/data/default/uk_price_paid_simple/all_1_1_0# ls -al
 total 36

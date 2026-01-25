@@ -96,3 +96,5 @@ OPTIMIZE TABLE events_archive FINAL;
 ## 4. 总结
 
 **黄金法则：除非绝对必要，否则不要使用 `OPTIMIZE FINAL`。** ClickHouse 已经会在后台执行智能合并，以优化存储和查询效率。这些合并是增量的、感知资源使用情况的，并且会遵循已配置的阈值。除非存在非常特定的需求（例如在冻结表或导出之前对数据进行最终定版），否则通常应当让 ClickHouse 自行管理合并过程。
+
+> 参考：[避免使用 OPTIMIZE FINAL](https://clickhouse.com/docs/zh/optimize/avoidoptimizefinal)

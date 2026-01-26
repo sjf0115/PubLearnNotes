@@ -48,7 +48,7 @@ OPTIMIZE TABLE events FINAL;
 
 ### 2.3 忽略安全限制
 
-通常，ClickHouse 会避免合并大于约 150 GB 的数据分片 Part（可通过 max_bytes_to_merge_at_max_space_in_pool 进行配置）。但 `OPTIMIZE FINAL` 会忽略这一安全机制，这意味着：
+通常，ClickHouse 会避免合并大于约 150 GB 的数据分片 Part（可通过 `max_bytes_to_merge_at_max_space_in_pool` 进行配置）。但 `OPTIMIZE FINAL` 会忽略这一安全机制，这意味着：
 - 它可能会尝试将多个 150 GB 的数据分片 Part 合并成一个巨大的数据分片 Part
 - 这可能导致合并时间很长、内存压力增大，甚至内存耗尽
 - 这些超大数据分片 Part 后续可能难以再合并，即进一步尝试合并它们会因为上述原因而失败。在某些需要通过合并来保证查询行为正确的场景中，这可能会带来不良后果，例如 ReplacingMergeTree 中重复数据不断累积，从而降低查询时的性能。

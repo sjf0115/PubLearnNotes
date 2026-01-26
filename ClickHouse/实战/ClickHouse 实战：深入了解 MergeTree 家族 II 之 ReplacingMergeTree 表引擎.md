@@ -2,11 +2,11 @@
 
 > 特点：一定程度上解决了重复数据的问题，适用于在后台清理重复数据以节省存储空间
 
-虽然 MergeTree 拥有主键，但是它的 **主键却没有唯一键的约束**。这意味着即便多行数据的主键相同，它们还是能够被正常写入。在某些使用场合，用户并不希望数据表中含有重复的数据。`ReplacingMergeTree` 就是在这种背景下为了数据去重而设计的，它能够在 **合并数据块时删除重复的数据**，在保证查询性能的同时，实现了"最终一致性"的数据更新模型。它的出现，确实也在一定程度上解决了重复数据的问题。
+虽然 MergeTree 拥有主键，但是它的 **主键却没有唯一键的约束**。这意味着即便多行数据的主键相同，它们还是能够被正常写入。在某些使用场合，用户并不希望数据表中含有重复的数据。`ReplacingMergeTree` 就是在这种背景下为了数据去重而设计的，它能够在 **合并数据分片 Part 时删除重复的数据**，在保证查询性能的同时，实现了"最终一致性"的数据更新模型。它的出现，确实也在一定程度上解决了重复数据的问题。
 
-> 为什么说是“一定程度”​？
+> 为什么说是“一定程度”​？下面会详细介绍
 
-`ReplacingMergeTree` 表引擎继承自 `MergeTree` 基础表引擎，并对数据部分的合并逻辑进行了调整。`ReplacingMergeTree` 会将所有具有相同 **排序键** 的行在单个数据部分内合并为一行，只保留指定版本的最新行。`ReplacingMergeTree` 通过表的 `ORDER BY` 子句，而非 `PRIMARY KEY` 来删除重复记录。即行的唯一性是由表的 `ORDER BY` 子句决定的，而不是由 `PRIMARY KEY` 决定。与常规数据库的 UPDATE 操作不同，`ReplacingMergeTree` 的更新是"异步"和"延迟"的，只在数据合并时发生。合并发生在后台未知时间，因此无法提前规划，且部分数据可能长时间保持未处理状态(重复数据没有被删除)。
+`ReplacingMergeTree` 表引擎继承自 `MergeTree` 基础表引擎，并对数据分片 Part 的合并逻辑进行了调整。`ReplacingMergeTree` 会将所有具有相同 **排序键** 的行在数据分片 Part 合并时合并为一行，只保留指定版本的最新行。`ReplacingMergeTree` 通过表的 `ORDER BY` 子句，而非 `PRIMARY KEY` 来删除重复记录。即行的唯一性是由表的 `ORDER BY` 子句决定的，而不是由 `PRIMARY KEY` 决定。与常规数据库的 UPDATE 操作不同，`ReplacingMergeTree` 的更新是"异步"和"延迟"的，只在数据合并时发生。合并发生在后台未知时间，因此无法提前规划，且部分数据可能长时间保持未处理状态(重复数据没有被删除)。
 
 > 尽管可以通过 OPTIMIZE 查询触发一次临时合并，但不要依赖这种方式，因为 OPTIMIZE 查询会读写大量数据。
 
@@ -166,53 +166,11 @@ SELECT * FROM replacing_merge_tree_v4 FINAL;
 └────┴──────┴─────────────────────┘
 ```
 
-## 4. 问题
+## 4. 总结
 
-接下来，用一个具体的示例说明使用它的一个注意事项。假设我们有如下表：
-```sql
-CREATE TABLE replacing_merge_tree_v5 (
-    id String,
-    code String,
-    create_time DateTime
-)
-ENGINE = ReplacingMergeTree(create_time)
-PARTITION BY toYYYYMM(create_time)
-ORDER BY (id, code)
-PRIMARY KEY id;
-```
-注意这里的 `ORDER BY` 是去除重复数据的关键，排序键 `ORDER BY` 所声明的表达式是后续作为判断数据是否重复的依据。
-
-现在向表中插入如下数据：
-```sql
-INSERT INTO replacing_merge_tree_v5 Values (1, 'A1', '2026-02-01 01:01:01');
-INSERT INTO replacing_merge_tree_v5 Values (1, 'A1', '2026-02-01 00:00:00');
-INSERT INTO replacing_merge_tree_v5 Values (1, 'A2', '2026-02-01 00:00:00');
-INSERT INTO replacing_merge_tree_v5 Values (1, 'A2', '2026-02-01 01:01:01');
-```
-写入之后，执行 optimize 强制分区合并或者使用 `FINAL`，并查询数据发现会按照 id 和 code 分组，保留分组内 create_time 最大的一条：
-```sql
-SELECT * FROM replacing_merge_tree_v5 FINAL;
-┌─id─┬─code─┬─────────create_time─┐
-│ 1  │ A1   │ 2026-02-01 01:01:01 │
-│ 1  │ A2   │ 2026-02-01 01:01:01 │
-└────┴──────┴─────────────────────┘
-```
-到目前为止，`ReplacingMergeTree` 看起来完美地解决了重复数据的问题。事实果真如此吗？ 现在尝试写入一条新数据：
-```sql
-INSERT INTO replacing_merge_tree_v5 Values (1, 'A2', '2026-08-01 01:01:01');
-```
-
-
-
-这是怎么回事呢？这是因为 ReplacingMergeTree 是以分区为单位删除重复数据的。只有在相同的数据分区内重复的数据才可以被删除，而不同数据分区之间的重复数据依然不能被剔除。这就是上面说 ReplacingMergeTree 只是在一定程度上解决了重复数据问题的原因。
-
-
-## 5. 总结
-
-(1) 使用ORDER BY排序键作为判断重复数据的唯一键。(2) 只有在合并分区的时候才会触发删除重复数据的逻辑。(3) 以数据分区为单位删除重复数据。当分区合并时，同一分区内的重复数据会被删除；不同分区之间的重复数据不会被删除。(4) 在进行数据去重时，因为分区内的数据已经基于ORBER BY进行了排序，所以能够找到那些相邻的重复数据。(5) 数据去重策略有两种：• 如果没有设置ver版本号，则保留同一组重复数据中的最后一行。 如果设置了ver版本号，则保留同一组重复数据中ver字段取值最大的那一行。
-
-
-
-https://clickhouse.com/docs/zh/engines/table-engines/mergetree-family/replacingmergetree
-
-https://clickhouse.com/docs/zh/guides/replacing-merge-tree
+- 使用 ORDER BY 排序键作为判断重复数据的唯一键。
+- 只有在合并分区的时候才会触发删除重复数据的逻辑。
+- 在进行数据去重时，因为分区内的数据已经基于 ORBER BY 进行了排序，所以能够找到那些相邻的重复数据。
+- 数据去重策略有两种：
+  - 如果没有设置 ver 版本号，则保留同一组重复数据中的最后一行。
+  - 如果设置了 ver 版本号，则保留同一组重复数据中 ver 字段取值最大的那一行。

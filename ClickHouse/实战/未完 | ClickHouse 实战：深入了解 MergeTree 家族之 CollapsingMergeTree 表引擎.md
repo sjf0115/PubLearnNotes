@@ -63,7 +63,7 @@ CollapsingMergeTree 在合并数据分片时，会执行这种折叠行为。
 
 
 
-
+https://mp.weixin.qq.com/s/so5lpHGCbi3GB8qfNSUPrQ
 
 
 https://clickhouse.com/docs/zh/engines/table-engines/mergetree-family/collapsingmergetree

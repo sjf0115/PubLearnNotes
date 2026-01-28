@@ -90,3 +90,5 @@ ORDER BY (user_id, date);
 #### 2.1.7 GraphiteMergeTree
 
 #### 2.1.8 CoalescingMergeTree
+
+https://mp.weixin.qq.com/s/0bXEfAN3xRXOWgGKr2GQZg

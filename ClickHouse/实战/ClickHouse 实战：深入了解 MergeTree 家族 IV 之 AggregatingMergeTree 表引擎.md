@@ -1,4 +1,6 @@
-有过数据仓库建设经验的读者一定知道“数据立方体”的概念，这是一个在数据仓库领域十分常见的模型。它通过以空间换时间的方法提升查询性能，将需要聚合的数据预先计算出来，并将结果保存起来。在后续进行聚合查询的时候，直接使用结果数据。AggregatingMergeTree就有些许数据立方体的意思，它能够在合并分区的时候，按照预先定义的条件聚合数据。同时，根据预先定义的聚合函数计算数据并通过二进制的格式存入表内。将同一分组下的多行数据聚合成一行，既减少了数据行，又降低了后续聚合查询的开销。可以说，AggregatingMergeTree是SummingMergeTree的升级版，它们的许多设计思路是一致的，例如同时定义ORDER BY与PRIMARY KEY的原因和目的。但是在使用方法上，两者存在明显差异，应该说AggregatingMergeTree的定义方式是MergeTree家族中最为特殊的一个。
+## 1. 概述
+
+有过数据仓库建设经验的读者一定知道“数据立方体”的概念，这是一个在数据仓库领域十分常见的模型。它通过以空间换时间的方法提升查询性能，将需要聚合的数据预先计算出来，并将结果保存起来。在后续进行聚合查询的时候，直接使用结果数据。AggregatingMergeTree 就有些许数据立方体的意思，它能够在合并分区的时候，按照预先定义的条件聚合数据。同时，根据预先定义的聚合函数计算数据并通过二进制的格式存入表内。将同一分组下的多行数据聚合成一行，既减少了数据行，又降低了后续聚合查询的开销。可以说，AggregatingMergeTree是SummingMergeTree的升级版，它们的许多设计思路是一致的，例如同时定义ORDER BY与PRIMARY KEY的原因和目的。但是在使用方法上，两者存在明显差异，应该说AggregatingMergeTree的定义方式是MergeTree家族中最为特殊的一个。
 
 该引擎继承自 MergeTree，并对数据部分的合并逻辑进行了调整。ClickHouse 会将所有具有相同排序键的行在单个数据部分内合并为一行，该行存储了聚合函数状态的组合。
 
@@ -6,11 +8,19 @@
 - AggregateFunction
 - SimpleAggregateFunction
 
+
+在实时数据分析领域，ClickHouse以其卓越的查询性能著称，而AggregatingMergeTree表引擎正是实现这一性能的关键武器之一。作为MergeTree家族的一员，AggregatingMergeTree专为预聚合数据场景设计，通过在数据写入时进行聚合计算，将海量明细数据压缩为高度聚合的中间状态，从而在查询时获得数量级的性能提升。
+
+与传统的事后聚合不同，AggregatingMergeTree采用了"空间换时间"的策略，将聚合计算提前到数据入库阶段。这种设计理念特别适合监控指标分析、用户行为分析、物联网传感器数据等需要频繁进行聚合查询的场景。
+
+
+为了应对这类查询场景，ClickHouse 引入了 `AggregatingMergeTree` 表引擎。该引擎继承自 [MergeTree 基础表引擎](https://smartsi.blog.csdn.net/article/details/157103654)，并对数据分片 Part 的合并逻辑进行了调整。不同之处在于，当对 `AggregatingMergeTree` 表的数据分片 Part 进行合并时，ClickHouse 会将所有具有相同排序键的多行汇总合并为一行(按照预先定义的条件聚合汇总数据)，汇总行的数值数据类型列值为这些行的求和结果。这样既减少了数据行，又降低了后续汇总查询的开销。
+
+
 ## 2. 语法
 
 ```sql
-CREATE TABLE [IF NOT EXISTS] [db.]table_name [ON CLUSTER cluster]
-(
+CREATE TABLE [IF NOT EXISTS] [db.]table_name [ON CLUSTER cluster] (
     name1 [type1] [DEFAULT|MATERIALIZED|ALIAS expr1],
     name2 [type2] [DEFAULT|MATERIALIZED|ALIAS expr2],
     ...

@@ -109,11 +109,187 @@ FROM payments
 
 ## 4. 在聚合前将数据分组
 
-与最小/最大值分析不同，我们可能希望在聚合之前先将数据分成组，再分别计算各组的指标。这可以通过 `Resample` 组合器实现。该组合器接收一个列、范围（开始/结束）和您希望使用的分割数据的步长。然后返回每个组的聚合结果：
+与最小/最大值分析不同，我们可能希望在聚合之前先将数据分成组，再分别计算各组的指标。这可以通过 `Resample` 组合器实现。该组合器接收一个计算列、范围（开始/结束）和您希望使用的分割数据的步长。然后返回每个组的聚合结果：
 
 ![](https://mmbiz.qpic.cn/mmbiz_png/ECfQdkxm4RZUuTasRav0syZLA6Mu3g6WyMNGWoZf1GL8icNicp3iaubZhCuGZhjAC8fjxzyk15NJCBSPaYGPylDoQ/640?wx_fmt=png&from=appmsg&tp=webp&wxfrom=5&wx_lazy=1#imgIndex=9)
 
-假设我们想根据total_amount从0（最小值）到500（最大值）以100的步长拆分我们的payments表数据。然后，我们想知道每个组中有多少条目以各组的平均总和：
+假设我们想根据 `total_amount` 从0（最小值）到 500（最大值）以 100 的步长对 payments 表数据进行分组。然后，我们想知道每个分组中有多少条目以各分组的平均值：
+```sql
+SELECT
+    countResample(0, 500, 100)(toInt16(total_amount)) AS group_entries,
+    avgResample(0, 500, 100)(total_amount, toInt16(total_amount)) AS group_totals
+FROM payments
+FORMAT Vertical
+
+Query id: 8f7f30aa-8efc-4b92-be63-b5fd8e195933
+
+Row 1:
+──────
+group_entries: [21,20,24,31,4]
+group_totals:  [50.21238123802912,157.32600135803222,246.1433334350586,356.2583834740423,415.2425003051758]
+```
+在这里，`countResample()` 函数计算每个分组中的条目数，`avgResample()` 函数计算每个分组 `total_amount` 的平均值。`Resample` 组合器基于组合函数最后一个参数列进行分组。
+请注意，`countResample()` 函数只有一个参数（因为 `count()` 函数根本不需要参数），`avgResample()` 有两个参数（第一个是 `avg()` 函数要计算平均值的列）。最后，由于 `Resample` 组合器需要，我们必须使用 `toInt16` 将 `total_amount` 转换为整数。
+
+为了以表格布局呈现 `Resample()` 组合器的输出，我们可以使用 `arrayZip()` 和 `arrayJoin()` 函数：
+```sql
+SELECT
+    round(tp.2, 2) AS avg_total,
+    tp.1 AS entries
+FROM
+(
+    SELECT arrayJoin(arrayZip(countResample(0, 500, 100)(toInt16(total_amount)), avgResample(0, 500, 100)(total_amount, toInt16(total_amount)))) AS tp
+    FROM payments
+)
+
+Query id: 5364269a-1f13-44c3-8933-988f406ea5fc
+
+┌─avg_total─┬─entries─┐
+│     50.21 │      21 │
+│    157.33 │      20 │
+│    246.14 │      24 │
+│    356.26 │      31 │
+│    415.24 │       4 │
+└───────────┴─────────┘
+
+5 rows in set. Elapsed: 0.009 sec.
+```
+在这里，我们将两个数组的相应值组合成元组，并使用 `arrayJoin()` 函数将结果数组展开成表格。
+
+## 5. 控制空结果的聚合值
+
+聚合函数对于结果集为空的情况会表现出不同的行为。例如，`count()` 将返回 0，而 `avg()` 将产生 nan 值。我们可以使用 `OrDefault()` 和 `OrNull()` 组合器来控制此行为。两者都会更改在数据集为空时使用聚合函数的返回值：
+- `OrDefault()` 将返回函数的默认值而不是 nan，
+- `OrNull()` 将返回 NULL（同时会将返回类型改为 Nullable）。
+
+考虑以下示例：
+```sql
+SELECT
+    count(),
+    countOrNull(),
+    avg(total_amount),
+    avgOrDefault(total_amount),
+    sumOrNull(total_amount)
+FROM payments
+WHERE total_amount > 1000
+
+Query id: b737d73c-63de-443c-bf5f-b4fa97c54e31
+
+┌─count()─┬─countOrNull()─┬─avg(total_amount)─┬─avgOrDefault(total_amount)─┬─sumOrNull(total_amount)─┐
+│       0 │          ᴺᵁᴸᴸ │               nan │                          0 │                    ᴺᵁᴸᴸ │
+└─────────┴───────────────┴───────────────────┴────────────────────────────┴─────────────────────────┘
+
+1 row in set. Elapsed: 0.007 sec.
+```
+正如我们在第一列中看到的，没有返回任何行。请注意，`countOrNull()` 将返回 NULL 而不是 0，`avgOrDefault()` 会返回 0 而不是 nan。
+
+### 5.1 与其他组合器一起使用
+
+与所有其他组合器一样，`OrNull()` 和 `OrDefault()` 可以与不同的组合器一起使用以进行更高级的逻辑：
+```sql
+SELECT
+    sumIfOrNull(total_amount, status = 'declined') AS declined,
+    countIfDistinctOrNull(total_amount, status = 'confirmed') AS confirmed_distinct
+FROM payments
+WHERE total_amount > 420
+
+Query id: f10d73bb-0e77-4213-b479-2161f30ec83e
+
+┌─declined─┬─confirmed_distinct─┐
+│     ᴺᵁᴸᴸ │                  1 │
+└──────────┴────────────────────┘
+
+1 row in set. Elapsed: 0.008 sec.
+```
+我们使用了 `sumIfOrNull()` 组合函数来仅计算被拒绝的付款，并在空集时返回 NULL。`countIfDistinctOrNull()` 函数计算不同的 total_amount 值，但仅适用于满足指定条件的行。
+
+## 6. 聚合数组
+
+ClickHouse 的 Array 类型深受用户青睐，因为它为表结构带来了很多灵活性。为了有效地操作 Array 列，ClickHouse 提供了一组数组函数。为了简化对 Array 类型的聚合，ClickHouse 提供了 `Array()` 组合器。这些将给定的聚合函数应用于数组列中的所有值，而不是数组本身：
+
+![](https://clickhouse.com/uploads/6_1320d1a6ee.png)
+
+假设我们有以下表格（用[示例数据](https://gist.github.com/gingerwizard/d08ccadbc9e5cf7ef1d392c47da6ebc9)填充）：
+```sql
+CREATE TABLE article_reads (
+    `time` DateTime,
+    `article_id` UInt32,
+    `sections` Array(UInt16),
+    `times` Array(UInt16),
+    `user_id` UInt32
+)
+ENGINE = MergeTree
+ORDER BY (article_id, time)
+
+┌────────────────time─┬─article_id─┬─sections─────────────────────┬─times────────────────────────────────┬─user_id─┐
+│ 2023-01-18 23:44:17 │         10 │ [16,18,7,21,23,22,11,19,9,8] │ [82,96,294,253,292,66,44,256,222,86] │     424 │
+│ 2023-01-20 22:53:00 │         10 │ [21,8]                       │ [30,176]                             │     271 │
+│ 2023-01-21 03:05:19 │         10 │ [24,11,23,9]                 │ [178,177,172,105]                    │     536 │
+...
+```
+这个表用于存储文章各个章节的阅读数据。当用户阅读文章时，我们将已读章节保存到 sections 数组列中，并将对应的阅读时间保存到 times 列中。让我们使用 `uniqArray()` 函数计算每篇文章阅读的去重章节数，再使用 `avgArray()` 得到每个章节的平均时间：
+```sql
+SELECT
+    article_id,
+    uniqArray(sections) sections_read,
+    round(avgArray(times)) time_per_section
+FROM article_reads
+GROUP BY article_id
+
+┌─article_id─┬─sections_read─┬─time_per_section─┐
+│         14 │            22 │              175 │
+│         18 │            25 │              159 │
+...
+│         17 │            25 │              170 │
+└────────────┴───────────────┴──────────────────┘
+```
+我们可以使用 `minArray()` 和 `maxArray()` 函数计算所有文章中最小和最大阅读时间：
+```sql
+SELECT
+    minArray(times),
+    maxArray(times)
+FROM article_reads
+
+┌─minArray(times)─┬─maxArray(times)─┐
+│              30 │             300 │
+└─────────────────┴─────────────────┘
+```
+我们还可以使用 `groupUniqArray()` 函数与 `Array()` 组合器获取每篇文章的阅读章节列表：
+```sql
+SELECT
+    article_id,
+    groupUniqArrayArray(sections)
+FROM article_reads
+GROUP BY article_id
+
+┌─article_id─┬─groupUniqArrayArray(sections)───────────────────────────────────────┐
+│         14 │ [16,13,24,8,10,3,9,19,23,14,7,25,2,1,21,18,12,17,22,4,6,5]          │
+...
+│         17 │ [16,11,13,8,24,10,3,9,23,19,14,7,25,20,2,1,15,21,6,5,12,22,4,17,18] │
+└────────────┴─────────────────────────────────────────────────────────────────────┘
+```
+另一个常用函数是 `any()`，它能在聚合时返回任意列值，同样可以与 `Array` 组合器结合使用：
+```sql
+SELECT
+    article_id,
+    anyArray(sections)
+FROM article_reads
+GROUP BY article_id
+
+┌─article_id─┬─anyArray(sections)─┐
+│         14 │                 19 │
+│         18 │                  6 │
+│         19 │                 25 │
+│         15 │                 15 │
+│         20 │                  1 │
+│         16 │                 23 │
+│         12 │                 16 │
+│         11 │                  2 │
+│         10 │                 16 │
+│         13 │                  9 │
+│         17 │                 20 │
+└────────────┴────────────────────┘
+```
 
 
 > 原文：[Using Aggregate Combinators in ClickHouse](https://clickhouse.com/blog/aggregate-functions-combinators-in-clickhouse-for-arrays-maps-and-states)

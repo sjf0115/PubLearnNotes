@@ -291,5 +291,178 @@ GROUP BY article_id
 └────────────┴────────────────────┘
 ```
 
+### 6.1 使用 Array 与其他组合器
+
+Array 组合器可以与任何其他组合器一起使用：
+```sql
+SELECT
+    article_id,
+    sumArrayIfOrNull(times, length(sections) > 8)
+FROM article_reads
+GROUP BY article_id
+
+┌─article_id─┬─sumArrayOrNullIf(times, greater(length(sections), 8))─┐
+│         14 │                                                  4779 │
+│         18 │                                                  3001 │
+│         19 │                                                  NULL │
+...
+│         17 │                                                 14424 │
+└────────────┴───────────────────────────────────────────────────────┘
+```
+我们使用 `sumArrayIfOrNull()` 函数来计算阅读了超过八个章节的文章的总时间。请注意，对于阅读不超过八个章节的文章返回 NULL，因为我们还使用了 `OrNull()` 组合器。
+
+如果我们将 `array` 函数与组合器一起使用，我们甚至可以处理更高级的情况：
+```sql
+SELECT
+    article_id,
+    countArray(arrayFilter(x -> (x > 120), times)) AS sections_engaged
+FROM article_reads
+GROUP BY article_id
+
+┌─article_id─┬─sections_engaged─┐
+│         14 │               26 │
+│         18 │               44 │
+...
+│         17 │               98 │
+└────────────┴──────────────────┘
+```
+在这里，我们首先使用 `arrayFilter` 函数过滤 times 数组，以删除所有小于等于 120 秒的值。然后，我们使用 `countArray` 来计算每篇文章的过滤时间。
+
+
+### 6.2 聚合映射
+
+ClickHouse 中另一种强大的类型是 Map。与数组一样，我们可以使用 `Map()` 组合器将聚合应用于此类型。假设我们有一个包含 Map 列类型的如下表：
+```sql
+CREATE TABLE page_loads (
+    `time` DateTime,
+    `url` String,
+    `params` Map(String, UInt32)
+)
+ENGINE = MergeTree
+ORDER BY (url, time)
+
+┌────────────────time─┬─url─┬─params───────────────────────────────┐
+│ 2023-01-25 17:44:26 │ /   │ {'load_speed':100,'scroll_depth':59} │
+│ 2023-01-25 17:44:37 │ /   │ {'load_speed':400,'scroll_depth':12} │
+└─────────────────────┴─────┴──────────────────────────────────────┘
+```
+我们可以使用 `sum()` 和 `avg()` 函数配合 `Map()` 组合器，以获得总加载时间和平均滚动深度：
+```sql
+SELECT
+    sumMap(params)['load_speed'] AS total_load_time,
+    avgMap(params)['scroll_depth'] AS average_scroll
+FROM page_loads
+
+┌─total_load_time─┬─average_scroll─┐
+│             500 │           35.5 │
+└─────────────────┴────────────────┘
+```
+`Map()` 组合器还可以与其他组合器一起使用：
+```sql
+SELECT sumMapIf(params, url = '/404')['scroll_depth'] AS average_scroll FROM page_loads
+```
+
+## 7. 聚合相应数组值
+
+处理数组列的另一方法是聚合两个数组中的对应值，从而生成一个新的数组。这种方法适用于向量化数据（如向量或矩阵），可通过 `ForEach()` 组合器实现：
+
+![](https://clickhouse.com/uploads/7_b048be4d47.png)
+
+假设我们有如下表：
+```sql
+SELECT * FROM vectors
+
+┌─title──┬─coordinates─┐
+│ first  │ [1,2,3]     │
+│ second │ [2,2,2]     │
+│ third  │ [0,2,1]     │
+└────────┴─────────────┘
+```
+为了计算 coordinates 数组的平均值，我们可以使用 `avgForEach()` 组合函数：
+```sql
+SELECT avgForEach(coordinates) FROM vectors
+
+┌─avgForEach(coordinates)─┐
+│ [1,2,2]                 │
+└─────────────────────────┘
+```
+这就要求 ClickHouse 计算 coordinates 数组所有的第一个元素的平均值，并将其放入结果数组的第一个元素中，然后对第二和第三个元素重复相同操作。
+
+当然，还支持与其他组合器一起使用：
+```sql
+SELECT avgForEachIf(coordinates, title != 'second') FROM vectors
+
+┌─avgForEachIf(coordinates, notEquals(title, 'second'))─┐
+│ [0.5,2,2]                                             │
+└───────────────────────────────────────────────────────┘
+```
+
+## 8. 使用聚合状态
+
+ClickHouse 允许操作聚合的中间状态，而不仅仅是最终结果值。举例来说，假设我们需要统计唯一值(去重)，但又不想保存原始数据本身（因为这会占用更多的存储空间）。在这种情况下，我们可以对 `uniq()` 函数使用 `State()` 组合器来保存中间聚合状态，然后通过 `Merge()` 组合器来计算实际的结果值：
+```sql
+SELECT uniqMerge(u)
+FROM
+(
+    SELECT uniqState(number) AS u FROM numbers(5)
+    UNION ALL
+    SELECT uniqState(number + 1) AS u FROM numbers(5)
+)
+
+┌─uniqMerge(u)─┐
+│            6 │
+└──────────────┘
+```
+这里，第一个嵌套子查询将返回数字 1至5 的唯一计数状态。第二个嵌套子查询则对数字 2至6 返回相同的状态。父查询随后使用 `uniqMerge()` 函数合并子查询的状态，最终统计出我们看到的所有不重复数字的总数量。：
+
+![](https://mmbiz.qpic.cn/mmbiz_png/ECfQdkxm4RZUuTasRav0syZLA6Mu3g6WfPLUXux6kDShLGyroSNh40cg4JJdmCDDet0dxwj7REiaCHq5auUZANw/640?wx_fmt=png&from=appmsg&tp=webp&wxfrom=5&wx_lazy=1#imgIndex=16)
+
+最终结果为6，因为两个集合的并集覆盖了 1 到 6 的所有数字:
+
+![](https://clickhouse.com/uploads/1_d266654aa7.png)
+
+为什么我们要这样做？原因很简单：聚合状态占用的空间远小于原始数据。当我们希望将这种状态存储在磁盘上时，这一点尤为重要。例如，`uniqState()` 数据占用的空间比一百万个整数要少15倍：
+```sql
+SELECT
+    table,
+    formatReadableSize(total_bytes) AS size
+FROM system.tables
+WHERE table LIKE 'numbers%'
+
+┌─table─────────┬─size───────┐
+│ numbers       │ 3.82 MiB   │ <- we saved 1 million ints here
+│ numbers_state │ 245.62 KiB │ <- we save uniqState for 1m ints here
+└───────────────┴────────────┘
+```
+
+ClickHouse 提供了一种名为 `AggregatingMergeTree` 的表引擎，专门用于存储聚合计算的中间状态，并能根据主键自动完成数据合并。接下来，我们将创建一张表，用于存储之前示例中的每日支付聚合数据:
+```sql
+CREATE TABLE payments_totals (
+    `date` Date,
+    `total_amount` AggregateFunction(sum, Float)
+)
+ENGINE = AggregatingMergeTree
+ORDER BY date
+```
+我们使用了 `AggregateFunction` 类型，这样就能让 ClickHouse 知道我们要存储的是聚合后的总状态，而不是单个数值。在插入数据时，需要使用 `sumState` 函数来插入这个聚合状态:
+```sql
+INSERT INTO payments_totals SELECT
+    date(create_time) AS date,
+    sumState(total_amount)
+FROM payments
+WHERE status = 'confirmed'
+GROUP BY date
+```
+最后，我们需要使用 `sumMerge()` 函数来获取最终的结果值：
+```
+┌─sumMerge(total_amount)─┐
+│     12033.219916582108 │
+└────────────────────────┘
+```
+请注意，ClickHouse 提供了一种简单易用的方式，可以基于物化视图来使用聚合表引擎。此外，ClickHouse 还提供了 `SimpleState` 组合器，作为适用于某些聚合函数（如 'sum' 或 'min'）的优化版本。
+
+## 9. 总结
+
+聚合函数组合器（Aggregation function combinators）为ClickHouse中任何数据结构的分析查询提供了几乎无限的可能性。我们可以为聚合添加条件，对数组元素应用函数，或获取中间状态来存储聚合形式的数据但仍可进行查询。
 
 > 原文：[Using Aggregate Combinators in ClickHouse](https://clickhouse.com/blog/aggregate-functions-combinators-in-clickhouse-for-arrays-maps-and-states)

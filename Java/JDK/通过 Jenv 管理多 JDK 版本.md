@@ -1,4 +1,4 @@
-jenv 是一个轻量级的 Java 版本管理工具，可以帮助你在 macOS/Linux 上轻松安装、切换和管理多个 JDK 版本。下面详细介绍如何使用 jenv 管理多个 JDK 版本。
+Jenv 是一个轻量级的 Java 版本管理工具，可以帮助你在 macOS/Linux 上轻松安装、切换和管理多个 JDK 版本。下面详细介绍如何使用 jenv 管理多个 JDK 版本。
 
 ## 1. 安装 jenv
 
@@ -6,15 +6,14 @@ jenv 是一个轻量级的 Java 版本管理工具，可以帮助你在 macOS/Li
 ```
 brew install jenv
 ```
-
-安装完成后，根据 shell 类型（bash/zsh）配置环境变量：在这，配置 `~/.bash_profile` 文件，添加如下信息：
+安装完成后，根据 shell 类型（bash/zsh）配置环境变量。在这，在 `~/.bash_profile` 文件中添加如下信息：
 ```
 # JENV
 export JENV_HOME=.jenv
 export PATH=$JENV_HOME/bin:$PATH
 eval "$(jenv init -)"
 ```
-重新加载配置使之生效:
+重新加载配置文件使之生效:
 ```
 source ~/.bash_profile
 ```
@@ -33,7 +32,7 @@ smarsi:~ smartsi$ jenv doctor
 [ERROR]	JAVA_HOME variable already set, scripts that use it directly could not use java version set by jenv
 [ERROR]	Java binary in path is not in the jenv shims.
 [ERROR]	Please check your path, or try using /path/to/java/home is not a valid path to java installation.
-	PATH : /opt/homebrew/Cellar/jenv/0.5.7/libexec/libexec:/Users/smartsi/.nvm/versions/node/v24.13.1/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/opt/workspace/maven/bin:/opt/workspace/zookeeper/bin:/opt/workspace/kafka/bin:/opt/workspace/spark/bin:/opt/workspace/hive/bin:/opt/workspace/hadoop/bin:/usr/local/mysql/bin:/Library/Java/JavaVirtualMachines/jdk-1.8.jdk/Contents/Home/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Applications/iTerm.app/Contents/Resources/utilities
+	PATH : ...
 [ERROR]	Jenv is not loaded in your bash
 [ERROR]	To fix : 	echo 'eval "$(jenv init -)"' >> /Users/smartsi/.bash_profile
 ```
@@ -46,7 +45,7 @@ jenv 本身不安装 JDK，你需要先通过其他方式安装好 JDK。这里�
 
 ### 2.1 如何选择 JDK
 
-从上面可以看到 有两种 JDK，一种是使用 formula 安装 OpenJDK，另一种是使用 cask 安装 Oracle JDK 或其他供应商的 JDK。区别在于安装方式、位置和管理方式：
+从上面可以看到有两种 JDK，一种是使用 formula 安装 OpenJDK，另一种是使用 cask 安装 Oracle JDK 或其他供应商的 JDK。区别在于安装方式、位置和管理方式：
 
 | 特性 | Formulae | Casks |
 |------|----------|-------|
@@ -60,7 +59,7 @@ jenv 本身不安装 JDK，你需要先通过其他方式安装好 JDK。这里�
 
 ### 2.2 安装 JDK
 
-在这选择使用 formula 安装 OpenJDK，以 `openjdk@17` 为例：
+在这选择使用 formula 方式安装 OpenJDK，以 `openjdk@17` 为例：
 ```
 brew install openjdk@17
 ```
@@ -74,7 +73,7 @@ Homebrew 会将 JDK 安装在 `/usr/local/opt/openjdk@<version>`（Intel） 或 
 
 ### 2.3 将 JDK 添加到 jenv
 
-使用 `jenv add` 命令将 JDK 的主目录路径添加进去。Homebrew 安装的 OpenJDK 路径通常是 `/usr/local/opt/openjdk@<version>` 或 `/opt/homebrew/opt/openjdk@<version>`。我们可以通过以下命令添加：
+可以使用 `jenv add` 命令将 JDK 的主目录路径添加进去。Homebrew 安装的 OpenJDK 路径通常是 `/usr/local/opt/openjdk@<version>` 或 `/opt/homebrew/opt/openjdk@<version>`。我们可以通过以下命令添加 `OpenJDK 17` 和 `OpenJDK 11`：
 ```
 # 添加 OpenJDK 17
 jenv add /opt/homebrew/opt/openjdk@17
@@ -86,7 +85,7 @@ jenv add /opt/homebrew/opt/openjdk@11
 ```
 jenv add /Library/Java/JavaVirtualMachines/*/Contents/Home
 ```
-添加成功后，jenv 会给每个 JDK 分配一个简单的名称（如 11.0、17.0 等），你可以用 jenv versions 查看：
+添加成功后，jenv 会给每个 JDK 分配一个简单的名称（如 11.0、17.0 等），你可以用 `jenv versions` 查看：
 ```
 smarsi:JavaVirtualMachines smartsi$ jenv versions
 * system (set by /Users/smartsi/.jenv/version)
@@ -106,6 +105,8 @@ smarsi:JavaVirtualMachines smartsi$ jenv versions
 ## 3. 管理 JDK 版本
 
 ### 3.1 设置全局默认版本
+
+可以通过 `jenv global xxx` 命令来设置全局默认版本:
 ```
 smarsi:~ smartsi$ java -version
 java version "1.8.0_461"
@@ -122,15 +123,13 @@ java version "1.8.0_461"
 Java(TM) SE Runtime Environment (build 1.8.0_461-b11)
 Java HotSpot(TM) 64-Bit Server VM (build 25.461-b11, mixed mode)
 ```
-`jenv global 17.0` 命令会将系统默认 Java 版本设置为 17.0，后续所有新打开的终端都会使用此版本。
+上述的 `jenv global 17.0` 命令会将系统默认 Java 版本设置为 `17.0`，后续所有新打开的终端都会使用此版本。
 
 ### 3.2 为当前目录设置局部版本
 
-进入你的项目目录，运行：
+可以通过 `jenv local xxx` 命令为当前目录设置局部版本，进入你的项目目录(例如，`/opt/workspace/datavines`)，运行：
 ```
 smarsi:~ smartsi$ cd /opt/workspace/datavines
-smarsi:datavines smartsi$
-smarsi:datavines smartsi$
 smarsi:datavines smartsi$ jenv local 17.0
 smarsi:datavines smartsi$
 smarsi:datavines smartsi$ java -version
@@ -138,7 +137,7 @@ openjdk version "17.0.15" 2025-04-15
 OpenJDK Runtime Environment Homebrew (build 17.0.15+0)
 OpenJDK 64-Bit Server VM Homebrew (build 17.0.15+0, mixed mode, sharing)
 ```
-`jenv local 17.0` 命令会将 `/opt/workspace/datavines` 目录的 Java 版本设置为 17.0。这会在当前目录下生成一个 `.java-version` 文件，进入该目录时自动切换为 JDK 17，退出目录后恢复为全局版本。
+上述的 `jenv local 17.0` 命令会将 `/opt/workspace/datavines` 目录的 Java 版本设置为 `17.0`。这会在当前目录下生成一个 `.java-version` 文件，进入该目录时自动切换为 JDK 17，退出目录后恢复为全局版本。
 
 ### 3.3 为当前 shell 会话临时设置版本
 
@@ -149,24 +148,26 @@ jenv shell 17.0
 
 ## 4. 卸载 JDK 或从 jenv 中移除
 
-如果要从 jenv 中移除某个 JDK（不卸载 JDK 本身）：
+如果要从 jenv 中移除某个 JDK（不卸载 JDK 本身），可以运行 `jenv remove xxx` 命令：
 ```
-jenv remove 11.0
+smarsi:~ smartsi$ jenv remove 11.0
+JDK 11.0 removed
 ```
-如果要彻底卸载 JDK（如通过 Homebrew 安装的）：
+如果要彻底卸载 JDK（如通过 Homebrew 安装的），可以运行 `brew uninstall xxx` 命令：
 ```
-brew uninstall openjdk@11
+smarsi:~ smartsi$ brew uninstall openjdk@11
+Uninstalling /opt/homebrew/Cellar/openjdk@11/11.0.27... (667 files, 310.4MB)
 ```
 
 ## 5. 配置 jenv 插件（推荐）
 
-为了确保 `JAVA_HOME` 环境变量也能自动切换，建议启用 export 插件：
+为了确保 `JAVA_HOME` 环境变量也能自动切换，建议启用 `export` 插件：
 ```
-smarsi:logs smartsi$ jenv enable-plugin export
+smarsi:~ smartsi$ jenv enable-plugin export
 You may restart your session to activate jenv export plugin
 export plugin activated
 ```
-重启 shell 或执行 exec $SHELL -l 使配置生效。我们为 `/opt/workspace/datavines` 目录设置 Java 版本为 17.0，查看演示效果
+重启 shell 使配置生效。全局 Java 版本为 1.8，我们单独为 `/opt/workspace/datavines` 目录设置为 `17.0`，查看演示效果:
 ```
 smarsi:~ smartsi$ cd /opt/workspace/
 smarsi:workspace smartsi$

@@ -43,12 +43,12 @@ cd datavines
 ### 2.3 数据库准备
 
 Datavines 的元数据存储在关系型数据库中，目前支持的关系型数据库包括 MySQL 以及 PostgreSQL。下面以 MySQL 为例说明安装步骤：
-- 启动数据库并创建新 database 作为 Datavines 元数据库，这里以数据库名 datavines 为例
-- 创建完新数据库后，将 script/sql/datavines-mysql.sql 下的 sql 文件直接在 MySQL 中运行，完成数据库初始化
+- 启动数据库并创建新 database 作为 Datavines 元数据库，这里以数据库名 `datavines` 为例
+- 创建完新数据库后，将 `scripts/sql/datavines-mysql.sql` 下的 sql 文件直接在 MySQL 中运行，完成数据库初始化。可以执行 `source /opt/workspace/datavines/scripts/sql/datavines-mysql.sql` 命令来初始化。
 
 ### 2.4 源码编译
 
-如果使用 MySQL 数据库，请注意修改 pom.xml，将 mysql-connector-java 依赖的 scope 改为 compile，使用 PostgreSQL 则不需要：
+如果使用 MySQL 数据库，请注意修改 `pom.xml`，将 `mysql-connector-java` 依赖的 scope 改为 compile，使用 PostgreSQL 则不需要：
 ```xml
 <dependency>
     <groupId>mysql</groupId>
@@ -145,7 +145,7 @@ spring:
    driver-class-name: com.mysql.cj.jdbc.Driver
    url: jdbc:mysql://127.0.0.1:3306/datavines?useUnicode=true&characterEncoding=UTF-8
    username: root
-   password: 123456
+   password: root
 ```
 如果你是使用 Spark 做为执行引擎，并且是提交到 yarn 上面去执行的，那么需要在 common.properties 中配置 yarn 相关的信息:
 ```
@@ -197,6 +197,6 @@ End start DataVinesServer mysql.
 
 ## 3. 访问
 
-在浏览器输入：服务器IP:5600 ，就会跳转至登录界面，输入账号密码 admin/123456：
+在浏览器输入：服务器IP:5600，就会跳转至登录界面，输入账号密码 admin/123456：
 
 ![](img-datavines-setup-1.png)

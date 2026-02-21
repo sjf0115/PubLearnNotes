@@ -14,4 +14,7 @@ Qoder 是一款面向真实软件开发的 Agentic 编码平台。通过增强�
 
 ![](img-qoder-quick-start-3.png)
 
-## 2. 
+## 2.
+
+
+rename database data_explorder TO data_explorer;

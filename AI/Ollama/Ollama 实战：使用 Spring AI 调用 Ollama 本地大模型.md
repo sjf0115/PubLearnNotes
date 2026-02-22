@@ -14,6 +14,8 @@ Spring AI 是 Spring 社区推出的一个旨在简化 AI 应用开发的框架�
 
 借助 Spring AI，我们可以像使用 JdbcTemplate 一样自然地调用 AI 模型。
 
+---
+
 ## 2. 什么是 Ollama？
 
 Ollama 是一个轻量级、可扩展的本地大模型运行框架。它支持众多开源模型，如 Qwen、Llama 3、Mistral、Phi 等，并提供简单的命令行工具进行模型下载和运行。它的优势在于：
@@ -22,6 +24,8 @@ Ollama 是一个轻量级、可扩展的本地大模型运行框架。它支持�
 - **兼容 OpenAI API 格式**：可通过 HTTP 接口调用。
 
 Spring AI 通过 `spring-ai-ollama` 模块提供了对 Ollama 的原生支持。
+
+---
 
 ## 3. 准备工作
 
@@ -40,7 +44,7 @@ curl http://localhost:11434/api/generate -d '{
   "prompt": "你好"
 }'
 ```
-如果返回包含 `response` 字段的 JSON，则说明 Ollama 已就绪:
+如果返回包含 `response` 字段的 JSON，则说明 Ollama 服务已就绪:
 ```
 {"model":"qwen2.5:7b","created_at":"2026-02-21T12:54:25.607678Z","response":"你好","done":false}
 {"model":"qwen2.5:7b","created_at":"2026-02-21T12:54:25.688191Z","response":"！","done":false}
@@ -69,6 +73,8 @@ curl http://localhost:11434/api/generate -d '{
 
 ![](img-ollama-spring-ai-1.png)
 
+---
+
 ## 4. 添加依赖
 
 Spring AI 为 Ollama 集成提供 Spring Boot auto-configuration。要启用它，请将如下依赖项添加到项目的 Maven pom.xml 中：
@@ -79,10 +85,9 @@ Spring AI 为 Ollama 集成提供 Spring Boot auto-configuration。要启用它�
 </dependency>
 ```
 
-Spring AI 发布的 1.0.0-M7 版本对模块结构进行了重要调整，特别是将原先的 `spring-ai-ollama-spring-boot-starter` 模块更名为 `spring-ai-starter-model-ollama`。
+需要注意的是 Spring AI 发布的 1.0.0-M7 版本对模块结构进行了重要调整，特别是将原先的 `spring-ai-ollama-spring-boot-starter` 模块更名为 `spring-ai-starter-model-ollama`。
 
 > 在 Spring AI 的演进过程中，模块命名的规范化是一个值得关注的技术细节。新版本采用 `starter-model-` 前缀的命名方式，更清晰地表达了该模块的功能定位——作为 Ollama 模型集成的 Spring Boot 启动器。这种命名规范的变化不仅提升了代码的可读性，也为未来可能的模型扩展预留了命名空间。
-
 
 Spring AI BOM 声明了 Spring AI 指定版本所有依赖的推荐版本。此 BOM 仅包含依赖管理，不涉及插件声明或 Spring/Spring Boot 直接引用。可使用 Spring Boot 父 POM 或 Spring Boot BOM (spring-boot-dependencies) 管理 Spring Boot 版本。添加 BOM 至项目：
 ```xml
@@ -192,6 +197,7 @@ Spring AI BOM 声明了 Spring AI 指定版本所有依赖的推荐版本。此 
     </build>
 </project>
 ```
+---
 
 ## 5. 配置文件
 
@@ -213,7 +219,7 @@ spring:
           top-p: 0.9
           max-tokens: 4096
 ```
-这里我们指定了默认的聊天模型为 `qwen2.5:7b `，你可以根据需要更改为其他已下载的模型。
+这里我们指定了聊天模型为 `qwen2.5:7b`，你可以根据需要更改为其他已下载的模型。
 
 前缀 `spring.ai.ollama` 是用于配置与 Ollama 连接的属性前缀：
 
@@ -232,8 +238,11 @@ spring:
 
 > 所有前缀为 spring.ai.ollama.chat.options 的属性都可以通过在 Prompt 调用中添加请求特定的 chat-options 在运行时覆盖。
 
+---
+
 ## 6. 编写代码
 
+调用大模型有两种输出类型:
 - 非流式输出 call：等待大模型把回答结果全部生成后输出给用户；
 - 流式输出 stream：逐个字符输出，一方面符合大模型生成方式的本质，另一方面当模型推理效率不是很高时，流式输出比起全部生成后再输出大大提高用户体验。
 
@@ -273,6 +282,10 @@ public Flux<String> chatStream(@RequestParam(value = "message", defaultValue = "
 ```
 注意返回类型为 `Flux<String>`，MediaType 设置为 `text/plain` 以便浏览器直接显示流式文本。
 
+> [完整代码](https://github.com/sjf0115/spring-ai-example/tree/main/ollama-example)
+
+---
+
 ## 7. 运行测试
 
 启动 Spring Boot 应用，默认端口 `8080`，在这自定义为 `8888`。打开浏览器测试：
@@ -287,6 +300,8 @@ http://localhost:8888/api/ollama/chat/stream?message=介绍一下自己
 
 你将看到 Ollama 模型实时生成并返回的回答。
 
+---
+
 ## 9. 总结
 
 通过本文，你已经学会了如何：
@@ -297,7 +312,3 @@ http://localhost:8888/api/ollama/chat/stream?message=介绍一下自己
 Spring AI 让 Java 开发者能够以极低的成本接入 AI 能力，无论是调用云端 API 还是本地模型。结合 Ollama，你可以在完全掌控数据的情况下，为应用注入智能对话、文本生成等能力。
 
 未来，随着更多模型和功能的支持（如多模态、嵌入向量等），Spring AI 将成为 Java AI 应用开发的事实标准。快动手试试吧！
-
----
-
-> 本文代码示例基于 Spring AI 0.8.1 版本，最新用法请参考 [Spring AI 官方文档](https://docs.spring.io/spring-ai/reference/)。

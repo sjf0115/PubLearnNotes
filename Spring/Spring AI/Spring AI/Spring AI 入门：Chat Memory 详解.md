@@ -127,9 +127,6 @@ ChatMemoryRepository chatMemoryRepository = JdbcChatMemoryRepository.builder()
     .build();
 ```
 
-
-
-
 ### 4.3 CassandraChatMemoryRepository
 
 `CassandraChatMemoryRepository` 使用 Apache Cassandra 存储 message。它适合需要持久存储聊天内存的应用程序，特别是在可用性、持久性、扩展性方面，以及利用生存时间 (TTL) 功能时。

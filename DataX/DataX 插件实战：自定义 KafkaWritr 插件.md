@@ -1,48 +1,97 @@
-在大数据生态中，DataX 作为阿里开源的高效数据同步工具，支持多种数据源之间的数据传输。然而，官方版本并未提供 Kafka Writer 插件，这在实时数据同步场景中成为了一个技术缺口。本文将深入探讨如何从零实现一个稳定、高效的 DataX KafkaWriter 插件。
+在大数据生态中，DataX 作为阿里开源的高效数据同步工具，凭借其稳定、多源异构的特点，被广泛应用于离线数据同步场景。然而，官方版本并未提供 Kafka Writer 插件，这使得实时数据入湖、消息队列同步等场景面临技术缺口。本文将深入剖析 DataX 插件机制，手把手带您实现一个生产可用的 Kafka Writer 插件。
 
 ## 1. DataX 插件架构解析
 
-### 1.1 DataX 插件机制核心原理
+从设计之初，DataX 就把异构数据源同步作为自身的使命，为了应对不同数据源的差异、同时提供一致的同步原语和扩展能力，DataX 自然而然地采用了 `框架` + `插件` 的模式：
+- 插件只需关心数据的读取或者写入本身。
+- 而同步的共性问题，比如：类型转换、性能、统计，则交由框架来处理。
 
-DataX采用 "Framework + Plugin" 架构，核心框架负责调度、任务切分、错误处理和流量控制，插件则专注于具体的数据读写逻辑。要实现 KafkaWriter，首先插件的入口类必须扩展 Writer 抽象类，并且分别实现 Job 和 Task 两个内部抽象类：
+作为插件开发人员，则需要关注两个问题：
+- 数据源本身的读写数据正确性。
+- 如何与框架沟通、合理正确地使用框架。
+
+下面详细介绍 DataX 的插件机制。
+
+### 1.1 逻辑执行模型
+
+插件开发者基本只需要关注特定系统的读和写，以及自己的代码在逻辑上是怎样被执行的，哪一个方法是在什么时候被调用的。在此之前，需要明确以下概念：
+- `Job`: `Job` 是 DataX 用以描述从一个源头到一个目的端的同步作业，是 DataX 数据同步的最小业务单元。比如：从一张 mysql 的表同步到 odps 的一个表的特定分区。
+- `Task`: `Task` 是 `Job` 拆分得到的最小执行单元。比如：读一张有 1024 个分表的 mysql 分库分表的 `Job`，拆分成 1024 个读 `Task`，用若干个并发执行。
+- `TaskGroup`: 描述的是一组 `Task` 集合。在同一个 `TaskGroupContainer` 执行下的 `Task` 集合称之为 `TaskGroup`。
+- `JobContainer`: `Job` 执行器，负责 Job 全局拆分、调度、前置语句和后置语句等工作的工作单元。类似 Yarn 中的 `JobTracker`
+- `TaskGroupContainer`: `TaskGroup` 执行器，负责执行一组 `Task` 的工作单元，类似 `Yarn` 中的 `TaskTracker`。
+
+简而言之， Job 拆分成 Task，在分别在框架提供的容器中执行，插件只需要实现 Job 和 Task 两部分逻辑。
+
+### 1.2 物理执行模型
+
+框架为插件提供物理上的执行能力（线程）。DataX 框架有三种运行模式：
+- `Standalone`: 单进程运行，没有外部依赖。
+- `Local`: 单进程运行，统计信息、错误信息汇报到集中存储。
+- `Distrubuted`: 分布式多进程运行，依赖 DataX Service 服务。
+
+当然，上述三种模式对插件的编写而言没有什么区别，你只需要避开一些小错误，插件就能够在单机/分布式之间无缝切换了。当 `JobContainer` 和 `TaskGroupContainer` 运行在同一个进程内时，就是单机模式（Standalone和Local）；当它们分布在不同的进程中执行时，就是分布式（Distributed）模式。
+
+### 1.3 编程接口
+
+那么，Job 和 Task 的逻辑应怎么对应到具体的代码中的？首先，插件的入口类必须扩展 `Reader` 或 `Writer` 抽象类，并且分别实现 `Job` 和 `Task` 两个内部抽象类，`Job` 和 `Task` 的实现必须是 `内部类` 的形式。以 Reader 为例：
 ```java
-public class KafkaWriter extends Writer {
-    public static class Job extends Writer.Job {
+public class SomeReader extends Reader {
+    // Job
+    public static class Job extends Reader.Job {
         @Override
         public void init() {
-
         }
 
         @Override
-        public List<Configuration> split(int mandatoryNumber) {
-            return Collections.emptyList();
+        public void prepare() {
+        }
+
+        @Override
+        public List<Configuration> split(int adviceNumber) {
+            return null;
+        }
+
+        @Override
+        public void post() {
         }
 
         @Override
         public void destroy() {
-
         }
+
     }
 
-    public static class Task extends Writer.Task {
+    // Task
+    public static class Task extends Reader.Task {
+
         @Override
         public void init() {
+        }
 
+    		@Override
+    		public void prepare() {
         }
 
         @Override
-        public void startWrite(RecordReceiver lineReceiver) {
+        public void startRead(RecordSender recordSender) {
+        }
 
+        @Override
+        public void post() {
         }
 
         @Override
         public void destroy() {
-
         }
     }
 }
 ```
-> Job 和 Task 的实现必须是内部类的形式。
+
+
+
+
+
 
 ### 1.2 DataX 任务执行流程
 
@@ -271,6 +320,46 @@ Reader读取 → Channel传输 → Writer写入
 
 
 ## 4. 核心代码实现
+
+要实现 KafkaWriter，首先插件的入口类必须扩展 Writer 抽象类，并且分别实现 Job 和 Task 两个内部抽象类：
+```java
+public class KafkaWriter extends Writer {
+    public static class Job extends Writer.Job {
+        @Override
+        public void init() {
+
+        }
+
+        @Override
+        public List<Configuration> split(int mandatoryNumber) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public void destroy() {
+
+        }
+    }
+
+    public static class Task extends Writer.Task {
+        @Override
+        public void init() {
+
+        }
+
+        @Override
+        public void startWrite(RecordReceiver lineReceiver) {
+
+        }
+
+        @Override
+        public void destroy() {
+
+        }
+    }
+}
+```
+> Job 和 Task 的实现必须是内部类的形式。
 
 ### 4.1 KafkaWriterErrorCode
 

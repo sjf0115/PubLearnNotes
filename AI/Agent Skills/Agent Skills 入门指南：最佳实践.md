@@ -7,11 +7,11 @@
 
 有关技能工作原理的概念背景，请参阅[技能概述](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)。
 
-## 核心原则
+## 1. 核心原则
 
-### 简洁是关键
+### 1.1 简洁是关键
 
-[上下文窗口](/docs/zh-CN/build-with-claude/context-windows)是一种公共资源。您的技能与 Claude 需要了解的所有其他内容共享上下文窗口，包括：
+[上下文窗口](https://platform.claude.com/docs/en/build-with-claude/context-windows)是一种公共资源。您的技能与 Claude 需要了解的所有其他内容共享上下文窗口，包括：
 - 系统提示
 - 对话历史
 - 其他技能的元数据
@@ -53,7 +53,7 @@ PDF（便携式文档格式）文件是一种常见的文件格式，包含
 
 简洁版本假设 Claude 知道什么是 PDF 以及库如何工作。
 
-### 设置适当的自由度
+### 1.2 设置适当的自由度
 
 将具体程度与任务的脆弱性和可变性相匹配。
 
@@ -119,7 +119,7 @@ python scripts/migrate.py --verify --backup
 - **两侧都是悬崖的狭窄桥**：只有一种安全的前进方式。提供具体的护栏和精确的说明（低自由度）。示例：必须按精确顺序运行的数据库迁移。
 - **没有危险的开放田野**：许多路径都能成功。给出一般方向并相信 Claude 会找到最佳路线（高自由度）。示例：上下文决定最佳方法的代码审查。
 
-### 使用您计划使用的所有模型进行测试
+### 1.3 使用您计划使用的所有模型进行测试
 
 技能作为模型的附加功能，因此有效性取决于底层模型。使用您计划使用的所有模型测试您的技能。
 
@@ -130,9 +130,8 @@ python scripts/migrate.py --verify --backup
 
 对 Opus 完美有效的东西可能需要为 Haiku 提供更多细节。如果您计划在多个模型中使用您的技能，请针对所有模型都能很好地工作的说明。
 
-## 技能结构
+## 2. Skill 结构
 
-<Note>
 **YAML 前置事项**：SKILL.md 前置事项需要两个字段：
 
 `name`：
@@ -150,7 +149,7 @@ python scripts/migrate.py --verify --backup
 有关完整的技能结构详情，请参阅[技能概述](/docs/zh-CN/agents-and-tools/agent-skills/overview#skill-structure)。
 </Note>
 
-### 命名约定
+### 2.1 命名约定
 
 使用一致的命名模式使技能更容易引用和讨论。我们建议对技能名称使用**动名词形式**（动词 + -ing），因为这清楚地描述了技能提供的活动或能力。
 
@@ -179,7 +178,7 @@ python scripts/migrate.py --verify --backup
 - 组织和搜索多个技能
 - 维护专业、统一的技能库
 
-### 编写有效的描述
+### 2.2 编写有效的描述
 
 `description` 字段启用技能发现，应包括技能的功能和使用时机。
 

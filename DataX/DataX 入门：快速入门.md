@@ -182,7 +182,7 @@ python /opt/datax/bin/datax.py -r streamreader -w streamwriter
 
 直接运行如下命令：
 ```
-/opt/datax/bin/datax.py /opt/datax/job/stream2stream.json
+/opt/workspace/datax/bin/datax.py /opt/workspace/datax/job/stream2stream.json
 ```
 输出如下信息：
 ```

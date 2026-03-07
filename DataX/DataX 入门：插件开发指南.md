@@ -115,7 +115,7 @@ Task接口功能如下：
 
 ![](https://github.com/alibaba/DataX/blob/master/images/plugin_dev_guide_2.png)
 
-## 2. 插件开发
+## 2. 插件配置
 
 ### 2.1 Maven POM 文件配置
 
@@ -231,7 +231,46 @@ pom.xml 添加如下关键依赖：
 - description: 描述信息。
 - developer: 开发人员。
 
-### 2.4 代码开发
+## 3. 插件开发
+
+### 3.1 插件配置参数设计
+
+任务配置中 reader 和 writer 下 parameter 部分是插件的配置参数，插件的配置参数应当遵循以下原则：
+- 驼峰命名：所有配置项采用驼峰命名法，首字母小写，单词首字母大写。
+- 正交原则：配置项必须正交，功能没有重复，没有潜规则。
+- 富类型：合理使用 json 的类型，减少无谓的处理逻辑，减少出错的可能。
+  - 使用正确的数据类型。比如，bool 类型的值使用 true/false，而非 "yes"/"true"/0 等。
+  - 合理使用集合类型，比如，用数组替代有分隔符的字符串。
+- 类似通用：遵守同一类型的插件的习惯，比如关系型数据库的 connection 参数都是如下结构：
+```json
+{
+  "connection": [
+    {
+      "table": [
+        "table_1",
+        "table_2"
+      ],
+      "jdbcUrl": [
+        "jdbc:mysql://127.0.0.1:3306/database_1",
+        "jdbc:mysql://127.0.0.2:3306/database_1_slave"
+      ]
+    },
+    {
+      "table": [
+        "table_3",
+        "table_4"
+      ],
+      "jdbcUrl": [
+        "jdbc:mysql://127.0.0.3:3306/database_2",
+        "jdbc:mysql://127.0.0.4:3306/database_2_slave"
+      ]
+    }
+  ]
+}
+```
+
+
+### 3.2 插件代码开发
 
 要实现 DemoWriter，首先插件的入口类必须扩展 Writer 抽象类，并且分别实现 Job 和 Task 两个内部抽象类：
 ```java
@@ -335,50 +374,57 @@ ${DATAX_HOME}
 ## 4. 插件使用
 
 DataX 使用 json 作为配置文件的格式。一个典型的 DataX 任务配置如下：
-```
+```json
 {
-  "job": {
-    "content": [
-      {
-        "reader": {
-          "name": "odpsreader",
-          "parameter": {
-            "accessKey": "",
-            "accessId": "",
-            "column": [""],
-            "isCompress": "",
-            "odpsServer": "",
-            "partition": [
-              ""
-            ],
-            "project": "",
-            "table": "",
-            "tunnelServer": ""
-          }
+    "job": {
+        "setting": {
+            "speed": {
+                 "channel": 3
+            },
+            "errorLimit": {
+                "record": 0,
+                "percentage": 0.02
+            }
         },
-        "writer": {
-          "name": "oraclewriter",
-          "parameter": {
-            "username": "",
-            "password": "",
-            "column": ["*"],
-            "connection": [
-              {
-                "jdbcUrl": "",
-                "table": [
-                  ""
-                ]
-              }
-            ]
-          }
-        }
-      }
-    ]
-  }
+        "content": [
+            {
+                "reader": {
+                    "name": "mysqlreader",
+                    "parameter": {
+                        "username": "root",
+                        "password": "root",
+                        "column": [
+                            "id",
+                            "name",
+                            "age",
+                            "email"
+                        ],
+                        "splitPk": "id",
+                        "connection": [
+                            {
+                                "table": [
+                                    "tb_user"
+                                ],
+                                "jdbcUrl": [
+                                    "jdbc:mysql://127.0.0.1:3306/test"
+                                ]
+                            }
+                        ]
+                    }
+                },
+               "writer": {
+                    "name": "streamwriter",
+                    "parameter": {
+                        "print":true
+                    }
+                }
+            }
+        ]
+    }
 }
 ```
 DataX 框架有 core.json 配置文件，指定了框架的默认行为。任务的配置里头可以指定框架中已经存在的配置项，而且具有更高的优先级，会覆盖 core.json 中的默认值。
 
-配置中 `job.content.reader.parameter` 的 value 部分会传给 Reader.Job；`job.content.writer.parameter` 的 value 部分会传给 Writer.Job ，Reader.Job 和 Writer.Job 可以通过 `super.getPluginJobConf()` 来获取。
+配置中 `job.content.reader.parameter` 的 value 部分会传给 `Reader.Job`。`job.content.writer.parameter` 的 value 部分会传给 `Writer.Job`，`Reader.Job` 和 `Writer.Job` 可以通过 `super.getPluginJobConf()` 来获取。
 
-DataX框架支持对特定的配置项进行RSA加密，例子中以*开头的项目便是加密后的值。 配置项加密解密过程对插件是透明，插件仍然以不带*的key来查询配置和操作配置项 。
+DataX 框架支持对特定的配置项进行 RSA 加密，例子中以*开头的项目便是加密后的值。 配置项加密解密过程对插件是透明，插件仍然以不带*的key来查询配置和操作配置项 。

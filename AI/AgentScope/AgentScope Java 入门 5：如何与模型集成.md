@@ -163,7 +163,7 @@ OllamaChatModel model = OllamaChatModel.builder()
 | 配置项 | 说明 |
 |--------|------|
 | `modelName` | 模型名称，如 `qwen3-max`、`llama3.2`、`mistral`、`phi3` |
-| `baseUrl` | Ollama 服务器端点（可选，默认 `http://localhost:11434`） |
+| `baseUrl` | Ollama 服务器端点，默认 `http://localhost:11434` |
 | `defaultOptions` | 默认生成选项 |
 | `formatter` | 消息格式化器（可选） |
 | `httpTransport` | HTTP 传输配置（可选） |

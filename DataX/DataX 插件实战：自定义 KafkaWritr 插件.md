@@ -10,31 +10,11 @@
 - 数据源本身的读写数据正确性。
 - 如何与框架沟通、合理正确地使用框架。
 
-下面详细介绍 DataX 的插件机制。
-
-### 1.1 逻辑执行模型
-
-插件开发者基本只需要关注特定系统的读和写，以及自己的代码在逻辑上是怎样被执行的，哪一个方法是在什么时候被调用的。在此之前，需要明确以下概念：
+插件开发者基本只需要关注特定系统的读和写，以及自己的代码在逻辑上是怎样被执行的，哪一个方法是在什么时候被调用的。插件插件开发者只需要实现 `Job` 和 `Task` 两部分逻辑：
 - `Job`: `Job` 是 DataX 用以描述从一个源头到一个目的端的同步作业，是 DataX 数据同步的最小业务单元。比如：从一张 mysql 的表同步到 odps 的一个表的特定分区。
 - `Task`: `Task` 是 `Job` 拆分得到的最小执行单元。比如：读一张有 1024 个分表的 mysql 分库分表的 `Job`，拆分成 1024 个读 `Task`，用若干个并发执行。
-- `TaskGroup`: 描述的是一组 `Task` 集合。在同一个 `TaskGroupContainer` 执行下的 `Task` 集合称之为 `TaskGroup`。
-- `JobContainer`: `Job` 执行器，负责 Job 全局拆分、调度、前置语句和后置语句等工作的工作单元。类似 Yarn 中的 `JobTracker`
-- `TaskGroupContainer`: `TaskGroup` 执行器，负责执行一组 `Task` 的工作单元，类似 `Yarn` 中的 `TaskTracker`。
 
-简而言之， Job 拆分成 Task，在分别在框架提供的容器中执行，插件只需要实现 Job 和 Task 两部分逻辑。
-
-### 1.2 物理执行模型
-
-框架为插件提供物理上的执行能力（线程）。DataX 框架有三种运行模式：
-- `Standalone`: 单进程运行，没有外部依赖。
-- `Local`: 单进程运行，统计信息、错误信息汇报到集中存储。
-- `Distrubuted`: 分布式多进程运行，依赖 DataX Service 服务。
-
-当然，上述三种模式对插件的编写而言没有什么区别，你只需要避开一些小错误，插件就能够在单机/分布式之间无缝切换了。当 `JobContainer` 和 `TaskGroupContainer` 运行在同一个进程内时，就是单机模式（Standalone和Local）；当它们分布在不同的进程中执行时，就是分布式（Distributed）模式。
-
-### 1.3 编程接口
-
-那么，Job 和 Task 的逻辑应怎么对应到具体的代码中的？首先，插件的入口类必须扩展 `Reader` 或 `Writer` 抽象类，并且分别实现 `Job` 和 `Task` 两个内部抽象类，`Job` 和 `Task` 的实现必须是 `内部类` 的形式。以 Reader 为例：
+那么如何实现 Job 和 Task 的逻辑？首先，插件的入口类必须扩展 `Reader` 或 `Writer` 抽象类，并且分别实现 `Job` 和 `Task` 两个内部抽象类，`Job` 和 `Task` 的实现必须是 `内部类` 的形式。以 Reader 为例：
 ```java
 public class SomeReader extends Reader {
     // Job
@@ -87,12 +67,6 @@ public class SomeReader extends Reader {
     }
 }
 ```
-
-
-
-
-
-
 ### 1.2 DataX 任务执行流程
 
 ```

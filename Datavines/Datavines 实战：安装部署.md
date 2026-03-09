@@ -197,6 +197,6 @@ End start DataVinesServer mysql.
 
 ## 3. 访问
 
-在浏览器输入：服务器IP:5600，就会跳转至登录界面，输入账号密码 admin/123456：
+在浏览器输入：服务器IP:5600(`localhost:5600`)，就会跳转至登录界面，输入账号密码 admin/123456：
 
 ![](img-datavines-setup-1.png)

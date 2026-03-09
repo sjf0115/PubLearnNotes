@@ -55,6 +55,14 @@ Msg msg = Msg.builder()
 
 ## 3. 工具类型
 
+根据工具返回类型可以分为三类工具：
+
+| 工具 | 返回类型 | 说明
+| :------------- | :------------- | :------------- |
+| 同步工具 | `String`, `int`, `Object` 等 | 同步执行，自动转换为 `ToolResultBlock` |
+| 异步工具 | `Mono<T>`, `Flux<T>` | 异步执行 |
+| 流式工具 | `ToolResultBlock` | 直接控制返回格式（文本、图片、错误等） |
+
 ### 3.1 同步工具
 
 直接返回结果，适合快速操作：
@@ -96,16 +104,9 @@ public ToolResultBlock generate(
 }
 ```
 
-### 3.4 返回类型
+## 4. 高级特性
 
-| 返回类型 | 说明 |
-|---------|------|
-| `String`, `int`, `Object` 等 | 同步执行，自动转换为 `ToolResultBlock` |
-| `Mono<T>` | 异步执行 |
-| `Flux<T>` | 流式执行 |
-| `ToolResultBlock` | 直接控制返回格式（文本、图片、错误等） |
-
-## 4. 工具组
+### 4.1 工具组
 
 按场景管理工具，支持动态激活/停用：
 ```java
@@ -129,10 +130,9 @@ toolkit.updateToolGroups(List.of("basic"), false);  // 停用
 - 场景切换：不同对话阶段使用不同工具集
 - 性能优化：减少 LLM 可见的工具数量
 
-## 5. 预设参数
+### 4.2 预设参数
 
 隐藏敏感参数（如 API Key），不暴露给 LLM：
-
 ```java
 public class EmailService {
     @Tool(description = "发送邮件")
@@ -154,7 +154,7 @@ toolkit.registration()
 
 **效果**：LLM 只看到 `to` 和 `subject` 参数，`apiKey` 自动注入。
 
-## 工具执行上下文
+### 4.3 工具执行上下文
 
 传递业务对象（如用户信息）给工具，无需暴露给 LLM：
 
@@ -189,9 +189,9 @@ public String query(
 
 > 详细配置参见 [智能体](../quickstart/agent.md) 文档。
 
-## 内置工具
+## 5. 内置工具
 
-### 文件工具
+### 5.1 文件工具
 
 ```java
 import io.agentscope.core.tool.file.ReadFileTool;
@@ -212,7 +212,7 @@ toolkit.registerTool(new WriteFileTool("/safe/workspace"));
 | `WriteFileTool` | `write_text_file` | 创建/覆盖/替换文件内容 |
 | `WriteFileTool` | `insert_text_file` | 在指定行插入内容 |
 
-### Shell 命令工具
+### 5.2 Shell 命令工具
 
 | 工具 | 特性 |
 |------|------|
@@ -227,7 +227,7 @@ Function<String, Boolean> callback = cmd -> askUserForApproval(cmd);
 toolkit.registerTool(new ShellCommandTool(allowedCommands, callback));
 ```
 
-### 多模态工具
+### 5.3 多模态工具
 
 ```java
 import io.agentscope.core.tool.multimodal.DashScopeMultiModalTool;
@@ -242,7 +242,7 @@ toolkit.registerTool(new OpenAIMultiModalTool(System.getenv("OPENAI_API_KEY")));
 | `DashScopeMultiModalTool` | 文生图、图生文、文生语音、语音转文字 |
 | `OpenAIMultiModalTool` | 文生图、图片编辑、图片变体、图生文、文生语音、语音转文字 |
 
-### 子智能体工具
+### 5.4 子智能体工具
 
 可以将智能体注册为工具，供其他智能体调用。详见 [Agent as Tool](../multi-agent/agent-as-tool.md)。
 

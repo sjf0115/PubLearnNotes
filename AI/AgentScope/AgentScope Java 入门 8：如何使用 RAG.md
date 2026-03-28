@@ -4,14 +4,14 @@ AgentScope 提供内置 RAG 支持，使 Agent 能够访问外部知识库。
 
 ## 1. 概述
 
-### 核心组件
+### 1.1 核心组件
 
 AgentScope 中的 RAG 模块由两个核心组件组成：
 
 - **Reader（读取器）**：负责读取和分块输入文档，将其转换为可处理的单元
 - **Knowledge（知识库）**：负责存储文档、生成嵌入向量以及检索相关信息
 
-### 支持范围
+### 1.2 支持范围
 
 AgentScope 支持多种类型的知识库实现：
 
@@ -23,7 +23,7 @@ AgentScope 支持多种类型的知识库实现：
 | **RAGFlow 知识库** | `RAGFlowKnowledge` | 仅检索 | RAGFlow 控制台 | 强大OCR、知识图谱、多数据集 |
 
 
-###  集成模式
+### 1.3 集成模式
 
 AgentScope 支持两种 RAG 集成模式：
 
@@ -32,10 +32,9 @@ AgentScope 支持两种 RAG 集成模式：
 | **Generic 模式** | 在每个推理步骤之前自动检索和注入知识 | 简单，适用于任何 LLM | 即使不需要也会检索 |
 | **Agentic 模式** | Agent 使用工具决定何时检索 | 灵活，只在需要时检索 | 需要强大的推理能力 |
 
-#### Generic 模式
+#### 1.3.1 Generic 模式
 
 在 Generic 模式下，知识会自动检索并注入到用户的消息中：
-
 ```java
 ReActAgent agent = ReActAgent.builder()
     .name("助手")
@@ -55,15 +54,14 @@ ReActAgent agent = ReActAgent.builder()
 ```
 
 工作原理：
-1. 用户发送查询
-2. 知识库自动检索相关文档
-3. 检索到的文档被添加到用户消息之前
-4. Agent 处理增强后的消息并响应
+- 用户发送查询
+- 知识库自动检索相关文档
+- 检索到的文档被添加到用户消息之前
+- Agent 处理增强后的消息并响应
 
-#### Agentic 模式
+#### 1.3.2 Agentic 模式
 
 在 Agentic 模式下，Agent 拥有 `retrieve_knowledge` 工具并决定何时使用它：
-
 ```java
 ReActAgent agent = ReActAgent.builder()
     .name("智能体")
@@ -83,14 +81,13 @@ ReActAgent agent = ReActAgent.builder()
 ```
 
 **工作原理：**
-1. 用户发送查询
-2. Agent 推理并决定是否检索知识
-3. 如果需要，Agent 调用 `retrieve_knowledge(query="...")`
-4. 检索到的文档作为工具结果返回
-5. Agent 使用检索到的信息再次推理
+- 用户发送查询
+- Agent 推理并决定是否检索知识
+- 如果需要，Agent 调用 `retrieve_knowledge(query="...")`
+- 检索到的文档作为工具结果返回
+- Agent 使用检索到的信息再次推理
 
-
-## 2. 本地知识库（SimpleKnowledge）
+## 2. 本地知识库 SimpleKnowledge
 
 ### 2.1 快速开始
 
@@ -120,9 +117,6 @@ List<Document> results = knowledge.retrieve("查询内容",
 ### 2.2 Reader 配置
 
 AgentScope 为 SimpleKnowledge 提供了多种内置 Reader：
-
-分割策略：`CHARACTER`、`PARAGRAPH`、`SENTENCE`、`TOKEN`
-
 ```java
 // 文本
 new TextReader(512, SplitStrategy.PARAGRAPH, 50);
@@ -136,6 +130,8 @@ new WordReader(512, SplitStrategy.PARAGRAPH, 50, true, true, TableFormat.MARKDOW
 // 图像（需配合多模态嵌入模型）
 new ImageReader(false);
 ```
+分割策略：`CHARACTER`、`PARAGRAPH`、`SENTENCE`、`TOKEN`
+
 
 ### 2.3 向量存储
 
@@ -156,7 +152,7 @@ QdrantStore.builder()
 
 阿里云百炼知识库，支持 reranking、查询重写、多轮对话。通过 [百炼控制台](https://bailian.console.aliyun.com/) 管理文档。
 
-### 快速开始
+### 3.1 快速开始
 
 ```java
 // 创建知识库
@@ -174,7 +170,7 @@ List<Document> results = knowledge.retrieve("查询内容",
     RetrieveConfig.builder().limit(5).scoreThreshold(0.3).build()).block();
 ```
 
-### 高级配置
+### 3.2 高级配置
 
 ```java
 BailianConfig config = BailianConfig.builder()
@@ -189,7 +185,7 @@ BailianConfig config = BailianConfig.builder()
     .build();
 ```
 
-### 多轮对话检索
+### 3.3 多轮对话检索
 
 ```java
 RetrieveConfig config = RetrieveConfig.builder()
@@ -198,7 +194,7 @@ RetrieveConfig config = RetrieveConfig.builder()
     .build();
 ```
 
-### 完整配置示例
+### 3.4 完整配置示例
 
 ```java
 BailianConfig config = BailianConfig.builder()
@@ -244,7 +240,7 @@ BailianConfig config = BailianConfig.builder()
 
 支持云服务和自托管，提供关键词、语义、混合、全文四种检索模式。通过 [Dify 控制台](https://cloud.dify.ai) 管理文档。
 
-### 快速开始
+### 4.1 快速开始
 
 ```java
 DifyRAGConfig config = DifyRAGConfig.builder()
@@ -260,7 +256,7 @@ List<Document> results = knowledge.retrieve("查询内容",
     RetrieveConfig.builder().limit(5).build()).block();
 ```
 
-### 检索模式
+### 4.2 检索模式
 
 ```java
 .retrievalMode(RetrievalMode.KEYWORD)         // 关键词搜索
@@ -269,7 +265,7 @@ List<Document> results = knowledge.retrieve("查询内容",
 .retrievalMode(RetrievalMode.FULLTEXT)        // 全文搜索
 ```
 
-### 高级配置
+### 4.3 高级配置
 
 ```java
 DifyRAGConfig config = DifyRAGConfig.builder()
@@ -289,7 +285,7 @@ DifyRAGConfig config = DifyRAGConfig.builder()
     .build();
 ```
 
-### 完整配置示例
+### 4.4 完整配置示例
 
 ```java
 DifyRAGConfig config = DifyRAGConfig.builder()
@@ -339,14 +335,14 @@ DifyRAGConfig config = DifyRAGConfig.builder()
 
 开源 RAG 引擎，支持 Docker 部署、强大 OCR、知识图谱、多数据集检索。
 
-### 部署
+### 5.1 部署
 
 ```bash
 git clone https://github.com/infiniflow/ragflow.git && cd ragflow
 docker compose up -d  
 ```
 
-### 快速开始
+### 5.2 快速开始
 
 ```java
 RAGFlowConfig config = RAGFlowConfig.builder()
@@ -362,7 +358,7 @@ List<Document> results = knowledge.retrieve("查询内容",
     RetrieveConfig.builder().limit(5).build()).block();
 ```
 
-### 多数据集和文档过滤
+### 5.3 多数据集和文档过滤
 
 > **注意**：`dataset_ids` 和 `document_ids` **至少要设置一个**。如果只设置 `document_ids`，确保所有文档使用相同的嵌入模型。
 
@@ -392,7 +388,7 @@ RAGFlowConfig config3 = RAGFlowConfig.builder()
     .build();
 ```
 
-### 元数据筛选
+### 5.4 元数据筛选
 
 ```java
 Map<String, Object> condition = Map.of(

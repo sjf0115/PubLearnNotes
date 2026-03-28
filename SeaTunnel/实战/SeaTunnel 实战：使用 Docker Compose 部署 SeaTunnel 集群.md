@@ -27,13 +27,13 @@ smartsi@localhost docker % cd seatunnel
 ### 3.2 构建 Compose 文件
 
 Docker Compose 简化了对整个应用程序堆栈的控制，使得在一个易于理解的 YAML 配置文件中轻松管理服务、网络和数据卷。要使用 Docker Compose 部署，首先需创建一个`docker-compose.yml`文件，如下所示：
-```yaml
+```
 services:
   seatunnel_master:
-    image: apache/seatunnel:2.3.8
-    container_name: docker_master
+    image: apache/seatunnel:2.3.13
+    container_name: seatunnel_master
     environment:
-      - ST_DOCKER_MEMBER_LIST=docker_master,docker_worker1,docker_worker2
+      - ST_DOCKER_MEMBER_LIST=seatunnel_master,seatunnel_worker_1,seatunnel_worker_2
     entrypoint: >
       /bin/sh -c "
       /opt/seatunnel/bin/seatunnel-cluster.sh -r master
@@ -44,10 +44,10 @@ services:
       - pub-network
 
   seatunnel_worker1:
-    image: apache/seatunnel:2.3.8
-    container_name: docker_worker1
+    image: apache/seatunnel:2.3.13
+    container_name: seatunnel_worker_1
     environment:
-      - ST_DOCKER_MEMBER_LIST=docker_master,docker_worker1,docker_worker2
+      - ST_DOCKER_MEMBER_LIST=seatunnel_master,seatunnel_worker_1,seatunnel_worker_2
     entrypoint: >
       /bin/sh -c "
       /opt/seatunnel/bin/seatunnel-cluster.sh -r worker
@@ -58,10 +58,10 @@ services:
       - pub-network
 
   seatunnel_worker2:
-    image: apache/seatunnel:2.3.8
-    container_name: docker_worker2
+    image: apache/seatunnel:2.3.13
+    container_name: seatunnel_worker_2
     environment:
-      - ST_DOCKER_MEMBER_LIST=docker_master,docker_worker1,docker_worker2
+      - ST_DOCKER_MEMBER_LIST=seatunnel_master,seatunnel_worker_1,seatunnel_worker_2
     entrypoint: >
       /bin/sh -c "
       /opt/seatunnel/bin/seatunnel-cluster.sh -r worker
@@ -81,15 +81,15 @@ networks:  # 网络
 
 #### 3.2.1 全局配置
 
-`services` 用于定义不同的应用服务。上边的例子定义了三个服务(`seatunnel_master`、`seatunnel_worker1`、`seatunnel_worker2`)，分别对应 SeaTunnel 集群的三个节点（一个 master 节点，2个 worker 节点）。Docker Compose 会将每个服务部署在各自的容器中，在这里我们自定义了容器名称，因此 Docker Compose 会部署三个名为 `docker_master`、`docker_worker1` 和 `docker_worker2` 的容器。
+`services` 用于定义不同的应用服务。上边的例子定义了三个服务(`seatunnel_master`、`seatunnel_worker1`、`seatunnel_worker2`)，分别对应 SeaTunnel 集群的三个节点（一个 master 节点，2个 worker 节点）。Docker Compose 会将每个服务部署在各自的容器中，在这里我们自定义了容器名称，因此 Docker Compose 会部署三个名为 `seatunnel_master`、`seatunnel_worker_1` 和 `seatunnel_worker_2` 的容器。
 
 `networks` 配置用于声明服务要连接的网络 `pub-network`。`external: true` 表示网络是在 Docker Compose 配置文件之外定义的，即它已经存在了，Docker Compose 不需要尝试创建它。只要加入这个网络的服务就能够实现项目容器间以及跨项目通信。具体可以查阅 [Docker 实战：使用 Docker Compose 部署实现跨项目网络访问](https://smartsi.blog.csdn.net/article/details/138734487)。
 
 #### 3.2.2 基础配置
 
 `services` 定义的服务中包含如下指令：
-- `image`：指定了要使用的 Docker 镜像及其版本。三个服务均使用 `apache/seatunnel:2.3.8` 镜像确保所有节点运行同一版本的 Seatunnel，保持集群的一致性。这里的版本 2.3.8 可以根据需求替换为最新或特定版本。
-- `container_name`：自定义的容器名称 `docker_master`、`docker_worker1` 和 `docker_worker2`，避免自动生成随机名称便于识别。
+- `image`：指定了要使用的 Docker 镜像及其版本。三个服务均使用 `apache/seatunnel:2.3.13` 镜像确保所有节点运行同一版本的 Seatunnel，保持集群的一致性。这里的版本 2.3.13 可以根据需求替换为最新或特定版本。
+- `container_name`：自定义的容器名称 `seatunnel_master`、`seatunnel_worker_1` 和 `seatunnel_worker_2`，避免自动生成随机名称便于识别。
 - `environment`：
   - `ST_DOCKER_MEMBER_LIST`：这个环境变量定义集群成员列表，供 Hazelcast 发现节点。
 - `entrypoint`：覆盖默认启动命令，直接运行 SeaTunnel 的集群模式脚本
@@ -119,9 +119,9 @@ docker network create pub-network
 ```shell
 localhost:seatunnel wy$ docker compose up -d
 [+] Running 3/3
- ✔ Container docker_master   Started 0.1s
- ✔ Container docker_worker1  Started 0.3s
- ✔ Container docker_worker2  Started 0.4s
+ ✔ Container seatunnel_master   Started 0.1s
+ ✔ Container seatunnel_worker_1  Started 0.3s
+ ✔ Container seatunnel_worker_2  Started 0.4s
 ```
 上述命令会在后台启动 SeaTunnel 集群的三个服务。
 
@@ -131,9 +131,9 @@ localhost:seatunnel wy$ docker compose up -d
 ```shell
 localhost:seatunnel wy$ docker compose ps
 NAME             IMAGE              COMMAND                  SERVICE             CREATED              STATUS              PORTS
-docker_master    apache/seatunnel   "/bin/sh -c ' /opt/s…"   seatunnel_master    About a minute ago   Up About a minute   0.0.0.0:5801->5801/tcp
-docker_worker1   apache/seatunnel   "/bin/sh -c ' /opt/s…"   seatunnel_worker1   About a minute ago   Up About a minute
-docker_worker2   apache/seatunnel   "/bin/sh -c ' /opt/s…"   seatunnel_worker2   About a minute ago   Up About a minute
+seatunnel_master    apache/seatunnel   "/bin/sh -c ' /opt/s…"   seatunnel_master    About a minute ago   Up About a minute   0.0.0.0:5801->5801/tcp
+seatunnel_worker_1   apache/seatunnel   "/bin/sh -c ' /opt/s…"   seatunnel_worker1   About a minute ago   Up About a minute
+seatunnel_worker_2   apache/seatunnel   "/bin/sh -c ' /opt/s…"   seatunnel_worker2   About a minute ago   Up About a minute
 ```
 可以看到有三个服务已经启动成功，然后我们就可以提交一个示例作业来验证集群是否部署成功：
 ```shell
@@ -141,20 +141,20 @@ docker run --name seatunnel_client \
     --network pub-network \
     -e ST_DOCKER_MEMBER_LIST=seatunnel_master:5801 \
     --rm \
-    apache/seatunnel:2.3.8 \
+    apache/seatunnel:2.3.13 \
     ./bin/seatunnel.sh  -c config/v2.batch.config.template
 ```
-上述命令使用 SeaTunnel 2.3.8 镜像启动一个临时客户端容器 `seatunnel_client`，连接到指定的 Docker `pub-network` 网络，配置集群成员地址，最终向集群提交一个 SeaTunnel 示例作业。
+上述命令使用 SeaTunnel 2.3.13 镜像启动一个临时客户端容器 `seatunnel_client`，连接到指定的 Docker `pub-network` 网络，配置集群成员地址，最终向集群提交一个 SeaTunnel 示例作业。
 
 > 容器停止后自动删除，避免残留无用容器占用资源。
 
 通过如下日志中 `Job Statistic Information` 信息可以确定提交的示例同步作业运行成功，即我们的集群部署成功了：
 ```java
-localhost:apache-seatunnel-2.3.8 wy$ docker run --name seatunnel_client \
+localhost:apache-seatunnel-2.3.13 wy$ docker run --name seatunnel_client \
 >     --network pub-network \
 >     -e ST_DOCKER_MEMBER_LIST=seatunnel_master:5801 \
 >     --rm \
->     apache/seatunnel:2.3.8 \
+>     apache/seatunnel:2.3.13 \
 >     ./bin/seatunnel.sh  -c config/v2.batch.config.template
 2025-02-23 09:57:16,412 INFO  [c.h.i.c.AbstractConfigLocator ] [main] - Loading configuration '/opt/seatunnel/config/seatunnel.yaml' from System property 'seatunnel.config'
 2025-02-23 09:57:16,422 INFO  [c.h.i.c.AbstractConfigLocator ] [main] - Using configuration file at /opt/seatunnel/config/seatunnel.yaml

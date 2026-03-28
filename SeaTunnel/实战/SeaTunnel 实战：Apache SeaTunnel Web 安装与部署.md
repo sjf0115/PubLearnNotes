@@ -5,7 +5,7 @@
 
 ## 2. 下载
 
-进入 SeaTunnel [下载页面](https://seatunnel.apache.org/download)下载最新版本的发布版安装包，目前最新版本为 1.0.1 版本：
+进入 SeaTunnel [下载页面](https://seatunnel.apache.org/download)下载最新版本的发布版安装包，目前最新版本为 1.0.2 版本：
 
 ![](img-seatunnel-web-setup-1.png)
 
@@ -13,15 +13,15 @@
 
 将下载的压缩包解压缩到指定目录下：
 ```shell
-tar -zxvf apache-seatunnel-web-1.0.1-bin.tar.gz -C /opt/
+tar -zxvf apache-seatunnel-web-1.0.2-bin.tar.gz -C /opt/workspace
 ```
 创建软连接，便于升级：
 ```shell
-ln -s apache-seatunnel-web-1.0.1-bin/ seatunnel-web
+ln -s apache-seatunnel-web-1.0.2-bin/ seatunnel-web
 ```
 设置 SeaTunnel Web 环境变量：
 ```shell
-export SEATUNNEL_WEB_HOME=/opt/seatunnel-web
+export SEATUNNEL_WEB_HOME=/opt//workspace/seatunnel-web
 export PATH=${SEATUNNEL_WEB_HOME}/bin:$PATH
 ```
 
@@ -32,6 +32,8 @@ export PATH=${SEATUNNEL_WEB_HOME}/bin:$PATH
 初始化数据库有两种方式，一是使用官方提供的初始化脚本，二是直接运行初始化 SQL
 
 #### 4.1.1 使用官方提供的初始化脚本
+
+> script 文件夹下
 
 官方提供了一个 `init_sql.sh` 初始化数据库的脚本，使用之前需要修改 `seatunnel_server_env.sh` 文件来修改环境变量：
 ```shell
@@ -62,7 +64,11 @@ fi
 
 mysql -h${HOSTNAME} -P${PORT} -u${USERNAME} -p${PASSWORD} < ${workDir}/seatunnel_server_mysql.sql
 ```
-所以你也可以直接选择跳过 `init_sql.sh` 初始化数据库的脚本来执行 `seatunnel_server_mysql.sql`。例如，你可以使用 Navicat 导入执行：
+所以你也可以直接选择跳过 `init_sql.sh` 初始化数据库的脚本来执行 `seatunnel_server_mysql.sql`:
+```
+mysql -hlocalhost -P3306 -uroot -proot < /opt/workspace/seatunnel-web/script/seatunnel_server_mysql.sql
+```
+你也可以使用 Navicat 导入执行：
 
 ![](img-seatunnel-web-setup-2.png)
 
@@ -73,7 +79,7 @@ mysql -h${HOSTNAME} -P${PORT} -u${USERNAME} -p${PASSWORD} < ${workDir}/seatunnel
 ### 4.2 修改端口与数据源
 
 修改 `conf/application.yml` 配置文件来修改端口号以及 Web 访问数据库的数据源信息：
-```yml
+```
 server:
   port: 8801
 
@@ -96,25 +102,25 @@ spring:
 
 复制引擎服务中配置文件到 Web 配置目录下面。将 hazelcast-client 配置文件拷贝到 Web 的 conf 目录下：
 ```shell
-cp /opt/seatunnel/config/hazelcast-client.yaml /opt/seatunnel-web/conf/
+cp /opt/workspace/seatunnel/config/hazelcast-client.yaml /opt/workspace/seatunnel-web/conf/
 ```
 将插件配置文件拷贝到 Web 的 conf 目录下：
 ```shell
-cp /opt/seatunnel/connectors/plugin-mapping.properties /opt/seatunnel-web/conf/
+cp /opt/workspace/seatunnel/connectors/plugin-mapping.properties /opt/workspace/seatunnel-web/conf/
 ```
 
 ### 4.4 配置 MySQL 驱动
 
 在这我们选择 MySQL 作为元数据库，需要对应的驱动包放到 libs 下：
 ```shell
-cp mysql-connector-java-8.0.16.jar /opt/seatunnel-web/libs/
+cp mysql-connector-java-8.0.16.jar /opt/workspace/seatunnel-web/libs/
 ```
 
 ### 4.5 配置数据源JAR包
 
 下载 SeaTunnel Web 的[源码](https://github.com/apache/seatunnel-web)，将 download_datasource.sh 拷贝到 script 目录下：
 ```
-cp apache-seatunnel-web-1.0.1-src/seatunnel-server/seatunnel-app/src/main/bin/download_datasource.sh /opt/seatunnel-web/script/
+cp apache-seatunnel-web-1.0.2-src/seatunnel-server/seatunnel-app/src/main/bin/download_datasource.sh /opt/workspace/seatunnel-web/script/
 ```
 根据你的需要选择需要下载的数据源，如果不下载在 Web 中配置数据源时会提示没有可用的数据源：
 ```shell
@@ -145,12 +151,12 @@ for i in "${datasource_list[@]}"
 do
         echo "$i"
         echo "Downloading datasource: " "$i"
-  /opt/maven/bin/mvn dependency:get -DgroupId=org.apache.seatunnel -DartifactId="$i" -Dversion="$version" -Ddest="$DATASOURCE_DIR"
+  /opt/workspace/maven/bin/mvn dependency:get -DgroupId=org.apache.seatunnel -DartifactId="$i" -Dversion="$version" -Ddest="$DATASOURCE_DIR"
 done
 ```
-> "$SEATUNNEL_WEB_HOME"/mvnw -> /opt/maven/bin/mvn
+> "$SEATUNNEL_WEB_HOME"/mvnw -> /opt/workspace/maven/bin/mvn
 
-下载之后的数据源 JAR 包存放于 datasource 目录下：
+执行脚本下载之后的数据源 JAR 包存放于 datasource 目录下：
 ```
 (base) localhost:datasource wy$ pwd
 /opt/seatunnel-web/datasource
@@ -158,19 +164,19 @@ done
 total 346456
 drwxr-xr-x  15 wy  wheel        480 Jul 22 07:22 ./
 drwxr-xr-x  15 wy  wheel        480 Jul 22 07:08 ../
--rw-r--r--   1 wy  wheel    4811050 Jul 22 07:11 datasource-elasticsearch-1.0.1.jar
--rw-r--r--   1 wy  wheel  129470689 Jul 22 07:11 datasource-hive-1.0.1.jar
--rw-r--r--   1 wy  wheel   23470082 Jul 22 07:11 datasource-jdbc-clickhouse-1.0.1.jar
--rw-r--r--   1 wy  wheel     453216 Jul 22 07:11 datasource-jdbc-hive-1.0.1.jar
--rw-r--r--   1 wy  wheel     455821 Jul 22 07:11 datasource-jdbc-mysql-1.0.1.jar
--rw-r--r--   1 wy  wheel     456241 Jul 22 07:12 datasource-jdbc-postgresql-1.0.1.jar
--rw-r--r--   1 wy  wheel      18031 Jul 22 07:12 datasource-jdbc-starrocks-1.0.1.jar
--rw-r--r--   1 wy  wheel     455413 Jul 22 07:12 datasource-jdbc-tidb-1.0.1.jar
--rw-r--r--   1 wy  wheel   14077433 Jul 22 07:17 datasource-kafka-1.0.1.jar
--rw-r--r--   1 wy  wheel    2753901 Jul 22 07:22 datasource-mongodb-1.0.1.jar
--rw-r--r--   1 wy  wheel     455430 Jul 22 07:22 datasource-mysql-cdc-1.0.1.jar
--rw-r--r--   1 wy  wheel      20116 Jul 22 07:11 datasource-plugins-api-1.0.1.jar
--rw-r--r--   1 wy  wheel     457666 Jul 22 07:22 datasource-starrocks-1.0.1.jar
+-rw-r--r--   1 wy  wheel    4811050 Jul 22 07:11 datasource-elasticsearch-1.0.2.jar
+-rw-r--r--   1 wy  wheel  129470689 Jul 22 07:11 datasource-hive-1.0.2.jar
+-rw-r--r--   1 wy  wheel   23470082 Jul 22 07:11 datasource-jdbc-clickhouse-1.0.2.jar
+-rw-r--r--   1 wy  wheel     453216 Jul 22 07:11 datasource-jdbc-hive-1.0.2.jar
+-rw-r--r--   1 wy  wheel     455821 Jul 22 07:11 datasource-jdbc-mysql-1.0.2.jar
+-rw-r--r--   1 wy  wheel     456241 Jul 22 07:12 datasource-jdbc-postgresql-1.0.2.jar
+-rw-r--r--   1 wy  wheel      18031 Jul 22 07:12 datasource-jdbc-starrocks-1.0.2.jar
+-rw-r--r--   1 wy  wheel     455413 Jul 22 07:12 datasource-jdbc-tidb-1.0.2.jar
+-rw-r--r--   1 wy  wheel   14077433 Jul 22 07:17 datasource-kafka-1.0.2.jar
+-rw-r--r--   1 wy  wheel    2753901 Jul 22 07:22 datasource-mongodb-1.0.2.jar
+-rw-r--r--   1 wy  wheel     455430 Jul 22 07:22 datasource-mysql-cdc-1.0.2.jar
+-rw-r--r--   1 wy  wheel      20116 Jul 22 07:11 datasource-plugins-api-1.0.2.jar
+-rw-r--r--   1 wy  wheel     457666 Jul 22 07:22 datasource-starrocks-1.0.2.jar
 (base) localhost:datasource wy$
 ```
 
@@ -196,7 +202,3 @@ sh bin/seatunnel-backend-daemon.sh start
 在上述配置数据源JAR包步骤之后就可以支持多种数据源的创建：
 
 ![](img-seatunnel-web-setup-6.png)
-
-
-
-...

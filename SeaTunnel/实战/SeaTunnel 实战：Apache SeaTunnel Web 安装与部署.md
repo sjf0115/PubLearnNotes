@@ -5,9 +5,20 @@
 
 ## 2. 下载
 
-进入 SeaTunnel [下载页面](https://seatunnel.apache.org/download)下载最新版本的发布版安装包，目前最新版本为 1.0.2 版本：
+SeaTunnel Web 和 SeaTunnel 之间存在严格的版本依赖关系，具体的版本映射关系如下所示：
+
+| SeaTunnel Web 版本 | SeaTunnel 版本 | Doc |
+| :------------- | :------------- | :------------- |
+| 1.0.3-SNAPSHOT  | 2.3.11  | [Docs](https://github.com/apache/seatunnel-web/blob/main/README.md) |
+| 1.0.2  | 2.3.8  | [Docs](https://github.com/apache/seatunnel-web/blob/1.0.2-release/README.md) |
+| 1.0.1  | 2.3.3  | [Docs](https://github.com/apache/seatunnel-web/blob/1.0.1-release/README.md) |
+| 1.0.0  | 2.3.3  | [Docs](https://github.com/apache/seatunnel-web/blob/1.0.0-release/README.md) |
+
+在这我们安装的 SeaTunnel 版本为 2.3.8，因此需要安装 1.0.2 版本的 SeaTunnel Web。进入 SeaTunnel [下载页面](https://seatunnel.apache.org/download) 下载对应版本的发布版安装包：
 
 ![](img-seatunnel-web-setup-1.png)
+
+> SeaTunnel 安装请参与：[SeaTunnel 实战：Apache SeaTunnel 本地模式安装与部署](https://smartsi.blog.csdn.net/article/details/140577478)
 
 ## 3. 安装
 
@@ -159,7 +170,7 @@ done
 执行脚本下载之后的数据源 JAR 包存放于 datasource 目录下：
 ```
 (base) localhost:datasource wy$ pwd
-/opt/seatunnel-web/datasource
+/opt/workspace/seatunnel-web/datasource
 (base) localhost:datasource wy$ ll
 total 346456
 drwxr-xr-x  15 wy  wheel        480 Jul 22 07:22 ./

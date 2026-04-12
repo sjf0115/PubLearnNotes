@@ -142,6 +142,7 @@ sink {
 
 ### 2.1 Env：引擎相关配置
 
+如果你只是想一次性把 MySQL 表 A 的数据复制到表 B，JDBC 批处理模式是最简单直接的选择：
 ```
 # 环境配置
 env {
@@ -150,9 +151,6 @@ env {
 
   # 并行度
   parallelism = 1
-
-  # 检查点间隔（流模式需要）
-  # checkpoint.interval = 5000
 }
 ```
 
@@ -161,33 +159,22 @@ env {
 ```
 source {
   Jdbc {
-    # 必填：结果表名（用于 DAG 连线）
-    result_table_name = "user_source_table"
-
     # 数据库连接配置
-    url = "jdbc:mysql://localhost:3306/test?useSSL=false&serverTimezone=Asia/Shanghai"
+    url = "jdbc:mysql://localhost:3306/test?useSSL=false"
     driver = "com.mysql.cj.jdbc.Driver"
-    username = "root"
+    user = "root"
     password = "root"
 
     # 查询配置
     query = "SELECT id, name, email, age, created_at, updated_at FROM user_source"
-
-    # 分片配置（大数据量时启用）
-    # partition_column = "id"
-    # partition_num = 4
-
-    # 并行读取配置
-    # parallelism = 2
   }
 }
 ```
+Source 端的核心参数如下：
 - url：必填项，MySQL 数据库连接地址。
 - driver：必填项，用于连接远程数据源的 JDBC 类名，对于 MySQL 来说其值为 `com.mysql.cj.jdbc.Driver`。
 - user 和 password：数据库用户名和密码。
 - query：查询语句。
-- table：需要同步的表名。
-- result_table_name：结果表名称，用于后续步骤引用。
 
 ### 2.3 数据转换（Transform）
 
@@ -204,26 +191,25 @@ transform {
 ### 2.4 数据输出（Sink）
 
 ```
-source {
+sink {
   Jdbc {
-    # 必填：结果表名（用于 DAG 连线）
-    result_table_name = "user_source_table"
-
     # 数据库连接配置
     url = "jdbc:mysql://localhost:3306/test?useSSL=false&serverTimezone=Asia/Shanghai"
     driver = "com.mysql.cj.jdbc.Driver"
-    username = "root"
+    user = "root"
     password = "root"
 
-    # 查询配置
-    query = "SELECT id, name, email, age, created_at, updated_at FROM user_source"
+    # 目标表配置
+    database = "test"
+    table = "user_target"
+    generate_sink_sql=true
 
-    # 分片配置（大数据量时启用）
-    # partition_column = "id"
-    # partition_num = 4
+    # 写入模式
+    schema_save_mode = "CREATE_SCHEMA_WHEN_NOT_EXIST"
+    data_save_mode = "DROP_DATA"
 
-    # 并行读取配置
-    # parallelism = 2
+    # 批量写入配置
+    batch_size = 1000
   }
 }
 ```
@@ -237,12 +223,20 @@ source {
 - table：使用 database 和 table 自动生成 SQL，并接收上游输入的数据写入数据库。
   - 此选项与 query 选项是互斥的，此选项具有更高的优先级。
   - table 参数可以填入一个任意的表名，这个名字最终会被用作创建表的表名。
-
-
-
-
-
-
+- generate_sink_sql：根据要写入的数据库表结构生成 sql 语句
+- batch_size：对于批量写入，当缓冲的记录数达到 batch_size 数量或者时间达到 checkpoint.interval 时，数据将被刷新到数据库中
+- schema_save_mode：在启动同步任务之前，针对目标侧已有的表结构选择不同的处理方案
+  - RECREATE_SCHEMA：当表不存在时会创建，当表已存在时会删除并重建
+  - CREATE_SCHEMA_WHEN_NOT_EXIST：当表不存在时会创建，当表已存在时则跳过创建
+  - ERROR_WHEN_SCHEMA_NOT_EXIST：当表不存在时将抛出错误
+  - IGNORE ：忽略对表的处理
+- data_save_mode：在启动同步任务之前，针对目标侧已存在的数据选择不同的处理方案
+  - DROP_DATA：保留数据库结构，删除数据
+  - APPEND_DATA：保留数据库结构，保留数据
+  - CUSTOM_PROCESSING：允许用户自定义数据处理方式
+  - ERROR_WHEN_DATA_EXISTS：当有数据时抛出错误
+- custom_sql：当 data_save_mode 选择 CUSTOM_PROCESSING 时，需要填写 CUSTOM_SQL 参数
+  - 该参数通常填写一条可以执行的 SQL。SQL将在同步任务之前执行
 
 ## 3. 运行 SeaTunnel 任务
 
@@ -250,25 +244,7 @@ source {
 
 在 SeaTunnel 根目录下运行以下命令提交任务：
 ```
-bin/seatunnel.sh --config profile/mysql_to_mysql.conf
-```
-
-本地模式执行:
-```bash
-# 执行作业
-bin/seatunnel.sh --config profile/mysql_to_mysql.conf
-
-# 带详细日志执行
-/bin/seatunnel.sh --config profile/mysql_to_mysql.conf --deploy-mode client
-```
-
-集群模式执行:
-```bash
-# 启动 SeaTunnel 集群
-bin/seatunnel-cluster.sh -d
-
-# 提交作业到集群
-bin/seatunnel.sh profile/mysql_to_mysql.conf --deploy-mode cluster
+../bin/seatunnel.sh --config mysql_to_mysql.conf -m local
 ```
 
 ### 3.2 验证结果
@@ -289,145 +265,21 @@ SELECT * FROM test.user_target;
 
 ---
 
-
-
 ## 4. 进阶配置
 
 ### 4.1 大数据量并行读取
 
 ```hocon
 source {
-  Jdbc {
-    url = "jdbc:mysql://localhost:3306/source_db"
-    driver = "com.mysql.cj.jdbc.Driver"
-    username = "root"
-    password = "your_password"
-
-    # 并行读取配置
-    query = "SELECT * FROM large_table WHERE id >= ? AND id < ?"
-    partition_column = "id"
-    partition_num = 8
-
-    # 每个分区的范围
-    # SeaTunnel 会自动计算分区范围
-  }
+    Jdbc {
+        url = "jdbc:mysql://localhost/test?serverTimezone=GMT%2b8"
+        driver = "com.mysql.cj.jdbc.Driver"
+        connection_check_timeout_sec = 100
+        user = "root"
+        password = "123456"
+        query = "select * from type_bin"
+        partition_column = "id"
+        split.size = 10000
+    }
 }
 ```
-
-### 4.2 增量同步（CDC 模式）
-
-```hocon
-source {
-  MySQL-CDC {
-    result_table_name = "cdc_source"
-
-    # 数据库配置
-    hostname = "localhost"
-    port = 3306
-    username = "root"
-    password = "your_password"
-    database = "source_db"
-    table = ["user_source"]
-
-    # CDC 配置
-    server_id = 5656
-    server_timezone = "Asia/Shanghai"
-
-    # 起始位置
-    # startup_mode = "initial"        # 从头开始
-    # startup_mode = "latest-offset"  # 从最新位置开始
-  }
-}
-
-sink {
-  Jdbc {
-    source_table_name = "cdc_source"
-    url = "jdbc:mysql://localhost:3306/target_db"
-    driver = "com.mysql.cj.jdbc.Driver"
-    username = "root"
-    password = "your_password"
-    table = "user_target"
-
-    # 支持 INSERT/UPDATE/DELETE
-    # 根据 CDC 事件自动处理
-  }
-}
-```
-
-### 4.3 数据转换示例
-
-```hocon
-transform {
-  # 字段过滤
-  Filter {
-    source_table_name = "user_source_table"
-    result_table_name = "filtered_data"
-    fields = ["id", "username", "email"]
-  }
-
-  # 字段值替换
-  Replace {
-    source_table_name = "filtered_data"
-    result_table_name = "transformed_data"
-    replace_field = "email"
-    pattern = "@example.com"
-    replacement = "@newdomain.com"
-  }
-}
-
-sink {
-  Jdbc {
-    source_table_name = "transformed_data"
-    # ... 其他配置
-  }
-}
-```
-
----
-
-## 5. 常见问题与解决方案
-
-### 5.1 驱动缺失问题
-
-**错误**：
-```
-java.lang.NoClassDefFoundError: com/mysql/cj/MysqlType
-```
-
-**解决方案**：
-```bash
-# 安装 MySQL JDBC 驱动
-wget -O $SEATUNNEL_HOME/lib/mysql-connector-j-8.0.33.jar \
-  https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.0.33/mysql-connector-j-8.0.33.jar
-```
-
-### 5.2 连接超时问题
-
-**错误**：
-```
-Communications link failure
-```
-
-**解决方案**：
-```hocon
-# 在 JDBC URL 中添加超时参数
-url = "jdbc:mysql://localhost:3306/source_db?connectTimeout=60000&socketTimeout=60000"
-```
-
-### 5.3 字符编码问题
-
-**错误**：
-```
-Incorrect string value
-```
-
-**解决方案**：
-```hocon
-# 在 JDBC URL 中指定编码
-url = "jdbc:mysql://localhost:3306/source_db?useUnicode=true&characterEncoding=UTF-8"
-```
-
----
-
-
-https://www.whaleops.com/846839-846849_3628105.html

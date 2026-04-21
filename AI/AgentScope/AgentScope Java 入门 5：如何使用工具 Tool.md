@@ -18,8 +18,7 @@ AgentScope Java 自发布以来，迅速成为 Java 生态中构建企业级 AI 
 ```java
 public class WeatherService {
     @Tool(description = "获取指定城市的天气")
-    public String getWeather(
-            @ToolParam(name = "city", description = "城市名称") String city) {
+    public String getWeather(@ToolParam(name = "city", description = "城市名称") String city) {
         return city + " 的天气：晴天，25°C";
     }
 }
@@ -80,8 +79,7 @@ public int add(
 返回 `Mono<T>` 或 `Flux<T>`，适合 I/O 操作：
 ```java
 @Tool(description = "异步搜索")
-public Mono<String> search(
-        @ToolParam(name = "query", description = "搜索词") String query) {
+public Mono<String> search(@ToolParam(name = "query", description = "搜索词") String query) {
     return webClient.get()
         .uri("/search?q=" + query)
         .retrieve()
@@ -91,7 +89,7 @@ public Mono<String> search(
 
 ### 3.3 流式工具
 
-使用 `ToolEmitter` 发送中间进度，适合长时间任务：
+使用 `ToolEmitter` 发送中间进度，适合长时间任务（进度仅对 Hook 可见，不会发送给 LLM）：
 ```java
 @Tool(description = "生成数据")
 public ToolResultBlock generate(
@@ -157,7 +155,6 @@ toolkit.registration()
 ### 4.3 工具执行上下文
 
 传递业务对象（如用户信息）给工具，无需暴露给 LLM：
-
 ```java
 // 1. 定义上下文类
 public class UserContext {
@@ -187,11 +184,15 @@ public String query(
 }
 ```
 
-> 详细配置参见 [智能体](../quickstart/agent.md) 文档。
-
 ## 5. 内置工具
 
 ### 5.1 文件工具
+
+| 工具 | 方法 | 说明 |
+|------|------|------|
+| `ReadFileTool` | `view_text_file` | 按行范围查看文件 |
+| `WriteFileTool` | `write_text_file` | 创建/覆盖/替换文件内容 |
+| `WriteFileTool` | `insert_text_file` | 在指定行插入内容 |
 
 ```java
 import io.agentscope.core.tool.file.ReadFileTool;
@@ -206,19 +207,11 @@ toolkit.registerTool(new ReadFileTool("/safe/workspace"));
 toolkit.registerTool(new WriteFileTool("/safe/workspace"));
 ```
 
-| 工具 | 方法 | 说明 |
-|------|------|------|
-| `ReadFileTool` | `view_text_file` | 按行范围查看文件 |
-| `WriteFileTool` | `write_text_file` | 创建/覆盖/替换文件内容 |
-| `WriteFileTool` | `insert_text_file` | 在指定行插入内容 |
-
 ### 5.2 Shell 命令工具
 
 | 工具 | 特性 |
 |------|------|
 | `ShellCommandTool` | 执行 Shell 命令，支持命令白名单和回调批准机制，并支持超时控制 |
-
-**快速使用：**
 
 ```java
 import io.agentscope.core.tool.coding.ShellCommandTool;
@@ -226,8 +219,14 @@ import io.agentscope.core.tool.coding.ShellCommandTool;
 Function<String, Boolean> callback = cmd -> askUserForApproval(cmd);
 toolkit.registerTool(new ShellCommandTool(allowedCommands, callback));
 ```
+> allowedCommands: 命令白名单；callback：回调函数
 
 ### 5.3 多模态工具
+
+| 工具 | 能力 |
+|------|------|
+| `DashScopeMultiModalTool` | 文生图、图生文、文生语音、语音转文字 |
+| `OpenAIMultiModalTool` | 文生图、图片编辑、图片变体、图生文、文生语音、语音转文字 |
 
 ```java
 import io.agentscope.core.tool.multimodal.DashScopeMultiModalTool;
@@ -237,19 +236,13 @@ toolkit.registerTool(new DashScopeMultiModalTool(System.getenv("DASHSCOPE_API_KE
 toolkit.registerTool(new OpenAIMultiModalTool(System.getenv("OPENAI_API_KEY")));
 ```
 
-| 工具 | 能力 |
-|------|------|
-| `DashScopeMultiModalTool` | 文生图、图生文、文生语音、语音转文字 |
-| `OpenAIMultiModalTool` | 文生图、图片编辑、图片变体、图生文、文生语音、语音转文字 |
-
 ### 5.4 子智能体工具
 
-可以将智能体注册为工具，供其他智能体调用。详见 [Agent as Tool](../multi-agent/agent-as-tool.md)。
+可以将智能体注册为工具，供其他智能体调用。详见 [Agent as Tool](https://java.agentscope.io/zh/task/agent-as-tool.html)。
 
 ## AgentTool 接口
 
 需要精细控制时，直接实现接口：
-
 ```java
 public class CustomTool implements AgentTool {
     @Override
@@ -279,6 +272,12 @@ public class CustomTool implements AgentTool {
 
 ## 配置选项
 
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| `parallel` | 是否并行执行多个工具 | `true` |
+| `allowToolDeletion` | 是否允许删除工具 | `true` |
+| `executionConfig.timeout` | 工具执行超时时间 | 5 分钟 |
+
 ```java
 Toolkit toolkit = new Toolkit(ToolkitConfig.builder()
     .parallel(true)                    // 并行执行多个工具
@@ -289,11 +288,7 @@ Toolkit toolkit = new Toolkit(ToolkitConfig.builder()
     .build());
 ```
 
-| 配置项 | 说明 | 默认值 |
-|--------|------|--------|
-| `parallel` | 是否并行执行多个工具 | `true` |
-| `allowToolDeletion` | 是否允许删除工具 | `true` |
-| `executionConfig.timeout` | 工具执行超时时间 | 5 分钟 |
+
 
 ## 元工具
 

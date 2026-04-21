@@ -541,7 +541,7 @@ Config newConfig = overrides.withFallback(config).resolve();
 - withFallback 会递归合并（保留所有配置，高优先级覆盖低优先级）
 
 | 方法 | 核心作用 | 使用场景 |
-| :------------- | :------------- |
+| :------------- | :------------- | :------------- |
 | withValue | 精准替换单个路径的值 | 修改/添加特定配置项 |
 | withFallback | 智能合并两个配置对象 | 构建配置优先级链 |
 
@@ -642,7 +642,7 @@ java -Dconfig.override_with_env_vars=true -jar app.jar
 java -Dconfig.file=/etc/myapp/production.conf -jar app.jar
 ```
 
-### 5.3 resolve：解析变量
+#### 4.4.3 resolve 解析变量
 
 ```java
 // parse 后必须 resolve 才能使用变量替换

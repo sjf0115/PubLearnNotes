@@ -288,8 +288,6 @@ Toolkit toolkit = new Toolkit(ToolkitConfig.builder()
     .build());
 ```
 
-
-
 ## 元工具
 
 让智能体自主管理工具组：

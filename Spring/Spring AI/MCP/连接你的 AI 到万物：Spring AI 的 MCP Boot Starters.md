@@ -1,4 +1,4 @@
-模型上下文协议（MCP）标准化了 AI 应用程序与外部工具和资源的交互方式。Spring 早期加入了 MCP 生态系统并成为关键贡献者，协助开发以及维护[官方 MCP Java SDK](https://modelcontextprotocol.io/sdk/java/mcp-overview)(Java 版 MCP 基础实现)。基于此贡献，Spring AI 通过专用[Boot Starters](https://docs.spring.io/spring-ai/reference/1.1-SNAPSHOT/api/mcp/mcp-overview.html#_spring_ai_mcp_integration)和[MCP Java注解](https://docs.spring.io/spring-ai/reference/1.1-SNAPSHOT/api/mcp/mcp-annotations-overview.html)全面拥抱 MCP，从而使构建能够无缝连接外部系统的复杂AI应用变得前所未有的简单。
+模型上下文协议（MCP）标准化了 AI 应用程序与外部工具和资源的交互方式。Spring 早期加入了 MCP 生态系统并成为关键贡献者，协助开发以及维护[官方 MCP Java SDK](https://github.com/modelcontextprotocol/java-sdk)(Java 版 MCP 基础实现)。基于此贡献，Spring AI 通过专用[Boot Starters](https://docs.spring.io/spring-ai/reference/1.1-SNAPSHOT/api/mcp/mcp-overview.html#_spring_ai_mcp_integration)和[MCP Java注解](https://docs.spring.io/spring-ai/reference/1.1-SNAPSHOT/api/mcp/mcp-annotations-overview.html)全面拥抱 MCP，从而使构建能够无缝连接外部系统的复杂AI应用变得前所未有的简单。
 
 本篇博客将介绍 MCP 的核心组件，并演示使用 Spring AI 构建 MCP Server和客户端的基础与高级功能。完整源代码请访问：[MCP天气示例](https://github.com/tzolov/spring-ai-mcp-blogpost)。
 

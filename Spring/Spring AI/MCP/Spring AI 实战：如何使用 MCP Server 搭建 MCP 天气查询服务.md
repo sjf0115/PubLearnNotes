@@ -30,7 +30,7 @@ curl wttr.in/北京
 
 它会返回一张精美的 ASCII 艺术天气图：
 
-![](img-mcp-weather-service-1.png)
+![](img-spring-ai-mcp-server-2.png)
 
 它同时也提供 JSON 输出模式，方便程序解析：
 ```bash
@@ -471,7 +471,7 @@ data:/mcp/message?sessionId=7edea68f-b612-4136-8e23-493c25f958c7
 
 可以用 MCP Inspector 或任意支持 MCP Client 的工具连接 `http://localhost:8888/sse`，测试 get_weather 工具。输入参数 cityName = 北京，预期返回格式化的天气信息。在这使用 postman 测试：
 
-![](img-spring-ai-mcp-4.png)
+![](img-spring-ai-mcp-server-1.png)
 
 ---
 
@@ -490,6 +490,5 @@ data:/mcp/message?sessionId=7edea68f-b612-4136-8e23-493c25f958c7
 | 传输层	| WebFlux SSE 提供高性能的远程通信能力 |
 | 数据源	| wttr.in 免费、免认证，适合快速原型 |
 
-通过本文，你已经拥有了一个可独立部署、可被任何 MCP Client 发现的天气查询服务。这是将大模型从"纸上谈兵"推向"连接现实世界"的第一步。
-
+通过本文，你已经拥有了一个可独立部署、可被任何 MCP Client 发现的天气查询服务。
 ---

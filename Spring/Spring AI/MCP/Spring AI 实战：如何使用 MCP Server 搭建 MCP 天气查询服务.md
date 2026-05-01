@@ -291,7 +291,22 @@ spring:
 | sse-message-endpoint	| 消息收发端点，Client 向 Server 发送工具调用请求 |
 | capabilities.tool	| 声明本 Server 支持 Tool 能力 |
 
-### 3.3 启动类
+### 3.3 ChatClient 配置
+
+`ChatClient` 是 Spring AI 的对话入口。这里不需要额外配置 MCP 工具，工具由 MCP Client 自动发现，并在 Controller 层动态注入：
+```java
+@Configuration
+public class ChatConfig {
+    // 远程 OpenAI 兼容协议大模型：百练
+    @Bean
+    public ChatClient chatClient(OpenAiChatModel chatModel) {
+        return ChatClient.builder(chatModel)
+                .build();
+    }
+}
+```
+
+### 3.4 启动类
 
 ```java
 @SpringBootApplication
@@ -491,4 +506,5 @@ data:/mcp/message?sessionId=7edea68f-b612-4136-8e23-493c25f958c7
 | 数据源	| wttr.in 免费、免认证，适合快速原型 |
 
 通过本文，你已经拥有了一个可独立部署、可被任何 MCP Client 发现的天气查询服务。
----
+
+> 完整代码：[starter-webflux-server](https://github.com/sjf0115/spring-ai-example/tree/main/spring-ai/mcp/starter-webflux-server)

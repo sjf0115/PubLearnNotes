@@ -1,5 +1,3 @@
-## 1. 依赖选择
-
 AgentScope Java 支持多种模型、RAG 后端和扩展功能，各自需要不同的第三方 SDK。把所有依赖打包到一起会让项目变得臃肿，所以我们提供了两种引入方式：
 - **All-in-one**：一个依赖搞定，默认带 DashScope SDK 和 MCP SDK，快速上手
 - **Core + 扩展**：最小化核心包，按需加扩展模块，适合对依赖有严格要求的场景
@@ -15,25 +13,25 @@ AgentScope Java 支持多种模型、RAG 后端和扩展功能，各自需要不
 
 ---
 
-## 2. All-in-One（推荐）
+## 1. All-in-One
 
-**Maven：**
+默认推荐使用 All-in-one 方式，大多数情况下用 all-in-one 一个依赖就可以搞定：
 ```xml
 <dependency>
     <groupId>io.agentscope</groupId>
     <artifactId>agentscope</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.12</version>
 </dependency>
 ```
 
-### 2.1 默认包含的依赖
+### 1.1 默认包含的依赖
 
 All-in-one 包默认带以下依赖，不用额外配置：
 - DashScope SDK（通义千问系列模型）
 - MCP SDK（模型上下文协议）
 - Reactor Core、Jackson、SLF4J（基础框架）
 
-### 2.2 额外功能的依赖
+### 1.2 额外功能的依赖
 
 用其他模型或功能时，需要手动加对应依赖：
 
@@ -58,7 +56,7 @@ All-in-one 包默认带以下依赖，不用额外配置：
 | **文档 处理** | [Apache Tika Core](https://central.sonatype.com/artifact/org.apache.tika/tika-core) + [Apache Tika Parsers](https://central.sonatype.com/artifact/org.apache.tika/tika-parsers-standard-package) | `org.apache.tika:tika-core` + `org.apache.tika:tika-parsers-standard-package` |
 | **Nacos注册中心**        | [Nacos Client](https://central.sonatype.com/artifact/com.alibaba.nacos/nacos-client)     | `com.alibaba.nacos:nacos-client` |
 
-#### 2.2.1 示例：用 OpenAI 模型
+#### 1.2.1 示例：用 OpenAI 模型
 
 ```xml
 <!-- 在 agentscope 基础上加 -->
@@ -68,7 +66,7 @@ All-in-one 包默认带以下依赖，不用额外配置：
 </dependency>
 ```
 
-#### 2.2.2 示例：用 Qdrant RAG + PDF 处理
+#### 1.2.2 示例：用 Qdrant RAG + PDF 处理
 
 ```xml
 <!-- 在 agentscope 基础上加 -->
@@ -82,7 +80,7 @@ All-in-one 包默认带以下依赖，不用额外配置：
 </dependency>
 ```
 
-### 2.3 Studio 集成
+### 1.3 Studio 集成
 
 接入 [AgentScope Studio](https://github.com/modelscope/agentscope) 做可视化调试，需要加这些依赖：
 
@@ -122,20 +120,20 @@ All-in-one 包默认带以下依赖，不用额外配置：
 
 ---
 
-## 3. Core + 扩展
+## 2. Core + 扩展
 
-需要精细控制依赖时，用 `agentscope-core` 配合扩展模块：
+如果需要精细控制依赖时，用 `agentscope-core` 配合扩展模块：
 ```xml
 <dependency>
     <groupId>io.agentscope</groupId>
     <artifactId>agentscope-core</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.12</version>
 </dependency>
 ```
 
-### 3.1 扩展模块
+### 2.1 扩展模块
 
-#### 3.1.1 长期记忆
+#### 2.1.1 长期记忆
 
 | 模块 | 功能 | Maven 坐标 |
 |-----|------|-----------|
@@ -143,7 +141,7 @@ All-in-one 包默认带以下依赖，不用额外配置：
 | [agentscope-extensions-reme](https://central.sonatype.com/artifact/io.agentscope/agentscope-extensions-reme) | ReME 长期记忆 | `io.agentscope:agentscope-extensions-reme` |
 | [agentscope-extensions-autocontext-memory](https://central.sonatype.com/artifact/io.agentscope/agentscope-extensions-autocontext-memory) | AutoContext 记忆 | `io.agentscope:agentscope-extensions-autocontext-memory` |
 
-#### 3.1.2 RAG
+#### 2.1.2 RAG
 
 | 模块 | 功能 | Maven 坐标 |
 |-----|------|-----------|
@@ -153,28 +151,28 @@ All-in-one 包默认带以下依赖，不用额外配置：
 | [agentscope-extensions-rag-ragflow](https://central.sonatype.com/artifact/io.agentscope/agentscope-extensions-rag-ragflow) | RAGFlow RAG | `io.agentscope:agentscope-extensions-rag-ragflow` |
 | [agentscope-extensions-rag-haystack](https://central.sonatype.com/artifact/io.agentscope/agentscope-extensions-rag-haystack) | HayStack RAG | `io.agentscope:agentscope-extensions-rag-haystack` |
 
-#### 3.1.3 Session 存储
+#### 2.1.3 Session 存储
 
 | 模块 | 功能 | Maven 坐标 |
 |-----|------|-----------|
 | [agentscope-extensions-session-mysql](https://central.sonatype.com/artifact/io.agentscope/agentscope-extensions-session-mysql) | MySQL Session | `io.agentscope:agentscope-extensions-session-mysql` |
 | [agentscope-extensions-session-redis](https://central.sonatype.com/artifact/io.agentscope/agentscope-extensions-session-redis) | Redis Session | `io.agentscope:agentscope-extensions-session-redis` |
 
-#### 3.1.4 多智能体协作
+#### 2.1.4 多智能体协作
 
 | 模块 | 功能 | Maven 坐标 |
 |-----|------|-----------|
 | [agentscope-extensions-a2a-client](https://central.sonatype.com/artifact/io.agentscope/agentscope-extensions-a2a-client) | A2A 客户端 | `io.agentscope:agentscope-extensions-a2a-client` |
 | [agentscope-extensions-a2a-server](https://central.sonatype.com/artifact/io.agentscope/agentscope-extensions-a2a-server) | A2A 服务端 | `io.agentscope:agentscope-extensions-a2a-server` |
 
-#### 3.1.5 调度
+#### 2.1.5 调度
 
 | 模块 | 功能 | Maven 坐标 |
 |-----|------|-----------|
 | [agentscope-extensions-scheduler-common](https://central.sonatype.com/artifact/io.agentscope/agentscope-extensions-scheduler-common) | 调度通用模块 | `io.agentscope:agentscope-extensions-scheduler-common` |
 | [agentscope-extensions-scheduler-xxl-job](https://central.sonatype.com/artifact/io.agentscope/agentscope-extensions-scheduler-xxl-job) | XXL-Job 调度 | `io.agentscope:agentscope-extensions-scheduler-xxl-job` |
 
-#### 3.1.6 用户界面
+#### 2.1.6 用户界面
 
 | 模块 | 功能 | Maven 坐标 |
 |-----|------|-----------|
@@ -183,26 +181,28 @@ All-in-one 包默认带以下依赖，不用额外配置：
 
 扩展模块会自动带上所需的第三方依赖，不用手动加。
 
-#### 3.1.7 示例：Core + Mem0 扩展
+### 2.2 示例
 
+Core + Mem0 扩展：
 ```xml
 <!-- 在 agentscope-core 基础上加 -->
 <dependency>
     <groupId>io.agentscope</groupId>
     <artifactId>agentscope-extensions-mem0</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.12</version>
 </dependency>
 ```
 
-## 4. 框架集成
+## 3. 框架集成
 
-### 4.1 Spring Boot
+### 3.1 Spring Boot
 
+如果与 Spring Boot 集成：
 ```xml
 <dependency>
     <groupId>io.agentscope</groupId>
     <artifactId>agentscope-spring-boot-starter</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.12</version>
 </dependency>
 ```
 
@@ -212,23 +212,25 @@ All-in-one 包默认带以下依赖，不用额外配置：
 |---------|------|-----------|
 | agentscope-a2a-spring-boot-starter | A2A 集成 | `io.agentscope:agentscope-a2a-spring-boot-starter` |
 | agentscope-agui-spring-boot-starter | AG-UI 集成 | `io.agentscope:agentscope-agui-spring-boot-starter` |
+| agentscope-chat-completions-web-starter | Chat Completions Web 集成 | io.agentscope:agentscope-chat-completions-web-starter |
+| agentscope-nacos-spring-boot-starter | Nacos 集成 | io.agentscope:agentscope-nacos-spring-boot-starter |
 
-### 4.2 Quarkus
+### 3.2 Quarkus
 
 ```xml
 <dependency>
     <groupId>io.agentscope</groupId>
     <artifactId>agentscope-quarkus-extension</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.12</version>
 </dependency>
 ```
 
-### 4.3 Micronaut
+### 3.3 Micronaut
 
 ```xml
 <dependency>
     <groupId>io.agentscope</groupId>
     <artifactId>agentscope-micronaut-extension</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.12</version>
 </dependency>
 ```

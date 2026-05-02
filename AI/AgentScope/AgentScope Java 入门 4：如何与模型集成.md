@@ -35,6 +35,9 @@ DashScopeChatModel model = DashScopeChatModel.builder()
 | `stream` | 是否启用流式输出，默认 `true` |
 | `enableThinking` | 启用思考模式，模型会展示推理过程 |
 | `enableSearch` | 启用联网搜索，获取实时信息 |
+| `endpointType` | API 端点类型（默认 AUTO 自动识别），可选 TEXT（强制文本 API）或 MULTIMODAL（强制多模态 API）|
+| `defaultOptions` | 默认生成选项（temperature、maxTokens 等）|
+| `formatter` | 消息格式化器（默认 DashScopeChatFormatter）|
 
 ### 2.2 思考模式
 

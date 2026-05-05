@@ -99,7 +99,7 @@ boolean exists = toolkit.hasTool("calculate");
 
 ### 3.3 创建带工具的 Agent
 
-最后，通过 Builder 模式将装配好的 Toolkit 注入到 ReActAgent 中，Agent 便拥有了使用工具的能力:
+最后，将装配好的 Toolkit 注入到 ReActAgent 中，这样 Agent 便拥有了使用工具的能力：
 ```java
 ReActAgent agent = ReActAgent.builder()
     .name("天气助手")
@@ -112,7 +112,7 @@ ReActAgent agent = ReActAgent.builder()
 Msg response = agent.call(
         Msg.builder()
                 .role(MsgRole.USER)
-                .textContent("北京今天天气如何？")
+                .textContent("北京明天的天气如何？")
                 .build()
 ).block();
 
@@ -121,7 +121,7 @@ System.out.println(response.getTextContent());
 
 执行流程：
 ```
-用户：北京今天天气如何？
+用户：北京明天的天气如何？
     │
     ▼
 Agent 推理：用户问天气 → 我有 get_weather 工具 → 需要传入 city="北京"
@@ -133,7 +133,7 @@ Agent 推理：用户问天气 → 我有 get_weather 工具 → 需要传入 ci
 Agent 再次推理：已获得天气信息 → 组织语言回答
     │
     ▼
-回答：根据查询，北京今天天气晴朗，气温 25°C，适合出门！
+回答：根据查询，北京明天天气晴朗，气温 25°C，适合出门！
 ```
 
 ---
@@ -519,54 +519,6 @@ toolkit.registerTool(new OpenAIMultiModalTool(System.getenv("OPENAI_API_KEY")));
 ### 7.4 子智能体工具
 
 可以将智能体注册为工具，供其他智能体调用。详见 [Agent as Tool](https://java.agentscope.io/zh/task/agent-as-tool.html)。
-
-## AgentTool 接口
-
-需要精细控制时，直接实现接口：
-```java
-public class CustomTool implements AgentTool {
-    @Override
-    public String getName() { return "custom_tool"; }
-
-    @Override
-    public String getDescription() { return "自定义工具"; }
-
-    @Override
-    public Map<String, Object> getParameters() {
-        return Map.of(
-            "type", "object",
-            "properties", Map.of(
-                "query", Map.of("type", "string", "description", "查询")
-            ),
-            "required", List.of("query")
-        );
-    }
-
-    @Override
-    public Mono<ToolResultBlock> callAsync(ToolCallParam param) {
-        String query = (String) param.getInput().get("query");
-        return Mono.just(ToolResultBlock.text("结果：" + query));
-    }
-}
-```
-
-## 配置选项
-
-| 配置项 | 说明 | 默认值 |
-|--------|------|--------|
-| `parallel` | 是否并行执行多个工具 | `true` |
-| `allowToolDeletion` | 是否允许删除工具 | `true` |
-| `executionConfig.timeout` | 工具执行超时时间 | 5 分钟 |
-
-```java
-Toolkit toolkit = new Toolkit(ToolkitConfig.builder()
-    .parallel(true)                    // 并行执行多个工具
-    .allowToolDeletion(false)          // 禁止删除工具
-    .executionConfig(ExecutionConfig.builder()
-        .timeout(Duration.ofSeconds(30))
-        .build())
-    .build());
-```
 
 ### 7.5 元工具
 

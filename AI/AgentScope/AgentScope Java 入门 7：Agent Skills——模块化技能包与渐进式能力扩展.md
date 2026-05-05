@@ -101,39 +101,6 @@ AgentSkill skill = AgentSkill.builder()
 
 ## 4. Skill 介绍
 
-
-
-### 3.2 必需字段
-
-| 字段 | 要求 | 说明 |
-|------|------|------|
-| `name` | 必需 | Skill 名称，只能包含小写字母、数字、下划线 |
-| `description` | 必需 | **最关键字段**。描述 Skill 的使用场景，帮助 LLM 判断何时调用 |
-
-### 3.3 Metadata 扩展
-
-YAML frontmatter 中除 `name`、`description` 外的所有字段都会作为 Skill metadata 保留：
-
-```
----
-name: email_service
-description: Send emails via SMTP
-homepage: https://docs.example.com/email
-metadata:
-  version: "2.0"
-  author: "team-platform"
-  requires:
-    env:
-      - SMTP_HOST
-      - SMTP_PORT
-    permissions:
-      - send_email
----
-```
-
-这些 metadata 会暴露给智能体提示词，让 Agent 了解 Skill 的依赖和权限要求。
-
-
 ### 4.1 Skill 结构
 
 Agent Skill 的组织形式兼容文件系统目录结构：
@@ -178,18 +145,20 @@ metadata:
 
 **必需字段:**
 
-- `name` - 技能的名字（小写字母、数字、下划线）
-- `description` - 技能功能和使用场景描述，帮助 AI 判断何时使用
+| 字段 | 要求 | 说明 |
+|------|------|------|
+| `name` | 必需 | Skill 名称，只能包含小写字母、数字、下划线 |
+| `description` | 必需 | **最关键字段**。描述 Skill 的使用场景，帮助 LLM 判断何时调用 |
+
+
 
 **Metadata 说明:**
-
 - YAML frontmatter 中除 `name`、`description` 外的字段都会作为 Skill metadata 保留，不再局限于固定字段
 - 支持嵌套 `Map/List`，并保留原有层级结构和插入顺序
 - frontmatter 使用 SnakeYAML `SafeConstructor` 解析，只接受顶层为 `Map` 的 YAML 对象
 - 非法 frontmatter 或超过解析器限制的 frontmatter 会被忽略，并按空 metadata 处理
 
-
-示例：
+Skill 示例：
 ```
 ---
 name: data_analysis              # 必需：技能名称（小写字母、数字、下划线）
@@ -470,51 +439,77 @@ Skills 需要在应用重启后保持可用，或在不同环境间共享。Agen
 #### 6.3.1 文件系统存储
 
 ```java
+// 创建仓库
 AgentSkillRepository repo = new FileSystemSkillRepository(Path.of("./skills"));
-repo.save(List.of(skill), false);
+// 保存 Skill
+repo.save(List.of(dataSkill, emailSkill), false);
+// 读取 Skill
 AgentSkill loaded = repo.getSkill("data_analysis");
+List<AgentSkill> allSkills = repo.getAllSkills();
+```
+
+Skill 会被保存为如下目录结构：
+```
+skills/
+├── data_analysis/
+│   ├── SKILL.md
+│   ├── references/
+│   │   └── formulas.md
+│   └── examples/
+│       └── sample.csv
+└── email_service/
+    └── SKILL.md
 ```
 
 #### 6.3.2 MySQL数据库存储
 
 ```java
 // 使用简单构造函数（使用默认数据库/表名）
-DataSource dataSource = createDataSource();
+DataSource dataSource = createDataSource();  // 你的数据源
+
+// 方式一：简单构造函数（使用默认数据库/表名）
 MysqlSkillRepository repo = new MysqlSkillRepository(dataSource, true, true);
 
-// 使用Builder进行自定义配置
+// 方式二：Builder 自定义配置
 MysqlSkillRepository repo = MysqlSkillRepository.builder(dataSource)
         .databaseName("my_database")
         .skillsTableName("my_skills")
         .resourcesTableName("my_resources")
-        .createIfNotExist(true)
-        .writeable(true)
+        .createIfNotExist(true)   // 表不存在时自动创建
+        .writeable(true)          // 允许写入
         .build();
 
+// 保存和读取
 repo.save(List.of(skill), false);
 AgentSkill loaded = repo.getSkill("data_analysis");
 ```
 
 #### 6.3.3 Git仓库 (只读)
 
-用于从 Git 仓库加载 Skills (只读)。支持 HTTPS 和 SSH。
-
-**更新机制**
-- 默认每次读取都会做轻量化的远端引用检查，仅当远端 HEAD 变化时才会 pull。
-- 可以通过构造函数关闭自动同步，改为手动调用 `sync()` 刷新。
-
+用于从 Git 仓库加载 Skills (只读)。支持 HTTPS 和 SSH。适合团队共享 Skills，支持自动同步。
 ```java
+// 自动同步（默认）：每次读取时检查远端更新
 AgentSkillRepository repo = new GitSkillRepository(
-    "https://github.com/your-org/your-skills-repo.git");
+        "https://github.com/your-org/your-skills-repo.git");
+
 AgentSkill skill = repo.getSkill("data-analysis");
 List<AgentSkill> allSkills = repo.getAllSkills();
 
+// 手动同步模式
 GitSkillRepository manualRepo = new GitSkillRepository(
-    "https://github.com/your-org/your-skills-repo.git", false);
+        "https://github.com/your-org/your-skills-repo.git",
+        false);  // 关闭自动同步
+
+// 需要时手动刷新
 manualRepo.sync();
 ```
 
 如果仓库中存在 `skills/` 子目录，会优先从该目录加载，否则使用仓库根目录。
+
+**同步机制**：
+- 默认每次读取都会做轻量化的远端引用检查
+- 仅当远端 HEAD 变化时才会执行 `git pull`
+- 可通过构造函数关闭自动同步，改为手动调用 `sync()`
 
 #### 6.3.4 Classpath 仓库 (只读)
 
@@ -597,91 +592,6 @@ skillBox.codeExecution()
 - [Claude Agent Skills 官方文档](https://platform.claude.com/docs/zh-CN/agents-and-tools/agent-skills/overview) - 完整的概念和架构介绍
 - [Tool 使用指南](./tool.md) - 工具系统的使用方法
 - [Agent 配置](./agent.md) - 智能体配置和使用
-
-
-
-
-### 8.1 文件系统存储
-
-```java
-import io.agentscope.core.skill.repository.FileSystemSkillRepository;
-
-// 创建仓库
-AgentSkillRepository repo = new FileSystemSkillRepository(Path.of("./skills"));
-
-// 保存 Skill
-repo.save(List.of(dataSkill, emailSkill), false);
-
-// 读取 Skill
-AgentSkill loaded = repo.getSkill("data_analysis");
-List<AgentSkill> allSkills = repo.getAllSkills();
-```
-
-Skill 会被保存为如下目录结构：
-
-```
-skills/
-├── data_analysis/
-│   ├── SKILL.md
-│   ├── references/
-│   │   └── formulas.md
-│   └── examples/
-│       └── sample.csv
-└── email_service/
-    └── SKILL.md
-```
-
-### 8.2 MySQL 数据库存储
-
-```java
-import io.agentscope.core.skill.repository.MysqlSkillRepository;
-
-DataSource dataSource = createDataSource();  // 你的数据源
-
-// 方式一：简单构造函数（使用默认数据库/表名）
-MysqlSkillRepository repo = new MysqlSkillRepository(dataSource, true, true);
-
-// 方式二：Builder 自定义配置
-MysqlSkillRepository repo = MysqlSkillRepository.builder(dataSource)
-        .databaseName("my_database")
-        .skillsTableName("my_skills")
-        .resourcesTableName("my_resources")
-        .createIfNotExist(true)   // 表不存在时自动创建
-        .writeable(true)          // 允许写入
-        .build();
-
-// 保存和读取
-repo.save(List.of(skill), false);
-AgentSkill loaded = repo.getSkill("data_analysis");
-```
-
-### 8.3 Git 仓库（只读）
-
-适合团队共享 Skills，支持自动同步：
-
-```java
-import io.agentscope.core.skill.repository.GitSkillRepository;
-
-// 自动同步（默认）：每次读取时检查远端更新
-AgentSkillRepository repo = new GitSkillRepository(
-        "https://github.com/your-org/your-skills-repo.git");
-
-AgentSkill skill = repo.getSkill("data-analysis");
-List<AgentSkill> allSkills = repo.getAllSkills();
-
-// 手动同步模式
-GitSkillRepository manualRepo = new GitSkillRepository(
-        "https://github.com/your-org/your-skills-repo.git",
-        false);  // 关闭自动同步
-
-// 需要时手动刷新
-manualRepo.sync();
-```
-
-**同步机制**：
-- 默认每次读取都会做轻量化的远端引用检查
-- 仅当远端 HEAD 变化时才会执行 `git pull`
-- 可通过构造函数关闭自动同步，改为手动调用 `sync()`
 
 ---
 

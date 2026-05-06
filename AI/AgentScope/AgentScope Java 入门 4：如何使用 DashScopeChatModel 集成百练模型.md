@@ -361,9 +361,3 @@ DashScope（阿里云百炼）是 AgentScope Java 在国内场景下最推荐的
 | **多模态** | 支持文本、图像、音频、视频统一输入 |
 
 ---
-
-## 系列预告
-
-掌握 DashScope 后，下一篇我们将介绍如何通过 **`OpenAIChatModel`** 接入 OpenAI、DeepSeek、vLLM 等兼容 OpenAI API 规范的模型平台，敬请期待！
-
-*本文基于 AgentScope Java 1.0.9 和百炼平台最新模型矩阵撰写，模型版本持续更新中，建议参考[百炼官方文档](https://help.aliyun.com/zh/model-studio/models)获取最新信息。*

@@ -90,7 +90,7 @@ DashScopeTextEmbedding 虽然属于 AgentScope 框架，但它在内部需要调
     <dependency>
         <groupId>io.agentscope</groupId>
         <artifactId>agentscope</artifactId>
-        <version>${agentscope.version}</version>
+        <version>1.0.12</version>
     </dependency>
 
     <!-- 阿里云 DashScope SDK（Embedding 功能所需） -->
@@ -101,3 +101,4 @@ DashScopeTextEmbedding 虽然属于 AgentScope 框架，但它在内部需要调
     </dependency>
 </dependencies>
 ```
+官网提及 `All-in-one: Single dependency with DashScope SDK and MCP SDK included, get started quickly`，但 agentscope-1.0.12 的实际依赖没有 com.alibaba:dashscope-sdk-java。

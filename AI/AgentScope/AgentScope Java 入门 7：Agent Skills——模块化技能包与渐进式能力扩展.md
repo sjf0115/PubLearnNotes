@@ -243,7 +243,6 @@ AgentSkill skill = new AgentSkill(
 ```java
 // 1. 创建 Toolkit 和 SkillBox
 Toolkit toolkit = new Toolkit();
-
 SkillBox skillBox = new SkillBox(toolkit);
 
 // 2. 注册 Skill
@@ -384,7 +383,6 @@ Skill 经常需要执行代码（Python 脚本、Shell 命令等）。AgentScope
 
 ```java
 SkillBox skillBox = new SkillBox(toolkit);
-
 // 启用所有代码执行工具（Shell、读文件、写文件）
 skillBox.codeExecution()
         .withShell()
@@ -514,7 +512,6 @@ manualRepo.sync();
 #### 6.3.4 Classpath 仓库 (只读)
 
 用于从 classpath 资源中加载预打包的 Skills (只读)。自动兼容标准 JAR 和 Spring Boot Fat JAR。
-
 ```java
 try (ClasspathSkillRepository repository = new ClasspathSkillRepository("skills")) {
     AgentSkill skill = repository.getSkill("data-analysis");

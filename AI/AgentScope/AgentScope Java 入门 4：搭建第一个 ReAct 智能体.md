@@ -1,13 +1,19 @@
-随着 LLM 应用的飞速发展，越来越多的 Agent 应用开始走近每个人。围绕着 Agent 应用的核心，目前业界有零代码、低代码和高代码三条主流的技术路线。AgentScope 作为 Python 社区中受到广泛应用的高代码框架，在 Java 生态下的需求也越来越大。
+在上一篇[文章](https://smartsi.blog.csdn.net/article/details/160694030)中，我们完成了 AgentScope Java 的安装与环境配置。接下来，我们将创建第一个能思考、能行动的 ReAct 智能体。AgentScope Java 的核心是 ReActAgent——基于 ReAct（Reasoning + Acting） 范式构建的通用智能体。它不是"一问一答"的聊天机器人，而是一个能自主推理、调用工具、观察结果、迭代优化的自主系统。
 
+## 1. ReAct 范式：先想后做，循环逼近
 
-## 1. 第一性原则：透明度
+### 1.1 人类是怎么解决问题的？
 
-AgentScope 的首要设计目标是对开发者透明。当下，许多 Agent 框架将底层的调度进行了深度的封装，这固然会给用户带来一些概念上的简化，但是也带来了遇到问题时排查的复杂度。AgentScope 不同：
-- Prompt Engineering：用户可以自己修改所有提示词相关的内容。
-- API 调用：每一次 API 调用都能够被定位。
-- Agent 构建：所有 Agent 的配置都来自用户确定性的配置。
-- 决策过程：Agent 的推理、执行过程都可以通过 Hook 对外暴露。
+当你问一个真人"北京现在几点？天气怎么样？"时，他的思考过程是这样的：
+```
+嗯，用户问了两个问题。时间？我需要看手机。天气？得查天气App。
+→ 看手机：下午3点。
+→ 查天气App：晴天25°C。
+→ 信息够了，告诉用户。
+```
+### 1.2 ReAct 循环
+
+ReActAgent 模拟的就是上述过程，它的核心工作循环如下：
 
 ## 2. 三分钟构建一个智能体
 
@@ -84,25 +90,7 @@ public class HelloAgentScope {
 }
 ```
 
-至此，一个 Agent 就构建完成了。在这个示例中，ReActAgent 是 AgentScope 的核心，我们后面几乎所有的功能都是基于它的。在这个示例中我们只应用到了2个必需参数 `name` 和 `model`，除此之外你还可以应用其他参数来完成后续功能：
-
-| 参数 | 是否必填 | 描述 |
-|------|-----------|------|
-| `name` | 必需 | 智能体的名称 |
-| `model` | 必需 | 智能体用于生成响应的模型 |
-| `sysPrompt` | 建议设置 | 智能体的系统提示 |
-| `toolkit` |  | 用于注册/调用工具函数的工具模块 |
-| `memory` |  | 用于存储对话历史的短期记忆 |
-| `description` | | 智能体的描述信息 |
-| `generateOptions` | | LLM 生成参数（temperature、topP、maxTokens 等） |
-| `toolExecutionContext` |  | 工具执行上下文，用于向工具注入依赖 |
-| `planNotebook` |  | 计划管理器 |
-| `longTermMemory` |  | 长期记忆 |
-| `longTermMemoryMode` |  | 长期记忆的管理模式：`AGENT_CONTROL`（智能体自主控制）、`STATIC_CONTROL`（静态管理）、`BOTH`（两者皆有） |
-| `maxIters` | | 智能体生成响应的最大迭代次数（默认：10） |
-| `hooks` |  | 用于自定义智能体行为的事件钩子 |
-| `modelExecutionConfig` | | 模型调用的超时/重试配置 |
-| `toolExecutionConfig` | | 工具调用的超时/重试配置 |
+至此，一个 Agent 就构建完成了。
 
 ## 3. 架构概览
 
@@ -390,4 +378,82 @@ List<Msg> results = Pipelines.fanout(
     List.of(dataCollector, dataAnalyzer, reportGenerator),
     inputMsg
 ).block();
+```
+
+## 6. ReActAgent 构建参数全解
+
+ReActAgent.builder() 支持的完整配置参数如下：
+
+| 参数 | 是否必填 | 描述 |
+|------|-----------|------|
+| `name` | 必需 | 智能体的名称 |
+| `model` | 必需 | 智能体用于生成响应的模型 |
+| `sysPrompt` | 建议设置 | 智能体的系统提示 |
+| `toolkit` | 否 | 用于注册/调用工具函数的工具模块 |
+| `memory` | 否 | 用于存储对话历史的短期记忆 |
+| `description` | 否 | 智能体的描述信息 |
+| `generateOptions` | 否 | LLM 生成参数（temperature、topP、maxTokens 等） |
+| `toolExecutionContext` | 否 | 工具执行上下文，用于向工具注入依赖 |
+| `planNotebook` | 否 | 计划管理器 |
+| `longTermMemory` | 否 | 长期记忆 |
+| `longTermMemoryMode` | 否 | 长期记忆的管理模式：`AGENT_CONTROL`（智能体自主控制）、`STATIC_CONTROL`（静态管理）、`BOTH`（两者皆有） |
+| `maxIters` | 否 | 智能体生成响应的最大迭代次数（默认：10） |
+| `hooks` | 否 | 用于自定义智能体行为的事件钩子 |
+| `modelExecutionConfig` | 否 | 模型调用的超时/重试配置 |
+| `toolExecutionConfig` | 否 | 工具调用的超时/重试配置 |
+
+## 7. 核心配置详解
+
+### 7.1 超时与重试
+
+```java
+// 模型调用：网络波动时自动重试
+ExecutionConfig modelConfig = ExecutionConfig.builder()
+        .timeout(Duration.ofMinutes(2))   // 单次 LLM 调用最多等 2 分钟
+        .maxAttempts(3)                   // 失败重试 3 次
+        .build();
+
+// 工具调用：外部 API 超时控制
+ExecutionConfig toolConfig = ExecutionConfig.builder()
+        .timeout(Duration.ofSeconds(30))  // 单次工具最多等 30 秒
+        .maxAttempts(1)                   // 工具一般不重试
+        .build();
+```
+
+### 7.2 工具执行上下文
+
+将业务数据注入到工具中，不暴露给 LLM。工具方法中不加 `@ToolParam` 的参数会自动从上下文中注入：
+```java
+// 注册上下文
+ToolExecutionContext context = ToolExecutionContext.builder()
+        .register(new UserContext("user-123"))
+        .build();
+
+// 工具中自动注入（UserContext 无需加 @ToolParam）
+@Tool(name = "query", description = "查询数据")
+public String query(
+        @ToolParam(name = "sql") String sql,
+        UserContext ctx  // 自动注入
+) {
+    return "用户 " + ctx.getUserId() + " 的查询结果";
+}
+```
+
+### 7.3 计划管理
+
+启用 PlanNotebook 让 Agent 能拆解复杂任务：
+```java
+// 方式 1：快速启用（使用默认配置）
+ReActAgent agent = ReActAgent.builder()
+        .enablePlan()
+        .build();
+
+// 方式 2：自定义配置
+PlanNotebook planNotebook = PlanNotebook.builder()
+        .maxSubtasks(15)
+        .build();
+
+ReActAgent agent = ReActAgent.builder()
+        .planNotebook(planNotebook)
+        .build();
 ```

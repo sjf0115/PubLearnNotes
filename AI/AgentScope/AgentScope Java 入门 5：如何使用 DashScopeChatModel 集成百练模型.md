@@ -339,17 +339,5 @@ DashScope（阿里云百炼）是 AgentScope Java 在国内场景下最推荐的
 | 二 | [AgentScope Java 入门 2：Spring AI Alibaba 与 AgentScope 的定位与区别](https://smartsi.blog.csdn.net/article/details/160955593) |
 | 三 | [AgentScope Java 入门 3：如何安装 AgentScope](https://smartsi.blog.csdn.net/article/details/160694030) |
 | 四 | [AgentScope Java 入门 4：搭建第一个 ReAct 智能体](https://smartsi.blog.csdn.net/article/details/161203988) |
-| **五** | **[AgentScope Java 入门 5：如何使用 DashScopeChatModel 集成百练模型]()** |
-| 六 | OpenAIChatModel 集成兼容 OpenAI 协议模型 |
-| 七 | 思考模式（Thinking Mode）详解 |
-| 八 | Hook 钩子机制详解 |
-| 九 | Tool 工具系统详解 |
-| 十 | MCP 协议集成 |
-| 十一 | Agent Skills 模块化技能包 |
-| 十二 | RAG 检索增强生成 |
-| 十三 | EmbeddingModel 与硅基流动实战 |
-| 十四 | 本地知识库问答助手 |
-| 十五 | Human-in-the-Loop 人工审核 |
-| 十六 | PlanNotebook 任务规划 |
-| 十七 | Structured Output 结构化输出 |
-| 十八 | Pipeline 管道部署多智能体 |
+| 五 | [AgentScope Java 入门5：如何使用 DashScopeChatModel 集成百练模型](https://smartsi.blog.csdn.net/article/details/161300535) |
+| 六 | [AgentScope Java 入门6：如何使用 OpenAIChatModel 集成兼容 OpenAI 协议模型](https://smartsi.blog.csdn.net/article/details/161324334) |

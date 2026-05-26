@@ -151,7 +151,7 @@ public static void main(String[] args) throws Exception {
                     // 当前处理时间
                     long processingTime = context.timerService().currentProcessingTime();
                     // 计算该条数据所属 1分钟窗口的最大时间戳
-                    long windowMaxTimestamp = getWindowMaxTimestamp(wc.getTimestamp(), windowSize);
+                    long windowMaxTimestamp = getWindowMaxTimestamp(recordTimestamp, windowSize);
                     // 计算延迟时间（乱序时长）
                     long lateTimestamp = watermark - windowMaxTimestamp;
 
@@ -239,7 +239,7 @@ private static class LateTimeRecord {
 | 字段 | 含义 | 计算方式 |
 |---|---|---|
 | `watermark` | 当前 SubTask 的事件时间时钟 | `context.timerService().currentWatermark()` |
-| `windowMaxTimestamp` | 数据所属窗口的最大时间戳 | `eventTime - (eventTime % windowSize) + windowSize - 1` |
+| `windowMaxTimestamp` | 数据所属窗口的最大时间戳 | `recordTimestamp - (recordTimestamp % windowSize) + windowSize - 1` |
 | `lateTimestamp` | 乱序时长 | `watermark - windowMaxTimestamp` |
 
 ### 4.5 测算步骤

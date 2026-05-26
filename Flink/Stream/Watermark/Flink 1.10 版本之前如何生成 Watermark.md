@@ -71,7 +71,7 @@ public SingleOutputStreamOperator<T> assignTimestampsAndWatermarks(AssignerWithP
 
 ### 2.1 周期性生成 Watermark 时间戳分配器
 
-断点式生成 Watermark 时间戳分配器根据设定的时间间隔周期性的生成 Watermark。使用 AssignerWithPeriodicWatermarks 接口分配时间戳并定期生成 Watermark。可以通过如下方式设置生成 Watermark 的时间间隔周期，默认 200 毫秒：
+周期性生成 Watermark 时间戳分配器根据设定的时间间隔周期性的生成 Watermark。使用 AssignerWithPeriodicWatermarks 接口分配时间戳并定期生成 Watermark。可以通过如下方式设置生成 Watermark 的时间间隔周期，默认 200 毫秒：
 ```java
 // 设置每 100ms 生成 Watermark
 env.getConfig().setAutoWatermarkInterval(100);
@@ -86,7 +86,7 @@ env.getConfig().setAutoWatermarkInterval(100);
 
 #### 2.1.1 AscendingTimestampExtractor
 
-周期性生成 Watermark 的时间戳分配器第一种内置实现是 AscendingTimestampExtractor。实现了 AssignerWithPeriodicWatermarks 接口，用当前提取的元素时间戳作为最新的 Watermark。这种时间分配器比较适合于事件按顺序生成，没有乱序的情况。具体源码解读可以查看 [AscendingTimestampExtractor](https://smartsi.blog.csdn.net/article/details/126797894?spm=1001.2014.3001.5502)。
+周期性生成 Watermark 的时间戳分配器第一种内置实现是 AscendingTimestampExtractor。实现了 AssignerWithPeriodicWatermarks 接口，用当前提取的元素时间戳作为最新的 Watermark。这种时间分配器比较适合于事件按顺序生成，没有乱序的情况。具体源码解读可以查看 [AscendingTimestampExtractor](https://smartsi.blog.csdn.net/article/details/126797894)。
 
 AscendingTimestampExtractor 时间戳分配器使用比较简单，通过 assignTimestampsAndWatermarks 方法指定 AscendingTimestampExtractor 时间戳分配器的实现，并且只需要重写 extractAscendingTimestamp 方法来指定时间戳即可：
 ```java

@@ -1,42 +1,56 @@
-在前面文章中，我们学习了如何接入模型、使用 Hook 监控执行、构建本地工具系统。但一个企业的工具生态远不止几行 Java 代码——文件系统、数据库、Git 仓库、搜索引擎、第三方 SaaS 服务……如何让 Agent 无缝对接这些异构系统？
+在前面的文章中，我们学习了如何接入大语言模型、使用 [Tool 工具系统](https://smartsi.blog.csdn.net/article/details/161324334)让 Agent "动手做事"。但一个企业的工具生态远不止几行 Java 代码——文件系统、数据库、Git 仓库、搜索引擎、第三方 SaaS 服务……如何让 Agent 无缝对接这些异构系统？
 
-**MCP（Model Context Protocol，模型上下文协议）** 正是为此而生。它是 Anthropic 发起的开放标准协议，旨在让 AI 应用以统一的方式连接外部数据源和工具。AgentScope Java 对 MCP 提供了完整支持，让你的 Agent 可以一键接入整个 MCP 生态系统的工具。
+**MCP（Model Context Protocol，模型上下文协议）** 正是为此而生。它是 Anthropic 发起的开放标准协议，旨在让 AI 应用以统一的方式连接外部数据源和工具。AgentScope Java 对 MCP 提供了完整支持，让你的 Agent 可以一键接入整个 MCP 生态系统。
+
+如果说 Tool 系统让 Agent 长出了"手脚"，那么 MCP 就是把 Agent 接入了 **全球工具生态网络**——你不再需要为每个外部系统单独编写工具，而是直接复用社区数百个已有的 MCP Server。
 
 ---
 
 ## 1. 什么是 MCP？
 
-**MCP（Model Context Protocol）** 是一个开放标准协议，用于将 AI 应用程序连接到外部数据源和工具。它定义了标准化的通信方式，使得：
-- **工具开发者** 只需实现一次 MCP Server，即可被任意 MCP Client 使用
-- **Agent 开发者** 只需连接一次 MCP Client，即可获得一整套工具能力
+> 关于 MCP 的详细信息请查阅 [MCP 入门：什么是 MCP 模型上下文协议](https://smartsi.blog.csdn.net/article/details/158430845)
 
-### MCP 的核心价值
+### 1.1 协议定位
+
+**MCP（Model Context Protocol）** 是一个开放标准协议，用于将 AI 应用程序与外部数据源、工具进行连接。可以把它类比为：
+
+| 类比 | 解决的问题 |
+|------|---------|
+| AI 世界的 **USB 接口** | 任何 MCP Server 都能被任何 MCP Client 即插即用 |
+| AI 工具的 **Maven 仓库** | 工具开发一次，全球 AI 应用复用 |
+| AI 应用的 **HTTP 协议** | 标准化的通信，跨语言、跨平台 |
+
+### 1.2 核心价值
 
 - **统一的工具接口**：通过单个协议访问各种工具
-- **外部工具服务器**：连接到专门的服务（文件系统、git、数据库等）
+- **外部工具服务器**：连接到专门的服务（文件系统、Git、数据库等）
 - **生态系统集成**：使用不断增长的 MCP 生态系统中的工具
 - **灵活的传输**：支持 StdIO、SSE 和 HTTP 传输
 - **语言无关**：MCP Server 可以用 Python、Node.js、Java 等任意语言实现
 
-### MCP 工具 vs 本地工具
+### 1.3 MCP 工具 vs 本地 @Tool
 
-| 对比维度 | 本地工具（@Tool） | MCP 工具 |
+| 对比维度 | 本地 `@Tool` | MCP 工具 |
 |---------|----------------|---------|
-| 实现位置 | 与 Agent 同进程 | 独立的 MCP Server 进程/服务 |
+| 实现位置 | 与 Agent 同进程 | 独立的 MCP Server 进程 / 服务 |
 | 通信方式 | 直接方法调用 | StdIO / SSE / HTTP 协议 |
-| 语言限制 | 必须是 Java | 任意语言 |
+| 语言限制 | 必须是 Java | 任意语言（Python、Node.js、Go……） |
 | 部署方式 | 随 Agent 一起部署 | 独立部署，可复用 |
+| 性能开销 | 极低（方法调用） | 有 IPC / 网络开销 |
+| 生态规模 | 项目内自研 | 社区数百个开源 MCP Server |
 | 适用场景 | 核心业务逻辑、性能敏感 | 通用能力、跨团队复用、第三方集成 |
 
-**最佳实践**：核心业务工具用本地 `@Tool` 实现，通用能力（文件操作、Git、搜索等）通过 MCP 接入。
+> **最佳实践**：核心业务工具用本地 `@Tool` 实现，通用能力（文件操作、Git、搜索等）通过 MCP 接入。**两者并存，各司其职**。
 
 ## 2. 快速开始
+
+> 三步接入 MCP
 
 ### 2.1 连接到 MCP 服务器
 
 ```java
 // StdIO 传输 - 连接到本地 MCP 服务器
-McpClientWrapper mcpClient = McpClientBuilder.create("filesystem-mcp")
+McpClientWrapper fsClient = McpClientBuilder.create("fs-mcp")
         .stdioTransport("npx", "-y", "@modelcontextprotocol/server-filesystem", "/tmp")
         .buildAsync()
         .block();
@@ -47,7 +61,7 @@ McpClientWrapper mcpClient = McpClientBuilder.create("filesystem-mcp")
 ```java
 // 注册 MCP 服务器的所有工具
 Toolkit toolkit = new Toolkit();
-toolkit.registerMcpClient(mcpClient).block();
+toolkit.registerMcpClient(fsClient).block();
 ```
 
 ### 2.3 在 Agent 中配置 MCP
@@ -61,6 +75,7 @@ ReActAgent agent = ReActAgent.builder()
         .build();
 ```
 
+仅需 3 步，Agent 就拥有了 MCP Server 提供的所有工具能力——这就是协议标准化带来的红利。
 
 ## 3. AgentScope 支持的三种传输方式
 
@@ -107,6 +122,90 @@ McpClientWrapper customClient = McpClientBuilder.create("custom-mcp")
 ```
 **原理**：以 `fsClient` 为例说明，AgentScope 启动 `npx -y @modelcontextprotocol/server-filesystem /tmp` 子进程，通过 stdin/stdout 与 Server 交换 JSON-RPC 消息。
 
+
+示例：
+```java
+// 1. 准备沙箱工作目录，MCP filesystem server 只能在该目录内读写
+Path workspace = Paths.get("agentscope/quickstart/target/mcp-fs-workspace")
+        .toAbsolutePath().normalize();
+Files.createDirectories(workspace);
+String baseDir = workspace.toString();
+
+// 2. 通过 stdio 启动 MCP filesystem server
+//    npx 会拉起一个子进程，AgentScope 通过标准输入输出与其通信
+McpClientWrapper fsClient = McpClientBuilder.create("fs-mcp")
+        .stdioTransport("npx", "-y", "@modelcontextprotocol/server-filesystem", baseDir)
+        .buildAsync()
+        .block();
+
+try {
+    // 3. 把 MCP server 暴露的所有工具一次性注册到 Toolkit
+    //    registerMcpClient 内部会调用 listTools 并把每个工具适配为 AgentTool
+    Toolkit toolkit = new Toolkit();
+    toolkit.registerMcpClient(fsClient).block();
+
+    // 4. 创建 Agent，绑定 toolkit
+    ReActAgent agent = ReActAgent.builder()
+            .name("文件助手")
+            .sysPrompt("你是一个文件操作助手，并把最终结果用一句话告知用户。")
+            .model(DashScopeChatModel.builder()
+                    .apiKey(System.getenv("DASHSCOPE_API_KEY"))
+                    .modelName(MODEL_NAME)
+                    .build())
+            .toolkit(toolkit)
+            .build();
+
+    // 5. 调用智能体：组合任务（预计触发 write → list → read 三次 MCP 工具调用）
+    Msg msg = Msg.builder()
+            .role(MsgRole.USER)
+            .textContent("把《Hello MCP，来自 AgentScope》写入 mcp-demo.txt，"
+                    + "再列出当前目录下的所有文件，最后读取 mcp-demo.txt 的内容返回给我。")
+            .build();
+
+    Msg response = agent.call(msg).block();
+    if (response != null) {
+        System.out.println("助手: " + response.getTextContent());
+    }
+} finally {
+    // 6. 关闭 MCP 客户端，停止 npx 子进程
+    if (fsClient != null) {
+        fsClient.close();
+    }
+}
+```
+效果输出如下所示：
+```java
+[main] INFO io.agentscope.core.tool.McpClientManager - Registering MCP client: fs-mcp
+[main] INFO io.agentscope.core.tool.mcp.McpAsyncClientWrapper - Initializing MCP async client: fs-mcp
+[boundedElastic-1] INFO io.modelcontextprotocol.client.transport.StdioClientTransport - MCP server starting.
+[boundedElastic-1] INFO io.modelcontextprotocol.client.transport.StdioClientTransport - MCP server started
+[pool-4-thread-1] INFO io.modelcontextprotocol.client.transport.StdioClientTransport - STDERR Message received: Secure MCP Filesystem Server running on stdio
+[pool-1-thread-1] INFO io.modelcontextprotocol.client.LifecycleInitializer - Server response with Protocol: 2024-11-05, Capabilities: ServerCapabilities[completions=null, experimental=null, logging=null, prompts=null, resources=null, tools=ToolCapabilities[listChanged=true]], Info: Implementation[name=secure-filesystem-server, title=null, version=0.2.0] and Instructions null
+[pool-4-thread-1] INFO io.modelcontextprotocol.client.transport.StdioClientTransport - STDERR Message received: Client does not support MCP Roots, using allowed directories set from server args: [
+[pool-4-thread-1] INFO io.modelcontextprotocol.client.transport.StdioClientTransport - STDERR Message received:   '/Users/smartsi/学习/Code/spring-ai-example/agentscope/quickstart/target/mcp-fs-workspace'
+[pool-4-thread-1] INFO io.modelcontextprotocol.client.transport.StdioClientTransport - STDERR Message received: ]
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'read_file' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'read_text_file' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'read_media_file' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'read_multiple_files' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'write_file' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'edit_file' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'create_directory' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'list_directory' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'list_directory_with_sizes' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'directory_tree' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'move_file' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'search_files' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'get_file_info' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.Toolkit - Registered tool 'list_allowed_directories' in group 'ungrouped'
+[pool-1-thread-1] INFO io.agentscope.core.tool.McpClientManager - MCP client 'fs-mcp' registered successfully
+助手: 文件 `mcp-demo.txt` 已成功写入内容，当前目录下包含该文件，其内容为：“Hello MCP，来自 AgentScope”。
+[main] INFO io.agentscope.core.tool.mcp.McpAsyncClientWrapper - Closing MCP async client: fs-mcp
+[ForkJoinPool.commonPool-worker-1] WARN io.modelcontextprotocol.client.transport.StdioClientTransport - Process terminated with code 143
+[agentscope-jvm-shutdown-hook] INFO io.agentscope.core.shutdown.GracefulShutdownManager - Graceful shutdown initiated, 0 active request(s), timeout=infinite
+[agentscope-jvm-shutdown-hook] INFO io.agentscope.core.model.transport.HttpTransportFactory - Shutting down 1 managed HttpTransport(s)
+```
+
 ### 3.2 SSE 传输
 
 通过 HTTP Server-Sent Events 建立长连接，适合部署在局域网或云上的 MCP Server：
@@ -130,38 +229,39 @@ McpClientWrapper httpClient = McpClientBuilder.create("http-mcp")
         .block();
 ```
 
-
 ## 4. 配置选项
 
 ### 4.1 超时设置
 
 ```java
-import java.time.Duration;
-
-McpClientWrapper client = McpClientBuilder.create("mcp")
-        .stdioTransport("npx", "-y", "@modelcontextprotocol/server-filesystem", "/tmp")
-        .timeout(Duration.ofSeconds(120))      // 请求超时
-        .initializationTimeout(Duration.ofSeconds(30)) // 初始化超时
-        .buildAsync()
-        .block();
+McpClientWrapper fsClient = McpClientBuilder.create("fs-mcp")
+    .stdioTransport("npx", "-y", "@modelcontextprotocol/server-filesystem", baseDir)
+    .timeout(Duration.ofSeconds(120))      // 请求超时
+    .initializationTimeout(Duration.ofSeconds(30)) // 初始化超时
+    .buildAsync()
+    .block();
 ```
+
+| 配置项 | 作用 | 推荐值 |
+|------|------|------|
+| `timeout` | 单次工具调用的超时时间 | 30 ~ 120 秒 |
+| `initializationTimeout` | 连接建立 + 协议握手超时 | 10 ~ 30 秒 |
 
 ### 4.2 HTTP 头
 
 ```java
 McpClientWrapper client = McpClientBuilder.create("mcp")
-        .sseTransport("https://mcp.example.com/sse")
-        .header("Authorization", "Bearer " + token)
-        .header("X-Client-Version", "1.0")
-        .header("X-Custom-Header", "value")
-        .buildAsync()
-        .block();
+      .sseTransport("https://mcp.example.com/sse")
+      .header("Authorization", "Bearer " + token)
+      .header("X-Client-Version", "1.0")
+      .header("X-Custom-Header", "value")
+      .buildAsync()
+      .block();
 ```
 
 ### 4.3 Query 参数
 
 为 HTTP 传输添加 URL 查询参数：
-
 ```java
 // 单个参数
 McpClientWrapper client = McpClientBuilder.create("mcp")
@@ -223,7 +323,7 @@ McpClientWrapper syncClient = McpClientBuilder.create("sync-mcp")
 
 MCP 的 elicitation 功能允许在调用工具过程中，向用户发起交互式信息收集请求。这在工具需要额外确认或补充参数时非常有用。
 
-### 7.1 异步 Elicitation
+#### 4.5.1 异步 Elicitation
 
 ```java
 McpClientWrapper client = McpClientBuilder.create("mcp-async")
@@ -242,7 +342,7 @@ McpClientWrapper client = McpClientBuilder.create("mcp-async")
         .block();
 ```
 
-### 7.2 同步 Elicitation
+#### 4.5.2 同步 Elicitation
 
 ```java
 McpClientWrapper client = McpClientBuilder.create("mcp-sync")
@@ -310,12 +410,9 @@ toolkit.registration()
 
 > 优先级：`disableTools` > `enableTools`。即使工具在白名单中，如果在黑名单中也会被排除。
 
-
-
 ### 5.2 工具组
 
 将 MCP 工具分配到组以进行选择性激活：
-
 ```java
 // 创建工具组并激活
 Toolkit toolkit = new Toolkit();
@@ -361,7 +458,6 @@ toolkit.removeMcpClient("filesystem-mcp").block();
 ## 6. 实战：多 MCP Server 组合使用
 
 以下示例展示如何同时接入文件系统和 Git 两个 MCP Server：
-
 ```java
 public class MultiMcpAgentDemo {
     public static void main(String[] args) {

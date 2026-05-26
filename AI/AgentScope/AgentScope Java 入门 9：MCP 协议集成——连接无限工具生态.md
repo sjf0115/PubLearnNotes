@@ -319,7 +319,7 @@ McpClientWrapper syncClient = McpClientBuilder.create("sync-mcp")
         .buildSync();
 ```
 
-### 4.5 elicitation 支持
+### 4.5 Elicitation 交互式补充
 
 MCP 的 elicitation 功能允许在调用工具过程中，向用户发起交互式信息收集请求。这在工具需要额外确认或补充参数时非常有用。
 
@@ -409,6 +409,71 @@ toolkit.registration()
 ```
 
 > 优先级：`disableTools` > `enableTools`。即使工具在白名单中，如果在黑名单中也会被排除。
+
+完整示例：
+```java
+// 1. 准备沙箱目录
+Path workspace = Paths.get("agentscope/quickstart/target/mcp-fs-workspace")
+        .toAbsolutePath().normalize();
+Files.createDirectories(workspace);
+String baseDir = workspace.toString();
+
+// 2. 启动 MCP filesystem server（stdio）
+McpClientWrapper fsClient = McpClientBuilder.create("fs-mcp")
+        .stdioTransport("npx", "-y", "@modelcontextprotocol/server-filesystem", baseDir)
+        .buildAsync()
+        .block();
+
+try {
+    // 白名单与黑名单结合
+    //    enableTools  ：声明哪些 MCP 工具会被注册（不在列表中的工具直接被忽略）
+    //    disableTools ：在白名单的基础上再屏蔽（最终对 LLM 不可见）
+    //    delete_file 同时出现在白/黑名单 → 最终仍被禁用（黑名单优先级更高）
+    //    list_allowed_directories "自我发现"机制，给 LLM 用来回答"我能在哪些目录里操作"的，解决了相对路径问题
+    List<String> enableTools = List.of("read_file", "write_file", "list_directory", "list_allowed_directories", "delete_file");
+    List<String> disableTools = List.of("delete_file");
+
+    // 4. 使用 Toolkit#registration() DSL 一次性完成「注册 MCP 客户端 + 白/黑名单过滤」
+    Toolkit toolkit = new Toolkit();
+    toolkit.registration()
+            .mcpClient(fsClient)
+            .enableTools(enableTools)
+            .disableTools(disableTools)
+            .apply();
+
+    // 5. 打印最终对 LLM 可见的工具集，验证过滤效果：
+    //    预期 → [read_file, write_file, list_directory]，delete_file 被剔除
+    System.out.println("===== 过滤后对 LLM 可见的工具 =====");
+    toolkit.getToolNames().forEach(name -> System.out.println("  - " + name));
+
+    // 6. 创建 Agent，绑定过滤后的 toolkit
+    ReActAgent agent = ReActAgent.builder()
+            .name("文件助手")
+            .sysPrompt("你是一个文件操作助手，并把最终结果用一句话告知用户。")
+            .model(DashScopeChatModel.builder()
+                    .apiKey(System.getenv("DASHSCOPE_API_KEY"))
+                    .modelName(MODEL_NAME)
+                    .build())
+            .toolkit(toolkit)
+            .build();
+
+    // 7. 调用智能体：组合任务（预计触发 write_file → list_directory → read_file）
+    Msg msg = Msg.builder()
+            .role(MsgRole.USER)
+            .textContent("把《Hello MCP，来自 AgentScope》写入 mcp-demo.txt，"
+                    + "再列出当前目录下的所有文件，最后读取 mcp-demo.txt 的内容返回给我。")
+            .build();
+
+    Msg response = agent.call(msg).block();
+    if (response != null) {
+        System.out.println("\n助手: " + response.getTextContent());
+    }
+} finally {
+    if (fsClient != null) {
+        fsClient.close();
+    }
+}
+```
 
 ### 5.2 工具组
 

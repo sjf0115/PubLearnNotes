@@ -48,8 +48,6 @@
 
 如果遇到乱序数据，就把这条乱序数据放入最近的一个还没有被触发计算的时间窗口中，保证不会由于数据乱序而丢数。使用ProcessFunction的实现逻辑如下：通过ProcessFunction提供的定时器来实现时间窗口的计算逻辑并自定义乱序不丢数的逻辑，最终的实现如代码清单7-4所示。
 
-
-
 ### 2.2 这种"挪窗"的取舍
 
 这种方案的核心权衡是：
@@ -64,13 +62,9 @@
 不适用于：
 - 需要严格按照原始事件时间分窗输出（如分钟级业务指标趋势分析）
 
-## 3. 实现概览：用 KeyedProcessFunction 自己接管窗口逻辑
+## 3. 实现方案：用 KeyedProcessFunction 自己接管窗口逻辑
 
-通过ProcessFunction提供的定时器来实现时间窗口的计算逻辑并自定义乱序不丢数的逻辑
-
-由于 Flink 内置的 `WindowAssigner`（如 `TumblingEventTimeWindows`）一旦把数据分配到已触发的窗口就直接走丢弃逻辑，**没有钩子可以让我们改写归属窗口**。所以我们干脆抛开 `.window(...)`，使用 `KeyedProcessFunction` 自己实现一套"窗口分配 + 状态聚合 + 定时器触发"的逻辑。
-
-整体执行流程如下：
+由于 Flink 内置的 `WindowAssigner`（如 `TumblingEventTimeWindows`）一旦把数据分配到已触发的窗口就直接走丢弃逻辑，**没有钩子可以让我们改写归属窗口**。所以我们干脆抛开 `.window(...)`，使用 `KeyedProcessFunction` 自己实现一套"窗口分配 + 状态聚合 + 定时器触发"的逻辑。通过 ProcessFunction 提供的定时器来实现时间窗口的计算逻辑并自定义乱序不丢数的逻辑。整体执行流程如下：
 ```
    元素到达
        │
@@ -93,11 +87,102 @@ onTimer
   │
   └── 遍历状态，输出所有 windowEnd ≤ timer 的窗口结果，并清除状态
 ```
+### 3.1 当前元素实际归属的窗口
 
-## 4. 核心代码深度解析
+getWindowStartWithOffset：窗口对齐公式
 
-下面是完整代码（参考用户提供的实现）：
+```java
+public static long getWindowStartWithOffset(long timestamp, long offset, long windowSize) {
+    long remainder = (timestamp - offset) % windowSize;
+    return remainder < 0L ? timestamp - (remainder + windowSize) : timestamp - remainder;
+}
+```
 
+这个方法和 Flink 内置的 `TimeWindow.getWindowStartWithOffset` 等价，作用是把任意时间戳对齐到窗口起点。
+
+举例（窗口大小 60s，offset = 0）：
+
+| timestamp（毫秒） | timestamp（可读） | windowStart |
+|---|---|---|
+| 1662303772840 | 23:02:52 | 1662303720000（23:02:00） |
+| 1662303778877 | 23:02:58 | 1662303720000（23:02:00） |
+| 1662303781890 | 23:03:01 | 1662303780000（23:03:00） |
+
+也就是说，**任何落在 `[23:02:00, 23:03:00)` 内的时间戳都会对齐到 `1662303720000` 这一个 windowStart**——这是我们用 `MapState` 把同一窗口的数据聚合在一起的基础。
+
+### 3.2 迟到判定与窗口修正
+
+```java
+if (windowEnd <= currentWatermark) {
+    windowStart = getWindowStartWithOffset(currentWatermark, 0L, windowSize);
+    windowEnd = windowStart + windowSize;
+}
+```
+
+这一步骤是整个方案的灵魂，它承担了两件事：判断一条数据是否迟到、以及把迟到数据修正到就近未触发的窗口。下面我们重点拆解为什么这样写就能判定迟到。
+
+要理解这个判定，先回到 Flink 中 Watermark 的定义：Watermark = T 表示数据流向下游声明，**事件时间 ≤ T 的数据已经全部到达**，之后再出现事件时间 ≤ T 的数据都视为迟到数据。对一个事件时间滚动窗口 `[windowStart, windowEnd)`（左闭右开），Flink 内置 `EventTimeTrigger` 的触发条件是：当 Watermark ≥ windowEnd 时，触发该窗口的计算并清理状态。这是因为窗口区间右开——`windowEnd` 这一刻不再属于本窗口(下一窗口)，一旦 Watermark 推进到 `windowEnd`，就意味着「事件时间 ≤ windowEnd 的数据都到齐了」，本窗口内（即 `< windowEnd`）的数据自然也都到齐了，可以安全触发。
+
+一条新到的数据，它本应归属的窗口是 `[windowStart, windowEnd)`。`currentWatermark ≥ windowEnd` 表明窗口 `[windowStart, windowEnd)` 已经触发过（或正要在本条 Watermark 推进时触发）。既然窗口已经触发并清理过状态，再补一条本应属于它的数据进来——就是 **迟到数据**。所以 `windowEnd <= currentWatermark` 等价于「这条数据所属的窗口已经/即将被 Watermark 关掉」，再写到这个窗口里没有意义，必须修正。
+
+> 为什么是 `<=` 而不是 `<`
+这一点容易被忽略，但很关键：**等号必须保留**。原因还是“区间右开”：
+- 假设 `windowSize = 60s`，窗口 `[23:02:00, 23:03:00)`，则 `windowEnd = 23:03:00`
+- 当 Watermark 第一次推进到 `23:03:00` 时，根据触发条件 `Watermark ≥ windowEnd`，窗口已被触发
+- 此时若再来一条 `timestamp = 23:02:55` 的数据，计算得 `windowEnd = 23:03:00`，恰好等于 `currentWatermark`
+- 如果写成 `<`，这条数据会被判为「未迟到」，仍然写入已被清理的 `[23:02:00, 23:03:00)`，但由于该窗口的定时器已经触发并不会再次触发，这条数据就 **永久滞留在状态里**——既不参与计算，也不会被释放，等同于丢失
+
+> 所以等号一定要带上，确保「已经被 Watermark 关掉的窗口」全部走修正分支。
+
+判定为迟到后，用 `currentWatermark` 替代元素自身的 `timestamp` 去对齐：
+```java
+windowStart = getWindowStartWithOffset(currentWatermark, 0L, windowSize);
+windowEnd = windowStart + windowSize;
+```
+
+- Watermark 一定落在 **正在累积或刚刚开始累积** 的窗口里（该窗口 `[windowStart, windowEnd)` 满足 `windowStart ≤ Watermark < windowEnd`）
+- 这个窗口的 `windowEnd > currentWatermark`，定时器还没有到期，状态还在
+- 所以这个对齐结果就是“就近还没有触发的窗口”——迟到数据写进去后，会被这个窗口在未来的某次定时器触发时一起输出
+
+### 3.3 状态聚合
+
+```java
+private transient MapState<Long, WordCountTimestamp> windowState;
+```
+
+为什么用 `MapState` 而不是 `ValueState`？
+- **同一个 Key（如 word=a）下，一段时间内会有多个未触发窗口同时存在**：当前窗口、由迟到数据修正过来的窗口、再之后的窗口……
+- `MapState<Long, T>` 用 windowStart 做 key，恰好对应到具体窗口，互不干扰
+- `onTimer` 触发时只清理已到期的 entry，未到期的窗口状态继续保留
+
+### 3.4 事件时间定时器
+
+当每个元素到达时为每个窗口(结束时间)注册事件时间定时器：
+```java
+context.timerService().registerEventTimeTimer(windowEnd);
+```
+
+> 事件时间定时器在 Flink 内部是去重的：**对同一 Key 注册相同时间戳的定时器，只会触发一次**。所以即使一个窗口里来了 100 条数据、调用了 100 次 `registerEventTimeTimer(windowEnd)`，最终也只产生一个定时器。
+
+当事件时间到达时会触发 `onTimer` 的处理，触发窗口结束时间小于等于定时器时间的所有窗口：
+```java
+public void onTimer(long timestamp, KeyedProcessFunction<String, WordCountTimestamp, WordCountTimestamp>.OnTimerContext ctx, Collector<WordCountTimestamp> out) throws Exception {
+    Iterator<Map.Entry<Long, WordCountTimestamp>> iterator = this.windowState.entries().iterator();
+    while (iterator.hasNext()) {
+        Map.Entry<Long, WordCountTimestamp> entry = iterator.next();
+        // 窗口结束时间小于等于当前触发的定时器时间 触发窗口
+        if (entry.getKey() + windowTimeSize.toMilliseconds() <= timestamp) {
+            out.collect(entry.getValue());
+            iterator.remove();
+        }
+    }
+}
+```
+> 这里没有限定"当前定时器时间戳必须等于 windowEnd"，而是用 `<=` 兜底——这样可以保证即使因为某些原因有窗口的定时器被错过（如数据全部迟到导致 windowEnd 早已被 Watermark 超过），也能在下一次定时器触发时一并输出，不会出现"状态留在 MapState 里永远不被释放"的内存泄漏。
+
+## 4. 示例
+
+下面是完整代码：
 ```java
 public class LatenessRecentWindowExample {
     private static final Logger LOG = LoggerFactory.getLogger(LatenessRecentWindowExample.class);
@@ -210,93 +295,6 @@ public class LatenessRecentWindowExample {
 
 下面逐段解析关键设计。
 
-### 4.1 当前元素实际归属的窗口
-
-getWindowStartWithOffset：窗口对齐公式
-
-```java
-public static long getWindowStartWithOffset(long timestamp, long offset, long windowSize) {
-    long remainder = (timestamp - offset) % windowSize;
-    return remainder < 0L ? timestamp - (remainder + windowSize) : timestamp - remainder;
-}
-```
-
-这个方法和 Flink 内置的 `TimeWindow.getWindowStartWithOffset` 等价，作用是把任意时间戳对齐到窗口起点。
-
-举例（窗口大小 60s，offset = 0）：
-
-| timestamp（毫秒） | timestamp（可读） | windowStart |
-|---|---|---|
-| 1662303772840 | 23:02:52 | 1662303720000（23:02:00） |
-| 1662303778877 | 23:02:58 | 1662303720000（23:02:00） |
-| 1662303781890 | 23:03:01 | 1662303780000（23:03:00） |
-
-也就是说，**任何落在 `[23:02:00, 23:03:00)` 内的时间戳都会对齐到 `1662303720000` 这一个 windowStart**——这是我们用 `MapState` 把同一窗口的数据聚合在一起的基础。
-
-### 4.2 迟到判定与窗口修正
-
-```java
-if (windowEnd <= currentWatermark) {
-    windowStart = getWindowStartWithOffset(currentWatermark, 0L, windowSize);
-    windowEnd = windowStart + windowSize;
-}
-```
-
-这一步骤是整个方案的灵魂，它承担了两件事：判断一条数据是否迟到、以及把迟到数据修正到就近未触发的窗口。下面我们重点拆解为什么这样写就能判定迟到。
-
-要理解这个判定，先回到 Flink 中 Watermark 的定义：Watermark = T 表示数据流向下游声明，**事件时间 ≤ T 的数据已经全部到达**，之后再出现事件时间 ≤ T 的数据都视为迟到数据。对一个事件时间滚动窗口 `[windowStart, windowEnd)`（左闭右开），Flink 内置 `EventTimeTrigger` 的触发条件是：当 Watermark ≥ windowEnd 时，触发该窗口的计算并清理状态。这是因为窗口区间右开——`windowEnd` 这一刻不再属于本窗口(下一窗口)，一旦 Watermark 推进到 `windowEnd`，就意味着「事件时间 ≤ windowEnd 的数据都到齐了」，本窗口内（即 `< windowEnd`）的数据自然也都到齐了，可以安全触发。
-
-一条新到的数据，它本应归属的窗口是 `[windowStart, windowEnd)`。`currentWatermark ≥ windowEnd` 表明窗口 `[windowStart, windowEnd)` 已经触发过（或正要在本条 Watermark 推进时触发）。既然窗口已经触发并清理过状态，再补一条本应属于它的数据进来——就是 **迟到数据**。所以 `windowEnd <= currentWatermark` 等价于「这条数据所属的窗口已经/即将被 Watermark 关掉」，再写到这个窗口里没有意义，必须修正。
-
-> 为什么是 `<=` 而不是 `<`
-这一点容易被忽略，但很关键：**等号必须保留**。原因还是“区间右开”：
-- 假设 `windowSize = 60s`，窗口 `[23:02:00, 23:03:00)`，则 `windowEnd = 23:03:00`
-- 当 Watermark 第一次推进到 `23:03:00` 时，根据触发条件 `Watermark ≥ windowEnd`，窗口已被触发
-- 此时若再来一条 `timestamp = 23:02:55` 的数据，计算得 `windowEnd = 23:03:00`，恰好等于 `currentWatermark`
-- 如果写成 `<`，这条数据会被判为「未迟到」，仍然写入已被清理的 `[23:02:00, 23:03:00)`，但由于该窗口的定时器已经触发并不会再次触发，这条数据就 **永久滞留在状态里**——既不参与计算，也不会被释放，等同于丢失
-
-> 所以等号一定要带上，确保「已经被 Watermark 关掉的窗口」全部走修正分支。
-
-判定为迟到后，用 `currentWatermark` 替代元素自身的 `timestamp` 去对齐：
-```java
-windowStart = getWindowStartWithOffset(currentWatermark, 0L, windowSize);
-windowEnd = windowStart + windowSize;
-```
-
-- Watermark 一定落在 **正在累积或刚刚开始累积** 的窗口里（该窗口 `[windowStart, windowEnd)` 满足 `windowStart ≤ Watermark < windowEnd`）
-- 这个窗口的 `windowEnd > currentWatermark`，定时器还没有到期，状态还在
-- 所以这个对齐结果就是“就近还没有触发的窗口”——迟到数据写进去后，会被这个窗口在未来的某次定时器触发时一起输出
-
-### 4.3 状态聚合：MapState<windowStart, 聚合结果>
-
-```java
-private transient MapState<Long, WordCountTimestamp> windowState;
-```
-
-为什么用 `MapState` 而不是 `ValueState`？
-
-- **同一个 Key（如 word=a）下，一段时间内会有多个未触发窗口同时存在**：当前窗口、由迟到数据修正过来的窗口、再之后的窗口……
-- `MapState<Long, T>` 用 windowStart 做 key，恰好对应到具体窗口，互不干扰
-- `onTimer` 触发时只清理已到期的 entry，未到期的窗口状态继续保留
-
-### 4.4 定时器：每个窗口注册一次
-
-```java
-context.timerService().registerEventTimeTimer(windowEnd);
-```
-
-事件时间定时器在 Flink 内部是去重的：**对同一 Key 注册相同时间戳的定时器，只会触发一次**。所以即使一个窗口里来了 100 条数据、调用了 100 次 `registerEventTimeTimer(windowEnd)`，最终也只产生一个定时器。
-
-`onTimer` 的处理逻辑也很关键：
-
-```java
-if (entry.getKey() + windowTimeSize.toMilliseconds() <= timestamp) {
-    out.collect(entry.getValue());
-    iterator.remove();
-}
-```
-
-这里没有限定"当前定时器时间戳必须等于 windowEnd"，而是用 `<=` 兜底——这样可以保证即使因为某些原因有窗口的定时器被错过（如数据全部迟到导致 windowEnd 早已被 Watermark 超过），也能在下一次定时器触发时一并输出，不会出现"状态留在 MapState 里永远不被释放"的内存泄漏。
 
 ## 5. 实际运行效果
 

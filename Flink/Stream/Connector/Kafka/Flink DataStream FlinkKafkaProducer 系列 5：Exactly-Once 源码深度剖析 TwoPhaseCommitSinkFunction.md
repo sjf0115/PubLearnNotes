@@ -48,7 +48,7 @@ permalink: /flink/datastream/flink-kafka-producer-two-phase-commit
 
 ## 2. TwoPhaseCommitSinkFunction：抽象骨架
 
-> `org.apache.flink.streaming.api.functions.sink.TwoPhaseCommitSinkFunction`：
+> `org.apache.flink.streaming.api.functions.sink.TwoPhaseCommitSinkFunction`
 
 ```java
 public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
@@ -59,8 +59,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
     private TransactionHolder<TXN> currentTransactionHolder;
 
     // 已经预提交、等待 notifyCheckpointComplete 触发提交的事务
-    protected final LinkedHashMap<Long, TransactionHolder<TXN>> pendingCommitTransactions =
-            new LinkedHashMap<>();
+    protected final LinkedHashMap<Long, TransactionHolder<TXN>> pendingCommitTransactions = new LinkedHashMap<>();
 
     // 状态：保存所有未提交事务的句柄，用于失败恢复
     protected transient ListState<State<TXN, CONTEXT>> state;

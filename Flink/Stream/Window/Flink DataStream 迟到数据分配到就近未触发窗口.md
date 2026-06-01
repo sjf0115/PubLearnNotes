@@ -90,7 +90,6 @@ onTimer
 ### 3.1 当前元素实际归属的窗口
 
 getWindowStartWithOffset：窗口对齐公式
-
 ```java
 public static long getWindowStartWithOffset(long timestamp, long offset, long windowSize) {
     long remainder = (timestamp - offset) % windowSize;
@@ -293,13 +292,7 @@ public class LatenessRecentWindowExample {
 
 > 完整代码请查阅 [LatenessRecentWindowExample](https://github.com/sjf0115/flink-example/blob/main/flink-example-1.13/src/main/java/com/flink/example/stream/window/late/LatenessRecentWindowExample.java)
 
-下面逐段解析关键设计。
-
-
-## 5. 实际运行效果
-
-输入数据与 [AllowedLateness 博文](./) 完全一致：
-
+假设输入数据如下所示：
 ```
 // 格式：行为唯一标识Id, 单词, 出现次数, 事件时间戳
 1,  a, 2, 1662303772840 // 23:02:52
@@ -318,56 +311,44 @@ public class LatenessRecentWindowExample {
 ```
 
 实际运行效果如下所示：
-
 ```java
-00:12:11,108 INFO  WordCountOutOfOrderSource [] - id: 1, word: a, frequency: 2, eventTime: 1662303772840|2022-09-04 23:02:52
-00:12:12,116 INFO  WordCountOutOfOrderSource [] - id: 2, word: a, frequency: 1, eventTime: 1662303770844|2022-09-04 23:02:50
-00:12:13,119 INFO  WordCountOutOfOrderSource [] - id: 3, word: a, frequency: 3, eventTime: 1662303773848|2022-09-04 23:02:53
-00:12:14,125 INFO  WordCountOutOfOrderSource [] - id: 4, word: a, frequency: 2, eventTime: 1662303774866|2022-09-04 23:02:54
-00:12:15,131 INFO  WordCountOutOfOrderSource [] - id: 5, word: a, frequency: 1, eventTime: 1662303777839|2022-09-04 23:02:57
-00:12:16,137 INFO  WordCountOutOfOrderSource [] - id: 6, word: a, frequency: 2, eventTime: 1662303784887|2022-09-04 23:03:04
-00:12:17,142 INFO  WordCountOutOfOrderSource [] - id: 7, word: a, frequency: 3, eventTime: 1662303776894|2022-09-04 23:02:56
-00:12:18,148 INFO  WordCountOutOfOrderSource [] - id: 8, word: a, frequency: 1, eventTime: 1662303786891|2022-09-04 23:03:06
+22:38:40,101 INFO  WordCountOutOfOrderSource [] - id: 1, word: a, frequency: 2, eventTime: 1662303772840|2022-09-04 23:02:52
+22:38:41,109 INFO  WordCountOutOfOrderSource [] - id: 2, word: a, frequency: 1, eventTime: 1662303770844|2022-09-04 23:02:50
+22:38:42,112 INFO  WordCountOutOfOrderSource [] - id: 3, word: a, frequency: 3, eventTime: 1662303773848|2022-09-04 23:02:53
+22:38:43,117 INFO  WordCountOutOfOrderSource [] - id: 4, word: a, frequency: 2, eventTime: 1662303774866|2022-09-04 23:02:54
+22:38:44,123 INFO  WordCountOutOfOrderSource [] - id: 5, word: a, frequency: 1, eventTime: 1662303777839|2022-09-04 23:02:57
+22:38:45,128 INFO  WordCountOutOfOrderSource [] - id: 6, word: a, frequency: 2, eventTime: 1662303784887|2022-09-04 23:03:04
+22:38:46,132 INFO  WordCountOutOfOrderSource [] - id: 7, word: a, frequency: 3, eventTime: 1662303776894|2022-09-04 23:02:56
+22:38:47,138 INFO  WordCountOutOfOrderSource [] - id: 8, word: a, frequency: 1, eventTime: 1662303786891|2022-09-04 23:03:06
 WordCountTimestamp{id='1,2,3,4,5,7', word='a', frequency=12, timestamp=1662303777839}
-00:12:19,151 INFO  WordCountOutOfOrderSource [] - id: 9, word: a, frequency: 5, eventTime: 1662303778877|2022-09-04 23:02:58
-00:12:20,158 INFO  WordCountOutOfOrderSource [] - id: 10, word: a, frequency: 4, eventTime: 1662303791904|2022-09-04 23:03:11
-00:12:21,164 INFO  WordCountOutOfOrderSource [] - id: 11, word: a, frequency: 1, eventTime: 1662303795918|2022-09-04 23:03:15
-00:12:22,169 INFO  WordCountOutOfOrderSource [] - id: 12, word: a, frequency: 6, eventTime: 1662303779883|2022-09-04 23:02:59
-00:12:23,175 INFO  WordCountOutOfOrderSource [] - id: 13, word: a, frequency: 2, eventTime: 1662303846254|2022-09-04 23:04:06
+22:38:48,143 INFO  WordCountOutOfOrderSource [] - id: 9, word: a, frequency: 5, eventTime: 1662303778877|2022-09-04 23:02:58
+22:38:49,146 INFO  WordCountOutOfOrderSource [] - id: 10, word: a, frequency: 4, eventTime: 1662303791904|2022-09-04 23:03:11
+22:38:50,152 INFO  WordCountOutOfOrderSource [] - id: 11, word: a, frequency: 1, eventTime: 1662303795918|2022-09-04 23:03:15
+22:38:51,157 INFO  WordCountOutOfOrderSource [] - id: 12, word: a, frequency: 6, eventTime: 1662303779883|2022-09-04 23:02:59
+22:38:52,159 INFO  WordCountOutOfOrderSource [] - id: 13, word: a, frequency: 2, eventTime: 1662303846254|2022-09-04 23:04:06
 WordCountTimestamp{id='6,8,9,10,11,12', word='a', frequency=19, timestamp=1662303795918}
 WordCountTimestamp{id='13', word='a', frequency=2, timestamp=1662303846254}
 ```
 
-### 5.1 输出解读
-
 按时间顺序拆解一下三次窗口触发：
 
 **第一次触发**：id = 8 到达，Watermark 推进到 `1662303781890`（23:03:01），超过 `[23:02:00, 23:03:00)` 窗口结束时间，触发该窗口
-
 - 累计 id：1, 2, 3, 4, 5, 7
 - 累计 frequency：2 + 1 + 3 + 2 + 1 + 3 = **12**
 - id = 6 不在该窗口内（事件时间 23:03:04，归属下一窗口）
 
 **第二次触发**：id = 13 到达，Watermark 推进到 `1662303841253`（23:04:01），超过 `[23:03:00, 23:04:00)` 窗口结束时间，触发该窗口
-
 - 累计 id：6, 8, 9, 10, 11, 12
 - 累计 frequency：2 + 1 + 5 + 4 + 1 + 6 = **19**
 - 注意：**id = 9 和 id = 12 原本属于 `[23:02:00, 23:03:00)` 窗口**，但因为到达时该窗口已经触发，根据修正逻辑被分配到了当前 Watermark 所在的 `[23:03:00, 23:04:00)` 窗口，从而和 id = 6, 8, 10, 11 一起参与了这次计算
 
 **第三次触发**：作业结束 Watermark 推进到 `Long.MAX_VALUE`，触发 `[23:04:00, 23:05:00)` 窗口
-
 - 累计 id：13
 - 累计 frequency：**2**
 
-### 5.2 准确性验证
+从上面可以看懂 **没有任何一条数据被丢弃，全部参与了窗口计算** ——这正是该方案的核心优势。
 
-输入总频次：2 + 1 + 3 + 2 + 1 + 2 + 3 + 1 + 5 + 4 + 1 + 6 + 2 = **33**
-
-输出总频次：12 + 19 + 2 = **33** ✓
-
-**没有任何一条数据被丢弃，全部参与了窗口计算**——这正是该方案的核心优势。
-
-## 6. 与 AllowedLateness 三种方案的对比
+## 6. 与之前三种方案的对比
 
 把四种方案放在一起对比：
 
@@ -381,35 +362,13 @@ WordCountTimestamp{id='13', word='a', frequency=2, timestamp=1662303846254}
 | 实现复杂度 | 极低 | 低 | 中 | **中（需要自己写 ProcessFunction）** |
 | 适用场景 | 容忍少量丢失 | 业务能接受多次更新输出 | 需要保留迟到数据原始信息 | **关注总量、不希望多次更新输出** |
 
-### 6.1 与 AllowedLateness 的关键区别
+AllowedLateness 方案是 **把窗口保留更久，迟到数据回到自己原本的窗口**，那么一个窗口可能被触发多次，下游需要支持更新，本方案是 **窗口准时销毁，迟到数据补到就近未触发窗口**，每个窗口只触发一次。
+侧输出流方案 **保留了迟到数据的原始事件时间**，但要求下游有外部存储能"找到原窗口结果并 Upsert"，本方案 **修改了迟到数据的归属**，但全部走主链路，下游无需任何回填逻辑
 
-- AllowedLateness 是 **把窗口保留更久，迟到数据回到自己原本的窗口** → 一个窗口可能被触发多次，下游需要支持更新
-- 本方案是 **窗口准时销毁，迟到数据补到就近未触发窗口** → 每个窗口只触发一次，下游可以是 append-only 的
 
-如果下游是 Kafka 这种"只能 append"的系统，并且业务关心总量而非时间精度，本方案的工程链路最简单。
+### 7. 注意
 
-### 6.2 与 sideOutputLateData 的关键区别
-
-- 侧输出流方案 **保留了迟到数据的原始事件时间**，但要求下游有外部存储能"找到原窗口结果并 Upsert"
-- 本方案 **修改了迟到数据的归属**，但全部走主链路，下游无需任何回填逻辑
-
-## 7. 注意事项与扩展
-
-### 7.1 修正窗口的 offset 必须与原窗口对齐
-
-如果业务使用了非 0 的窗口 offset（如跨时区按整点滚动），`getWindowStartWithOffset` 的 offset 入参必须保持一致，否则修正过来的窗口与原窗口对不齐，会出现"原本该归属 23:00 整点窗口的数据被分配到 23:00 半窗口"这种诡异现象。
-
-```java
-long offset = ... ;  // 必须与上游分配窗口逻辑一致
-long windowStart = getWindowStartWithOffset(timestamp, offset, windowSize);
-```
-
-### 7.2 高并发下的 MapState 大小
-
-每个 Key 的 `MapState` 同时存活的 entry 数量约等于"当前活跃窗口数"。对于 1 分钟窗口，正常情况下只会有 1 ~ 2 个 entry。如果出现长时间数据稀疏断流（Watermark 不推进），entry 不会增长——因为新数据按事件时间继续往同一个 windowStart 聚合。
-
-但如果出现**事件时间大跳跃**（如某个 Key 突然来了一条 24 小时之后的数据），会注册一个非常远的定时器，导致 `MapState` 中的旧窗口因为 Watermark 一直没追上而长期占内存。生产中建议加一个**最大保留窗口数**的兜底逻辑：
-
+每个 Key 的 `MapState` 同时存活的 entry 数量约等于"当前活跃窗口数"。对于 1 分钟窗口，正常情况下只会有 1 ~ 2 个 entry。如果出现长时间数据稀疏断流（Watermark 不推进），entry 不会增长——因为新数据按事件时间继续往同一个 windowStart 聚合。但如果出现 **事件时间大跳跃**（如某个 Key 突然来了一条 24 小时之后的数据），会注册一个非常远的定时器，导致 `MapState` 中的旧窗口因为 Watermark 一直没追上而长期占内存。生产中建议加一个 **最大保留窗口数** 的兜底逻辑：
 ```java
 if (windowState.entries().size() > MAX_PENDING_WINDOWS) {
     // 强制冲刷最早的窗口
@@ -417,22 +376,11 @@ if (windowState.entries().size() > MAX_PENDING_WINDOWS) {
 }
 ```
 
-### 7.3 滑动窗口与会话窗口的适配
-
-本文实现是 **滚动窗口** 的版本。如果是滑动窗口，一个元素可能属于多个窗口（如 size=10s, slide=5s 时一个元素属于 2 个窗口），需要循环注册多个定时器、为每个窗口都做一次状态聚合，思路相同但代码更复杂。
-
-会话窗口的窗口边界是动态的，本方案不直接适用——会话窗口本身的迟到数据处理建议依靠 `allowedLateness()` 或侧输出流。
-
-### 7.4 不可避免的数据"穿越"现象
-
-由于迟到数据被挪到了未触发窗口，一个 watermark=23:03:01 时刻触发的窗口结果，可能在 watermark=23:04:01 时才被加上迟到数据合并到下一个窗口里。**下游看到的窗口结果在时间维度上是单调的，但具体到分钟级业务指标上"前一分钟少、后一分钟多"是常态**。如果业务有趋势分析诉求，要提前与产品对齐。
+此外不可避免的出现数据"穿越"现象：由于迟到数据被挪到了未触发窗口，一个 watermark=23:03:01 时刻触发的窗口结果，可能在 watermark=23:04:01 时才被加上迟到数据合并到下一个窗口里。**下游看到的窗口结果在时间维度上是单调的，但具体到分钟级业务指标上"前一分钟少、后一分钟多"是常态**。如果业务有趋势分析诉求，要提前与产品对齐。
 
 ## 8. 总结
 
-回到本文开头的问题：**有没有一种方案能做到不丢任何一条迟到数据，且不引入侧输出流回填的复杂链路？**
-
-答案就是本文介绍的 **将迟到数据分配到就近未触发的窗口**。它的核心代码不到 80 行，关键只有 4 步：
-
+回到本文开头的问题：**有没有一种方案能做到不丢任何一条迟到数据，且不引入侧输出流回填的复杂链路？** 答案就是本文介绍的 **将迟到数据分配到就近未触发的窗口**。它的核心代码不到 80 行，关键只有 4 步：
 1. 用 `getWindowStartWithOffset` 把元素事件时间对齐到本应归属窗口
 2. 用 `windowEnd <= currentWatermark` 判定迟到，并把窗口修正为当前 Watermark 所在窗口
 3. 用 `MapState<windowStart, 聚合结果>` 维护多个并存的活跃窗口

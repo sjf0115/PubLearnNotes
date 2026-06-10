@@ -15,7 +15,7 @@ permalink: 4-characteristics-of-timers-in-apache-flink
 - 状态（容错，一致性，仅在 KeyedStream 上应用）
 - 定时器（事件时间和处理时间，仅在 KeyedStream 上应用）
 
-有关 Flink ProcessFunction 的更多信息，请参考 [Flink 如何使用 ProcessFunction](http://smartsi.club/how-to-user-process-function-of-flink.html)。
+有关 Flink ProcessFunction 的更多信息，请参考 [Flink 如何使用 ProcessFunction](https://smartsi.blog.csdn.net/article/details/126851094)。
 
 ### 1. 什么是定时器
 

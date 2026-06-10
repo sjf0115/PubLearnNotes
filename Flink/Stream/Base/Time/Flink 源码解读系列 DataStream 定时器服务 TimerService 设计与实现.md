@@ -2,7 +2,7 @@
 
 ## 1. TimerService 设计
 
-我们先来看下TimerService的设计与实现，如下图所示：
+我们先来看下 TimerService 的设计与实现，如下图所示：
 
 ![](1)
 

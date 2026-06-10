@@ -8,7 +8,7 @@
 - 用户体验差：一个运营仪表盘如果每天只在午夜过后才更新一次日活数据，那么其价值将大打折扣。业务方希望看到的是随时间推移、逐步逼近最终结果的趋势。
 - 故障排查与实时监控：如果处理逻辑有 Bug，或者数据流出现异常（如某个数据源停止发送数据），使用 ProcessingTimeTrigger 你需要等到窗口结束才能发现问题，为时已晚。你需要更早地看到中间状态以便及时干预。
 
-ContinuousProcessingTimeTrigger 通过定期触发窗口计算来解决这个问题。在窗口结束之前，以可配置的固定时间间隔提前触发窗口计算，输出当前的中间结果，同时在窗口结束时依然输出一个最终结果。
+ContinuousProcessingTimeTrigger 通过定期触发窗口计算来解决这个问题。在窗口结束之前，通过配置的固定时间间隔提前触发窗口计算，输出当前的中间结果，在窗口结束时依然输出一个最终结果。
 
 ## 2. 与 ProcessingTimeTrigger 的异同点
 
@@ -161,7 +161,7 @@ private void registerNextFireTimestamp(long time, W window, Trigger.TriggerConte
 定时器触发时会调用 onProcessingTime 方法，只有当系统时间到达周期触发时间或者到达窗口结束时间时才会触发：
 - 窗口结束触发：当系统时间到达窗口结束时间时，只触发窗口计算
   - 如果定时器触发的时间等于窗口的结束时间
-- 周期性触发：当事件时间到达周期触发时间时，触发窗口计算，并注册下一个周期的事件时间定时器
+- 周期性触发：当处理时间到达周期触发时间时，触发窗口计算，并注册下一个周期的事件时间定时器
   - 如果定时器触发的时间等于状态中保存的定时器时间
 ```java
 public TriggerResult onProcessingTime(long time, W window, Trigger.TriggerContext ctx) throws Exception {
@@ -190,9 +190,8 @@ public TriggerResult onEventTime(long time, W window, Trigger.TriggerContext ctx
 // 处理时间滚动窗口 滚动大小60s
 .window(TumblingProcessingTimeWindows.of(Time.minutes(1)))
 // 周期性处理时间触发器 每10s触发一次计算
-.trigger(CustomContinuousProcessingTimeTrigger.of(Time.seconds(10)))
+.trigger(ContinuousProcessingTimeTrigger.of(Time.seconds(10)))
 ```
-
 上述代码可以正确计算 `0-10s`、`10-20s`、`20-30s`、`30-40s`、`40-50s` 的触发周期，但是丢失了 `50-60s` 区间到达的数据。
 
 这一问题在 Flink 1.13.6 版本已经得到修复，具体可以查阅[FLINK-20443](https://issues.apache.org/jira/browse/FLINK-20443)。下面具体看一下是如何修复的：
@@ -215,7 +214,5 @@ private void registerNextFireTimestamp(long time, W window, TriggerContext ctx, 
 }
 ```
 在新版本中注册定时器抽象出 registerNextFireTimestamp 方法，核心点是修改了下一次定时器触发时间的判断逻辑。旧版本只是简单的使用当前处理时间加上周期间隔，现在优化为取当前处理时间加上周期间隔和窗口结束的最大时间戳的最小值，保证到达窗口结束时间时一定会触发计算。
-
-
 
 ...

@@ -46,7 +46,7 @@ public enum RowKind {
 
 Flink 不使用包含 UPDATE_BEFORE 和 UPDATE_AFTER 的复合 UPDATE 事件类型的原因主要有两个方面：
 - 拆分的事件无论是何种事件类型（仅 RowKind 不同）都具有相同的事件结构，这使得序列化更简单。如果使用复合 UPDATE 事件，那么事件要么是异构的，要么是 INSERT 或 DELETE 事件对齐 UPDATE 事件（例如，INSERT事件仅含有UPDATE_AFTER，DELETE事件仅含有UPDATE_BEFORE）。
-- 在分布式环境下，经常涉及数据shuffle（例如Join、聚合）。即使使用复合UPDATE事件，有时仍需将其拆分为单独的DELETE和INSERT事件进行shuffle，例如下面的示例。
+- 在分布式环境下，经常涉及数据shuffle（例如Join、聚合）。即使使用复合UPDATE事件，有时仍需将其拆分为单独的 DELETE 和 INSERT 事件进行 shuffle，例如下面的示例。
 
 ### 1.4 示例
 
@@ -75,9 +75,9 @@ CREATE TEMPORARY TABLE t1 (
 
 -- join s1 and s2 and insert the result into t1
 INSERT INTO t1
-SELECT
-  s1.*, s2.attr
-FROM s1 JOIN s2
+SELECT s1.*, s2.attr
+FROM s1
+JOIN s2
 ON s1.level = s2.id;
 ```
 假设源表 s1 中 id 为 1 的记录的 Changelog 在时间 t0 插入(id=1, level=10)，然后在时间 t1 将该行更新为(id=1, level=20)。这对应三个拆分事件：

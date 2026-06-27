@@ -30,7 +30,7 @@ CREATE TABLE dim_level (
 ```
 
 
-```
+```sql
 CREATE TEMPORARY TABLE user_level (
   user_id BIGINT,
   level BIGINT,

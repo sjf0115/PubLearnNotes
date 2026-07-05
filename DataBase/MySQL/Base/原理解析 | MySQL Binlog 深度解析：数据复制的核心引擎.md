@@ -29,11 +29,7 @@ mysql> SHOW VARIABLES LIKE '%log_bin%';
 ```
 > MySQL 版本：8.0.43，默认开启
 
-如果看到 log_bin 变量是 OFF，表示还没有开启 Binlog，需要我们手动启动；如果是 ON 表示已经开启。
-
-?????
-
-如果没有开启，需要在 MySQL 配置文件 `my.cnf` 或 `my.ini` 中的 `[mysqld]` 标签下增加如下内容：
+如果看到 log_bin 变量是 OFF，表示还没有开启 Binlog，需要我们手动启动；如果是 ON 表示已经开启。如果没有开启，需要在 MySQL 配置文件 `my.cnf` 或 `my.ini` 中的 `[mysqld]` 标签下增加如下内容：
 ```
 [mysqld]
 # server-id 比较大的随机值

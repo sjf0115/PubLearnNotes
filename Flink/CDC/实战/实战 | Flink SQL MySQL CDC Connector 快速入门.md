@@ -154,27 +154,24 @@ MySQL 的 `server-id` 用于在主从复制中唯一标识每个实例。CDC Con
 ## 4. 环境准备
 
 **下载 Flink 1.13**：
-
 ```bash
 wget https://archive.apache.org/dist/flink/flink-1.13.6/flink-1.13.6-bin-scala_2.11.tgz
 tar -xzf flink-1.13.6-bin-scala_2.11.tgz
 cd flink-1.13.6
 ```
+> 详细参阅：[Flink 安装与启动](https://blog.csdn.net/SunnyYoona/article/details/78276595)
 
 **下载 CDC Connector JAR**：
-
 ```bash
 wget -P lib/ https://repo1.maven.org/maven2/com/ververica/flink-sql-connector-mysql-cdc/2.2.1/flink-sql-connector-mysql-cdc-2.2.1.jar
 ```
 
 **启动 Flink 集群**：
-
 ```bash
 ./bin/start-cluster.sh
 ```
 
 **启动 SQL Client**：
-
 ```bash
 ./bin/sql-client.sh
 ```
@@ -231,8 +228,8 @@ Flink SQL> CREATE TABLE orders (
     'connector' = 'mysql-cdc',
     'hostname' = 'localhost',
     'port' = '3306',
-    'username' = 'root',
-    'password' = 'root',
+    'username' = 'flink_cdc',
+    'password' = '12345678',
     'database-name' = 'test',
     'table-name' = 'orders',
     'scan.startup.mode' = 'initial'  -- 默认值，可省略
@@ -312,12 +309,7 @@ Flink 端实时输出：
 ## 6. 总结
 
 本文介绍了 Flink SQL MySQL CDC Connector 的基本概念和快速入门：
-
 - MySQL CDC Connector 基于 Debezium 引擎，通过「全量快照 + 增量 binlog」两阶段模型实现实时数据同步
 - 前置条件包括：MySQL 开启 ROW 格式的 binlog、创建具有 REPLICATION 权限的用户
 - 通过简单的 SQL DDL 声明即可创建 CDC Source 表，无需编写代码
 - MySQL 的 INSERT / UPDATE / DELETE 操作分别映射为 Flink 的 +I / -U+U / -D 事件
-
-> 参考资料：
-> - [Flink CDC 官方文档 - MySQL CDC Connector](https://ververica.github.io/flink-cdc-connectors/release-2.2/content/connectors/mysql-cdc.html)
-> - [Debezium MySQL Connector](https://debezium.io/documentation/reference/1.6/connectors/mysql.html)

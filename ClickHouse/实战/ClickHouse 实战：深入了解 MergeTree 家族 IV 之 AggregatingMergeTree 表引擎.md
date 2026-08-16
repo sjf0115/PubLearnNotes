@@ -1,21 +1,32 @@
 ## 1. 概述
 
-有过数据仓库建设经验的读者一定知道“数据立方体”的概念，这是一个在数据仓库领域十分常见的模型。它通过以空间换时间的方法提升查询性能，将需要聚合的数据预先计算出来，并将结果保存起来。在后续进行聚合查询的时候，直接使用结果数据。AggregatingMergeTree 就有些许数据立方体的意思，它能够在合并分区的时候，按照预先定义的条件聚合数据。同时，根据预先定义的聚合函数计算数据并通过二进制的格式存入表内。将同一分组下的多行数据聚合成一行，既减少了数据行，又降低了后续聚合查询的开销。可以说，AggregatingMergeTree是SummingMergeTree的升级版，它们的许多设计思路是一致的，例如同时定义ORDER BY与PRIMARY KEY的原因和目的。但是在使用方法上，两者存在明显差异，应该说AggregatingMergeTree的定义方式是MergeTree家族中最为特殊的一个。
+
+> 空间换时间，提前计算好数据
+
+
+在实时数据分析领域，ClickHouse 以其卓越的查询性能著称，而 AggregatingMergeTree 表引擎正是实现这一性能的关键武器之一。作为 MergeTree 家族的一员，AggregatingMergeTree 专为预聚合数据场景设计，通过在数据写入时进行聚合计算，将海量明细数据压缩为高度聚合的中间状态，从而在查询时获得数量级的性能提升。与传统的事后聚合不同，AggregatingMergeTree 采用了"空间换时间"的策略，将聚合计算提前到数据入库阶段。这种设计理念特别适合监控指标分析、用户行为分析、物联网传感器数据等需要频繁进行聚合查询的场景。
+
+为了应对这类查询场景，ClickHouse 引入了 `AggregatingMergeTree` 表引擎。该引擎继承自 [MergeTree 基础表引擎](https://smartsi.blog.csdn.net/article/details/157103654)，并对数据分片 Part 的合并逻辑进行了调整。不同之处在于，当对 `AggregatingMergeTree` 表的数据分片 Part 进行合并时，ClickHouse 会将所有具有相同排序键的多行汇总合并为一行(按照预先定义的条件聚合汇总数据)，汇总行的数值数据类型列值为这些行的求和结果。这样既减少了数据行，又降低了后续汇总查询的开销。
+
+本文作为 MergeTree 家族系列的第四篇，将深入剖析 `AggregatingMergeTree` 的工作原理、使用方法和生产实践。
+
+### 1.1 核心定位
+
+`AggregatingMergeTree` 是 `SummingMergeTree` 的"升级版"。如果说 `SummingMergeTree` 只能做 `SUM` 一种聚合操作，那么 `AggregatingMergeTree` 则支持 **任意聚合函数**：
+
+| 引擎 | 支持的聚合操作 | 聚合列类型 | 典型场景 |
+|---|---|---|---|
+| [SummingMergeTree](https://smartsi.blog.csdn.net/article/details/157103654) | 仅 SUM | 普通数值类型 | 求和统计 |
+| **AggregatingMergeTree** | SUM/COUNT/AVG/MIN/MAX/UNIQ 等任意函数 | AggregateFunction 类型 | 多维分析、UV 计算 |
+
+
+
 
 该引擎继承自 MergeTree，并对数据部分的合并逻辑进行了调整。ClickHouse 会将所有具有相同排序键的行在单个数据部分内合并为一行，该行存储了聚合函数状态的组合。
 
 该引擎会处理所有具有以下类型的列：
 - AggregateFunction
 - SimpleAggregateFunction
-
-
-在实时数据分析领域，ClickHouse以其卓越的查询性能著称，而AggregatingMergeTree表引擎正是实现这一性能的关键武器之一。作为MergeTree家族的一员，AggregatingMergeTree专为预聚合数据场景设计，通过在数据写入时进行聚合计算，将海量明细数据压缩为高度聚合的中间状态，从而在查询时获得数量级的性能提升。
-
-与传统的事后聚合不同，AggregatingMergeTree采用了"空间换时间"的策略，将聚合计算提前到数据入库阶段。这种设计理念特别适合监控指标分析、用户行为分析、物联网传感器数据等需要频繁进行聚合查询的场景。
-
-
-为了应对这类查询场景，ClickHouse 引入了 `AggregatingMergeTree` 表引擎。该引擎继承自 [MergeTree 基础表引擎](https://smartsi.blog.csdn.net/article/details/157103654)，并对数据分片 Part 的合并逻辑进行了调整。不同之处在于，当对 `AggregatingMergeTree` 表的数据分片 Part 进行合并时，ClickHouse 会将所有具有相同排序键的多行汇总合并为一行(按照预先定义的条件聚合汇总数据)，汇总行的数值数据类型列值为这些行的求和结果。这样既减少了数据行，又降低了后续汇总查询的开销。
-
 
 ## 2. 语法
 
@@ -35,11 +46,11 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name [ON CLUSTER cluster] (
 ```sql
 ENGINE = AggregatingMergeTree ()
 ```
-`AggregatingMergeTree` 没有任何额外的设置参数，在分区合并时，在每个数据分区内，会按照 ORDER BY 聚合。
+> `AggregatingMergeTree()` 本身**没有任何额外参数**。聚合的逻辑完全由列定义中的 `AggregateFunction` / `SimpleAggregateFunction` 类型决定。
 
-## 3. 注意
+## 3. AggregateFunction 数据类型
 
-AggregatingMergeTree 在分区合并时，在每个数据分区内，会按照 ORDER BY 聚合。而使用何种聚合函数，以及针对哪些列字段计算，则是通过定义AggregateFunction数据类型实现的。以下面的语句为例：
+`AggregatingMergeTree` 在分区合并时，在每个数据分区内，会按照 ORDER BY 聚合。而使用何种聚合函数，以及针对哪些列字段计算，则是通过定义 `AggregateFunction` 数据类型实现的。以下面的语句为例：
 ```sql
 CREATE TABLE agg_table (
     id String,
@@ -50,7 +61,7 @@ CREATE TABLE agg_table (
 )
 ENGINE = AggregatingMergeTree()
 PARTITION BY toYYYYMM (create_time)
-ORDER BY (id,city)
+ORDER BY (id, city)
 PRIMARY KEY id
 ```
 上例中列字段 id 和 city 是聚合条件，而 code和 value 是聚合字段，等同于下面的语义：
@@ -61,6 +72,80 @@ SELECT
 FROM agg_table
 GROUP BY id，city
 ```
+
+### 3.1 核心概念
+
+`AggregateFunction` 是 `AggregatingMergeTree` 的灵魂。它不是普通的数据类型，而是一种 **存储聚合函数中间状态** 的特殊类型：
+
+```sql
+-- 语法：AggregateFunction(聚合函数名, 参数数据类型)
+AggregateFunction(sum, UInt64)      -- 存储 sum 的中间状态
+AggregateFunction(count)            -- 存储 count 的中间状态
+AggregateFunction(uniq, String)     -- 存储 uniq 的中间状态（HyperLogLog）
+AggregateFunction(avg, Float64)     -- 存储 avg 的中间状态
+AggregateFunction(argMax, String, DateTime)  -- 存储 argMax 的中间状态
+```
+
+**内部原理**：
+- `sumState` 内部存储一个累加器（数值）
+- `uniqState` 内部存储 HyperLogLog 的 sketch（固定大小的位图）
+- `avgState` 内部存储 (sum, count) 两个值
+- `countState` 内部存储一个计数器
+- `quantilesState` 内部存储 t-digest 数据结构
+
+### 3.2 三类函数后缀
+
+| 后缀 | 用途 | 使用场景 |
+|---|---|---|
+| `*State` | 生成聚合中间状态 | INSERT 写入时使用 |
+| `*Merge` | 从中间状态计算最终结果 | SELECT 查询时使用 |
+| `*MergeState` | 合并多个中间状态为一个新的中间状态 | 二次聚合时使用 |
+
+```sql
+-- State：明细数据 → 中间状态
+sumState(value)           -- 返回 AggregateFunction(sum, UInt64)
+
+-- Merge：中间状态 → 最终结果
+sumMerge(state_col)       -- 返回 UInt64
+
+-- MergeState：中间状态 + 中间状态 → 新的中间状态
+sumMergeState(state_col)  -- 返回 AggregateFunction(sum, UInt64)
+```
+
+### 3.3 SimpleAggregateFunction
+
+对于某些"幂等"的聚合函数，ClickHouse 提供了更轻量的 `SimpleAggregateFunction`：
+```sql
+-- 语法：SimpleAggregateFunction(聚合函数名, 数据类型)
+SimpleAggregateFunction(sum, Int64)
+SimpleAggregateFunction(any, String)
+SimpleAggregateFunction(max, UInt32)
+SimpleAggregateFunction(min, DateTime)
+SimpleAggregateFunction(argMax, String, DateTime)
+```
+
+**与 AggregateFunction 的区别**：
+
+| 维度 | AggregateFunction | SimpleAggregateFunction |
+|---|---|---|
+| 存储格式 | 二进制（不可读） | 原始数据类型（可读） |
+| 支持的函数 | 所有聚合函数 | 仅限幂等/简单函数 |
+| 查询时是否需要 *Merge | 是 | 否（直接查原始值） |
+| 性能 | 需要序列化/反序列化 | 更快（无序列化开销） |
+| 适用场景 | uniq、quantile 等复杂聚合 | sum、count、anyLast、max、min |
+
+**支持 SimpleAggregateFunction 的函数列表**：
+- `any`, `anyLast`
+- `min`, `max`
+- `sum`
+- `count`（仅 count 不需要参数）
+- `argMin`, `argMax`
+- `sumMap`, `minMap`, `maxMap`
+
+
+## 3. 注意
+
+
 
 ### 3.1 SELECT 和 INSERT
 

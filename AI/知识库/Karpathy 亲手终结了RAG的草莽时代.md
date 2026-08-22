@@ -104,6 +104,3 @@ AI 代理创建平台 Secondmate 的创始人 @jumperz 最近发布的一份架�
 在信息不断膨胀的时代，这种从“存储信息”到“演化知识”的转变，或许正是下一阶段 AI 应用的重要突破口。
 
 > 原文：[Karpathy 亲手终结了RAG的草莽时代](https://mp.weixin.qq.com/s/y0JLrC_Af9X0cA_t08ymjg)
-
-
-。。。

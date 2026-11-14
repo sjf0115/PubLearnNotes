@@ -4,6 +4,8 @@ AgentScope Java 的 **Agent Skill（智能体技能包）** 机制正是为解�
 
 ---
 
+> 如何把一组“指令 + 参考文档 + 示例 + 脚本”封装成可复用技能，并注册给 ReActAgent，让智能体在需要时加载、执行或调用
+
 ## 1. 什么是 Agent Skill？
 
 **Agent Skill 是扩展智能体能力的模块化技能包。** 每个 Skill 包含：
@@ -103,14 +105,19 @@ AgentSkill skill = AgentSkill.builder()
 
 ### 4.1 Skill 结构
 
-Agent Skill 的组织形式兼容文件系统目录结构：
+Agent Skill 的设计不是把所有内容一次性塞进提示词，而是把技能拆成：
+- 一个入口文件 `SKILL.md`
+- 若干参考文档 `references/`
+- 若干示例 `examples/`
+- 若干可执行脚本 `scripts/`
+
 ```
 skill-name/                      # Skill 根目录
 ├── SKILL.md                     # 必需：入口文件，包含 YAML frontmatter + 指令
 ├── references/                  # 可选：参考文档
 │   ├── api-doc.md
 │   └── best-practices.md
-├── examples/                    # 可选：工作示例
+├── examples/                    # 可选：示例
 │   └── example1.java
 └── scripts/                     # 可选：可执行脚本
     └── process.py
@@ -118,6 +125,7 @@ skill-name/                      # Skill 根目录
 
 ### 4.2 SKILL.md 格式规范
 
+`SKILL.md` 是入口，包含 YAML frontmatter 和正文指令：
 ```
 ---
 name: skill-name                    # 必需: 技能名称(小写字母、数字、下划线)
@@ -150,13 +158,13 @@ metadata:
 | `name` | 必需 | Skill 名称，只能包含小写字母、数字、下划线 |
 | `description` | 必需 | **最关键字段**。描述 Skill 的使用场景，帮助 LLM 判断何时调用 |
 
-
-
 **Metadata 说明:**
 - YAML frontmatter 中除 `name`、`description` 外的字段都会作为 Skill metadata 保留，不再局限于固定字段
 - 支持嵌套 `Map/List`，并保留原有层级结构和插入顺序
 - frontmatter 使用 SnakeYAML `SafeConstructor` 解析，只接受顶层为 `Map` 的 YAML 对象
 - 非法 frontmatter 或超过解析器限制的 frontmatter 会被忽略，并按空 metadata 处理
+
+> SKILL.md 既承担元数据声明，也承担“给智能体看的操作说明”。
 
 Skill 示例：
 ```
@@ -186,12 +194,13 @@ metadata:
 - examples/sample.csv: 示例数据
 ```
 
-## 5. 快速开始
+## 5. 如何创建 Skill
 
-### 5.1 创建 Skill
+AgentScope Java 提供了 AgentSkill 类，创建方式很灵活。
 
-#### 5.1.1 使用 Builder
+### 5.1 Builder 内联构建
 
+适合小技能或快速原型：
 ```java
 AgentSkill skill = AgentSkill.builder()
     .name("data_analysis")
@@ -223,7 +232,7 @@ Map<String, String> resources = Map.of(
 AgentSkill skill = SkillUtil.createFrom(skillMd, resources);
 ```
 
-#### 5.1.3 直接构造
+#### 5.1.3 直接构造函数
 
 ```java
 AgentSkill skill = new AgentSkill(

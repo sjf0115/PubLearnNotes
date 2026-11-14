@@ -299,9 +299,7 @@ AgentScope 支持两种 MCP 客户端构建方式：
 | 适用场景 | 生产环境、Web 应用 | 脚本、测试、命令行工具 |
 | 阻塞性 | 非阻塞（需 `.block()` 订阅） | 阻塞 |
 
-#### 4.4.1 异步客户端（推荐）
-
-基于 Project Reactor，非阻塞，适合高并发场景：
+异步客户端（推荐）基于 Project Reactor，非阻塞，适合高并发场景：
 ```java
 McpClientWrapper asyncClient = McpClientBuilder.create("async-mcp")
         .stdioTransport("npx", "-y", "@modelcontextprotocol/server-filesystem", "/tmp")
@@ -309,60 +307,13 @@ McpClientWrapper asyncClient = McpClientBuilder.create("async-mcp")
         .block();  // 阻塞等待连接建立
 ```
 
-### 4.4.2 同步客户端
-
-阻塞式，适合简单的脚本场景：
+同步客户端是阻塞式的，适合简单的脚本场景：
 ```java
 // 同步客户端（用于阻塞操作）
 McpClientWrapper syncClient = McpClientBuilder.create("sync-mcp")
         .stdioTransport("npx", "-y", "@modelcontextprotocol/server-filesystem", "/tmp")
         .buildSync();
 ```
-
-### 4.5 Elicitation 交互式补充
-
-MCP 的 elicitation 功能允许在调用工具过程中，向用户发起交互式信息收集请求。这在工具需要额外确认或补充参数时非常有用。
-
-#### 4.5.1 异步 Elicitation
-
-```java
-McpClientWrapper client = McpClientBuilder.create("mcp-async")
-        .stdioTransport("python", "-m", "mcp_server")
-        .asyncElicitation(request -> {
-            // 处理 elicitation 请求
-            System.out.println("收到补充请求: " + request.message());
-
-            // 返回用户输入
-            return Mono.just(ElicitResult.builder()
-                    .action(ElicitResult.Action.ACCEPT)
-                    .data(Map.of("response", "用户补充的信息"))
-                    .build());
-        })
-        .buildAsync()
-        .block();
-```
-
-#### 4.5.2 同步 Elicitation
-
-```java
-McpClientWrapper client = McpClientBuilder.create("mcp-sync")
-        .stdioTransport("python", "-m", "mcp_server")
-        .syncElicitation(request -> {
-            System.out.print("需要补充信息 [" + request.message() + "]: ");
-            String input = new Scanner(System.in).nextLine();
-
-            return ElicitResult.builder()
-                    .action(ElicitResult.Action.ACCEPT)
-                    .data(Map.of("response", input))
-                    .build();
-        })
-        .buildSync();
-```
-
-**应用场景**：
-- 文件删除前需要用户确认
-- 数据库查询缺少必要参数，需要追问用户
-- 敏感操作需要二次认证
 
 ## 5. 高级特性
 
@@ -503,16 +454,14 @@ toolkit.updateToolGroups(List.of("filesystem"), false);  // 停用
 
 ### 5.3 管理 MCP 客户端
 
-#### 5.3.1 列出 MCP 服务器的工具
-
+列出 MCP 服务器的工具：
 ```java
 // 注册后，工具会出现在工具包中
 Set<String> toolNames = toolkit.getToolNames();
 System.out.println("可用工具: " + toolNames);
 ```
 
-#### 5.3.2 移除 MCP 客户端
-
+移除 MCP 客户端：
 ```java
 // 移除 MCP 客户端及其所有工具
 toolkit.removeMcpClient("filesystem-mcp").block();
@@ -520,133 +469,156 @@ toolkit.removeMcpClient("filesystem-mcp").block();
 
 ---
 
-## 6. 实战：多 MCP Server 组合使用
+## 6. 实战：本地 + 远程混合传输的多 MCP Server Agent
 
-以下示例展示如何同时接入文件系统和 Git 两个 MCP Server：
+### 6.1 实战目标与架构
+
+前面的示例都只接入了单个 MCP Server。真实场景中，Agent 往往需要同时使用多种来源的工具：本地文件操作、远程知识检索、数据库查询等。本实战让一个 ReActAgent 同时接入两条不同的传输链路：
+
+| MCP Server | 传输方式 | 提供的能力 | 工具组 |
+|-----------|---------|-----------|--------|
+| `@modelcontextprotocol/server-filesystem` | 本地 StdIO（npx 拉起子进程） | 沙箱目录内读写文件 | `filesystem` |
+| DeepWiki MCP（`https://mcp.deepwiki.com/mcp`） | 远程 Streamable HTTP（连接已在线服务） | 公开 GitHub 仓库问答 | `wiki` |
+
+给 Agent 下达一个必须跨两个 Server 才能完成的任务：
+
+> 先用 DeepWiki 查询 `spring-projects/spring-ai` 仓库中 ChatClient 的用途，再把结论写入沙箱目录的 `notes/spring-ai-chatclient.md`，最后读回文件内容验证。
+
+这个任务链（检索 → 沉淀 → 验证）覆盖了三个关键能力点：
+1. **混合传输共存**：StdIO 子进程与 HTTP 远程服务注册进同一个 Toolkit；
+2. **工具组隔离**：不同来源的工具分属不同组，便于按需激活/停用；
+3. **白名单收敛**：filesystem server 暴露十多个工具，只放行读写查相关的几个，`edit_file`/`move_file` 等危险工具不进入 LLM 视野。
+
+### 6.2 完整代码
+
 ```java
-public class MultiMcpAgentDemo {
-    public static void main(String[] args) {
-        Toolkit toolkit = new Toolkit();
+public class MixedTransportMcpExample {
 
-        // 1. 连接文件系统 MCP Server
+    public static void main(String[] args) throws IOException {
+        // 1. 准备沙箱工作目录，filesystem server 只能在该目录内读写
+        Path workspace = Paths.get("agentscope/quickstart/target/mcp-fs-workspace")
+                .toAbsolutePath().normalize();
+        Files.createDirectories(workspace);
+        String baseDir = workspace.toString();
+
+        // 2. 本地 StdIO：拉起 filesystem MCP Server 子进程
         McpClientWrapper fsClient = McpClientBuilder.create("fs-mcp")
-                .stdioTransport("npx", "-y",
-                        "@modelcontextprotocol/server-filesystem",
-                        "/home/user/projects")
+                .stdioTransport("npx", "-y", "@modelcontextprotocol/server-filesystem", baseDir)
+                .timeout(Duration.ofSeconds(120))                  // 单次工具调用超时
+                .initializationTimeout(Duration.ofSeconds(30))     // 连接 + 握手超时
                 .buildAsync()
                 .block();
 
-        // 2. 连接 Git MCP Server
-        McpClientWrapper gitClient = McpClientBuilder.create("git-mcp")
-                .stdioTransport("python", "-m", "mcp_server_git")
+        // 3. 远程 Streamable HTTP：连接已在线的 DeepWiki MCP Server（不启动任何子进程）
+        McpClientWrapper wikiClient = McpClientBuilder.create("deepwiki-http")
+                .streamableHttpTransport("https://mcp.deepwiki.com/mcp")
+                .timeout(Duration.ofSeconds(120))
+                .initializationTimeout(Duration.ofSeconds(30))
                 .buildAsync()
                 .block();
 
-        // 3. 注册文件系统工具（只读）
-        toolkit.registration()
-                .mcpClient(fsClient)
-                .enableTools(List.of("read_file", "list_directory"))
-                .group("filesystem")
-                .apply();
+        try {
+            // 4. 创建两个工具组，把不同来源的工具隔离开
+            Toolkit toolkit = new Toolkit();
+            toolkit.createToolGroup("filesystem", "本地沙箱目录的文件读写工具", true);
+            toolkit.createToolGroup("wiki", "公开仓库 Wiki 问答工具", true);
 
-        // 4. 注册 Git 工具（排除危险操作）
-        toolkit.registration()
-                .mcpClient(gitClient)
-                .disableTools(List.of("git_reset", "git_clean"))
-                .group("git")
-                .apply();
+            // 5. filesystem：白名单收敛，只保留读写/建目录/列目录/允许目录查询，
+            //    edit_file、move_file 等危险工具不注册，LLM 根本看不到
+            toolkit.registration()
+                    .mcpClient(fsClient)
+                    .enableTools(List.of("read_file", "write_file", "create_directory",
+                            "list_directory", "list_allowed_directories"))
+                    .group("filesystem")
+                    .apply();
 
-        // 5. 创建 Agent
-        ReActAgent agent = ReActAgent.builder()
-                .name("DevAssistant")
-                .sysPrompt("你是开发助手，可以帮助用户查看代码和 Git 历史。")
-                .model(DashScopeChatModel.builder()
-                        .apiKey(System.getenv("DASHSCOPE_API_KEY"))
-                        .modelName("qwen3.6-plus")
-                        .build())
-                .toolkit(toolkit)
-                .maxIters(10)
-                .build();
+            // 6. DeepWiki：全量注册（其工具本身都是只读问答类，无危险操作）
+            toolkit.registration()
+                    .mcpClient(wikiClient)
+                    .group("wiki")
+                    .apply();
 
-        // 6. 调用
-        Msg response = agent.call(
-                Msg.builder()
-                        .role(MsgRole.USER)
-                        .textContent("查看最近 3 次 Git 提交，并读取最新提交修改的文件内容")
-                        .build()
-        ).block();
+            // 7. 打印最终对 LLM 可见的工具集，验证分组与过滤效果
+            System.out.println("===== 对 LLM 可见的工具 =====");
+            toolkit.getToolNames().forEach(name -> System.out.println("  - " + name));
 
-        System.out.println(response.getTextContent());
+            // 8. 创建 Agent，绑定聚合了两个 Server 工具的 toolkit
+            ReActAgent agent = ReActAgent.builder()
+                    .name("研究助手")
+                    .sysPrompt("你是一个研究助手：可以用 ask_question 等工具查询公开 GitHub 仓库文档，"
+                            + "用 read_file/write_file 等工具在沙箱目录读写文件，"
+                            + "完成任务后用一句话告知用户结果。")
+                    .model(DashScopeChatModel.builder()
+                            .apiKey(System.getenv("DASHSCOPE_API_KEY"))
+                            .modelName(MODEL_NAME)
+                            .endpointType(EndpointType.MULTIMODAL)
+                            .build())
+                    .toolkit(toolkit)
+                    .maxIters(10)
+                    .build();
+
+            // 9. 跨 Server 任务：wiki 检索 → 写入文件 → 读回验证
+            Msg msg = Msg.builder()
+                    .role(MsgRole.USER)
+                    .textContent("请先查询 GitHub 仓库 spring-projects/spring-ai 中 ChatClient 是用来做什么的，"
+                            + "然后把结论写入 notes/spring-ai-chatclient.md，最后读回该文件内容验证。")
+                    .build();
+
+            Msg response = agent.call(msg).block();
+            if (response != null) {
+                System.out.println("\n助手: " + response.getTextContent());
+            }
+        } finally {
+            // 10. 关闭两个 MCP 客户端：停止 npx 子进程、释放 HTTP 连接
+            if (fsClient != null) {
+                fsClient.close();
+            }
+            if (wikiClient != null) {
+                wikiClient.close();
+            }
+        }
     }
 }
 ```
 
----
+几点说明：
+- **两个 client 都配置了 `timeout` / `initializationTimeout`**：StdIO 首次运行需要 npx 下载 server 包，远程 HTTP 需要完成握手，默认超时在弱网环境下容易失败；
+- **`createToolGroup` 必须在 `registration().group(...)` 之前调用**，否则工具会落入 `ungrouped` 组；
+- **多 Server 同名工具冲突**：不同 Server 可能暴露同名工具（如都有 `read_file`），注册后建议先用 `toolkit.getToolNames()` 检查实际工具集，必要时用白名单错开，只保留一侧的同名工具。
 
-## 7. MCP 与本地工具对比选型
-
-| 场景 | 推荐方案 | 理由 |
-|------|---------|------|
-| 核心业务逻辑（订单、支付） | 本地 `@Tool` | 性能高、可控性强、与业务代码紧密集成 |
-| 文件系统操作 | MCP (filesystem-server) | 社区已有成熟实现，安全沙箱控制 |
-| Git 操作 | MCP (git-server) | 复用社区工具，专注业务逻辑 |
-| 数据库查询 | 本地 `@Tool` + 连接池 | 需要事务控制、性能优化 |
-| 搜索引擎 | MCP / 本地均可 | 根据是否有现成 MCP Server 决定 |
-| 第三方 SaaS（Slack、Notion） | MCP | 社区已有对应 MCP Server |
-| 需要精确控制的敏感操作 | 本地 `@Tool` + Hook 审批 | 安全可控，便于审计 |
+预期的工具调用序列（ReAct 循环三轮 tool_call）：
+- `ask_question`（wiki 组）：向 DeepWiki 提问 ChatClient 的用途；
+- `create_directory` + `write_file`（filesystem 组）：建 `notes/` 目录并写入结论；
+- `read_file`（filesystem 组）：读回文件验证。
 
 ---
 
-## 8. 最佳实践
+## 7. 总结
 
-### 8.1 传输方式选择
-
-| 场景 | 推荐传输 | 原因 |
-|------|---------|------|
-| 本地 Node.js/Python MCP Server | StdIO | 简单直接，无需网络配置 |
-| 局域网内的 MCP Server | SSE | 长连接，实时性好 |
-| 云端无状态 MCP 服务 | HTTP | 易扩展，适合负载均衡 |
-| 通过网关访问多个 Server | HTTP (Higress) | 统一入口，语义路由 |
-
-### 8.2 安全建议
-
-```java
-// 1. 始终过滤危险工具
-toolkit.registration()
-        .mcpClient(mcpClient)
-        .disableTools(List.of("delete_file", "exec_command", "git_reset"))
-        .apply();
-
-// 2. 文件系统 Server 限制访问范围
-.stdioTransport("npx", "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/safe/workspace")  // 限制根目录
-
-// 3. HTTP 传输使用 HTTPS 和认证
-.sseTransport("https://mcp.example.com/sse")
-.header("Authorization", "Bearer " + token)
-```
-
-### 8.3 性能优化
-
-- **超时控制**：根据工具特性设置合理的超时，避免长时间挂起
-- **工具过滤**：只注册 Agent 需要的工具，减少 LLM 决策负担
-- **连接复用**：MCP Client 连接可复用，避免频繁创建和销毁
-
----
-
-## 9. 总结
+本文沿着「协议概念 → 三种传输方式 → 快速开始与配置 → 工具治理（过滤/分组）→ 混合传输实战」的路径，完整走了一遍 AgentScope Java 接入 MCP 生态的全流程。核心要点回顾：
 
 | 要点 | 内容 |
 |------|------|
-| **核心类** | `McpClientBuilder`、`McpClientWrapper` |
-| **传输方式** | StdIO（本地进程）、SSE（HTTP 长连接）、HTTP（无状态） |
-| **工具注册** | `toolkit.registerMcpClient(client)` 或 `toolkit.registration().mcpClient(client).enableTools().apply()` |
-| **工具过滤** | `enableTools()` 白名单、`disableTools()` 黑名单 |
-| **工具组** | 支持将 MCP 工具分配到组，动态激活/停用 |
-| **高级特性** | 同步/异步客户端、elicitation 交互、Higress 网关 |
-| **生命周期** | `toolkit.removeMcpClient(name)` 清理连接 |
+| **核心类分工** | `McpClientBuilder` 构建连接、`McpClientWrapper` 封装客户端、`Toolkit` 聚合工具、`ReActAgent` 消费工具 |
+| **传输选型** | StdIO：本地子进程（npx/pip 安装的 Server）；SSE：有状态长连接（部分服务已下线）；Streamable HTTP：无状态远程服务，新接入首选 |
+| **客户端构建** | `buildAsync()` 返回 `Mono`（生产推荐）/ `buildSync()` 直接返回（脚本场景）；务必配置 `timeout` / `initializationTimeout` |
+| **工具注册与治理** | `registerMcpClient` 全量注册；`registration()` DSL 支持 `enableTools` 白名单、`disableTools` 黑名单（优先级更高）、`group` 分组（需先 `createToolGroup`） |
+| **混合传输实战** | 单 Agent 同时接入本地 StdIO + 远程 Streamable HTTP，工具组隔离 + 白名单收敛，完成跨 Server 任务编排（检索 → 沉淀 → 验证） |
+| **生命周期** | `client.close()` 停止子进程/释放连接（放 try/finally）；`toolkit.removeMcpClient(name)` 运行期动态移除 |
 
 MCP 让 AgentScope Java 的 Agent 不再受限于本地代码，而是可以接入整个开放的工具生态系统。配合本地 `@Tool` 使用，既能保持核心业务的可控性，又能享受社区生态的便利性。
 
 ---
+
+## 系列文章导航
+
+| 篇目 | 主题 |
+|------|------|
+| 一 | [AgentScope Java 入门 1：用 Java 构建生产级 AI 智能体的全新范式](https://smartsi.blog.csdn.net/article/details/158778778) |
+| 二 | [AgentScope Java 入门 2：Spring AI Alibaba 与 AgentScope 的定位与区别](https://smartsi.blog.csdn.net/article/details/160955593) |
+| 三 | [AgentScope Java 入门 3：如何安装 AgentScope](https://smartsi.blog.csdn.net/article/details/160694030) |
+| 四 | [AgentScope Java 入门 4：搭建第一个 ReAct 智能体](https://smartsi.blog.csdn.net/article/details/161203988) |
+| 五 | [AgentScope Java 入门 5：如何使用 DashScopeChatModel 集成百练模型](https://smartsi.blog.csdn.net/article/details/161300535) |
+| 六 | [AgentScope Java 入门 6：如何使用 OpenAIChatModel 集成兼容 OpenAI 协议模型](https://smartsi.blog.csdn.net/article/details/161324334) |
+| 七 | [AgentScope Java 入门 7：如何使用 OllamaChatModel 集成 Ollama 自托管平台](https://smartsi.blog.csdn.net/article/details/161335847) |
+| 八 | [AgentScope Java 入门 8：Tool 工具系统——让 Agent 真正"动手做事"](https://smartsi.blog.csdn.net/article/details/161359990) |

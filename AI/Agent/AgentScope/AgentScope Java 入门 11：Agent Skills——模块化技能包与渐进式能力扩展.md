@@ -60,9 +60,7 @@ Agent Skill 最核心的设计是 **三阶段按需加载**：
 完成任务
 ```
 
-**为什么这很重要？**
-
-假设你的 Agent 拥有 20 个 Skill，每个 Skill 的完整指令 + 资源共 5k tokens：
+**为什么这很重要？** 假设你的 Agent 拥有 20 个 Skill，每个 Skill 的完整指令 + 资源共 5k tokens：
 - **传统方式**：一次性全部加载 → 100k tokens 的上下文 → 成本高、模型易混乱
 - **渐进式披露**：只加载用到的 Skill → 可能只需 5-10k tokens → 成本低、更精准
 
@@ -202,106 +200,327 @@ AgentScope Java 提供了 AgentSkill 类，创建方式很灵活。
 
 适合小技能或快速原型：
 ```java
+// 1. 通过 Builder 链式构建一个技能
+//    - putMetadata：写入自定义元数据（键值对）
+//    - addResource：为技能附加参考资源（相对路径 -> 文本内容）
 AgentSkill skill = AgentSkill.builder()
-    .name("data_analysis")
-    .description("Use when analyzing data...")
-    .putMetadata("homepage", "https://example.com/docs")
-    .skillContent("# Data Analysis\n...")
-    .addResource("references/formulas.md", "# 常用公式\n...")
-    .source("custom")
-    .build();
+        .name("data_analysis")
+        .description("Use when analyzing data, computing statistics, or generating reports")
+        .putMetadata("homepage", "https://example.com/docs")
+        .putMetadata("version", "1.0.0")
+        .skillContent("# 数据分析技能\n\n本技能用于对表格数据做描述性统计并生成简要报告。\n\n## 工作流程\n1. 读取数据\n2. 计算均值 / 方差 / 标准差\n3. 总结趋势与异常值")
+        .addResource("references/formulas.md", "# 常用公式\nmean = Σx / n")
+        .addResource("examples/sample.csv", "name,value\nA,100\nB,200")
+        .source("custom")
+        .build();
 ```
 
-#### 5.1.2 从 Markdown 创建
-
-```
-String skillMd = """
----
-name: data_analysis
-description: Use this skill when analyzing data, calculating statistics, or generating reports
----
-# 技能名称
-Content...
-""";
-
-Map<String, String> resources = Map.of(
-    "references/formulas.md", "# 常用公式\n...",
-    "examples/sample.csv", "name,value\nA,100\nB,200"
-);
-
-AgentSkill skill = SkillUtil.createFrom(skillMd, resources);
-```
-
-#### 5.1.3 直接构造函数
+### 5.2 从 Markdown 创建
 
 ```java
-AgentSkill skill = new AgentSkill(
-    "data_analysis",                    // name
-    "Use when analyzing data...",       // description
-    "# Data Analysis\n...",             // skillContent
-    resources                            // resources (可为 null)
+// 1. 一段带 YAML frontmatter 的 SKILL.md 文本
+String skillMd = """
+    ---
+    name: data_analysis
+    description: Use this skill when analyzing data, calculating statistics, or generating reports
+    ---
+    # 数据分析技能
+
+    本技能用于对表格数据做描述性统计并生成简要报告。
+
+    ## 工作流程
+    1. 读取数据
+    2. 计算均值 / 方差 / 标准差
+    3. 总结趋势与异常值
+    """;
+
+// 2. 技能附带的参考资源（相对路径 -> 文本内容）
+Map<String, String> resources = Map.of(
+        "references/formulas.md", "# 常用公式\nmean = Σx / n",
+        "examples/sample.csv", "name,value\nA,100\nB,200"
 );
+
+// 3. 解析创建
+AgentSkill skill = SkillUtil.createFrom(skillMd, resources, "markdown");
 ```
 
-### 5.2 集成到 ReActAgent：SkillBox
+### 5.3 直接构造函数
 
-`SkillBox` 是管理 Skill 的核心容器，负责注册 Skill、管理加载工具、处理渐进式披露。
+```java
+// 1. 四参构造：resources 允许为 null
+Map<String, String> resources = Map.of(
+        "references/formulas.md", "# 常用公式\nmean = Σx / n",
+        "examples/sample.csv", "name,value\nA,100\nB,200"
+);
+AgentSkill skill = new AgentSkill(
+        "data_analysis",                    // name
+        "Use when analyzing data, computing statistics, or generating reports",       // description
+        "# 数据分析技能\n\n本技能用于对表格数据做描述性统计并生成简要报告。\n\n## 工作流程\n1. 读取数据\n2. 计算均值 / 方差 / 标准差\n3. 总结趋势与异常值", // skillContent
+        resources,  // resources（可为 null）
+        "builtin"   // 可选 source
+);
+```
+三种方式本质一样，选顺手的即可。实际项目中，更推荐把技能做成目录，用仓库加载，而不是全部内联在代码里。
 
-#### 5.2.1 基础集成
+## 6. 集成到 ReActAgent：SkillBox
 
+技能创建好后，需要注册到 SkillBox，再交给 ReActAgent：
 ```java
 // 1. 创建 Toolkit 和 SkillBox
 Toolkit toolkit = new Toolkit();
 SkillBox skillBox = new SkillBox(toolkit);
 
 // 2. 注册 Skill
-skillBox.registerSkill(dataSkill);
-skillBox.registerSkill(emailSkill);
+skillBox.registerSkill(skill);
 
 // 3. 创建 Agent
 ReActAgent agent = ReActAgent.builder()
-        .name("MultiSkillAgent")
-        .model(model)
+        .name("Friday")
+        .sysPrompt("You are a helpful assistant called Friday. 当任务匹配已注册技能时，请激活该技能并按其说明执行。")
+        .model(DashScopeChatModel.builder()
+                .apiKey(System.getenv("DASHSCOPE_API_KEY"))
+                .modelName(MODEL_NAME)
+                .endpointType(EndpointType.MULTIMODAL)
+                .build())
         .toolkit(toolkit)
-        .skillBox(skillBox)  // 自动注册 skill 加载工具和 hook
+        .skillBox(skillBox) // 自动注册 skill 加载工具和 hook
         .memory(new InMemoryMemory())
         .build();
 ```
+> SkillBox 是管理 Skill 的核心容器，负责注册 Skill、管理加载工具、处理渐进式披露。SkillBox 依赖 Toolkit。通过 registerSkill(skill) 注册技能。
 
 **SkillBox 会自动完成**：
 - 注册 `load_skill_through_path` 工具，供 LLM 加载 Skill 内容和资源
 - 注册 Hook，管理 Skill 的激活状态
 - 维护 Skill 元数据列表，供 LLM 决策时使用
 
-#### 5.2.2 简化的集成方式
-
-如果不需要额外配置 Toolkit：
-```java
-SkillBox skillBox = new SkillBox(new Toolkit());
-skillBox.registerSkill(dataSkill);
-skillBox.registerSkill(emailSkill);
-
-ReActAgent agent = ReActAgent.builder()
-        .name("Assistant")
-        .model(model)
-        .skillBox(skillBox)
-        .build();
-```
-
 ---
 
-## 6. 高级功能
+## 7. 让技能真正跑起来：代码执行与安全边界
 
-### 6.1 Tool 的渐进式披露
+Skill 经常需要执行代码（Python 脚本、Shell 命令等）。AgentScope 提供了隔离的代码执行环境。使用 Builder 模式按需组合工具和配置：
+```java
+SkillBox skillBox = new SkillBox(toolkit);
+// 启用所有代码执行工具（Shell、读文件、写文件）
+skillBox.codeExecution()
+        .withShell()
+        .withRead()
+        .withWrite()
+        .enable();
+```
+对应能力：
+- withShell()：启用 Shell 命令执行；
+- withRead()：启用读文件；
+- withWrite()：启用写文件。
+
+但直接开 Shell 是有风险的。AnentScope 给出了不少安全控制手段：
+```java
+// 创建带审批回调的自定义 Shell 工具
+ShellCommandTool customShell = new ShellCommandTool(
+        null,  // baseDir 会被自动覆盖为 workDir
+        Set.of("python3", "node", "npm"),           // 允许执行的命令白名单
+        command -> {                                // 审批回调
+            System.out.print("执行命令: " + command + " ? (y/n): ");
+            return new Scanner(System.in).nextLine().trim().equalsIgnoreCase("y");
+        }
+);
+
+skillBox.codeExecution()
+        .workDir("/data/agent-workspace")              // 工作目录
+        .uploadDir("/data/agent-workspace/skills")     // Skill 资源上传位置
+        .includeFolders(Set.of("scripts/", "data/"))   // 允许上传的文件夹
+        .includeExtensions(Set.of(".py", ".js", ".sh")) // 允许上传的文件扩展名
+        .withShell(customShell)
+        .withRead()
+        .withWrite()
+        .enable();
+```
+
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| `workDir` | 代码执行的工作目录。所有工具共享的工作目录。指定时自动创建，未指定时延迟创建临时目录 `agentscope-code-execution-*`,JVM 退出自动清理 | 临时目录 `agentscope-code-execution-*` |
+| `uploadDir` | Skill 资源文件的上传位置 | `workDir/skills` |
+| `includeFolders` | 允许上传的资源文件夹 | `scripts/`、`assets/` |
+| `includeExtensions` | 允许上传的文件扩展名 | `.py`、`.js`、`.sh` |
+| `fileFilter()` | 完全自定义的文件过滤逻辑 | - |
+
+> `includeFolders`/`includeExtensions` 与 `fileFilter()` 互斥，只能选一种方式。
+
+## 8. 技能仓库：让技能可管理、可复用
+
+技能多了以后，需要仓库来统一管理。AgentScope Java 提供了统一的 AgentSkillRepository 接口，以及多种实现。
+
+### 8.1 文件系统存储
+
+```java
+// 创建仓库
+AgentSkillRepository repo = new FileSystemSkillRepository(Path.of("./skills"));
+// 保存 Skill
+repo.save(List.of(dataSkill, emailSkill), false);
+// 读取 Skill
+AgentSkill loaded = repo.getSkill("data_analysis");
+List<AgentSkill> allSkills = repo.getAllSkills();
+```
+
+Skill 会被保存为如下目录结构：
+```
+skills/
+├── data_analysis/
+│   ├── SKILL.md
+│   ├── references/
+│   │   └── formulas.md
+│   └── examples/
+│       └── sample.csv
+└── email_service/
+    └── SKILL.md
+```
+
+### 8.2 MySQL数据库存储
+
+```java
+// 使用简单构造函数（使用默认数据库/表名）
+DataSource dataSource = createDataSource();  // 你的数据源
+
+// 方式一：简单构造函数（使用默认数据库/表名）
+MysqlSkillRepository repo = new MysqlSkillRepository(dataSource, true, true);
+
+// 方式二：Builder 自定义配置
+MysqlSkillRepository repo = MysqlSkillRepository.builder(dataSource)
+        .databaseName("my_database")
+        .skillsTableName("my_skills")
+        .resourcesTableName("my_resources")
+        .createIfNotExist(true)   // 表不存在时自动创建
+        .writeable(true)          // 允许写入
+        .build();
+
+// 保存和读取
+repo.save(List.of(skill), false);
+AgentSkill loaded = repo.getSkill("data_analysis");
+```
+
+### 8.3 Git仓库 (只读)
+
+用于从 Git 仓库加载 Skills (只读)。支持 HTTPS 和 SSH。适合团队共享 Skills，支持自动同步。
+```java
+// 自动同步（默认）：每次读取时检查远端更新
+AgentSkillRepository repo = new GitSkillRepository(
+        "https://github.com/your-org/your-skills-repo.git");
+
+AgentSkill skill = repo.getSkill("data-analysis");
+List<AgentSkill> allSkills = repo.getAllSkills();
+
+// 手动同步模式
+GitSkillRepository manualRepo = new GitSkillRepository(
+        "https://github.com/your-org/your-skills-repo.git",
+        false);  // 关闭自动同步
+
+// 需要时手动刷新
+manualRepo.sync();
+```
+
+如果仓库中存在 `skills/` 子目录，会优先从该目录加载，否则使用仓库根目录。
+
+**同步机制**：
+- 默认每次读取都会做轻量化的远端引用检查
+- 仅当远端 HEAD 变化时才会执行 `git pull`
+- 可通过构造函数关闭自动同步，改为手动调用 `sync()`
+
+### 8.4 Classpath 仓库 (只读)
+
+用于从 classpath 资源中加载预打包的 Skills (只读)。自动兼容标准 JAR 和 Spring Boot Fat JAR。
+```java
+try (ClasspathSkillRepository repository = new ClasspathSkillRepository("skills")) {
+    AgentSkill skill = repository.getSkill("data-analysis");
+    List<AgentSkill> allSkills = repository.getAllSkills();
+} catch //...
+```
+
+资源目录结构: `src/main/resources/skills/` 下放置多个 Skill 子目录,每个子目录包含 `SKILL.md`
+
+> 注意: `JarSkillRepositoryAdapter` 已废弃,请使用 `ClasspathSkillRepository`。
+
+### 8.5 Nacos 仓库 (只读)
+
+通过已构建的 `AiService`（或 Nacos 连接配置）从 Nacos 拉取或订阅 Skill，Agent 运行时从 Nacos 实时获取，支持变更订阅与自动感知，适合需要与 Nacos 保持同步的在线场景。
+
+```java
+// 使用已构建的 AiService 创建 Nacos 技能仓库
+try (NacosSkillRepository repository = new NacosSkillRepository(aiService, "namespace")) {
+    AgentSkill skill = repository.getSkill("data-analysis");
+    boolean exists = repository.skillExists("data-analysis");
+} catch //...
+```
+
+> 注意: 需引入 `agentscope-extensions-nacos-skill` 依赖
+
+
+## 9. 提示词注入：别让技能列表撑爆上下文
+
+SkillBox 在注入给 Agent 的系统提示词中，会为每个已注册的 Skill 生成一个 XML `<skill>` 条目，供 LLM 判断何时加载哪个 Skill：
+```
+<skill>
+  ...
+  <skill-id>...</skill-id>
+  instruction
+  <item>...</item>
+</skill>
+```
+以及技能列表：
+```
+<available_skills>
+...
+</available_skills>
+```
+这意味着每注册一个技能，就有一段元数据进入提示词。技能多的时候，全部暴露会占用大量上下文。AgentScope 提供了多个控制手段。
+
+### 9.1 自定义 instruction 头部
+
+自定义 SkillBox 的技能说明头部可以替换默认说明头部，用你自己的话告诉模型“技能列表在哪、怎么用”。可以强调 `load_skill_through_path` 的调用说明。
+```java
+String customInstruction = """
+## 可用技能
+当任务匹配某个技能时，使用 load_skill_through_path 加载它。
+""";
+
+SkillBox skillBox = new SkillBox(toolkit, customInstruction);
+```
+默认头部可能比较通用。自定义之后，你可以：
+- 用更短的话减少 token；
+- 针对业务场景写更明确的触发指引；
+- 把“先判断是否需要技能，再加载”的流程写进 instruction，引导模型按需加载而不是一次性全看。
+
+### 9.2 只暴露核心 metadata
+
+默认可能暴露全部 metadata，关闭后可将提示词限制为只暴露 `name`、`description` 和 `skill-id`，减少提示词膨胀和不必要的元数据泄露：
+```
+skillBox.setExposeAllSkillMetadata(false);
+```
+
+### 9.3 自定义代码执行说明
+
+开启代码执行后，默认会有一段说明告诉模型“脚本在哪、怎么执行”：
+```java
+skillBox.codeExecution()
+    .workDir("/data/workspace")
+    .codeExecutionInstruction("""
+      ## 脚本执行
+      技能脚本根目录: %s
+      执行时请使用绝对路径。
+      """)
+    .withShell()
+    .enable();
+```
+`codeExecutionInstruction` 允许你替换这段说明，所有 `%s` 占位符都会被替换为 `uploadDir` 的绝对路径。
+
+## 10. Tool 的渐进式披露
 
 这是 Skill 系统最强大的特性——**将 Tool 与 Skill 绑定，实现按需激活**。避免预先注册所有 Tool 导致的上下文污染，仅在 Skill 被 LLM 使用时才传递相关 Tool。
 
 > **渐进式暴露的Tool的生命周期**: Tool 与 Skill 生命周期保持一致, Skill 激活后 Tool 在整个会话期间保持可用, 避免了旧机制中每轮对话后 Tool 失活导致的调用失败问题。
 
-#### 6.1.1 为什么需要渐进式披露？
+### 10.1 为什么需要渐进式披露？
 
 传统方式下，所有 Tool 都预先注册到 Toolkit 中：
-
 ```java
 // 传统方式：所有工具一开始就暴露给 LLM
 Toolkit toolkit = new Toolkit();
@@ -316,7 +535,7 @@ toolkit.registerTool(new GitCommitTool());     // Git 操作
 - 决策困难：LLM 容易选错工具
 - 安全隐患：所有工具始终可用，无法按需管控
 
-#### 6.1.2 Skill 绑定 Tool 实现按需激活
+### 10.2 Skill 绑定 Tool 实现按需激活
 
 ```java
 Toolkit toolkit = new Toolkit();
@@ -384,224 +603,7 @@ Agent 调用 load_data Tool 加载数据 → 完成分析
 
 ---
 
-### 6.2 代码执行能力
-
-Skill 经常需要执行代码（Python 脚本、Shell 命令等）。AgentScope 提供了隔离的代码执行环境。使用 Builder 模式按需组合工具和配置。
-
-#### 6.2.1 基础用法
-
-```java
-SkillBox skillBox = new SkillBox(toolkit);
-// 启用所有代码执行工具（Shell、读文件、写文件）
-skillBox.codeExecution()
-        .withShell()
-        .withRead()
-        .withWrite()
-        .enable();
-```
-
-#### 6.2.2 自定义配置
-
-```java
-// 创建带审批回调的自定义 Shell 工具
-ShellCommandTool customShell = new ShellCommandTool(
-        null,  // baseDir 会被自动覆盖为 workDir
-        Set.of("python3", "node", "npm"),           // 允许执行的命令白名单
-        command -> {                                // 审批回调
-            System.out.print("执行命令: " + command + " ? (y/n): ");
-            return new Scanner(System.in).nextLine().trim().equalsIgnoreCase("y");
-        }
-);
-
-skillBox.codeExecution()
-        .workDir("/data/agent-workspace")              // 工作目录
-        .uploadDir("/data/agent-workspace/skills")     // Skill 资源上传位置
-        .includeFolders(Set.of("scripts/", "data/"))   // 允许上传的文件夹
-        .includeExtensions(Set.of(".py", ".js", ".sh")) // 允许上传的文件扩展名
-        .withShell(customShell)
-        .withRead()
-        .withWrite()
-        .enable();
-```
-
-### 6.2.3 配置说明
-
-| 配置项 | 说明 | 默认值 |
-|--------|------|--------|
-| `withShell()` | 启用 Shell 命令执行 | - |
-| `withRead()` | 启用文件读取 | - |
-| `withWrite()` | 启用文件写入 | - |
-| `workDir` | 代码执行的工作目录。所有工具共享的工作目录。指定时自动创建，未指定时延迟创建临时目录 `agentscope-code-execution-*`,JVM 退出自动清理 | 临时目录 `agentscope-code-execution-*` |
-| `uploadDir` | Skill 资源文件的上传位置 | `workDir/skills` |
-| `includeFolders` | 允许上传的资源文件夹 | `scripts/`、`assets/` |
-| `includeExtensions` | 允许上传的文件扩展名 | `.py`、`.js`、`.sh` |
-| `fileFilter()` | 完全自定义的文件过滤逻辑 | - |
-
-> `includeFolders`/`includeExtensions` 与 `fileFilter()` 互斥，只能选一种方式。
-
-### 6.3 Skill 持久化存储
-
-Skills 需要在应用重启后保持可用，或在不同环境间共享。AgentScope 支持三种持久化方式。
-
-#### 6.3.1 文件系统存储
-
-```java
-// 创建仓库
-AgentSkillRepository repo = new FileSystemSkillRepository(Path.of("./skills"));
-// 保存 Skill
-repo.save(List.of(dataSkill, emailSkill), false);
-// 读取 Skill
-AgentSkill loaded = repo.getSkill("data_analysis");
-List<AgentSkill> allSkills = repo.getAllSkills();
-```
-
-Skill 会被保存为如下目录结构：
-```
-skills/
-├── data_analysis/
-│   ├── SKILL.md
-│   ├── references/
-│   │   └── formulas.md
-│   └── examples/
-│       └── sample.csv
-└── email_service/
-    └── SKILL.md
-```
-
-#### 6.3.2 MySQL数据库存储
-
-```java
-// 使用简单构造函数（使用默认数据库/表名）
-DataSource dataSource = createDataSource();  // 你的数据源
-
-// 方式一：简单构造函数（使用默认数据库/表名）
-MysqlSkillRepository repo = new MysqlSkillRepository(dataSource, true, true);
-
-// 方式二：Builder 自定义配置
-MysqlSkillRepository repo = MysqlSkillRepository.builder(dataSource)
-        .databaseName("my_database")
-        .skillsTableName("my_skills")
-        .resourcesTableName("my_resources")
-        .createIfNotExist(true)   // 表不存在时自动创建
-        .writeable(true)          // 允许写入
-        .build();
-
-// 保存和读取
-repo.save(List.of(skill), false);
-AgentSkill loaded = repo.getSkill("data_analysis");
-```
-
-#### 6.3.3 Git仓库 (只读)
-
-用于从 Git 仓库加载 Skills (只读)。支持 HTTPS 和 SSH。适合团队共享 Skills，支持自动同步。
-```java
-// 自动同步（默认）：每次读取时检查远端更新
-AgentSkillRepository repo = new GitSkillRepository(
-        "https://github.com/your-org/your-skills-repo.git");
-
-AgentSkill skill = repo.getSkill("data-analysis");
-List<AgentSkill> allSkills = repo.getAllSkills();
-
-// 手动同步模式
-GitSkillRepository manualRepo = new GitSkillRepository(
-        "https://github.com/your-org/your-skills-repo.git",
-        false);  // 关闭自动同步
-
-// 需要时手动刷新
-manualRepo.sync();
-```
-
-如果仓库中存在 `skills/` 子目录，会优先从该目录加载，否则使用仓库根目录。
-
-**同步机制**：
-- 默认每次读取都会做轻量化的远端引用检查
-- 仅当远端 HEAD 变化时才会执行 `git pull`
-- 可通过构造函数关闭自动同步，改为手动调用 `sync()`
-
-#### 6.3.4 Classpath 仓库 (只读)
-
-用于从 classpath 资源中加载预打包的 Skills (只读)。自动兼容标准 JAR 和 Spring Boot Fat JAR。
-```java
-try (ClasspathSkillRepository repository = new ClasspathSkillRepository("skills")) {
-    AgentSkill skill = repository.getSkill("data-analysis");
-    List<AgentSkill> allSkills = repository.getAllSkills();
-} catch //...
-```
-
-资源目录结构: `src/main/resources/skills/` 下放置多个 Skill 子目录,每个子目录包含 `SKILL.md`
-
-> 注意: `JarSkillRepositoryAdapter` 已废弃,请使用 `ClasspathSkillRepository`。
-
-#### 6.3.5 Nacos 仓库 (只读)
-
-通过已构建的 `AiService`（或 Nacos 连接配置）从 Nacos 拉取或订阅 Skill，Agent 运行时从 Nacos 实时获取，支持变更订阅与自动感知，适合需要与 Nacos 保持同步的在线场景。
-
-```java
-// 使用已构建的 AiService 创建 Nacos 技能仓库
-try (NacosSkillRepository repository = new NacosSkillRepository(aiService, "namespace")) {
-    AgentSkill skill = repository.getSkill("data-analysis");
-    boolean exists = repository.skillExists("data-analysis");
-} catch //...
-```
-
-> 注意: 需引入 `agentscope-extensions-nacos-skill` 依赖
-
-### 6.4 自定义 Skill 提示词
-
-SkillBox 在注入给 Agent 的系统提示词中,会为每个已注册的 Skill 生成一个 XML `<skill>` 条目,供 LLM 判断何时加载哪个 Skill。metadata 直接来自 `AgentSkill.getMetadata()`，并始终追加 `<skill-id>` 作为工具加载标识。
-
-- **`instruction`**: 提示词头部,说明 Skill 的使用方式(如何加载、路径约定等)。默认包含 `load_skill_through_path` 的调用说明
-- **XML metadata 渲染**: 标量会渲染为子节点,嵌套 `Map` 会递归渲染为嵌套 XML,列表会渲染为重复的 `<item>` 节点
-- **metadata 暴露控制**: `skillBox.setExposeAllSkillMetadata(false)` 可将提示词限制为只暴露 `name`、`description` 和 `skill-id`；默认暴露全部 metadata
-
-开启代码执行后,还可通过 `.codeExecutionInstruction()` 自定义追加在 `</available_skills>` 之后的代码执行说明段落:
-
-- **`codeExecutionInstruction`**: 代码执行说明模板,所有 `%s` 占位符都会被替换为 `uploadDir` 的绝对路径。传 `null` 或空字符串时使用内置默认值
-
-`instruction` 和 `codeExecutionInstruction` 传 `null` 或空字符串时均使用内置默认值。
-
-**示例代码**:
-
-```java
-// 自定义 instruction 头部
-String customInstruction = """
-    ## 可用技能
-    当任务匹配某个技能时,使用 load_skill_through_path 加载它。
-    """;
-
-SkillBox skillBox = new SkillBox(toolkit, customInstruction);
-
-// 可选: 仅向 prompt 暴露核心 metadata
-skillBox.setExposeAllSkillMetadata(false);
-
-// 自定义代码执行说明(开启代码执行后生效)
-skillBox.codeExecution()
-    .workDir("/data/workspace")
-    .codeExecutionInstruction("""
-        ## 脚本执行
-        技能脚本根目录: %s
-        执行时请使用绝对路径。
-        """)
-    .withShell()
-    .enable();
-```
-
-### 性能优化建议
-
-1. **控制 SKILL.md 大小**: 保持在 5k tokens 以内,建议 1.5-2k tokens
-2. **合理组织资源**: 将详细文档放在 `references/` 中,而非 SKILL.md
-3. **定期清理版本**: 使用 `clearSkillOldVersions()` 清理不再需要的旧版本
-4. **避免重复注册**: 利用重复注册保护机制,相同 Skill 对象配多个 Tool 时不会创建重复版本
-
-## 相关文档
-
-- [Claude Agent Skills 官方文档](https://platform.claude.com/docs/zh-CN/agents-and-tools/agent-skills/overview) - 完整的概念和架构介绍
-- [Tool 使用指南](./tool.md) - 工具系统的使用方法
-- [Agent 配置](./agent.md) - 智能体配置和使用
-
----
-
-## 7. 实战：构建数据分析 Agent
+## 11. 实战：构建数据分析 Agent
 
 以下示例展示了 Skill 系统的完整使用流程：
 
@@ -731,60 +733,7 @@ Agent 看到 data_analysis Skill 的 description
 
 ---
 
-## 8. Skill 设计最佳实践
-
-### 8.1 description 书写原则
-
-description 是 LLM 判断是否使用该 Skill 的唯一依据，务必写清楚：
-
-```java
-// ❌ 差：过于笼统
-.description("数据分析工具")
-
-// ❌ 差：过于狭窄
-.description("用于加载 CSV 文件")
-
-// ✅ 好：清晰描述使用场景和触发条件
-.description("""
-        Use this skill when analyzing structured data, calculating statistics, \
-        generating charts/reports, or working with CSV/Excel/JSON files. \
-        Not needed for simple arithmetic or text generation.
-        """)
-```
-
-### 8.2 Skill 粒度设计
-
-| 粒度 | 示例 | 适用场景 |
-|------|------|---------|
-| **大粒度**（领域级） | `data_analysis`（包含清洗、统计、可视化） | 关联紧密的功能聚合在一起 |
-| **小粒度**（功能级） | `csv_loader`、`chart_generator` 分开 | 功能独立，可灵活组合 |
-
-**建议**：先设计大粒度的领域 Skill，随着场景复杂再拆分。
-
-### 8.3 资源组织建议
-
-```
-skill-name/
-├── SKILL.md              # 精简的入口说明（< 500 tokens）
-├── references/           # 详细参考资料（按需加载）
-│   ├── api-doc.md
-│   └── deep-guide.md
-├── examples/             # 工作示例（帮助 LLM 理解用法）
-│   ├── basic.csv
-│   └── advanced.json
-└── scripts/              # 可执行脚本（配合代码执行工具）
-    └── helper.py
-```
-
-### 8.4 渐进式加载的性能优化
-
-- **SKILL.md 保持精简**：只放核心指令，详细内容放到 references/
-- **资源按需加载**：通过 load_skill_through_path 分批次加载
-- **避免循环加载**：Skill 指令中提示 LLM "如无必要，不要重复加载同一资源"
-
----
-
-## 9. 总结
+## 12. 总结
 
 | 要点 | 内容 |
 |------|------|

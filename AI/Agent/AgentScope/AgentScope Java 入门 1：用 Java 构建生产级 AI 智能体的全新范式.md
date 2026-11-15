@@ -432,3 +432,5 @@ responseMono.subscribe(response ->
 | 六 | [AgentScope Java 入门 6：如何使用 OpenAIChatModel 集成兼容 OpenAI 协议模型](https://smartsi.blog.csdn.net/article/details/161324334) |
 | 七 | [AgentScope Java 入门 7：如何使用 OllamaChatModel 集成 Ollama 自托管平台](https://smartsi.blog.csdn.net/article/details/161335847) |
 | 八 | [AgentScope Java 入门 8：Tool 工具系统——让 Agent 真正"动手做事"](https://smartsi.blog.csdn.net/article/details/161359990) |
+| 九 | [AgentScope Java 入门 9：MCP 协议集成——连接无限工具生态](https://smartsi.blog.csdn.net/article/details/170775428) |
+| 十 | [AgentScope Java 入门 10：如何使用 Structured Output 让模型输出结构化数据](https://smartsi.blog.csdn.net/article/details/170821616) |

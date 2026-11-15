@@ -79,5 +79,7 @@ AgentScope Java 自 2025 年 9 月开源（https://github.com/agentscope-ai/agen
 | 六 | [AgentScope Java 入门 6：如何使用 OpenAIChatModel 集成兼容 OpenAI 协议模型](https://smartsi.blog.csdn.net/article/details/161324334) |
 | 七 | [AgentScope Java 入门 7：如何使用 OllamaChatModel 集成 Ollama 自托管平台](https://smartsi.blog.csdn.net/article/details/161335847) |
 | 八 | [AgentScope Java 入门 8：Tool 工具系统——让 Agent 真正"动手做事"](https://smartsi.blog.csdn.net/article/details/161359990) |
+| 九 | [AgentScope Java 入门 9：MCP 协议集成——连接无限工具生态](https://smartsi.blog.csdn.net/article/details/170775428) |
+| 十 | [AgentScope Java 入门 10：如何使用 Structured Output 让模型输出结构化数据](https://smartsi.blog.csdn.net/article/details/170821616) |
 
 > 原文：[一文讲透 Spring AI Alibaba 与 AgentScope 的定位与区别](https://www.java2ai.com/blog/saa-agentscope-announcement)

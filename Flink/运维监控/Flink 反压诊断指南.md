@@ -1,125 +1,188 @@
+# Flink 反压诊断指南：如何用指标准确判断反压
 
-在 Flink 流处理作业中，数据像水流一样在算子（Operator）间流动。当下游算子（例如，一个处理速度较慢的 `Window` 算子或一个受外部系统（如慢速数据库）制约的 `Sink`）处理速度跟不上上游算子（如高速的 `Source` 或 `Map`）的生产速度时，数据就会在它们之间的网络缓冲区（Network Buffer）中堆积。这种现象就是**反压（Backpressure）**。
+> 本文以 **Flink 1.13.6 为版本基线**，聚焦一件事：**如何通过各项指标准确判断作业是否反压、反压发生在哪、方向如何传播**。指标清单来自官方博客 [《Flink Network Stack Vol. 2: Monitoring, Metrics, and that Backpressure Thing》](https://flink.apache.org/2019/07/23/flink-network-stack-vol.-2-monitoring-metrics-and-that-backpressure-thing/)（2019 年，对应 1.9 时代），**每项指标在 1.13.6 中的可用性与语义均已逐一对照源码核实**，版本差异处单独标注。
 
-持续的严重反压会导致：
-- **数据处理延迟增加：** 数据在缓冲区排队，整体处理时间变长。
-- **检查点（Checkpoint）失败或超时：** Barrier 在反压通道中传播缓慢，无法在规定时间内完成 Checkpoint，影响容错能力。
-- **资源浪费：** 上游算子可能因下游阻塞而闲置（或降低速率），但资源（CPU、内存）仍被占用。
-- **潜在的内存溢出（OOM）：** 如果缓冲区配置不当或反压持续过久，堆积的数据可能耗尽 TaskManager 的堆外或堆内内存。
+## 1. 判断反压需要两套"坐标系"
 
-**因此，快速、准确地识别作业是否处于反压状态，以及定位反压的源头算子，是 Flink 运维和调优的首要任务。Flink 在反压检测机制上相对成熟，提供了多种有效手段。
+反压的物理本质一句话即可：**发送侧输出缓冲池拿不到可用 Buffer（下游收不动或网络发不出），数据"写不出去"**。成因有两类（官方博客口径）：接收方慢（自身被反压/处理不过来/GC、I/O 阻塞），或网络通道慢（带宽被同机 Checkpoint、DFS、日志、Metrics 等共享者超额订阅）。
 
----
+围绕这个本质，Flink 提供了两套互补的指标坐标系：
 
-**核心方法：Flink 1.13 反压检测三板斧**
+| 坐标系 | 指标 | 回答的问题 |
+|--------|------|-----------|
+| **时间维度** | `busyTimeMsPerSecond` / `backPressuredTimeMsPerSecond` / `idleTimeMsPerSecond` | 任务线程这一秒在干嘛：干活？写不出去？还是没数据可干？ |
+| **缓冲维度** | `outPoolUsage` / `inPoolUsage` / `floatingBuffersUsage` / `exclusiveBuffersUsage` | 缓冲池被占了多少：输出侧顶没顶满？输入侧吃不吃得下？ |
 
-## 1. Flink Web UI - 最直观的全局视图
+外加一组**速率/体量指标**（`numRecordsIn/OutPerSecond`、`numBytes*`、`numBuffers*`）做旁证。三组配合，才能做到"准确"二字——单看任何一个指标都可能误判。
 
-Flink Web UI 是判断反压的第一站，提供了图形化的作业概览和直接的"反压监控"功能。
+## 2. 指标清单与 1.13.6 真实语义
 
-*   **步骤：**
-    1.  打开 Flink Web UI (通常是 `http://:8081`，端口可能不同)。
-    2.  导航到需要检查的正在运行的作业。
-    3.  点击作业概览页面上的 **`Back Pressure`** 按钮。
+### 2.1 时间三分法指标（1.13 起，Web UI/REST 反压监控的数据源）
 
-*   **如何解读：**
-    *   **任务图颜色：** UI 会显示作业的执行图（Job Graph）。任务（Task）或子任务（Subtask）的状态会以颜色标识反压情况：
-        *   **OK (绿色)：** 表示该任务 **没有** 受到反压影响 (`0 <= Ratio <= 0.10`)。
-        *   **LOW (黄色)：** 表示该任务受到 **轻度** 反压 (`0.10 < Ratio <= 0.5`)。需要关注，可能是短暂波动或潜在瓶颈。
-        *   **HIGH (红色)：** 表示该任务受到 **严重** 反压 (`0.5 < Ratio <= 1`)。这通常是性能瓶颈的直接信号，需要立即关注和排查。
-    *   **反压比率 (Backpressure Ratio)：** 当你将鼠标悬停在某个任务上时，UI 会显示一个具体的反压比率数值（0 到 1 之间）。这个比率表示该任务的上游在采样期间被阻塞（等待下游消费数据）的时间占比。
-        *   **`0`**: 无阻塞。
-        *   **`1`**: 上游在整个采样期间都被完全阻塞。
-    *   **关键洞察：** 寻找执行图中 **第一个** 出现 **黄色（LOW）** 或 **红色（HIGH）** 的算子（尤其是其输出通道）。这个算子或其下游算子通常就是反压的**源头或直接承受者**。反压会从这个点开始向上游传播。
+**这是 1.13.6 判断反压的第一权威信号**，三者互斥、每秒之和恒为 1000ms：
 
-*   **Flink 1.13+ 网络栈的改进：** Flink 1.5 之后（尤其在 1.13 中稳定）引入了基于**信用（Credit）** 的新型网络栈（取代了旧的基于阻塞的栈）。新栈通过动态调整缓冲区大小和更精细的流量控制，**显著提高了反压检测的准确性、及时性和对任务本身性能的影响更小**。Web UI 的反压监控正是基于这个新栈的机制工作的。
+| 指标 | 语义 | 判读 |
+|------|------|------|
+| `backPressuredTimeMsPerSecond` | 每秒中"有数据要发、但输出缓冲不可用"的毫秒数 | **持续 > 100ms 即存在可感知反压；接近 1000ms 为严重反压** |
+| `busyTimeMsPerSecond` | 每秒中真正干活（用户代码、序列化、mailbox 处理）的毫秒数 | 接近 1000ms ⇒ 该任务是计算瓶颈的嫌疑犯 |
+| `idleTimeMsPerSecond` | 每秒中"没有输入数据可处理"的毫秒数 | 高 ⇒ 在挨饿（上游慢），**与反压方向相反，切勿混淆** |
 
-*   **优点：** 直观、全局视图、快速定位大致瓶颈区域。
-*   **局限：** 采样是周期性的，可能错过瞬时峰值；对于非常细粒度的定位（如单个 Subtask 内的具体代码行）需要结合其他方法。
+**版本差异（重要）**：
 
-**2. Metrics 监控系统 - 持续、精确、可告警**
+- **1.13 之前的 Web UI 反压比率来自线程栈采样**（周期性 `Thread.getStackTrace()` 统计阻塞在缓冲请求上的采样占比），旧采样代码在 1.13 中已整体删除；**1.13.6 的 Web UI/REST 比率直接等于 `backPressuredTimeMsPerSecond / 1000`**，是持续发布的 Metrics，零采样开销、可直接告警。
+- 分级阈值不变：`ratio ≤ 0.10` → **OK**；`0.10 < ratio ≤ 0.5` → **LOW**；`ratio > 0.5` → **HIGH**。REST 端点仍为 `/jobs/:jobid/vertices/:vertexid/backpressure`，每个 Subtask 返回 `ratio / idleRatio / busyRatio` 三元组。
+- **Vertex 级等级 = 所有 Subtask ratio 的最大值**。UI 上一个 Vertex 标红，可能只有一个 Subtask 在反压——必须下钻 Subtask 视图区分"全局瓶颈"还是"数据倾斜"。
+- `busyTimeMsPerSecond` 是派生指标（1000 − idle − backPressured），受启用开关门控：1.13.6 的流式任务默认启用；若在其他场景看到 NaN，是开关未启用而非数据缺失。
 
-Flink 暴露了极其丰富的 Metrics，其中包含直接反映反压状态的关键指标。通过配置 Metrics Reporter (如 Prometheus, InfluxDB)，可以将这些指标集成到 Grafana 等监控仪表盘中，实现 24/7 的实时监控和告警。
+### 2.2 缓冲池使用率指标（官方博客主力，1.13.6 语义如下）
 
-*   **核心反压相关 Metrics (Task 级别)：**
-    *   **`outPoolUsage` / `inPoolUsage` (最重要！):**
-        *   这些是 **Flink 1.13+ 推荐的主要反压指标**，直接反映本地缓冲区的使用率。
-        *   `outPoolUsage`: 表示该 Task **输出缓冲区 (Output Buffer Pool)** 的使用率。**这是判断该 Task 是否造成下游反压的关键指标！** 如果一个 Task 的 `outPoolUsage` 持续接近 1.0 (100%)，意味着它生产的数据**无法及时被下游 Task 消费**，数据积压在其输出缓冲区中。这通常表明该 Task 的下游是瓶颈。
-        *   `inPoolUsage`: 表示该 Task **输入缓冲区 (Input Buffer Pool)** 的使用率。**这是判断该 Task 本身是否处理不过来（是瓶颈）的关键指标！** 如果一个 Task 的 `inPoolUsage` 持续接近 1.0 (100%)，意味着它**来不及消费上游发送过来的数据**，数据积压在其输入缓冲区中。这通常表明该 Task 本身是瓶颈。
-        *   **阈值建议：** 持续 > `0.8` (80%) 是一个明显的警告信号；持续 > `0.9` (90%) 或接近 `1.0` 表示严重反压。需要结合 `idleTimeMsPerSecond` 等指标综合分析。
-    *   `busyTimeMsPerSecond`: Task 每秒实际忙于处理数据的时间（毫秒）。接近 1000ms 表示 Task 满负荷运行，可能成为瓶颈。如果 `inPoolUsage` 高且 `busyTimeMsPerSecond` 接近 1000ms，基本确认该 Task 是瓶颈。
-    *   `idleTimeMsPerSecond`: Task 每秒空闲等待数据的时间（毫秒）。如果 `outPoolUsage` 高且 `idleTimeMsPerSecond` 很高，说明该 Task 因为下游反压而被迫空闲。
-    *   `numRecordsIn/OutPerSecond`: Task 每秒处理/输出的记录数。上下游算子间速率的不匹配（下游速率明显低于上游）是反压的直观表现。但需注意，速率低不一定等于反压（可能是 Source 慢），需结合缓冲区指标。
-    *   `numBuffersIn/OutPerSecond`: Task 每秒接收/发送的网络缓冲区数量。可以辅助观察网络层面的数据流动情况。
-    *   `currentSendTime` / `currentSendBufferPoolUsage` (Operator 级别)：对于 `Source` 算子，这些指标反映其向 Channel 发送数据时的阻塞情况和发送缓冲池使用率，有助于判断 Source 是否因下游反压而受阻。
+| 指标 | 1.13.6 语义与判读 |
+|------|------------------|
+| `outPoolUsage` | 输出侧本地缓冲池使用率。**= 100% ⇒ 该 Subtask 已被反压**（官方原话：is backpressured）。注意它比时间比率"更早"：池满时任务可能还在往半满的 Buffer 里写、尚未真正阻塞，所以 `outPoolUsage=100%` 与 `backPressuredTimeMsPerSecond>0` 不要求同时出现 |
+| `inPoolUsage` | 输入侧缓冲池使用率。**1.9 起 `inPoolUsage = floatingBuffersUsage + exclusiveBuffersUsage`**（1.13.6 同）。**持续 ≈100% ⇒ 输入吃满，正在（或即将）向上游施加反压**，是强信号 |
+| `floatingBuffersUsage` | Gate 内共享浮动缓冲使用率。**未到 100% 基本可排除该输入在反压**；到 100% 且任一上游被反压 ⇒ 该输入正在对 Channel 施加反压 |
+| `exclusiveBuffersUsage` | Channel 独占缓冲使用率。在 floating ≈100% 前提下，**它越高说明被反压的输入 Channel 越多**；接近 100% ⇒ 几乎所有 Channel 都被顶住（全局性瓶颈而非个别倾斜） |
 
-*   **如何配置与使用：**
-    1.  在 `flink-conf.yaml` 中配置 Metrics Reporter (以 Prometheus 为例):
-        ```yaml
-        metrics.reporter.prom.class: org.apache.flink.metrics.prometheus.PrometheusReporter
-        metrics.reporter.prom.port: 9250-9260 # 选择一个端口范围
-        ```
-    2.  部署 Prometheus，配置抓取 Flink TaskManager/JobManager 暴露的 Metrics 端点 (`:9250-9260` 或配置的端口)。
-    3.  在 Grafana 中创建仪表盘，重点监控：
-        *   每个 Task/Subtask 的 `outPoolUsage` 和 `inPoolUsage` (折线图)。
-        *   Task 的 `busyTimeMsPerSecond` 和 `idleTimeMsPerSecond`。
-        *   关键算子的 `numRecordsInPerSecond` vs `numRecordsOutPerSecond` (对比图)。
-    4.  在 Grafana 或 Prometheus Alertmanager 中为 `outPoolUsage` / `inPoolUsage` 设置告警规则 (如 `avg_over_time(flink_taskmanager_job_task_outPoolUsage[1m]) > 0.8`)。
+**旧版本陷阱（1.13.6 不受影响，但混合集群/旧资料常见）**：1.8 及之前因 FLINK-11082，空的在途 Buffer 也被计入 backlog，导致 `inPoolUsage=100%` 在完全正常的场景也频繁出现；1.9 起只有"满的或已 flush 的" Buffer 才计入，`inPoolUsage` 高才真正成为反压信号。**引用任何 `inPoolUsage` 阈值经验前，先确认集群版本 ≥ 1.9。**
 
-*   **优点：** 持续监控、高精度、历史数据分析、支持告警、可定位到具体 Subtask。
-*   **局限：** 需要额外的监控系统支持；指标众多，配置和理解有一定门槛。
+另有两条解读池使用率的"底噪"常识：任何使用过的输出 Channel 至少常驻占用 1 个 Buffer（1.5 起）；接收侧要等 Buffer 中最后一条记录反序列化完才释放它。低并行度小作业上池使用率天然偏高，阈值要留余量。
 
-**3. 日志分析 - 辅助诊断与深入挖掘**
+### 2.3 速率与体量指标（旁证，不能单独定反压）
 
-虽然不如前两种方法直观和常用，但 Flink 日志中也可能包含反压的蛛丝马迹，尤其是在开启特定日志级别时。
+| 指标 | 用途与注意 |
+|------|-----------|
+| `numRecordsInPerSecond` / `numRecordsOutPerSecond` | 上下游速率对比：上游明显高于下游 ⇒ 反压的直观表现。但**速率低 ≠ 反压**（可能只是 Source 慢），必须结合 2.1/2.2 确认 |
+| `numBytesInLocal` / `numBytesInRemote` | 区分本地（同 TM）与远程流量；绝大多数场景无需分开看 |
+| `numBuffersInLocal` / `numBuffersInRemote` | `numBytesInRemote / numBuffersInRemote` = 远程 Buffer 平均填充率。**填充率过低且目标是吞吐** ⇒ 增大 `taskmanager.network.memory.buffer-timeout`（默认 100ms）攒批；本地 Channel 无需分析填充率（缓冲优化只对远程通道有意义） |
+| `numBuffersOut` | **有滞后**：只在 Buffer 写满或被事件（如 Checkpoint Barrier）切断时才递增（1.8/1.9 起如此，1.13.6 同），不能用它做实时反压判断 |
+| `numRecordsOut` ÷ `numBytesOut` | 估算平均序列化记录大小，用于容量规划，非反压指标 |
 
-*   **关键日志信息：**
-    *   **`Buffer debloating` 日志：** Flink 1.13+ 的基于信用的网络栈包含“缓冲区自动缩放（Buffer Debloating）”功能。当系统检测到持续反压时，它会尝试自动减小上游的飞行缓冲区（inflight buffers）大小。如果看到类似 `Debloating ...` 的 INFO 级别日志，这通常是存在持续反压的一个**强有力信号**，表明系统正在尝试自我调整以适应瓶颈。
-    *   **`Checkpoint` 超时警告/错误：** 如 `Checkpoint expired before completing`。这虽然不是直接的反压指标，但**严重反压是导致 Checkpoint 超时最常见的原因之一**。看到大量 Checkpoint 失败日志，应立即检查反压情况。
-    *   **`背压` 相关 Trace/Debug 日志 (谨慎开启)：** Flink 内部网络栈在 Trace 或 Debug 级别可能会记录更详细的缓冲区状态信息。但这会**极大增加日志量**，通常只建议在深入诊断特定问题时临时开启：
-        ```yaml
-        # 在 log4j.properties 或 logback.xml 中配置 (示例)
-        logger.net.name = org.apache.flink.runtime.io.network
-        logger.net.level = DEBUG # 或 TRACE (非常详细!)
-        ```
+**吞吐型异常的一个经典组合（官方博客精华）**：低吞吐 + 发送侧 `outPoolUsage` 频繁 100% + **所有**接收侧 `inPoolUsage` 低 ⇒ 不是算子慢，而是 credit 通知往返时延相对默认 exclusive 缓冲数过大、带宽吃不满（常见于跨机房/高延迟网络）。对策：增大 `taskmanager.network.memory.buffers-per-channel`（默认 2），或临时关闭 credit-based 流控做对照实验。
 
-*   **优点：** 可能提供系统自动调整的证据；Checkpoint 日志是反压后果的重要线索。
-*   **局限：** 信息分散；Buffer Debloating 日志是间接证据；开启详细网络日志性能开销大，不适合生产环境常态运行。
+### 2.4 不要使用的指标
 
----
+**`outputQueueLength` / `inputQueueLength`**：官方博客明确不推荐（discourage），1.13.6 中它们仍存在但同样不可用于判断：
 
-**判断反压的最佳实践总结 (Flink 1.13)**
+- 绝对 Buffer 数难以解释，含义强依赖当前并行度与 exclusive/floating 配置；
+- **本地 Channel 没有独立输入队列**（直接复用输出队列），其贡献恒为 0（FLINK-12576）——纯本地传输的作业 `inputQueueLength` 恒为 0，用它配告警会永远静默。
 
-1.  **日常巡检：** 定期查看 Flink Web UI 的 `Back Pressure` 页面，快速扫描是否有黄色/红色任务。这是最便捷的入门方式。
-2.  **核心监控：** **务必配置 Metrics 监控系统 (如 Prometheus+Grafana)**。将 `outPoolUsage` 和 `inPoolUsage` 作为核心监控指标，设置合理的告警阈值 (如持续 > 0.8)。结合 `busyTimeMsPerSecond` 和 `idleTimeMsPerSecond` 确认瓶颈位置。
-    *   **`outPoolUsage` 高：** 该 Task **导致**下游反压 (下游是瓶颈)。
-    *   **`inPoolUsage` 高 + `busyTimeMsPerSecond` 高：** 该 Task **自身**是瓶颈。
-3.  **结合 Checkpoint 状态：** 将 Checkpoint 成功率/持续时间纳入核心监控。Checkpoint 频繁失败是存在严重问题（通常是反压）的重要征兆。
-4.  **日志辅助：** 关注 `Buffer debloating` 日志和 Checkpoint 失败日志，它们是指示反压存在和严重程度的有力补充证据。仅在深入排查时临时开启网络详细日志。
-5.  **定位源头：** 反压会向上游传播。利用 Web UI 颜色或 Metrics (`outPoolUsage`)，沿着数据流向（从 Sink 向 Source 方向）寻找**第一个**出现严重反压迹象 (`outPoolUsage` 接近 1.0 或 UI 红色) 的算子或其**直接下游**算子。这个点通常就是瓶颈所在。
+一律改用 `*PoolUsage` 系列 + 时间三分法。
 
----
+### 2.5 延迟指标（辅助旁证）
 
-**下一步：找到反压源头后怎么办？**
+`metrics.latency.interval` 开启后的 Latency 直方图可显示记录排队时间随反压上升，但注意三条边界：LatencyMarker 不进入用户代码，度量的**不是端到端延迟**；低负载 Channel 上每跳额外叠加约 `buffer_timeout / 2`；`subtask` 粒度指标量随并行度平方增长、开销大，官方建议仅调试用。判断反压请以 2.1/2.2 为准，延迟指标只做后果佐证（另需集群 NTP 时钟同步，否则数据不可信）。
 
-识别反压只是第一步。定位到瓶颈算子后，需要深入分析其成为瓶颈的原因，常见方向包括：
+## 3. 准确判定：指标组合决策法
 
-*   **算子本身性能：** 用户函数 (UDF) 是否有优化空间？计算是否太重？是否涉及同步调用或外部系统访问？是否产生大量对象导致 GC 压力？
-*   **数据倾斜 (Data Skew)：** 检查该算子的不同 Subtask 的 `numRecordsIn/OutPerSecond` 和 `busyTimeMsPerSecond`。如果某些 Subtask 的指标远高于其他，说明存在数据倾斜。需要优化 KeyBy 策略、使用 `rebalance` 或自定义分区、或使用 Flink 的 Key-Groups 调整。
-*   **资源不足：** 该算子（或其所在的 TaskManager Slot）是否分配了足够的 CPU 和内存？检查 TM 的 CPU Load 和 GC 情况。
-*   **外部系统瓶颈：** 如果是 Sink 算子慢，检查目标数据库/Kafka/文件系统等的写入性能、连接池配置、批处理大小等。
-*   **网络配置：** 检查 `taskmanager.network.memory` 相关配置是否合理。在持续反压且自动 Debloating 效果不佳时，可能需要手动调整网络缓冲区大小 (`taskmanager.network.memory.buffers-per-channel`, `taskmanager.network.memory.floating-buffers-per-gate`)。但优先优化业务逻辑和资源。
-*   **状态后端性能：** 对于有状态的算子（尤其是 Window/Aggregate），检查状态访问是否成为瓶颈。RocksDB 配置是否优化？状态是否过大？
+### 3.1 官方组合判读表（in/out PoolUsage 四象限）
 
----
+| | `outPoolUsage` 低 | `outPoolUsage` 高 |
+|---|---|---|
+| **`inPoolUsage` 低** | ✅ 健康 | 已被反压，属临时态：上游尚未（或不再）被反压 |
+| **`inPoolUsage` 高（1.9+）** | 若**所有**上游 `outPoolUsage` 低：自身处理慢，即将向上游施加反压 | 被下游或网络反压，且很可能正在向上传播 |
+| | 若**任一**上游 `outPoolUsage` 高：**可能正是反压源头** | 被下游反压并向上转发 |
 
-**结论**
+叠加 `floating/exclusiveBuffersUsage` 进一步细分（1.9+，1.13.6 适用）：
 
-Flink 1.13 提供了强大而多样的反压检测机制。熟练掌握 **Flink Web UI 的 Back Pressure 功能** 和 **基于 `outPoolUsage`/`inPoolUsage` Metrics 的监控告警**，是高效运维 Flink 作业、保障其稳定高性能运行的必备技能。结合 Checkpoint 监控和日志分析，可以构建一套完整的反压感知体系。快速准确地识别反压是进行后续性能调优、资源扩容和问题解决的前提。希望这篇博文能帮助你成为 Flink 反压诊断的专家！
+| | `exclusiveBuffersUsage` 低 | `exclusiveBuffersUsage` 高 |
+|---|---|---|
+| **floating 低 + 所有上游 out 低** | ✅ 健康 | 不应出现 |
+| **floating 低 + 任一上游 out 高** | ⚠️ 疑似网络瓶颈 | 不应出现 |
+| **floating 高 + 所有上游 out 低** | 反压将出现在**部分**输入 Channel | 反压将出现在**大部分/全部** Channel |
+| **floating 高 + 任一上游 out 高** | 反压已在部分 Channel | 反压已在大部分/全部 Channel |
 
-**（可选）动手实验建议：**
-*   部署一个简单的 Flink 1.13 作业（如包含一个慢速 Sink）。
-*   故意制造反压（例如在 Sink 函数中加入 `Thread.sleep`）。
-*   观察 Web UI Back Pressure 页面的变化。
-*   配置 Prometheus 和 Grafana，观察 `outPoolUsage` (在 Sink 的上游算子) 和 `inPoolUsage` (在 Sink 算子) 的飙升。
-*   查看作业日志是否出现 Buffer Debloating 信息或 Checkpoint 超时警告。
+**"部分 Channel" 通常指向数据倾斜，"全部 Channel" 指向全局性瓶颈**——这张表是从"是否反压"走向"什么形态的反压"的关键。
+
+### 3.2 三分法定性：受害者、嫌疑犯、挨饿者
+
+对任一 Subtask，看三个时间指标的占比：
+
+- **BackPressured 高** ⇒ **受害者**：瓶颈在下游，继续往下游找；
+- **Busy 高（且 BackPressured 低）** ⇒ **嫌疑犯**：自己算不过来，就是瓶颈候选；
+- **Idle 高** ⇒ **挨饿者**：上游给得慢，与反压无关，直接排除。
+
+### 3.3 沿数据流定位源头（完整判定流程）
+
+1. **确认持续性**：反压指标看 5~10 分钟窗口。负载尖峰、Checkpoint 期间、故障恢复追数据造成的临时反压通常可忽略，不必处置。
+2. **圈定嫌疑顶点**：沿 Source → Sink 方向，找**最后一个 BackPressured 高（或 `outPoolUsage` 高）的顶点**——官方博客口径：从最后一个正在经历反压的算子往后找，**它的下一个顶点就是头号嫌疑**。
+3. **三分法定性嫌疑顶点**：Busy 高 ⇒ 坐实自身瓶颈（转入根因排查）；BackPressured 也高 ⇒ 瓶颈在更下游，回到第 2 步；Idle 高 ⇒ 排除，重新审视圈定。
+4. **Subtask 下钻查倾斜**：同一顶点内各 Subtask 的 ratio、`busyTimeMsPerSecond`、`numRecordsInPerSecond` 悬殊 ⇒ 倾斜（记住 Vertex 级等级取的是最大值，一个红的就能把整个顶点标红）。
+5. **甄别网络型反压**：发送侧 `outPoolUsage` 高、**所有**接收侧 `inPoolUsage` 低 ⇒ 瓶颈不在算子而在共享网络/同机其他进程（Checkpoint IO、DFS、日志、Metrics、其他 TM 进程）。
+
+### 3.4 排除假信号
+
+- **`inPoolUsage=100%` 但集群 ≤1.8**：大概率是 FLINK-11082 的正常现象，不是反压；
+- **速率下降就报反压**：先看 Source 是否本来就没数据（Idle 高、各池使用率低 ⇒ 挨饿而非反压）；
+- **周期性反压与 GC 重合**：开 GC 日志比对时间线，长停顿造成的"伪反压"要按 GC 问题处理；
+- **反压伴随 Checkpoint 超时**（`Checkpoint expired before completing...`）：这是反压的**后果**信号（Barrier 在反压通道中传播变慢），可作旁证，但不能反推源头位置。
+
+### 3.5 判定速查表
+
+| 观察到的现象 | 结论 |
+|--------------|------|
+| `backPressuredTimeMsPerSecond` 持续 > 500 | 该 Subtask 处于严重反压（受害者），往下游找 |
+| `busyTimeMsPerSecond` ≈ 1000 且 backPressured ≈ 0 | 该 Subtask 是瓶颈嫌疑犯 |
+| `outPoolUsage` = 100% | 已被反压（可能尚未阻塞，比时间比率更早预警） |
+| `inPoolUsage` 持续 ≈100%（≥1.9） | 正在向上游施加反压 |
+| floating ≈100% + exclusive ≈100% | 全部输入 Channel 被顶住：全局瓶颈 |
+| floating ≈100% + exclusive 不高 | 仅部分 Channel 反压：疑似倾斜 |
+| 发送 out 高 + 所有接收 in 低 + 吞吐低 | 网络/credit 往返瓶颈，调 `buffers-per-channel` |
+| `inputQueueLength` = 0 | 正常（本地 Channel 恒为 0），该指标不可用 |
+
+## 4. 监控落地：Prometheus + 告警规则（1.13.6）
+
+```yaml
+# flink-conf.yaml
+metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+metrics.reporter.prom.port: 9250-9260
+```
+
+```promql
+# 反压告警：任一 Subtask 每秒被反压时间超过 500ms，持续 5 分钟
+max by (job_name, task_name) (flink_taskmanager_job_task_backPressuredTimeMsPerSecond) > 500
+  for: 5m
+
+# 瓶颈自证：Busy 打满，持续 5 分钟
+max by (job_name, task_name) (flink_taskmanager_job_task_busyTimeMsPerSecond) > 900
+  for: 5m
+
+# 缓冲顶满旁证：输出池使用率
+max by (job_name, task_name) (flink_taskmanager_job_task_outPoolUsage) > 0.9
+  for: 5m
+```
+
+两条纪律：
+
+1. **一律 `max by` subtask 而非 avg**——与 REST 端点"Vertex 级取 Subtask 最大 ratio"保持同一口径，避免单个倾斜 Subtask 被平均值稀释；
+2. **告警必须带持续窗口（for）**——三分法指标是瞬时秒级值，单点尖峰（Checkpoint、追数）不应触发。
+
+Grafana 面板建议：每个核心顶点一块，画 BackPressured/Busy/Idle 堆叠面积图 + `outPoolUsage`/`inPoolUsage` 双折线，两坐标系对照着看。
+
+## 5. 踩坑复盘：那些年误判过的反压
+
+1. **把时间比率与池使用率当同一回事。** `ratio`（=backPressured 毫秒/1000）是"阻塞时间占比"，`outPoolUsage=100%` 是"缓冲顶满"——后者更早、前者更实。旧采样时代（≤1.12）的 ratio 语义又与两者都不同，跨版本对比历史数据前先确认测量机制。
+2. **用 `inputQueueLength` 配告警，结果恒为 0。** 本地 Channel 无独立输入队列（FLINK-12576），官方明确不推荐这两个指标。
+3. **在 1.8 集群把 `inPoolUsage=100%` 当反压。** FLINK-11082 修复前空 Buffer 也计 backlog，正常场景常见 100%；1.9+ 才是强信号。
+4. **把 Idle 高当反压。** Idle 高是挨饿（上游慢/Source 限速），BackPressured 高才是被下游顶住，方向完全相反。
+5. **把临时反压当故障。** 负载尖峰、Checkpoint 期间、恢复追数都会反压；所有结论基于持续窗口。
+6. **用 avg 聚合配告警掩盖倾斜。** 单 Subtask 反压在平均值里消失；对齐 REST 口径用 max by subtask。
+7. **看到 Vertex 标红就认定整个顶点是瓶颈。** 1.13.6 的 Vertex 等级取 Subtask ratio 最大值，可能只有一个倾斜 Subtask 在红。
+8. **拿 `numBuffersOut` 做实时判断。** 它只在 Buffer 写满或被事件切断时递增，天然滞后。
+9. **速率低就报反压。** 可能是 Source 没数据（Idle 高、池使用率低），先做 3.4 的排除。
+10. **在 1.13.6 上找 Buffer Debloating 日志。** 该特性 1.14 才引入（FLIP-147），1.13.6 无此配置与日志，"1.13+ 支持 Debloating"的说法是讹传。
+11. **`busyTimeMsPerSecond` 出现 NaN 就慌。** 它是派生指标且受启用开关门控，1.13.6 流式任务默认启用，NaN 只出现在未启用的任务类型上。
+12. **把 Latency 直方图当端到端延迟。** LatencyMarker 不进用户代码、低负载每跳叠加约 `buffer_timeout/2`、依赖 NTP，只能做反压后果的旁证。
+
+## 6. 总结
+
+| 主题 | 结论（以 1.13.6 为准） |
+|------|----------------------|
+| 第一权威信号 | `backPressuredTimeMsPerSecond`（Web UI/REST 比率 = 它/1000；OK≤0.10<LOW≤0.5<HIGH） |
+| 缓冲坐标 | `outPoolUsage=100%` ⇒ 已被反压；`inPoolUsage` 持续 100%（≥1.9）⇒ 正在向上游施压 |
+| 形态细分 | floating/exclusive 组合区分"部分 Channel（倾斜）"与"全部 Channel（全局瓶颈）" |
+| 定性口诀 | BackPressured 高=受害者，Busy 高=嫌疑犯，Idle 高=挨饿者 |
+| 定位方向 | 沿数据流找最后一个反压顶点，其下一个顶点是头号嫌疑；发送 out 高+所有接收 in 低 ⇒ 网络型 |
+| 禁用指标 | `outputQueueLength` / `inputQueueLength`（FLINK-12576）；`numBuffersOut`（滞后） |
+| 告警纪律 | max by subtask + 持续窗口，口径对齐 REST 的"取最大值" |
+
+一句话收束：**先用时间三分法定性每个 Subtask 的角色（受害者/嫌疑犯/挨饿者），再用 PoolUsage 四象限表确认反压的方向与覆盖面，沿数据流走到"最后一个受害者的下游"即源头**——两套坐标系互相印证，才能把"是否反压"判准，把"反压在哪"判对。
